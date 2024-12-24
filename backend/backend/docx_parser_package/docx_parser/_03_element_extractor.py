@@ -65,7 +65,7 @@ class TableElement(DocumentElement):
 
 @dataclass
 class FigureElement(DocumentElement):
-    """图��"""
+    """图"""
     width: Optional[int] = None
     height: Optional[int] = None
     caption: Optional[str] = None
@@ -221,7 +221,7 @@ class ParagraphExtractor(BaseElementExtractor):
         return indent_level, first_line_tabs
 
     def _build_toc_indent_map(self) -> Dict[int, int]:
-        """构建目录缩进值到层级映���"""
+        """构建目录缩进值到层级映射"""
         if self._toc_indents is not None:
             return self._toc_indents
         
@@ -334,31 +334,34 @@ class ParagraphExtractor(BaseElementExtractor):
             self.logger.warning(f"Failed to determine TOC level: {e}")
             return 1
 
-    def _clean_toc_content(self, element: Any) -> Tuple[str, Optional[int]]:
+    def _clean_toc_content(self, element: Any) -> Tuple[str, Optional[int], int]:
         """清理目录内容，分离标题和页码"""
-        # 获取所有文本节点及其属性，但排除字段指令文本
-        text_runs = self.parser.xpath(".//w:r[not(ancestor::w:instrText)]", element)
+        text_runs = self.parser.xpath(".//w:r", element)  # 获取所有 run 元素
         content_parts = []
         page_number = None
+        found_tab = False  # 标记是否遇到过 tab
         
         for run in text_runs:
+            # 检查是否包含 tab
+            if self.parser.xpath(".//w:tab", run):
+                found_tab = True
+                continue
+            
             # 获取文本内容
             text = self.parser.xpath("string(.//w:t)", run)
             
-            # 检查是否有保留空格的属性
-            preserve_space = self.parser.xpath("boolean(.//w:t[@xml:space='preserve'])", run)
+            if not text:  # 跳过空文本
+                continue
             
-            # 检查是否有特殊空格元素
-            has_space = self.parser.xpath("boolean(.//w:space)", run)
-            
-            if text.strip() and text.strip().isdigit():
+            # 如果已经遇到 tab，且当前文本是数字，则认为是页码
+            if found_tab and text.strip().isdigit():
                 page_number = int(text.strip())
             else:
-                # 如果需要保留空格或有特殊空格元素，保留原始文本
-                if preserve_space or has_space:
+                # 处理正文内容
+                preserve_space = self.parser.xpath("boolean(.//w:t[@xml:space='preserve'])", run)
+                if preserve_space:
                     content_parts.append(text)
                 else:
-                    # 对于普通文本，保留一个空格
                     if content_parts and not text.startswith(' ') and not content_parts[-1].endswith(' '):
                         content_parts.append(' ')
                     content_parts.append(text)
@@ -369,7 +372,7 @@ class ParagraphExtractor(BaseElementExtractor):
         
         # 获取目录级别
         toc_level = self._get_toc_level(element)
-
+        
         return clean_content, page_number, toc_level
     
     def extract_element(self, element: Any) -> Optional[ParagraphElement]:
@@ -452,7 +455,7 @@ class TableExtractor(BaseElementExtractor):
             # 检查是否有嵌套表格, 查当前element下的是否还有w:tbl 
             has_nested = bool(self.parser.xpath(".//w:tbl", element)) 
             
-            # 检查是否有合并单元格，查询���前element下的是否有w:gridSpan或w:vMerge
+            # 检查是否有合并单元格，查询前element下的是否有w:gridSpan或w:vMerge
             has_merged = bool(self.parser.xpath(".//w:gridSpan|.//w:vMerge", element))
             
             # 获取表格内容的Markdown格式
@@ -698,6 +701,14 @@ class DocumentElementExtractor:
                         
                         toc_match = self._match_with_toc(extracted.content)
                         
+                        # 保存原始标题信息
+                        original_heading_info = {
+                            'original_heading_level': extracted.heading_level,
+                            'original_is_heading': extracted.is_heading,
+                            'original_heading_type': extracted.heading_type,
+                            **(extracted.heading_info or {})
+                        }
+                        
                         if toc_match:
                             # 更新元素属性
                             extracted.content = extracted.content.replace(extracted.content, clean_content)
@@ -705,19 +716,30 @@ class DocumentElementExtractor:
                             extracted.heading_level = toc_match['level']
                             extracted.heading_type = "toc_matched"
                             
-                            # 创建或更新 heading_info
-                            heading_info = extracted.heading_info or {}
+                            # 创建或更新 heading_info，保留原始标题信息
                             extracted.heading_info = {
-                                **heading_info,
-                                'has_outline_level': heading_info.get('has_outline_level', False),
-                                'has_heading_style': heading_info.get('has_heading_style', False),
-                                'style_id': heading_info.get('style_id'),
+                                **original_heading_info,  # 包含原始标题信息
+                                'has_outline_level': original_heading_info.get('has_outline_level', False),
+                                'has_heading_style': original_heading_info.get('has_heading_style', False),
+                                'style_id': original_heading_info.get('style_id'),
                                 'toc_matched': True,
                                 'toc_level': toc_match['level'],
                                 'toc_page': toc_match['page'],
                                 'toc_sequence': toc_match['sequence']
                             }
                             logger.debug(f"Updated element with TOC match: {extracted}")
+                        else:
+                            # 如果是标题但没有匹配到目录项，将其转换为非标题
+                            if extracted.is_heading:
+                                extracted.heading_info = {
+                                    **original_heading_info,  # 保存原始标题信息
+                                    'toc_matched': False,
+                                    'converted_to_non_heading': True
+                                }
+                                extracted.is_heading = False
+                                extracted.heading_level = None
+                                extracted.heading_type = ""
+                                logger.debug(f"Converted unmatched heading to non-heading: {extracted}")
                     
                     self.elements.append(extracted)
                     logger.debug(f"Successfully extracted {element_type} element {i+1}")

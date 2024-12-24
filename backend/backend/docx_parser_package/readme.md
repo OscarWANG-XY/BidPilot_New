@@ -1,16 +1,16 @@
 docx_parser/
-├── _01_xml_loader.py             # XML提取
-├── _02_xml_parser.py             # XML解析
-├── _03_element_extractor.py      # 元素提取工具
+├── _01_xml_loader.py            # XML提取
+├── _02_xml_parser.py            # XML解析
+├── _03_element_extractor.py     # 元素提取工具
 ├── _04_structure_builder.py     # 章节结构构建器
 ├── _05_content_retriever.py     # 章节内容还原与提取
 ├── _00_utils.py                 # 通用辅助函数
 └── notebooks/                 # Jupyter Lab Notebooks
-    ├── 01_xml_parsing.ipynb   # XML解析测试
-    ├── 02_element_extraction.ipynb  # 元素提取测试
-    ├── 03_structure_building.ipynb # 章节结构构建测试
-    ├── 04_content_retrieving.ipynb # 内容提取与还原测试
-    └── 04_content_retrieving.ipynb # 内容提取与还原测试
+    ├── 01_xml_loading.ipynb   # XML加载测试
+    ├── 02_xml_parsing.ipynb   # XML解析测试
+    ├── 03_element_extraction.ipynb  # 元素提取测试
+    ├── 04_structure_building.ipynb # 章节结构构建测试
+    ├── 05_content_retrieving.ipynb # 内容提取与还原测试
 
 
 职责明确的分工：
