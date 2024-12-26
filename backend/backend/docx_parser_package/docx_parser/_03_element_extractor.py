@@ -14,8 +14,8 @@ class ElementType(Enum):
     PARAGRAPH = "paragraph"
     TABLE = "table"
     FIGURE = "figure"
-    REFERENCE = "reference"
-    TOC = "toc"  # 新增目录类型
+    #REFERENCE = "reference"
+    #TOC = "toc"  # 新增目录类型
 
 @dataclass
 class DocumentElement:
@@ -74,15 +74,6 @@ class FigureElement(DocumentElement):
     is_inline: bool = True
     anchor_type: str = "inline"
     source_path: Optional[str] = None
-
-@dataclass
-class TocElement(DocumentElement):
-    """目录元素"""
-    toc_level: int = 0
-    page_number: Optional[int] = None
-    toc_type: str = "auto"  # auto 或 manual
-    is_hyperlink: bool = False
-    target_anchor: Optional[str] = None
 
 class BaseElementExtractor:
     """元素提取器基类"""
