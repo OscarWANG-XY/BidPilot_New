@@ -655,15 +655,15 @@ class DocumentElementExtractor:
     def extract_all_elements(self) -> List[DocumentElement]:
         """提取所有元素，保持文档顺序"""
         # 使用原有的 XPath 查询
-        elements = self.parser.xpath("//w:p[not(ancestor::w:tbl)] | //w:tbl[not(ancestor::w:tbl)]")
+        xml_elements = self.parser.xpath("//w:p[not(ancestor::w:tbl)] | //w:tbl[not(ancestor::w:tbl)]")
         
         logger.info("Starting element extraction...")
-        logger.debug(f"Found {len(elements) if elements else 0} total elements")
+        logger.debug(f"Found {len(xml_elements) if xml_elements else 0} total elements")
         
         last_in_toc = False  # 仅用于检测目录区域结束
         
         # 处理每个元素
-        for i, element in enumerate(elements):
+        for i, element in enumerate(xml_elements):
             try:
                 # 使用与 ParagraphExtractor 相同的逻辑判断是否在目录区域
                 is_in_toc = bool(self.parser.xpath("ancestor-or-self::w:sdt[.//w:docPartGallery/@w:val='Table of Contents']", element))
