@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import List, Dict, Optional, Any
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+import tiktoken
 from docx_parser_package.docx_parser._03_element_extractor import ElementType, DocumentElement
 
 @dataclass
@@ -10,25 +11,38 @@ class SimpleElement:
     sequence_number: int
     content: str
     is_heading: bool = False
-    heading_level: int = 0
+    heading_level: Optional[int] = None
     is_toc:bool = False
     has_nested: bool = False
     has_merged: bool = False
 
 @dataclass
-class DocumentNode:
+class DocumentNode_v1:
     """文档树节点"""
     node_id: int
     element: SimpleElement
     level: Optional[int] = None  # 只有标题才有层级，其他内容为 None
-    children: List['DocumentNode'] = None
-    parent: Optional['DocumentNode'] = None
-    prev_sibling: Optional['DocumentNode'] = None  # 同级上一个节点
-    next_sibling: Optional['DocumentNode'] = None  # 同级下一个节点
-    path: str = ""  # 节点路径，例如: "1.2.3" 表示第1章第2节第3小节
-    key_message: str = ""  # 节点关键信息，例如: "招标文件-第1包：一级压榨花生油"
-    node_type: str = ""  # 节点类型，例如: "chapter", "section", "sub_section"，"paragraph", "table", "figure", "toc" , "cover" 
+    children: List['DocumentNode_v1'] = field(default_factory=list)
+    parent: Optional['DocumentNode_v1'] = None
+    prev_sibling: Optional[int] = None  # 同级上一个节点, 用Node_id表示
+    next_sibling: Optional[int] = None  # 同级下一个节点, 用Node_id表示
+    path: List[int] = field(default_factory=list)   # 节点路径，例如: "1.2.3" 表示第1章第2节第3小节
+    node_type: str = "content_node"  # 节点类型: title_node, content_node
+    content_type: str = ""  # 节点内容类型，例如: "paragraph", "table", "figure", "toc" , "cover" 
     node_length: int = 0  # 节点长度，例如: 1000
+    branch_length: Optional[int] = None  # 标题节点才有分支长度，例如: 1000
+    ttl_nodes_in_branch: Optional[int] = None  # 分支下的节点总数(包括标题节点和内容节点)
+    # 以下为配套enrich_doc_structure 增加的节点
+    enrich_pre_screened_result: Optional[str] = None  # 增强节点预筛选结果
+    enrich_added_heading_nodes: Optional[List[int]] = field(default_factory=list)  # 增强节点预筛选后添加的标题节点
+    # 以下为配套模型分析第一轮结果
+    appendix_type: Optional[str] = None  # 附件类型
+    summary: Optional[str] = None  # 章节摘要
+    content_include: Optional[str] = None  # 章节内容包括
+    usage_in_interpretation: Optional[str] = None  # 招标文件解读环节的作用
+    usage_in_preparation: Optional[str] = None  # 投标文件编制环节的作用
+    key_actions: Optional[List[Dict[str, str]]] = field(default_factory=list)  # 关键行动
+    status: str = "unread" # 默认都是未读
 
 
 class DocumentNodeCreator:
@@ -37,6 +51,11 @@ class DocumentNodeCreator:
         self.elements = elements
         self.nodes = []
         self._create_nodes()  # 添加初始化时创建节点的调用
+
+    def count_tokens(self, text: str) -> int:
+        """计算文本的token数量"""
+        encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
+        return len(encoding.encode(text))
 
     def _create_simple_element(self, element: Any) -> SimpleElement:
         """创建简化的元素对象"""
@@ -52,7 +71,7 @@ class DocumentNodeCreator:
             common_attrs.update({
                 'is_heading': getattr(element, 'is_heading', False),
                 'is_toc':getattr(element, 'is_toc', False),
-                'heading_level': getattr(element, 'heading_level', 0),
+                'heading_level': getattr(element, 'heading_level', None),
                 #'heading_type': getattr(element, 'heading_type', ""),
                 #'alignment': getattr(element, 'alignment', ""),
                 #'indentation': getattr(element, 'indentation', 0)
@@ -66,14 +85,24 @@ class DocumentNodeCreator:
         return SimpleElement(**common_attrs)
     
 
-    def _create_nodes(self) -> List[DocumentNode]:
+    def _create_nodes(self) -> List[DocumentNode_v1]:
         """为每个元素创建对应的文档节点"""
         for element in self.elements:
             simple_element = self._create_simple_element(element)
-            doc_node = DocumentNode(node_id=element.sequence_number, element=simple_element, level=simple_element.heading_level)
+            node_type = "title_node" if simple_element.is_heading else "content_node"
+            content_type = "text" if simple_element.element_type == ElementType.PARAGRAPH else "table"
+            node_length = self.count_tokens(simple_element.content)
+            doc_node = DocumentNode_v1(
+                node_id=element.sequence_number, 
+                element=simple_element, 
+                level=simple_element.heading_level,
+                node_type=node_type,   # title_node, content_node
+                content_type=content_type,  #
+                node_length=node_length
+                )
             self.nodes.append(doc_node)
         return self.nodes
 
-    def get_nodes(self) -> List[DocumentNode]:
+    def get_nodes(self) -> List[DocumentNode_v1]:
         """返回创建的所有节点"""
         return self.nodes

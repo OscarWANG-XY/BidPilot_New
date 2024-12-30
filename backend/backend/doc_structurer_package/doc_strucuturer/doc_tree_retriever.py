@@ -1,9 +1,9 @@
 from typing import List, Optional, Generator, Dict
 from dataclasses import dataclass
-from doc_structurer_package.doc_strucuturer._01_doc_node_creater import DocumentNode
+from doc_structurer_package.doc_strucuturer._01_doc_node_creater import DocumentNode_v1
 
 class DocTreeRetriever:
-    def __init__(self, doc_tree: DocumentNode):
+    def __init__(self, doc_tree: DocumentNode_v1):
         self.root = doc_tree
 
 #获取文本内容的函数
@@ -14,7 +14,7 @@ class DocTreeRetriever:
         返回格式: [content1, content2, ...]
         """
         contents = []
-        def traverse(node: DocumentNode):  # 遍历文档树，收集所有内容
+        def traverse(node: DocumentNode_v1):  # 遍历文档树，收集所有内容
             if node.element and node.element.content:
                 contents.append(node.element.content)
             for child in node.children or []:
@@ -32,7 +32,7 @@ class DocTreeRetriever:
         result = {}
         current_heading = None
         
-        def traverse(node: DocumentNode):
+        def traverse(node: DocumentNode_v1):
             nonlocal current_heading # 声明使用外部变量，即get_heading_content()方法中的current_heading
             if node.element.is_heading:
                 current_heading = node.element.content # 将当前标题添加到结果字典中，作为键
@@ -53,7 +53,7 @@ class DocTreeRetriever:
         返回格式: {path1: content1, path2: content2, ...}
         """
         result = {}   # 用于存储结果的字典， 键为路径，值为内容
-        def traverse(node: DocumentNode):
+        def traverse(node: DocumentNode_v1):
             if node.element.content:
                 result[node.path] = node.element.content
             for child in node.children:
@@ -75,7 +75,7 @@ class DocTreeRetriever:
         for content in doc_tree_retriever.iter_content():
             print(content)
         """
-        def traverse(node: DocumentNode):
+        def traverse(node: DocumentNode_v1):
             if node.element.content:
                 yield node.element.content
             for child in node.children:
@@ -92,7 +92,7 @@ class DocTreeRetriever:
         """
         contents = []
         
-        def traverse(node: DocumentNode):
+        def traverse(node: DocumentNode_v1):
             # 特殊处理 root 节点
             if level == 0:
                 if node == self.root and node.element and node.element.content:
@@ -122,7 +122,7 @@ class DocTreeRetriever:
         返回格式: 字典，字典的键为content，type，is_heading，heading_level，children
         使用方法： 
         """
-        def build_structure(node: DocumentNode) -> Dict:
+        def build_structure(node: DocumentNode_v1) -> Dict:
             result = {
                 'content': node.element.content,
                 'type': node.element.element_type,
@@ -138,7 +138,7 @@ class DocTreeRetriever:
         return build_structure(self.root)    
 
 #获取节点列表的函数
-    def get_next_level_nodes_by_nodeID(self, node_id: str) -> List[DocumentNode]:
+    def get_next_level_nodes_by_nodeID(self, node_id: str) -> List[DocumentNode_v1]:
         """获取指定节点ID的下一级节点列表
         
         Args:
@@ -152,7 +152,7 @@ class DocTreeRetriever:
         """
         # 首先找到目标节点
         target_node = None
-        def find_node(node: DocumentNode):
+        def find_node(node: DocumentNode_v1):
             if node.id == node_id:
                 return node
             for child in node.children:
@@ -180,17 +180,17 @@ class DocTreeRetriever:
               ├─ 4 第1.1节  （0 子nodes, 其中 0 标题nodes）
               ├─ 7 第1.2节  （3 子nodes, 其中 1 标题nodes）
         """
-        def get_child_count(node: DocumentNode) -> int:
+        def get_child_count(node: DocumentNode_v1) -> int:
             if not node.children:
                 return 0
             return len([child for child in node.children])
 
-        def get_heading_child_count(node: DocumentNode) -> int:
+        def get_heading_child_count(node: DocumentNode_v1) -> int:
             if not node.children:
                 return 0
             return len([child for child in node.children if child.element.is_heading])
         
-        def print_node(node: DocumentNode, prefix=""):
+        def print_node(node: DocumentNode_v1, prefix=""):
             if node == self.root:
                 child_count = get_child_count(node)
                 heading_child_count = get_heading_child_count(node)

@@ -1,11 +1,11 @@
 from typing import List
-from ._01_doc_node_creater import DocumentNode
+from ._01_doc_node_creater import DocumentNode_v1
 
 class TreeLevelBuilder:
     """构建单层级树节点的工具类"""
     
     @staticmethod
-    def build(nodes: List[DocumentNode], target_level: int) -> List[DocumentNode]:
+    def build(nodes: List[DocumentNode_v1], target_level: int) -> List[DocumentNode_v1]:
         """构建下一层级的节点结构
         
         Args:
@@ -13,7 +13,7 @@ class TreeLevelBuilder:
             parent_level: 父节点的层级 (0 表示根节点, 1 表示一级标题，以此类推)
         
         Returns:
-            List[DocumentNode]: 构建好的下一层级节点列表
+            List[DocumentNode_v1]: 构建好的下一层级节点列表
         """
         
         # 添加防御性检查
@@ -43,9 +43,9 @@ class TreeLevelBuilder:
                 current_content = [] #清空 current_content，准备处理下一个标题节点
                 
                 # 设置新标题节点的关系
-                node.prev_sibling = current_heading_node   #设置新标题节点的 prev_sibling 为 current_heading_node，当不存在当前节点时，prev_sibling 为 None
+                node.prev_sibling = current_heading_node.node_id if current_heading_node else None    #设置新标题节点的 prev_sibling 为 current_heading_node，当不存在当前节点时，prev_sibling 为 None
                 if current_heading_node:
-                    current_heading_node.next_sibling = node #如果当前标题节点存在，设置前一个标题节点的 next_sibling 为当前标题节点，即建立双向兄弟关系
+                    current_heading_node.next_sibling = node.node_id #如果当前标题节点存在，设置前一个标题节点的 next_sibling 为当前标题节点，即建立双向兄弟关系
                 
                 result.append(node) #将新标题节点添加到 result 列表中，表示它已经构建完成
                 current_heading_node = node #将当前标题节点设置为新标题节点，准备处理下一个标题节点
