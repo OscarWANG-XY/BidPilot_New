@@ -1,6 +1,6 @@
 from typing import List, Optional, Generator, Dict
 from dataclasses import dataclass
-from doc_structurer_package.doc_strucuturer._01_doc_node_creater import DocumentNode_v1
+from doc_structurer_package.doc_structurer._01_doc_node_creater import DocumentNode_v1
 
 class DocTreeRetriever:
     def __init__(self, doc_tree: DocumentNode_v1):

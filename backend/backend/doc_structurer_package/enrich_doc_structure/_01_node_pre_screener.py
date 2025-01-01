@@ -2,7 +2,7 @@ from typing import List, Any
 import re
 from dataclasses import dataclass
 from docx_parser_package.docx_parser._03_element_extractor import ElementType
-from doc_structurer_package.doc_strucuturer._01_doc_node_creater import DocumentNode_v1
+from doc_structurer_package.doc_structurer._01_doc_node_creater import DocumentNode_v1
 
 
 

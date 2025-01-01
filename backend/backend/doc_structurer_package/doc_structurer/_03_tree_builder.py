@@ -32,7 +32,9 @@ class TreeBuilder:
             parent=None,
             prev_sibling=None,
             next_sibling=None,
-            path=[-1]
+            path_sequence=[-1],
+            path_titles="Root",
+            path_title_id=""
         )
         
         # 记录已处理的最大层级
@@ -125,9 +127,13 @@ class TreeBuilder:
             child.node_length + (child.branch_length or 0)  # 如果 branch_length 为 None，使用 0
             for child in (self.root.children or [])
         )
-        
+
+        # 构建标题id
+        self._build_path_title_id(self.doc_nodes)
+
         # 从根节点开始构建所有路径
-        self._build_node_paths(self.root)
+        self._build_node_path(self.root)
+
 
         return DocumentStructure(doc_tree=self.root, doc_nodes=self.doc_nodes)
     
@@ -139,20 +145,64 @@ class TreeBuilder:
         """
         return DocumentStructure(doc_tree=self.root, doc_nodes=self.doc_nodes)
 
-    def _build_node_paths(self, node: DocumentNode_v1) -> None:
+    def _build_path_title_id(self, nodes: List[DocumentNode_v1]) -> None:
+        """为每个标题节点构建标题ID
+        
+        Args:
+            nodes: 文档节点列表
+        """
+        # 找出最大层级
+        max_level = max((node.level for node in nodes if node.element.is_heading), default=0)
+        
+        # 逐层处理标题节点
+        for level in range(1, max_level + 1):
+            # 获取当前层级的所有标题节点
+            level_nodes = [node for node in nodes 
+                         if node.element.is_heading and node.level == level]
+            
+            # 第一层直接编号
+            if level == 1:
+                for i, node in enumerate(level_nodes, 1):
+                    node.path_title_id = str(i)
+            # 其他层级基于父节点编号
+            else:
+                for node in level_nodes:
+                    # 获取父节点的编号
+                    parent_id = node.parent.path_title_id
+                    # 获取同级节点中的序号
+                    siblings = [n for n in nodes 
+                              if n.element.is_heading 
+                              and n.level == level 
+                              and n.parent == node.parent]
+                    position = siblings.index(node) + 1
+                    # 组合父节点编号和当前序号
+                    node.path_title_id = f"{parent_id}.{position}"
+
+    def _build_node_path(self, node: DocumentNode_v1) -> None:
         """递归构建每个节点的完整路径。
         path 是从根节点到当前节点的所有 node_id 列表
         
         Args:
             node: 当前处理的节点
         """
+        
+
         if not node.parent:
             # 根节点的路径只包含自己的 node_id
-            node.path = [node.node_id]
+            node.path_sequence = [node.node_id]
+            node.path_titles = ["root"]
         else:
-            # 其他节点的路径 = 父节点的路径 + 自己的 node_id
-            node.path = node.parent.path + [node.node_id]
-        
+            # 其他节点的路径 = 父节点的路径 + 自己的 node_id(如果自己是标题节点)
+            if node.element.is_heading:
+                node.path_sequence = node.parent.path_sequence + [node.node_id]
+
+                title_label = "Chapter" if node.element.heading_level == 1 else "Section" if node.element.heading_level == 2 else "Subsection"
+                title_id = node.path_title_id
+                node.path_titles = node.parent.path_titles + [f"[{title_label} {title_id}]" +":"+ node.element.content]
+            else:
+                node.path_sequence = node.parent.path_sequence
+                node.path_titles = node.parent.path_titles
+
         # 递归处理所有子节点
         for child in (node.children or []):
-            self._build_node_paths(child)
+            self._build_node_path(child)

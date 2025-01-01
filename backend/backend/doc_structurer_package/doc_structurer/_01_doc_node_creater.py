@@ -26,7 +26,9 @@ class DocumentNode_v1:
     parent: Optional['DocumentNode_v1'] = None
     prev_sibling: Optional[int] = None  # 同级上一个节点, 用Node_id表示
     next_sibling: Optional[int] = None  # 同级下一个节点, 用Node_id表示
-    path: List[int] = field(default_factory=list)   # 节点路径，例如: "1.2.3" 表示第1章第2节第3小节
+    path_sequence: List[int] = field(default_factory=list)   # 路径中节点的node_id
+    path_titles: str = ""  # 节点路径，例如 第1章 > 第2节 > 第3小节
+    path_title_id: str = ""  # 标题节点才有标题id，1, 1.1, 1.1.1
     node_type: str = "content_node"  # 节点类型: title_node, content_node
     content_type: str = ""  # 节点内容类型，例如: "paragraph", "table", "figure", "toc" , "cover" 
     node_length: int = 0  # 节点长度，例如: 1000
@@ -36,7 +38,7 @@ class DocumentNode_v1:
     enrich_pre_screened_result: Optional[str] = None  # 增强节点预筛选结果
     enrich_added_heading_nodes: Optional[List[int]] = field(default_factory=list)  # 增强节点预筛选后添加的标题节点
     # 以下为配套模型分析第一轮结果
-    appendix_type: Optional[str] = None  # 附件类型
+    #appendix_type: Optional[str] = None  # 附件类型
     summary: Optional[str] = None  # 章节摘要
     content_include: Optional[str] = None  # 章节内容包括
     usage_in_interpretation: Optional[str] = None  # 招标文件解读环节的作用

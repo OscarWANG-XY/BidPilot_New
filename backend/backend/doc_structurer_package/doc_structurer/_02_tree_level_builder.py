@@ -66,5 +66,3 @@ class TreeLevelBuilder:
                 content_node.parent = current_heading_node   #更新内容的父节点
         
         return result
-
-    

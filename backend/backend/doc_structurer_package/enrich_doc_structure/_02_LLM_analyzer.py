@@ -3,6 +3,7 @@ import asyncio
 from langchain.schema import HumanMessage
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.chat_models import MoonshotChat
+from langchain_openai import ChatOpenAI
 from tenacity import retry, wait_exponential, stop_after_attempt
 import json
 import nest_asyncio
@@ -23,7 +24,7 @@ class LLMAnalyzer:
             return "moonshot-v1-32k"
         return "moonshot-v1-128k"
 
-    def _create_chat_instance(self, model_name: str) -> MoonshotChat:
+    def _create_Moonshotchat_instance(self, model_name: str) -> MoonshotChat:
         """创建聊天模型实例"""
         return MoonshotChat(
             model=model_name,
@@ -31,7 +32,19 @@ class LLMAnalyzer:
             temperature=0.1,
             max_tokens=self._get_max_tokens(model_name),
             streaming=True
+        )       
+
+    def _create_Deepseekchat_instance(self) -> ChatOpenAI:
+        """创建聊天模型实例"""
+        return ChatOpenAI(
+            model="deepseek-chat",  # 这里填入 Deepseek 的模型名称，例如 "deepseek-chat"
+            api_key="sk-b0e6fb37996a4edebefee51f25606c89",  # 替换为你的 API key
+            base_url="https://api.deepseek.com/v1",  # Deepseek 的 API 端点
+            temperature= 1.0, #用于数据抽取和分析，follow deepseek 的建议
+            max_tokens=8000,
+            streaming=True
         )
+
 
     def _get_max_tokens(self, model_name: str) -> int:
         """获取模型的最大token数"""
@@ -65,12 +78,87 @@ class LLMAnalyzer:
             content = content.split("```")[1].strip()
         return content.strip()
 
+    def _validate_result(self, result: Any) -> Optional[List[Dict]]:
+        """验证模型输出结果的格式和内容
+        
+        Args:
+            result: 模型输出结果
+            
+        Returns:
+            List[Dict] 如果验证通过，返回处理后的结果
+            None 如果验证失败
+        """
+        # 验证是否为列表类型
+        if not isinstance(result, list):
+            print(f"返回结果必须是列表格式，当前格式为: {type(result)}")
+            return [result] if isinstance(result, dict) else None
+        
+        validated_results = []
+        for item in result:
+            # 验证基本结构
+            if not isinstance(item, dict):
+                print(f"列表元素必须是字典格式: {item}")
+                return None
+            
+            # 验证必需字段
+            required_fields = [
+                "章节编号", "章节标题", "摘要", "内容包括", 
+                "解读环节用途", "编制环节用途", "关键行动"
+            ]
+            missing_fields = [field for field in required_fields if field not in item]
+            if missing_fields:
+                print(f"缺少必需字段: {missing_fields}")
+                return None
+            
+            # 验证并转换章节编号为整数
+            try:
+                item["章节编号"] = int(item["章节编号"])
+            except (ValueError, TypeError):
+                print(f"章节编号必须能转换为整数，当前值为: {item['章节编号']}")
+                return None
+            
+            # 验证章节标题不为空
+            if not item["章节标题"] or not isinstance(item["章节标题"], str):
+                print(f"章节标题必须是非空字符串，当前值为: {item['章节标题']}")
+                return None
+            
+            # 验证关键行动格式
+            if not isinstance(item["关键行动"], list):
+                print(f"关键行动必须是列表格式，当前格式为: {type(item['关键行动'])}")
+                return None
+            
+            # 验证每个行动项
+            validated_actions = []
+            for action in item["关键行动"]:
+                if not isinstance(action, dict):
+                    print(f"行动项必须是字典格式: {action}")
+                    return None
+                
+                # 验证行动项必需字段
+                required_action_fields = ["行动名称", "时间", "地点", "内容"]
+                missing_action_fields = [
+                    field for field in required_action_fields 
+                    if field not in action
+                ]
+                if missing_action_fields:
+                    print(f"行动项缺少必需字段: {missing_action_fields}")
+                    return None
+                
+                validated_actions.append(action)
+            
+            # 更新验证后的行动列表
+            item["关键行动"] = validated_actions
+            validated_results.append(item)
+        
+        return validated_results
+
     async def process_part_async(self, part: Dict) -> Optional[List[Dict[str, Any]]]:
         """异步处理单个part，期望返回列表类型"""
         try:
             doc_lens = part['part_length']
             model_name = self._select_model(doc_lens)
-            chat = self._create_chat_instance(model_name)
+            #chat = self._create_Moonshotchat_instance(model_name)
+            chat = self._create_Deepseekchat_instance()
             
             prompt_content = self.prompt.replace("<text>", part['content'])
             messages = [HumanMessage(content=prompt_content)]
@@ -81,68 +169,9 @@ class LLMAnalyzer:
                 # 清理并解析响应
                 cleaned_content = self._clean_model_response(response.content)
                 result = json.loads(cleaned_content)
-                
-                # 验证是否为列表类型
-                if not isinstance(result, list):
-                    print(f"返回结果必须是列表格式，当前格式为: {type(result)}")
-                    return [result]
-                
-                # 验证列表元素
-                for item in result:
-                    # 验证基本结构
-                    if not isinstance(item, dict):
-                        print(f"列表元素必须是字典格式: {item}")
-                        return None
-                    
-                    # 验证必需字段
-                    required_fields = [
-                        "章节编号", "章节标题","附件类型", "摘要", "内容包括", 
-                        "解读环节用途", "编制环节用途", "关键行动"
-                    ]
-                    missing_fields = [field for field in required_fields if field not in item]
-                    if missing_fields:
-                        print(f"缺少必需字段: {missing_fields}")
-                        return None
-                    
-                    # 验证并转换章节编号为整数
-                    try:
-                        item["章节编号"] = int(item["章节编号"])
-                    except (ValueError, TypeError):
-                        print(f"章节编号必须能转换为整数，当前值为: {item['章节编号']}")
-                        return None
-                    
-                    # 验证章节标题不为空
-                    if not item["章节标题"] or not isinstance(item["章节标题"], str):
-                        print(f"章节标题必须是非空字符串，当前值为: {item['章节标题']}")
-                        return None
 
-                    # 验证附件类型的值
-                    if item["附件类型"] not in ["模板", "补充说明"]:
-                        print(f"附件类型必须是 '模板' 或 '补充说明'，当前值为: {item['附件类型']}")
-                        return None
-                    
-                    # 验证关键行动格式
-                    if not isinstance(item["关键行动"], list):
-                        print(f"关键行动必须是列表格式，当前格式为: {type(item['关键行动'])}")
-                        return None
-                    
-                    # 验证每个行动项
-                    for action in item["关键行动"]:
-                        if not isinstance(action, dict):
-                            print(f"行动项必须是字典格式: {action}")
-                            return None
-                        
-                        # 验证行动项必需字段
-                        required_action_fields = ["行动名称", "时间", "地点", "内容"]
-                        missing_action_fields = [
-                            field for field in required_action_fields 
-                            if field not in action
-                        ]
-                        if missing_action_fields:
-                            print(f"行动项缺少必需字段: {missing_action_fields}")
-                            return None
-                
-                return result
+                # 验证结果
+                return self._validate_result(result)               
                 
             except json.JSONDecodeError as e:
                 print(f"JSON解析错误，清理后的响应：\n{cleaned_content}")
@@ -173,13 +202,29 @@ class LLMAnalyzer:
             batch_tasks = [self.process_part_async(part) for part in batch]
             batch_results = await asyncio.gather(*batch_tasks)
             
-            # 只保留有效的结果
+            # 添加调试信息
+            print(f"\n处理批次 {i//batch_size + 1}:")
+            print(f"批次大小: {len(batch)}")
+            print(f"批次结果数量: {len(batch_results)}")
+            for idx, result in enumerate(batch_results):
+                print(f"结果 {idx + 1} 类型: {type(result)}")
+                print(f"结果 {idx + 1} 内容: {result}")
+            
+            # 修改结果合并逻辑
             for result in batch_results:
-                if isinstance(result, list):
-                    results.extend(result)
+                if result is not None:  # 确保结果不是 None
+                    if isinstance(result, list):
+                        results.extend(result)  # 如果是列表，扩展到结果中
+                    else:
+                        results.append(result)  # 如果是单个结果，添加到结果中
             
             await asyncio.sleep(0.3)
-            
+        
+        print(f"\n最终结果检查:")
+        print(f"总结果数量: {len(results)}")
+        print(f"结果类型: {type(results)}")
+        print(f"结果内容: {results}")
+        
         return results
 
     def analyze_parts(self) -> List[Dict]:
