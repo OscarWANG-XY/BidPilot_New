@@ -1,34 +1,36 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { Layout } from './components/Layout'
+import { TenderBidManagement } from './pages/TenderBidManagement'
+import { CompanyProfile } from './pages/CompanyProfile'
+import { UserManagement } from './pages/UserManagement'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <Router>
+      <Layout>
+        <Routes>
+          {/* 招标文件路由, path是自定义的 */}
+          <Route path="/tender-bid-management" element={<TenderBidManagement />}> 
+            <Route path="list" element={<TenderBidManagement.List />} />
+            <Route path="parse" element={<TenderBidManagement.Parser />} />
+          </Route>
+
+          {/* 公司档案路由 */}
+          <Route path="/company" element={<CompanyProfile />}>
+            <Route path="basic-info" element={<CompanyProfile.BasicInfo />} />
+            <Route path="qualifications" element={<CompanyProfile.Qualifications />} />
+            <Route path="certificates" element={<CompanyProfile.Certificates />} />
+          </Route>
+
+          {/* 用户管理路由 */}
+          <Route path="/users" element={<UserManagement />}>
+            <Route path="list" element={<UserManagement.List />} />
+            <Route path="roles" element={<UserManagement.Roles />} />
+          </Route>
+        </Routes>
+      </Layout>
+    </Router>
   )
 }
 
