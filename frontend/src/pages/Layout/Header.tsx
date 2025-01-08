@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { FC, useState } from 'react'
 import { Bell, Search, User, ChevronDown, Settings, LogOut } from 'lucide-react'
 
-export function Header() {
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
+export const Header: FC = () => {
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
 
   return (
     <div className="h-16 bg-white shadow-sm flex items-center justify-between px-6">

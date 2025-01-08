@@ -1,3 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 下面是全局样式，之前没有加，导致主内容区的页面只显示一半。 */
+html, body, #root {
+  width: 100%; /* 设置宽度为100% */
+  height: 100%; /* 设置高度为100% */
+  margin: 0; /* 去掉默认外边距 */
+  padding: 0; /* 去掉默认内边距 */
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+}
+
+
+
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -66,3 +85,4 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
