@@ -46,6 +46,8 @@ export function TenderBidList() {
 
   return (
     <div className="space-y-4">
+
+      {/* 新建招标任务按钮 */}
       <div className="flex justify-end">
         <Button onClick={() => navigate('parse')} className="flex items-center gap-2">
           <Plus className="w-4 h-4" />
@@ -53,8 +55,10 @@ export function TenderBidList() {
         </Button>
       </div>
 
+      {/* 招标任务列表 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {biddingTasks.map((task) => (
+          // 招标任务卡片结构
           <Card key={task.id} className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="flex justify-between items-start">
