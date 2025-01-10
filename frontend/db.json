@@ -1,0 +1,52 @@
+{
+  "posts": [
+    {
+      "id": "1",
+      "title": "a title",
+      "views": 100
+    },
+    {
+      "id": "2",
+      "title": "another title",
+      "views": 200
+    },
+    {
+      "id": "4019"
+    },
+    {
+      "id": "a1ca",
+      "title": "电目利象引。",
+      "views": 251
+    },
+    {
+      "id": "42b5",
+      "title": "论求目万机总往更。",
+      "views": 90
+    },
+    {
+      "id": "f75a",
+      "title": "会马角造委太度。",
+      "views": 17
+    },
+    {
+      "id": "8ffe",
+      "title": "子改应劳老省。",
+      "views": 99
+    }
+  ],
+  "comments": [
+    {
+      "id": "1",
+      "text": "a comment about post 1",
+      "postId": "1"
+    },
+    {
+      "id": "2",
+      "text": "another comment about post 1",
+      "postId": "1"
+    }
+  ],
+  "profile": {
+    "name": "typicode"
+  }
+}
