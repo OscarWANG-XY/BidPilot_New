@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "incremental": true,   //增量编译，下次编译只重新编译发生变化的文件。
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
     "target": "ES2022",
     "lib": ["ES2023"],
@@ -18,7 +19,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    //"noUncheckedSideEffectImports": true
   },
   "include": ["vite.config.ts"]
 }

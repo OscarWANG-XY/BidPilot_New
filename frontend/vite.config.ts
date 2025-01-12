@@ -9,7 +9,7 @@ export default defineConfig({
     react(),
     TanStackRouterVite(
       {
-        routesDirectory: path.resolve(__dirname, './src/pages'),
+        routesDirectory: path.resolve(__dirname, './src/routes'),
         generatedRouteTree: path.resolve(__dirname, './src/routeTree.gen.ts'),
       }
     ),

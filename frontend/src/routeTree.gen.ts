@@ -12,26 +12,47 @@ import { createFileRoute } from '@tanstack/react-router'
 
 // Import Routes
 
-import { Route as rootRoute } from './pages/__root'
+import { Route as rootRoute } from './routes/__root'
+import { Route as TestImport } from './routes/test'
 
 // Create Virtual Routes
 
+const TenderbidLazyImport = createFileRoute('/tender_bid')()
+const CompanyLazyImport = createFileRoute('/company')()
 const AboutLazyImport = createFileRoute('/about')()
 const IndexLazyImport = createFileRoute('/')()
 
 // Create/Update Routes
 
+const TenderbidLazyRoute = TenderbidLazyImport.update({
+  id: '/tender_bid',
+  path: '/tender_bid',
+  getParentRoute: () => rootRoute,
+} as any).lazy(() => import('./routes/tender_bid.lazy').then((d) => d.Route))
+
+const CompanyLazyRoute = CompanyLazyImport.update({
+  id: '/company',
+  path: '/company',
+  getParentRoute: () => rootRoute,
+} as any).lazy(() => import('./routes/company.lazy').then((d) => d.Route))
+
 const AboutLazyRoute = AboutLazyImport.update({
   id: '/about',
   path: '/about',
   getParentRoute: () => rootRoute,
-} as any).lazy(() => import('./pages/about.lazy').then((d) => d.Route))
+} as any).lazy(() => import('./routes/about.lazy').then((d) => d.Route))
+
+const TestRoute = TestImport.update({
+  id: '/test',
+  path: '/test',
+  getParentRoute: () => rootRoute,
+} as any)
 
 const IndexLazyRoute = IndexLazyImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRoute,
-} as any).lazy(() => import('./pages/index.lazy').then((d) => d.Route))
+} as any).lazy(() => import('./routes/index.lazy').then((d) => d.Route))
 
 // Populate the FileRoutesByPath interface
 
@@ -44,11 +65,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexLazyImport
       parentRoute: typeof rootRoute
     }
+    '/test': {
+      id: '/test'
+      path: '/test'
+      fullPath: '/test'
+      preLoaderRoute: typeof TestImport
+      parentRoute: typeof rootRoute
+    }
     '/about': {
       id: '/about'
       path: '/about'
       fullPath: '/about'
       preLoaderRoute: typeof AboutLazyImport
+      parentRoute: typeof rootRoute
+    }
+    '/company': {
+      id: '/company'
+      path: '/company'
+      fullPath: '/company'
+      preLoaderRoute: typeof CompanyLazyImport
+      parentRoute: typeof rootRoute
+    }
+    '/tender_bid': {
+      id: '/tender_bid'
+      path: '/tender_bid'
+      fullPath: '/tender_bid'
+      preLoaderRoute: typeof TenderbidLazyImport
       parentRoute: typeof rootRoute
     }
   }
@@ -58,37 +100,52 @@ declare module '@tanstack/react-router' {
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexLazyRoute
+  '/test': typeof TestRoute
   '/about': typeof AboutLazyRoute
+  '/company': typeof CompanyLazyRoute
+  '/tender_bid': typeof TenderbidLazyRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexLazyRoute
+  '/test': typeof TestRoute
   '/about': typeof AboutLazyRoute
+  '/company': typeof CompanyLazyRoute
+  '/tender_bid': typeof TenderbidLazyRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexLazyRoute
+  '/test': typeof TestRoute
   '/about': typeof AboutLazyRoute
+  '/company': typeof CompanyLazyRoute
+  '/tender_bid': typeof TenderbidLazyRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about'
+  fullPaths: '/' | '/test' | '/about' | '/company' | '/tender_bid'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about'
-  id: '__root__' | '/' | '/about'
+  to: '/' | '/test' | '/about' | '/company' | '/tender_bid'
+  id: '__root__' | '/' | '/test' | '/about' | '/company' | '/tender_bid'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexLazyRoute: typeof IndexLazyRoute
+  TestRoute: typeof TestRoute
   AboutLazyRoute: typeof AboutLazyRoute
+  CompanyLazyRoute: typeof CompanyLazyRoute
+  TenderbidLazyRoute: typeof TenderbidLazyRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexLazyRoute: IndexLazyRoute,
+  TestRoute: TestRoute,
   AboutLazyRoute: AboutLazyRoute,
+  CompanyLazyRoute: CompanyLazyRoute,
+  TenderbidLazyRoute: TenderbidLazyRoute,
 }
 
 export const routeTree = rootRoute
@@ -102,14 +159,26 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
-        "/about"
+        "/test",
+        "/about",
+        "/company",
+        "/tender_bid"
       ]
     },
     "/": {
       "filePath": "index.lazy.tsx"
     },
+    "/test": {
+      "filePath": "test.tsx"
+    },
     "/about": {
       "filePath": "about.lazy.tsx"
+    },
+    "/company": {
+      "filePath": "company.lazy.tsx"
+    },
+    "/tender_bid": {
+      "filePath": "tender_bid.lazy.tsx"
     }
   }
 }
