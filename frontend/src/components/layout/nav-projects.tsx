@@ -38,7 +38,7 @@
 * @param {LucideIcon} projects[].icon - 项目图标组件
 */
 
-import {FilePlus2, Building2, MoreHorizontal, PenLine, Star} from "lucide-react"
+import {Building2, MoreHorizontal, PenLine, Star} from "lucide-react"
 
 import {
   SidebarGroup,
@@ -54,6 +54,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+
+import { CreateProjectDialog } from "@/components/project/create_project"
 
 export function NavProjects({
 projects,
@@ -74,19 +76,17 @@ projects,
       <SidebarMenu className="mb-1">
         <SidebarMenuItem className="mb-2">
           <SidebarMenuButton asChild>
-          <a href="/tender_bid">
-                <FilePlus2 className="text-blue-500" /> 
-                <span className="text-lg text-blue-500">新建项目</span>
-              </a>
+            {/* 新建项目 在create_project.tsx中实现*/}
+            <CreateProjectDialog/>
           </SidebarMenuButton>
         </SidebarMenuItem>
 
         <SidebarMenuItem>
           <SidebarMenuButton asChild>
-          <a href="/company">
-                <Building2 /> 
-                <span className="text-lg">公司档案</span>
-              </a>
+            <a href="/company" className="w-full flex items-center gap-2 px-2">
+              <Building2 className="h-4 w-4" /> 
+              <span className="text-lg">公司档案</span>
+            </a>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>

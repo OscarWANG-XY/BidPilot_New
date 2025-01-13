@@ -1,4 +1,7 @@
 import { createLazyFileRoute } from '@tanstack/react-router'
+import { ProjectCard } from "@/components/project/project_card"
+import { ProjectProcess } from "@/components/project/project_process"
+
 export const Route = createLazyFileRoute('/tender_bid')({
   component: RouteComponent,
 })
@@ -6,7 +9,10 @@ export const Route = createLazyFileRoute('/tender_bid')({
 function RouteComponent() {
   return( 
     <>
-    <div>Hello "/tender_bid"!</div>
+    <div className="container mx-auto p-4 space-y-6">
+      <ProjectCard />
+      <ProjectProcess />
+    </div>
     </>
   )
 }
