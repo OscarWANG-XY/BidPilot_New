@@ -3,6 +3,7 @@ const multer = require('multer');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 const port = 3001;
@@ -10,6 +11,7 @@ const port = 3001;
 // 启用 CORS
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static('uploads'));
 
 // 确保上传目录存在
 const uploadDir = path.join(__dirname, 'uploads');
@@ -33,30 +35,41 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// 文件上传路由
-app.post('/upload', upload.single('file'), (req, res) => {
+// 确定文件类型的辅助函数
+function determineFileType(mimeType, extension) {
+  if (mimeType.includes('pdf')) return 'PDF';
+  if (mimeType.includes('word') || extension === 'doc' || extension === 'docx') return 'WORD';
+  if (mimeType.includes('excel') || extension === 'xls' || extension === 'xlsx') return 'EXCEL';
+  if (mimeType.includes('image')) return 'IMAGE';
+  return 'OTHER';
+}
+
+app.post('/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: '没有文件被上传' });
     }
 
+    // 1. 处理文件上传
     const fileData = {
-      id: Date.now().toString(),
-      fileName: originalName,
-      fileSize: req.file.size,
-      uploadTime: new Date().toISOString(),
-      status: '待审核',
-      projectId: req.body.projectId,
-      fileUrl: `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`,
-      fileType: path.extname(req.file.originalname).slice(1)
+      id: uuidv4(),
+      name: req.file.originalname,
+      url: `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`,
+      size: req.file.size,
+      type: determineFileType(req.file.mimetype, path.extname(req.file.originalname).slice(1).toLowerCase()),
+      mimeType: req.file.mimetype,
     };
 
-    console.log('File uploaded:', fileData);
-
+    // 2. 返回文件信息
     res.status(200).json(fileData);
+    
+    // 不需要手动写入 db.json，让 json-server 来处理
   } catch (error) {
     console.error('Upload error:', error);
-    res.status(500).json({ message: '文件上传失败', error: error.message });
+    res.status(500).json({ 
+      message: '文件上传失败', 
+      error: error.message 
+    });
   }
 });
 

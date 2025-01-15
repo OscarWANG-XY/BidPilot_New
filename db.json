@@ -1,46 +1,35 @@
 {
-  "projects": [
-    {
-      "id": "1",
-      "name": "示例项目",
-      "type": "福利礼品",
-      "companyName": "示例公司",
-      "status": "进行中",
-      "createdAt": "2024-03-20T00:00:00.000Z",
-      "updatedAt": "2024-03-20T00:00:00.000Z",
-      "tenderFiles": []
-    }
-  ],
+  "projects": [],
   "files": [
     {
-      "id": "1736869156490",
-      "fileName": "case 9 _æ ·å¼æµè¯.docx",
-      "fileSize": 17372,
-      "uploadTime": "2025-01-14T15:39:16.490Z",
-      "status": "待审核",
-      "projectId": "1",
-      "fileUrl": "http://localhost:3001/uploads/1736869156489-279169781-case 9 _样式测试.docx",
-      "fileType": "docx"
+      "id": "8dac9dbb-5ad8-4bf1-a21e-aabd6cda6971",
+      "name": "case4st_北京铁运投标人须知.docx",
+      "url": "http://localhost:3001/uploads/1736959751678-367306574-case4st_北京铁运投标人须知.docx",
+      "size": 18488,
+      "type": "WORD",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "status": "NONE",
+      "createdAt": "2025-01-15T16:49:11.681Z"
     },
     {
-      "id": "1736869617250",
-      "fileName": "case 9 _æ ·å¼æµè¯.docx",
-      "fileSize": 17372,
-      "uploadTime": "2025-01-14T15:46:57.250Z",
-      "status": "待审核",
-      "projectId": "1",
-      "fileUrl": "http://localhost:3001/uploads/1736869617249-790619378-case 9 _样式测试.docx",
-      "fileType": "docx"
+      "id": "0955079d-7bba-4c6f-996c-89249f001821",
+      "name": "case3st_北京铁运投标人须知.docx",
+      "url": "http://localhost:3001/uploads/1736959754224-459718076-case3st_北京铁运投标人须知.docx",
+      "size": 31657,
+      "type": "WORD",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "status": "NONE",
+      "createdAt": "2025-01-15T16:49:14.227Z"
     },
     {
-      "id": "1736874402356",
-      "fileName": "case11-æµè¯æ ç»æ.docx",
-      "fileSize": 11196,
-      "uploadTime": "2025-01-14T17:06:42.356Z",
-      "status": "待审核",
-      "projectId": "1",
-      "fileUrl": "http://localhost:3001/uploads/1736874402354-209221449-case11-测试树结构.docx",
-      "fileType": "docx"
+      "id": "7c2777ba-dd80-4880-88d3-6e4ffb174e2f",
+      "name": "case1-淮安市实验小学春节福利物品采购.pdf",
+      "url": "http://localhost:3001/uploads/1736959756847-60255425-case1-淮安市实验小学春节福利物品采购.pdf",
+      "size": 196994,
+      "type": "PDF",
+      "mimeType": "application/pdf",
+      "status": "NONE",
+      "createdAt": "2025-01-15T16:49:16.850Z"
     }
   ]
 }

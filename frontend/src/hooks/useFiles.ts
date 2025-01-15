@@ -1,103 +1,37 @@
-// 这是使用Tanstack Query 实现的自定义HOOK, 用于管理文件上传和删除
-/**
- * 项目文件管理 Hook
- * 
- * 该 Hook 提供项目相关文件的完整管理功能，包括：
- * - 获取项目文件列表
- * - 上传新文件
- * - 删除现有文件
- * 
- * 使用 React Query 实现数据获取和缓存管理，提供自动的：
- * - 数据缓存和更新
- * - 加载状态跟踪
- * - 错误处理
- * - 乐观更新
- * 
- * @example
- * const {
- *   files,          // 文件列表
- *   uploadFile,     // 上传方法
- *   deleteFile,     // 删除方法
- *   isLoading,      // 加载状态
- *   isUploading,    // 上传状态
- *   isDeleting      // 删除状态
- * } = useFiles(projectId);
- * 
- * // 上传文件示例
- * uploadFile(file, {
- *   onSuccess: () => {
- *     console.log('文件上传成功');
- *   },
- *   onError: (error) => {
- *     console.error('上传失败:', error);
- *   }
- * });
- * 
- * // 删除文件示例
- * deleteFile(fileId, {
- *   onSuccess: () => {
- *     console.log('文件删除成功');
- *   }
- * });
- * 
- * @param projectId - 项目ID，用于标识特定项目的文件集合
- * 
- * @returns {Object} 文件管理相关的状态和方法
- * @returns {TenderFile[]} returns.files - 项目文件列表
- * @returns {boolean} returns.isLoading - 文件列表加载状态
- * @returns {boolean} returns.isError - 文件列表加载错误状态
- * @returns {(file: File) => void} returns.uploadFile - 文件上传方法
- * @returns {(fileId: string) => void} returns.deleteFile - 文件删除方法
- * @returns {boolean} returns.isUploading - 文件上传中状态
- * @returns {boolean} returns.isDeleting - 文件删除中状态
- * 
- * @typedef {Object} TenderFile - 文件对象类型
- * @property {string} id - 文件ID
- * @property {string} fileName - 文件名
- * @property {number} fileSize - 文件大小（字节）
- * @property {Date} uploadTime - 上传时间
- * @property {string} status - 文件状态（'已通过'|'已驳回'|'待审核'）
- * 
- * @remarks
- * - 文件列表会自动缓存，并在上传/删除操作后自动更新
- * - 所有操作都包含错误处理和加载状态
- * - 支持并发操作（多文件同时上传/删除）
- * - 使用乐观更新策略，提供更好的用户体验
- * 
- * @dependencies
- * - @tanstack/react-query
- * - @/api/files
- * - @/types/project
- */
-
 
 // useQuery: 用于数据获取  useMutation: 用于数据修改  useQueryClient: 用于管理查询缓存
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { fileApi } from '@/api/files';
-import { TenderFile } from '@/types/project';
+import { fileApi } from '@/api/files_api';
+import { FileRecord } from '@/types/files_dt_stru';
 import { toast } from '@/hooks/use-toast';
 
 
-// HOOK的主题结构，接受projectId作为参数，用于标识特定项目的文件
-export function useFiles(projectId: string) {
+// ================================ 文件上传管理 hook  ============================================ 
+export function useFiles() {
+
+  // 获取react-query的客户端实例，用于管理和操作缓存数据
+  // 在后面上传成功时会用到
   const queryClient = useQueryClient();
 
-  console.log('useFiles hook called with projectId:', projectId);
+ 
 
-  // 优化 useQuery 配置
+
+  // ---------------查询文件的Query管理 --------------- 
   const filesQuery = useQuery({
-    queryKey: ['files', projectId],
-    queryFn: () => {
-      console.log('Query function called for projectId:', projectId);
-      return fileApi.getProjectFiles(projectId);
-    },
-    staleTime: 0, // 数据5分钟内认为是新鲜的
-    gcTime: 1000 * 60 * 30,   // 缓存保持30分钟（替换 cacheTime）
-    refetchOnWindowFocus: false, // 窗口聚焦时不重新请求
+    // 缓存的唯一标识符，在useQuery被初始化时配置。 
+    queryKey: ['fileskey'], 
+    // 查询函数，返回所有文件，然后放进缓存。
+    // 直到缓存数据被判定过期，否则新的API请求不会被触发，而是直接调用缓存数据。
+    queryFn: () => fileApi.getAllFiles(),
+
+    //其他关于缓存的配置参数
+    staleTime: 0, // 有效/新鲜的时间，例如 1000 * 60 * 5 是5分钟
+    gcTime: 0,   // 缓存保持时间（替换 cacheTime），例如 1000 * 60 * 30 是30分钟
+    refetchOnWindowFocus: true, // 窗口聚焦时重新请求
     retry: 1, // 失败时重试1次
     initialData: [], // 初始数据为空数组
-    // 可选：预取数据
-    placeholderData: (previousData) => previousData ?? [],
+    // 可选：用placeholderData预取数据
+    //placeholderData: (previousData) => previousData ?? [],
   });
 
   // Ensure the data is being fetched and set correctly
@@ -109,37 +43,39 @@ export function useFiles(projectId: string) {
     console.log('Files fetched:', filesQuery.data);
   }
 
-  // 文件上传mutation； 这是上传文件的状态管理
+
+  // ----------- 上传文件的Query管理 （done check!） -------------
   const uploadMutation = useMutation({
+
+    // 上传文件的Mutation函数, 参数file是从用户选择上传的文件对象 
     mutationFn: (file: File) => {
-      console.log('Before FormData creation - filename:', file.name);
-      
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('projectId', projectId);
-      
-      // 检查 FormData 中的文件名
-      const formDataFile = formData.get('file') as File;
-      
-      console.log('After FormData creation - filename:', formDataFile.name);
-      
-      return fileApi.upload(formDataFile, projectId);
+      // 调用fileApi.upload上传文件
+      return fileApi.uploadFile(file);
     },
 
+    // newFile是上传成功后返回的文件信息，是TenderFile类型， 不是文件对象本身（与file不同）
+    // newFile是mutationFn返回的结果，通常是服务器返回的关于新上传文件的详细信息（如文件名、大小、类型等）
+    onSuccess: (newFile: FileRecord) => {
 
-    onSuccess: (newFile: TenderFile) => {
-      // 更新缓存中的文件列表
-      queryClient.setQueryData<TenderFile[]>(['files', projectId], (old = []) => {
-        return [...old, newFile] as TenderFile[];
-      });
-      
-      // 添加错误处理
-      if (!newFile || typeof newFile !== 'object') {
-        throw new Error('Invalid response format from server');
-      }
-      
-      queryClient.invalidateQueries({ queryKey: ['files', projectId] });
+      // 在queryClient中设置缓存数据，与useQuery中的filesQuery的缓存数据是同一个
+      // 使用.setQueryData()方法，参数1是缓存唯一标识符，参数2是回调函数，用于更新缓存数据
+      queryClient.setQueryData<FileRecord[]>(
+        // 缓存的唯一标识符，在useQuery被初始化时配置。 
+        ['fileskey'], 
+        // 以下是回调函数，用于更新缓存数据，
+        // 缓存数据是响应式的，所有调用它的组件都会自动更新。
+        // 同时，这个更新会让缓存时间刷新，造成需要下一次过期，才会重新请求API。
+        // 于是需要之后的手动invalidateQeueries处理。
+        // 而以下上传的文件信息放入缓存的另外一个作用是让客户没有明显的等待时间。
+        // 但这会有极度短暂的不一致 
+        (old = []) => {return [...old, newFile] as FileRecord[];}
+
+      );
+      // 手动让缓存数据过期，然后重新请求API
+      // 只有这样，上传后的缓存数据与服务器的数据才会一致。
+      queryClient.invalidateQueries({ queryKey: ['fileskey'] });
     },
+
     onError: (error: any) => {
       console.error('Upload failed:', error);
       toast({
@@ -150,18 +86,28 @@ export function useFiles(projectId: string) {
     }
   });
 
-  // 文件删除mutation；  这个删除文件的状态管理
+  // ----------- 修改删除 mutation -------------
   const deleteMutation = useMutation({
     mutationFn: (fileId: string) => fileApi.deleteFile(fileId),
     onSuccess: (_, fileId: string) => {
       // 从缓存中移除已删除的文件
-      queryClient.setQueryData<TenderFile[]>(['files', projectId], (old = []) => {
-        return old.filter((file) => file.id !== fileId) as TenderFile[];
+      queryClient.setQueryData<FileRecord[]>(['files'], (old = []) => {
+        return old.filter((file) => file.id !== fileId);
       });
     },
+    onError: (error: any) => {
+      console.error('Delete failed:', error);
+      toast({
+        title: "删除失败",
+        description: error?.response?.data?.message || error.message || "请稍后重试",
+        variant: "destructive",
+      });
+    }
   });
 
-  // 返回所有状态和方法
+
+
+  // --------------- 返回所有状态和方法 --------------- 
   return {
     files: filesQuery.data ?? [],
     isLoading: filesQuery.isLoading,
@@ -170,5 +116,6 @@ export function useFiles(projectId: string) {
     deleteFile: deleteMutation.mutate,
     isUploading: uploadMutation.isPending,
     isDeleting: deleteMutation.isPending,
+    refecth: filesQuery.refetch,  // 在组件里添加刷新按钮,调用refecth() 可实现强制刷新数据
   };
 } 

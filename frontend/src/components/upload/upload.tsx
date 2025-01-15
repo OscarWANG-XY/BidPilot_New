@@ -8,20 +8,24 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import { Upload, File, Trash2 } from "lucide-react"
 import { useFiles } from "@/hooks/useFiles"
 import { useToast } from "@/hooks/use-toast"
 
-// 接受projectId作为参数, 用于标识文件所属的项目
+// 定义FileUpload组件的props，使得TypeScript检查是否传入了正确的参数。
 interface FileUploadProps {
-  projectId: string;
   onFileUpload: (file: File) => void;  // 明确定义回调函数的参数类型
 }
 
-export function FileUpload({ projectId, onFileUpload }: FileUploadProps) {
+
+// ================================ 文件上传组件 ============================================ 
+export function FileUpload({onFileUpload }: FileUploadProps) {
+//                          onFileUpload是回调函数，父函数（这里是company.lazy.tsx）
+
+  // 获取useToast的toast功能
   const { toast } = useToast();
-  // 使用useFiles获取文件管理相关功能
+
+  // 获取useFiles的相关功能
   const {
     files,
     isLoading,
@@ -29,38 +33,39 @@ export function FileUpload({ projectId, onFileUpload }: FileUploadProps) {
     deleteFile,
     isUploading,
     isDeleting
-  } = useFiles(projectId);
+  } = useFiles();
 
-  // 文件上传处理
-    //关于onFileUpload对调函数的sequenceDiagram(工作原理流程图)
-    // participant Parent as Company组件
-    // participant Child as FileUpload组件
-    // participant Server as 服务器
-    // Parent->>Child: 传递handleFileUpload回调函数
-    // Child->>Server: 上传文件
-    // Server-->>Child: 返回上传成功
-    // Child->>Parent: 调用onFileUpload(file)触发handleFileUpload
-    // Note over Parent: 执行handleFileUpload中的逻辑<br>(如更新UI、状态等)
+
+  // ------------- 文件上传处理 (done check!) ------------- 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  //                              检查是否Input事件触发，一旦有触发箭头函数执行  
+    // 检查是否有文件被选择，
     if (!e.target.files?.length) return;
-    
+
+
+    // 获取文件对象， <HTMLInputElement> 默认允许单文件选择，所以【0】能满足文件获取
+    // 注意： 文件对象是File类型，这个类型是浏览器自带，通过 <input type="file" /> 元素选择文件时自动创建
+    // 文件对象包含.name、.type、.size、.lastModified （时间戳），lastModifiedDate （日期），.webkitRelativePath （文件路径）
     const file = e.target.files[0];
 
 
-
+    // 调试 3：观察file对象的名字，类型，和大小 
     console.log('Original file object:', {
       name: file.name,
       type: file.type,
       size: file.size
     });
-
-
     
+
+
     try {
 
-      // 检查文件类型和大小
+      // 文件类型检查 
+      // 先定义了allowTypes的类型，然后用includes方法检查file.type是否在allowTypes中
       const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
       if (!allowedTypes.includes(file.type)) {
+
+        // 用toast函数显示'文件类型'错误信息 
         toast({
           title: "不支持的文件类型",
           description: "请上传 PDF 或 Word 文档",
@@ -69,7 +74,9 @@ export function FileUpload({ projectId, onFileUpload }: FileUploadProps) {
         return;
       }
       
+      // 检查文件大小
       if (file.size > 10 * 1024 * 1024) {
+        // 用toast函数显示'文件大小'错误信息 
         toast({
           title: "文件过大",
           description: "请选择小于10MB的文件",
@@ -78,19 +85,22 @@ export function FileUpload({ projectId, onFileUpload }: FileUploadProps) {
         return;
       }
       
-      // 创建 FormData 时确保文件名编码正确
-      const formData = new FormData();
-      formData.append('file', file, file.name);
 
-
+      // 调用useFiles的uploadFile来上传文件，通过onSuccess和onError来处理上传成功和失败的情况 （不是返回promise对象）
+      // 如果上传成功，则调用onFileUpload(file)，如果上传失败，则调用onError(error)
       uploadFile(file, {
-        onSuccess: () => {
-          onFileUpload(file);
+
+        onSuccess: () => {  
+          // 上传成功后，调用onFileUpload(file)，是父组件调用本组件时传入的回调函数参数，在父组件执行逻辑操作。 
+          // 这种用法，让父组件基于上传成功，采取相应行动。 
+          onFileUpload(file);  //目前的用法时告知成功上传，所以没有实际用处，因为已经有toast
           toast({
             title: "文件上传成功",
             description: `${file.name} 已成功上传`,
           });
         },
+
+
         onError: (error: any) => {
           console.error('Upload error details:', error);
           toast({
@@ -100,6 +110,9 @@ export function FileUpload({ projectId, onFileUpload }: FileUploadProps) {
           });
         },
       });
+
+      //虽然已经用了toast，我们还是需要catch(error)来捕捉代码里未预期的任务。
+      //error的信息通过console 和 toast 返回。
     } catch (error) {
       console.error('File handling error:', error);
       toast({
@@ -110,7 +123,7 @@ export function FileUpload({ projectId, onFileUpload }: FileUploadProps) {
     }
   };
 
-  // 文件删除处理
+  // -------------- 文件删除处理 --------------   
   const handleDelete = (fileId: string) => {
     deleteFile(fileId, {
       onSuccess: () => {
@@ -121,7 +134,8 @@ export function FileUpload({ projectId, onFileUpload }: FileUploadProps) {
     });
   };
 
-  // 辅助功能：格式化文件大小，转为KB,MB,GB等易读形式
+
+  // --------------- 辅助功能： 格式化文件大小，转为KB,MB,GB等易读形式 --------------- 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -130,6 +144,11 @@ export function FileUpload({ projectId, onFileUpload }: FileUploadProps) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+
+
+
+
+// --------------- UI渲染部分 --------------- 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-4">
@@ -138,8 +157,6 @@ export function FileUpload({ projectId, onFileUpload }: FileUploadProps) {
       </div>
     );
   }
-
-  // UI渲染部分
 
   return (
     <div className="space-y-4">
@@ -172,9 +189,10 @@ export function FileUpload({ projectId, onFileUpload }: FileUploadProps) {
         <TableHeader>
           <TableRow>
             <TableHead>文件名</TableHead>
+            <TableHead>文件类型</TableHead>
             <TableHead>大小</TableHead>
             <TableHead>上传时间</TableHead>
-            <TableHead>状态</TableHead>
+            <TableHead>查看</TableHead>
             <TableHead>操作</TableHead>
           </TableRow>
         </TableHeader>
@@ -183,18 +201,12 @@ export function FileUpload({ projectId, onFileUpload }: FileUploadProps) {
             <TableRow key={file.id}>
               <TableCell className="flex items-center">
                 <File className="mr-2 h-4 w-4" />
-                {file.fileName}
+                {file.name}
               </TableCell>
-              <TableCell>{formatFileSize(file.fileSize)}</TableCell>
-              <TableCell>{new Date(file.uploadTime).toLocaleString()}</TableCell>
-              <TableCell>
-                <Badge variant={
-                  file.status === '已通过' ? 'secondary' :
-                  file.status === '已驳回' ? 'destructive' : 'default'
-                }>
-                  {file.status}
-                </Badge>
-              </TableCell>
+              <TableCell>{file.type}</TableCell>
+              <TableCell>{formatFileSize(file.size)}</TableCell>
+              <TableCell>{new Date(file.createdAt).toLocaleString()}</TableCell>
+              <TableCell> 未配置功能 </TableCell>
               <TableCell>
                 <Button 
                   variant="ghost" 
