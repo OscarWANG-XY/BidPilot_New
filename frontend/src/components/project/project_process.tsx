@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Steps, Step } from "@/components/ui/steps"
+import { Steps, Step } from "@/components/ui_own/steps"
 import { useProjectStore } from "@/stores/projectStore"
 
 export function ProjectProcess() {
@@ -19,7 +19,7 @@ export function ProjectProcess() {
             <Step
               key={step.id}
               title={step.name}
-              status={step.status}
+              status={step.status as "pending" | "in_progress" | "completed"}
             />
           ))}
         </Steps>

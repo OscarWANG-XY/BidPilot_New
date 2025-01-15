@@ -1,0 +1,46 @@
+{
+  "projects": [
+    {
+      "id": "1",
+      "name": "示例项目",
+      "type": "福利礼品",
+      "companyName": "示例公司",
+      "status": "进行中",
+      "createdAt": "2024-03-20T00:00:00.000Z",
+      "updatedAt": "2024-03-20T00:00:00.000Z",
+      "tenderFiles": []
+    }
+  ],
+  "files": [
+    {
+      "id": "1736869156490",
+      "fileName": "case 9 _æ ·å¼æµè¯.docx",
+      "fileSize": 17372,
+      "uploadTime": "2025-01-14T15:39:16.490Z",
+      "status": "待审核",
+      "projectId": "1",
+      "fileUrl": "http://localhost:3001/uploads/1736869156489-279169781-case 9 _样式测试.docx",
+      "fileType": "docx"
+    },
+    {
+      "id": "1736869617250",
+      "fileName": "case 9 _æ ·å¼æµè¯.docx",
+      "fileSize": 17372,
+      "uploadTime": "2025-01-14T15:46:57.250Z",
+      "status": "待审核",
+      "projectId": "1",
+      "fileUrl": "http://localhost:3001/uploads/1736869617249-790619378-case 9 _样式测试.docx",
+      "fileType": "docx"
+    },
+    {
+      "id": "1736874402356",
+      "fileName": "case11-æµè¯æ ç»æ.docx",
+      "fileSize": 11196,
+      "uploadTime": "2025-01-14T17:06:42.356Z",
+      "status": "待审核",
+      "projectId": "1",
+      "fileUrl": "http://localhost:3001/uploads/1736874402354-209221449-case11-测试树结构.docx",
+      "fileType": "docx"
+    }
+  ]
+}

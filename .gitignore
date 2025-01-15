@@ -57,3 +57,6 @@ yarn-error.log*
 
 # environment variables
 .env
+
+# 忽略上传的文件
+upload-server/uploads/

@@ -29,7 +29,7 @@ export function CreateProjectDialog() {
   const setActiveProject = useProjectStore(state => state.setActiveProject) // 从项目管理状态中，获取setActiveProject方法
   const [formData, setFormData] = useState<Partial<Project>>({  //使用useState()管理表单数据
     name: "",
-    type: "",
+    type: undefined,
     companyName: "",
   })
 
@@ -41,10 +41,10 @@ export function CreateProjectDialog() {
     // 创建新项目对象
     const newProject: Project = {
       id: projectId,
-      name: formData.name || "",
-      type: formData.type || "",
+      name: formData.name || "",  
+      type: formData.type as "福利礼品" | "食材配送" || undefined,
       companyName: formData.companyName || "",
-      status: 'draft',
+      status: '未开始',
       createdAt: new Date().toISOString(),  // 创建时间
       updatedAt: new Date().toISOString(),   // 更新时间
       processes: {
@@ -52,7 +52,8 @@ export function CreateProjectDialog() {
         steps: []
       },
       documents: [],
-      members: []
+      members: [],
+      tenderFiles: []
     }
     
     // 保存到 store
@@ -103,7 +104,7 @@ export function CreateProjectDialog() {
                 项目类型
               </Label>
               <Select 
-                onValueChange={(value) => setFormData({...formData, type: value})}
+                onValueChange={(value) => setFormData({...formData, type: value as "福利礼品" | "食材配送"})}
                 required
               >
                 <SelectTrigger className="col-span-3">

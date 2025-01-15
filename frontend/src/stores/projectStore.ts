@@ -43,7 +43,7 @@ interface ProjectStore {
 }
 
 export const useProjectStore = create<ProjectStore>()(
-  devtools(
+  devtools(        //devtools 是 Zustand 提供的中间件，用于调试和观察store的变化
     (set) => ({
       activeProject: null,
       setActiveProject: (project) => 

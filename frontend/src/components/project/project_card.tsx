@@ -14,9 +14,9 @@ export function ProjectCard() {
           <CardTitle className="text-xl font-bold">
             {activeProject.name}
           </CardTitle>
-          <Badge variant={activeProject.status === 'in_progress' ? "default" : "secondary"}>
-            {activeProject.status === 'in_progress' ? '进行中' : 
-             activeProject.status === 'completed' ? '已完成' : '草稿'}
+          <Badge variant={activeProject.status === '进行中' ? "default" : "secondary"}>
+            {activeProject.status === '进行中' ? '进行中' : 
+             activeProject.status === '已完成' ? '已完成' : '未开始'}
           </Badge>
         </div>
       </CardHeader>

@@ -41,6 +41,7 @@
 * @param {...React.ComponentProps<typeof Sidebar>} props - 支持所有 Sidebar 组件的属性
 */
 
+"use client" // 表示代码是客户端组件，如果不添加，Next.js会尝试在服务器端运行，从而导致错误。 
 import * as React from "react"
 import {
   GalleryVerticalEnd,
