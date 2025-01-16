@@ -44,6 +44,14 @@ function determineFileType(mimeType, extension) {
   return 'OTHER';
 }
 
+// 添加一个全局的日志中间件，记录所有请求
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
+
+// 注意这里的/upload是app.post定义的上传API端点， 与/uploads是文件服务器端点不同。
+// 这个端点需要与前端的调用对齐。
 app.post('/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -68,6 +76,36 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     console.error('Upload error:', error);
     res.status(500).json({ 
       message: '文件上传失败', 
+      error: error.message 
+    });
+  }
+});
+
+// 添加文件删除路由 
+app.delete('/uploads/:filename', (req, res) => {
+  try {
+    // 通过decodeURIComponent解码文件名，以处理特殊字符
+    const filename = decodeURIComponent(req.params.filename);
+    console.log('Decoded filename:', filename);
+    const filepath = path.join(__dirname, 'uploads', filename);
+    
+    console.log('Delete request received:', {
+      filename: filename,
+      fullPath: filepath,
+      exists: fs.existsSync(filepath),
+      filesInUpload: fs.readdirSync(path.join(__dirname, 'uploads'))
+    });
+
+    if (fs.existsSync(filepath)) {
+      fs.unlinkSync(filepath);
+      res.status(200).json({ message: '文件删除成功' });
+    } else {
+      res.status(404).json({ message: '文件不存在' });
+    }
+  } catch (error) {
+    console.error('Delete file error:', error);
+    res.status(500).json({ 
+      message: '文件删除失败', 
       error: error.message 
     });
   }

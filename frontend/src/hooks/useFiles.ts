@@ -86,15 +86,27 @@ export function useFiles() {
     }
   });
 
-  // ----------- 修改删除 mutation -------------
+  // ----------- 修改删除 mutation (done check!)-------------
   const deleteMutation = useMutation({
+    // 删除文件的Mutation函数, fileId作为参数传入，调用fileApi.deleteFile向服务器发出删除请求。
     mutationFn: (fileId: string) => fileApi.deleteFile(fileId),
+
+    // 删除成功后，从缓存中移除已删除的文件
     onSuccess: (_, fileId: string) => {
-      // 从缓存中移除已删除的文件
-      queryClient.setQueryData<FileRecord[]>(['files'], (old = []) => {
-        return old.filter((file) => file.id !== fileId);
-      });
+
+      // 第一个参数是缓存标识符queryKey, 第二个是回调函数()=>{}, old作为传参, 默认为[]
+      queryClient.setQueryData<FileRecord[]>(
+        // 缓存的唯一标识符，在useQuery被初始化时配置。 
+        ['fileskey'], 
+        // 回调函数，用于更新缓存数据（通过.filter()返回一个新数组，新数组中不包含已删除的文件）
+        // (file) => file.id !== fileId 是过滤条件，它会遍历old数组里的每一个file, 如果file.id不等于fileId, 则保留file, 否则删除file
+        (old = []) => {return old.filter((file) => file.id !== fileId);}
+      );
+      // 手动让缓存数据过期，然后重新请求API
+      // 只有这样，上传后的缓存数据与服务器的数据才会一致。
+      queryClient.invalidateQueries({ queryKey: ['fileskey'] });
     },
+
     onError: (error: any) => {
       console.error('Delete failed:', error);
       toast({

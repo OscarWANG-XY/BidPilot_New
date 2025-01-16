@@ -2,34 +2,14 @@
   "projects": [],
   "files": [
     {
-      "id": "8dac9dbb-5ad8-4bf1-a21e-aabd6cda6971",
-      "name": "case4st_北京铁运投标人须知.docx",
-      "url": "http://localhost:3001/uploads/1736959751678-367306574-case4st_北京铁运投标人须知.docx",
-      "size": 18488,
+      "id": "4a62e64a-2a16-40aa-81c0-6dc1c3a48e78",
+      "name": "case11-测试树结构.docx",
+      "url": "http://localhost:3001/uploads/1737001873074-138005162-case11-测试树结构.docx",
+      "size": 11196,
       "type": "WORD",
       "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "status": "NONE",
-      "createdAt": "2025-01-15T16:49:11.681Z"
-    },
-    {
-      "id": "0955079d-7bba-4c6f-996c-89249f001821",
-      "name": "case3st_北京铁运投标人须知.docx",
-      "url": "http://localhost:3001/uploads/1736959754224-459718076-case3st_北京铁运投标人须知.docx",
-      "size": 31657,
-      "type": "WORD",
-      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "status": "NONE",
-      "createdAt": "2025-01-15T16:49:14.227Z"
-    },
-    {
-      "id": "7c2777ba-dd80-4880-88d3-6e4ffb174e2f",
-      "name": "case1-淮安市实验小学春节福利物品采购.pdf",
-      "url": "http://localhost:3001/uploads/1736959756847-60255425-case1-淮安市实验小学春节福利物品采购.pdf",
-      "size": 196994,
-      "type": "PDF",
-      "mimeType": "application/pdf",
-      "status": "NONE",
-      "createdAt": "2025-01-15T16:49:16.850Z"
+      "createdAt": "2025-01-16T04:31:13.079Z"
     }
   ]
 }

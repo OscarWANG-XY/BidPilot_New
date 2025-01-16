@@ -123,12 +123,22 @@ export function FileUpload({onFileUpload }: FileUploadProps) {
     }
   };
 
-  // -------------- 文件删除处理 --------------   
+  // -------------- 文件删除处理（done check!） --------------   
   const handleDelete = (fileId: string) => {
+    // 在下面的return(table)渲染中，fileId作为输入参数。
+    // 调用了useFiles的deleteFile来删除文件，通过onSuccess和onError来处理删除成功和失败的情况 （不是返回promise对象）
     deleteFile(fileId, {
       onSuccess: () => {
         toast({
           title: "文件已删除",
+        });
+      },
+      onError: (error: any) => {
+        console.error('Delete error details:', error);
+        toast({
+          title: "删除失败",
+          description: error?.response?.data?.message || error.message || "请稍后重试",
+          variant: "destructive",
         });
       },
     });

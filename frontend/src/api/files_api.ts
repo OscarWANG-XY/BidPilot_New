@@ -38,6 +38,7 @@ export const fileApi = {
 
 
   // ----------- 上传文件 API.upload (done check)-------------
+  // 上传文件的API， 返回的Promise解析值为 FileRecord类型
   uploadFile: async (file: File): Promise<FileRecord> => {
     try {
       // 1. 上传文件
@@ -46,9 +47,13 @@ export const fileApi = {
       // FormData 对象的append方法，用于添加键值对，第一个参数是键，第二个参数是file对象，第三个参数是file.name(可选)
       const formData = new FormData();
       formData.append('file', file);
+      //                     await让程序暂停，直到axios.post异步操作完成返回解析值promise给uploadResponse
+      // upload端点名需要和upload-server/server.js中的端点名一致
       const uploadResponse = await axios.post(`${FILE_SERVER_API_URL}/upload`, formData);
-      
+
+
       // 2. 将文件信息保存到 json-server
+      //                     await让程序暂停，直到axios.post异步操作完成返回解析值promise给fileRecord 
       const fileRecord = await axios.post(`${JSON_SERVER_API_URL}/files`, {
         ...uploadResponse.data,  // 使用上传服务器返回的数据
         name: file.name, //为了处理json-server不能正确处理文件名的问题。
@@ -65,27 +70,43 @@ export const fileApi = {
     }
   },
 
-
-
   
-  // ----------- 删除文件 API.deleteFile -------------
+  
+  // ----------- 删除文件 API.deleteFile(done check!) -------------
+  // 删除文件的API， 返回的Promise解析值为 void类型
   deleteFile: async (fileId: string): Promise<void> => {
     try {
-      // 删除所有相关的文件-项目关联
-      const { data: links } = await axios.get(
-        `${JSON_SERVER_API_URL}/file-project-links?fileId=${fileId}`
-      );
       
-      await Promise.all(
-        links.map((link: { id: string }) =>
-          axios.delete(`${JSON_SERVER_API_URL}/file-project-links/${link.id}`)
-        )
-      );
+      // 1. 删除文件服务器的文件实体， 需要获取文件路径来定位删除
+      // 由于我们需要通过先从json-server获得文件信息，所以json-server的信息删除需要放到之后
+      // promise响应对象中，包含data, status, statusText, headers, config, request 
+      // data:fileInfo 表示将范围的promise的data解析值赋值给fileInfo 
+      const { data: fileInfo } = await axios.get(`${JSON_SERVER_API_URL}/files/${fileId}`);
+      console.log('fileInfo:', fileInfo);
+      // 从 URL 中提取文件名
+      const fileName = fileInfo.url.split('/uploads/').pop();
+      console.log('fileName:', fileName);
 
+      // 注意，虽然fileName正确提取了，当通过axios传递到文件服务器时HTTP协议会自动对URL编码，
+      //所以在服务器端需要用decodeURIComponent解码
+      await axios.delete(`${FILE_SERVER_API_URL}/uploads/${fileName}`);
+
+
+      // 2. 删除json-server的文件记录
+      // 删除文件fileId, 返回的Promise解析值为 void类型, await让程序暂停等删除完成
       await axios.delete(`${JSON_SERVER_API_URL}/files/${fileId}`);
+
+
+
+
+      // 删除文件后，删除文件-项目关联
+      //await axios.delete(`${JSON_SERVER_API_URL}/file-project-links?fileId=${fileId}`);
+
+
     } catch (error) {
       console.error('Error deleting file:', error);
       throw error;
     }
   },
+
 };
