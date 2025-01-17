@@ -20,7 +20,7 @@ import { Upload, File, Trash2, Eye } from "lucide-react"
 import { useFiles } from "@/hooks/useFiles"
 import { useToast } from "@/hooks/use-toast"
 import { FilePreview } from "@/components/preview/FilePreview"
-import { FileRecord } from "@/types/files_dt_stru"
+import { FileRecord } from "@/types/files_dt_stru"  // 引入自定义的数据类型
 
 
 // 定义FileUpload组件的props，使得TypeScript检查是否传入了正确的参数。
@@ -61,14 +61,14 @@ export function FileUpload({onFileUpload }: FileUploadProps) {
     // 获取文件对象， <HTMLInputElement> 默认允许单文件选择，所以【0】能满足文件获取
     // 注意： 文件对象是File类型，这个类型是浏览器自带，通过 <input type="file" /> 元素选择文件时自动创建
     // 文件对象包含.name、.type、.size、.lastModified （时间戳），lastModifiedDate （日期），.webkitRelativePath （文件路径）
-    const file = e.target.files[0];
+    const inputfile = e.target.files[0];
 
     try {
 
       // 文件类型检查 
       // 需要注意的是，这里的file不是FileRecord类型，而是浏览器的file,它的type是MIME Type
       const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-      if (!allowedTypes.includes(file.type)) {
+      if (!allowedTypes.includes(inputfile.type)) {
 
         // 用toast函数显示'文件类型'错误信息 
         toast({
@@ -80,7 +80,7 @@ export function FileUpload({onFileUpload }: FileUploadProps) {
       }
       
       // 检查文件大小
-      if (file.size > 10 * 1024 * 1024) {
+      if (inputfile.size > 10 * 1024 * 1024) {
         // 用toast函数显示'文件大小'错误信息 
         toast({
           title: "文件过大",
@@ -93,15 +93,15 @@ export function FileUpload({onFileUpload }: FileUploadProps) {
 
       // 调用useFiles的uploadFile来上传文件，通过onSuccess和onError来处理上传成功和失败的情况 （不是返回promise对象）
       // 如果上传成功，则调用onFileUpload(file)，如果上传失败，则调用onError(error)
-      uploadFile(file, {
+      uploadFile(inputfile, {
 
         onSuccess: () => {  
           // 上传成功后，调用onFileUpload(file)，是父组件调用本组件时传入的回调函数参数，在父组件执行逻辑操作。 
           // 这种用法，让父组件基于上传成功，采取相应行动。 
-          onFileUpload(file);  //目前的用法时告知成功上传，所以没有实际用处，因为已经有toast
+          onFileUpload(inputfile);  //目前的用法时告知成功上传，所以没有实际用处，因为已经有toast
           toast({
             title: "文件上传成功",
-            description: `${file.name} 已成功上传`,
+            description: `${inputfile.name} 已成功上传`,
           });
         },
 
@@ -222,25 +222,25 @@ const handlePreview = (file: FileRecord) => {
         <TableBody>
           {/* 表格主体 */}
           {/* files在upload.tsx里没有专门赋值，而是在handleFileSelect的调用过程中，在useFiles()里被赋值。*/}
-          {files.map((file) => (
-            <TableRow key={file.id}>
+          {files.map((queryfile) => (
+            <TableRow key={queryfile.id}>
               {/* 文件名 */}
               <TableCell className="flex items-center">
                 <File className="mr-2 h-4 w-4" />
-                {file.name}
+                {queryfile.name}
               </TableCell>
               {/* 文件类型 */}  
-              <TableCell>{file.type}</TableCell>
+              <TableCell>{queryfile.type}</TableCell>
               {/* 文件大小 */}
-              <TableCell>{formatFileSize(file.size)}</TableCell>
+              <TableCell>{formatFileSize(queryfile.size)}</TableCell>
               {/* 上传时间 */}
-              <TableCell>{new Date(file.createdAt).toLocaleString()}</TableCell>
+              <TableCell>{new Date(queryfile.createdAt).toLocaleString()}</TableCell>
               {/* 预览按钮 */}
               <TableCell> 
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => handlePreview(file)}
+                  onClick={() => handlePreview(queryfile)}
                 >
                   <Eye className="h-4 w-4" />
                 </Button>
@@ -250,7 +250,7 @@ const handlePreview = (file: FileRecord) => {
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={() => handleDelete(file.id)}
+                  onClick={() => handleDelete(queryfile.id)}
                   disabled={isDeleting}
                 >
                   <Trash2 className="h-4 w-4" />

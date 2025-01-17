@@ -7,14 +7,12 @@ import { toast } from '@/hooks/use-toast';
 
 
 // ================================ 文件上传管理 hook  ============================================ 
+// useFiles 是自定义的HOOKS，用来返回与文件相关的数据 和 操作函数。
 export function useFiles() {
 
-  // 获取react-query的客户端实例，用于管理和操作缓存数据
-  // 在后面上传成功时会用到
+  // 获取react-query的客户端实例，用于管理和操作缓存数据， 上传成功时会用到
+  //
   const queryClient = useQueryClient();
-
- 
-
 
   // ---------------查询文件的Query管理 --------------- 
   const filesQuery = useQuery({
@@ -47,14 +45,15 @@ export function useFiles() {
   // ----------- 上传文件的Query管理 （done check!） -------------
   const uploadMutation = useMutation({
 
-    // 上传文件的Mutation函数, 参数file是从用户选择上传的文件对象 
-    mutationFn: (file: File) => {
+    // 上传文件的Mutation函数, 参数file是从用户选择上传的文件对象, 是browser的File类型
+    mutationFn: (inputfile: File) => {
       // 调用fileApi.upload上传文件
-      return fileApi.uploadFile(file);
+      return fileApi.uploadFile(inputfile);
     },
 
-    // newFile是上传成功后返回的文件信息，是TenderFile类型， 不是文件对象本身（与file不同）
-    // newFile是mutationFn返回的结果，通常是服务器返回的关于新上传文件的详细信息（如文件名、大小、类型等）
+    // newFile是上传成功后服务器返回的文件信息(FileRecord类型)给到mutationFn, 不是文件对象本身（与file不同）
+    // mutationFn将服务器返回的结果，再给到onSuccess. 
+    // 注意：在组件末尾，返回的uploadFile函数，使用.mutate()，本身不返回promise对象; 如果需要返回promise对象，则需要使用.mutateAsync()
     onSuccess: (newFile: FileRecord) => {
 
       // 在queryClient中设置缓存数据，与useQuery中的filesQuery的缓存数据是同一个
@@ -121,14 +120,23 @@ export function useFiles() {
 
   // --------------- 返回所有状态和方法 --------------- 
   return {
+
     // 这里是upload.tsx里的files的来源， 通过useQuery获取，放在filesQuery的缓存里，即.data里
     files: filesQuery.data ?? [],  
     isLoading: filesQuery.isLoading,
     isError: filesQuery.isError,
-    uploadFile: uploadMutation.mutate,
-    deleteFile: deleteMutation.mutate,
+
+    // .mutate() 本身不返回promise对象, 如果需要返回promise对象，则需要使用.mutateAsync()
+    // 这里建议使用.mutateAsync() 更符合现代JavaScript的异步编程风格。 
+    // 这样的好处是：调用者可以选择是否等待操作完成，可再调用处使用try/catch来处理错误; 可获取到操作返回的数据
+    uploadFile: uploadMutation.mutateAsync,  
+    deleteFile: deleteMutation.mutateAsync,
+
+    
     isUploading: uploadMutation.isPending,
     isDeleting: deleteMutation.isPending,
-    refecth: filesQuery.refetch,  // 在组件里添加刷新按钮,调用refecth() 可实现强制刷新数据
+
+    // 在组件里添加刷新按钮,调用refecth() 可实现强制刷新数据
+    refecth: filesQuery.refetch,  
   };
 } 

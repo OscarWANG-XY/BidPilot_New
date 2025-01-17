@@ -1,4 +1,7 @@
 import axios from 'axios';
+
+// BaseEntity类型: id, createdAt, createdBy, updatedAt?, updatedBy?, version
+// FileRecord类型: name, url?, size, type, mimeType?, status, visibility, processingStatus, processingProgress?, errorMessage?, accessControl?, metadata?, remarks?
 import { FileRecord } from '@/types/files_dt_stru';
 
 const JSON_SERVER_API_URL = 'http://localhost:3000';  // 业务数据服务

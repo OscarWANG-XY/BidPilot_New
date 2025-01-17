@@ -1,5 +1,20 @@
 {
-  "projects": [],
+  "projects": [
+    {
+      "id": "df26",
+      "name": "阿里巴巴年节福利",
+      "projectType": "ENTERPRISE_WELFARE",
+      "tenderee": "阿里巴巴",
+      "status": "DRAFT",
+      "currentPhase": "INITIATION",
+      "phases": [],
+      "progress": 0,
+      "createTime": "2025-01-17T15:46:02.519Z",
+      "updateTime": "2025-01-17T15:46:02.519Z",
+      "lastModifiedBy": "system",
+      "createBy": "system"
+    }
+  ],
   "files": [
     {
       "id": "4a62e64a-2a16-40aa-81c0-6dc1c3a48e78",
