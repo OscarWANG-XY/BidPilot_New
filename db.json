@@ -10,6 +10,46 @@
       "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "status": "NONE",
       "createdAt": "2025-01-16T04:31:13.079Z"
+    },
+    {
+      "id": "e12558f0-f8d8-4a81-a940-a8b2c70b434f",
+      "name": "case7_投标人须知_纯图版.pdf",
+      "url": "http://localhost:3001/uploads/1737031383905-616495437-case7_投标人须知_纯图版.pdf",
+      "size": 9389728,
+      "type": "PDF",
+      "mimeType": "application/pdf",
+      "status": "NONE",
+      "createdAt": "2025-01-16T12:43:03.933Z"
+    },
+    {
+      "id": "3536db60-990a-47bd-bc23-d9ea11789165",
+      "name": "case5_北京铁运投标人须知.docx",
+      "url": "http://localhost:3001/uploads/1737031386811-20712435-case5_北京铁运投标人须知.docx",
+      "size": 28844,
+      "type": "WORD",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "status": "NONE",
+      "createdAt": "2025-01-16T12:43:06.813Z"
+    },
+    {
+      "id": "629607a8-9438-40b1-bc7c-b070ac52a6b1",
+      "name": "case3st_北京铁运投标人须知.pdf",
+      "url": "http://localhost:3001/uploads/1737064069437-672858263-case3st_北京铁运投标人须知.pdf",
+      "size": 535853,
+      "type": "PDF",
+      "mimeType": "application/pdf",
+      "status": "NONE",
+      "createdAt": "2025-01-16T21:47:49.453Z"
+    },
+    {
+      "id": "8ea5a5c1-65cc-4669-ba9e-48a951a707c5",
+      "name": "case1-淮安市实验小学春节福利物品采购.pdf",
+      "url": "http://localhost:3001/uploads/1737071369772-528593632-case1-淮安市实验小学春节福利物品采购.pdf",
+      "size": 196994,
+      "type": "PDF",
+      "mimeType": "application/pdf",
+      "status": "NONE",
+      "createdAt": "2025-01-16T23:49:29.778Z"
     }
   ]
 }

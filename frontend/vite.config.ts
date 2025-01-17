@@ -5,6 +5,19 @@ import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
+  optimizeDeps: {
+    include: ['pdfjs-dist/build/pdf.worker.min.mjs']
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          pdfWorker: ['pdfjs-dist/build/pdf.worker.min.mjs']
+        }
+      }
+    }
+  },
+
   plugins: [
     react(),
     TanStackRouterVite(

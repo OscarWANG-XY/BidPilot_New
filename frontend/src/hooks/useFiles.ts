@@ -121,7 +121,8 @@ export function useFiles() {
 
   // --------------- 返回所有状态和方法 --------------- 
   return {
-    files: filesQuery.data ?? [],
+    // 这里是upload.tsx里的files的来源， 通过useQuery获取，放在filesQuery的缓存里，即.data里
+    files: filesQuery.data ?? [],  
     isLoading: filesQuery.isLoading,
     isError: filesQuery.isError,
     uploadFile: uploadMutation.mutate,

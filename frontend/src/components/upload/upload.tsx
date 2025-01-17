@@ -1,3 +1,4 @@
+import { useState } from "react"  // 组件里使用了useState来控制预览是否打开
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { 
@@ -8,9 +9,19 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table"
-import { Upload, File, Trash2 } from "lucide-react"
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter 
+} from "@/components/ui/dialog"
+import { Upload, File, Trash2, Eye } from "lucide-react"
 import { useFiles } from "@/hooks/useFiles"
 import { useToast } from "@/hooks/use-toast"
+import { FilePreview } from "@/components/preview/FilePreview"
+import { FileRecord } from "@/types/files_dt_stru"
+
 
 // 定义FileUpload组件的props，使得TypeScript检查是否传入了正确的参数。
 interface FileUploadProps {
@@ -24,10 +35,10 @@ export function FileUpload({onFileUpload }: FileUploadProps) {
 
   // 获取useToast的toast功能
   const { toast } = useToast();
-
+  
   // 获取useFiles的相关功能
   const {
-    files,
+    files,  // 文件列表 在upload.tsx里没有专门赋值，而是在handleFileSelect的调用，在useFiles()里被赋值。
     isLoading,
     uploadFile,
     deleteFile,
@@ -35,6 +46,11 @@ export function FileUpload({onFileUpload }: FileUploadProps) {
     isDeleting
   } = useFiles();
 
+  // 添加一个状态，用于控制预览是否打开
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  // 在组件内添加状态来跟踪当前预览的文件
+  const [selectedFile, setSelectedFile] = useState<FileRecord | null>(null);
 
   // ------------- 文件上传处理 (done check!) ------------- 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,26 +58,15 @@ export function FileUpload({onFileUpload }: FileUploadProps) {
     // 检查是否有文件被选择，
     if (!e.target.files?.length) return;
 
-
     // 获取文件对象， <HTMLInputElement> 默认允许单文件选择，所以【0】能满足文件获取
     // 注意： 文件对象是File类型，这个类型是浏览器自带，通过 <input type="file" /> 元素选择文件时自动创建
     // 文件对象包含.name、.type、.size、.lastModified （时间戳），lastModifiedDate （日期），.webkitRelativePath （文件路径）
     const file = e.target.files[0];
 
-
-    // 调试 3：观察file对象的名字，类型，和大小 
-    console.log('Original file object:', {
-      name: file.name,
-      type: file.type,
-      size: file.size
-    });
-    
-
-
     try {
 
       // 文件类型检查 
-      // 先定义了allowTypes的类型，然后用includes方法检查file.type是否在allowTypes中
+      // 需要注意的是，这里的file不是FileRecord类型，而是浏览器的file,它的type是MIME Type
       const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
       if (!allowedTypes.includes(file.type)) {
 
@@ -155,6 +160,12 @@ export function FileUpload({onFileUpload }: FileUploadProps) {
   };
 
 
+// ------------------- 文件预览 ------------------- 
+// 在return()渲染里被调用时，file是来自files.map()的遍历，而files是useFiles()的返回值。 
+const handlePreview = (file: FileRecord) => {
+  setSelectedFile(file); //当files.map()遍历到新的file时，更新seletedFile
+  setIsPreviewOpen(true); // 用来控制"预览模态框"的Dialog组件，设置为True是，打开预览模态框 
+};
 
 
 
@@ -197,6 +208,7 @@ export function FileUpload({onFileUpload }: FileUploadProps) {
 
       <Table>
         <TableHeader>
+          {/* ... 表头代码 ... */}
           <TableRow>
             <TableHead>文件名</TableHead>
             <TableHead>文件类型</TableHead>
@@ -206,17 +218,34 @@ export function FileUpload({onFileUpload }: FileUploadProps) {
             <TableHead>操作</TableHead>
           </TableRow>
         </TableHeader>
+
         <TableBody>
+          {/* 表格主体 */}
+          {/* files在upload.tsx里没有专门赋值，而是在handleFileSelect的调用过程中，在useFiles()里被赋值。*/}
           {files.map((file) => (
             <TableRow key={file.id}>
+              {/* 文件名 */}
               <TableCell className="flex items-center">
                 <File className="mr-2 h-4 w-4" />
                 {file.name}
               </TableCell>
+              {/* 文件类型 */}  
               <TableCell>{file.type}</TableCell>
+              {/* 文件大小 */}
               <TableCell>{formatFileSize(file.size)}</TableCell>
+              {/* 上传时间 */}
               <TableCell>{new Date(file.createdAt).toLocaleString()}</TableCell>
-              <TableCell> 未配置功能 </TableCell>
+              {/* 预览按钮 */}
+              <TableCell> 
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handlePreview(file)}
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
+              </TableCell>
+              {/* 删除按钮 */}
               <TableCell>
                 <Button 
                   variant="ghost" 
@@ -231,6 +260,28 @@ export function FileUpload({onFileUpload }: FileUploadProps) {
           ))}
         </TableBody>
       </Table>
+
+    {/* 预览模态框 */}
+    {isPreviewOpen && selectedFile && (
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-4xl h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>{selectedFile.name}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            <FilePreview 
+              fileUrl={selectedFile.url || ''} 
+              fileType={selectedFile.type}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPreviewOpen(false)}>
+              关闭
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    )}
     </div>
   );
 }

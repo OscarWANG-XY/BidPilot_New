@@ -20,8 +20,6 @@ axios.interceptors.request.use(function (config) {
 export const fileApi = {
 
 
-
-
   // ----------- 获取所有文件 API.getAllFiles -------------
   getAllFiles: async (): Promise<FileRecord[]> => {
     const url = `${JSON_SERVER_API_URL}/files`;
@@ -70,7 +68,7 @@ export const fileApi = {
     }
   },
 
-  
+
   
   // ----------- 删除文件 API.deleteFile(done check!) -------------
   // 删除文件的API， 返回的Promise解析值为 void类型
