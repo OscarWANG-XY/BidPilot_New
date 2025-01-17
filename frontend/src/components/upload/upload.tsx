@@ -264,11 +264,12 @@ const handlePreview = (file: FileRecord) => {
     {/* 预览模态框 */}
     {isPreviewOpen && selectedFile && (
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-4xl h-[80vh]">
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{selectedFile.name}</DialogTitle>
           </DialogHeader>
-          <div className="flex-1 overflow-auto">
+          {/* 修改这个div的样式，确保内容和导航按钮都可见 */}
+          <div className="flex-1 overflow-auto min-h-0">
             <FilePreview 
               fileUrl={selectedFile.url || ''} 
               fileType={selectedFile.type}

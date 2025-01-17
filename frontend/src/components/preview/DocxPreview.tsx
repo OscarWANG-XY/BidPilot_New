@@ -1,3 +1,5 @@
+// 未来考虑是否要像豆包一样，在后端使用转为PDF，然后再用PDFPreview组件来渲染。
+
 import { useState, useEffect } from 'react';  // React 的 Hook，用于管理组件的状态和副作用
 import mammoth from 'mammoth'; //用于将 DOCX 文件转换为 HTML
 
@@ -63,32 +65,37 @@ export function DocxPreview({ url }: DocxPreviewProps) {
 
 
   // ----------------- 渲染组件 ---------------------
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-4">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-        <span className="ml-2">加载中...</span>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center p-4 text-red-500">
-        {error}
-      </div>
-    );
-  }
-
   return (
-    <div className="p-6 max-w-full overflow-auto">
-      <div 
-        className="prose max-w-none"
+    <div className="flex flex-col items-center h-full">
+      {loading && (
+        <div className="flex items-center justify-center p-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-800"></div>
+          <span className="ml-2">加载中...</span>
+        </div>
+      )}
 
-        // 将HTML字符串设置为组件的innerHTML，这是React的特殊属性，
-        //使得content内容能够插入到DOM中,即<div>标签中
-        dangerouslySetInnerHTML={{ __html: content }} 
-      />
+      {error && (
+        <div className="flex items-center justify-center p-4">
+          <span className="ml-2">加载失败</span>
+        </div>
+      )}
+  
+
+
+      {/* 确保内容容器可以滚动 */}
+      <div className="flex-1 overflow-y-auto w-full">
+        <div 
+          className="prose max-w-none"
+          dangerouslySetInnerHTML={{ __html: content }} 
+        />
+      </div>
+  
+      {/* 导航按钮固定在底部并居中 */}
+      {!loading && (
+        <div className="flex items-center justify-center gap-4 mt-4 sticky bottom-0 bg-white py-2 w-full">
+          {/* 这里可以添加翻页按钮或其他操作 */}
+        </div>
+      )}
     </div>
   );
 } 

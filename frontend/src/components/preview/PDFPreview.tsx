@@ -43,34 +43,35 @@ export function PDFPreview({ url }: PDFPreviewProps) {
 
   // -------------- 渲染组件 ------------------
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center h-full overflow-y-auto">
 
       {/* 如果文档正在加载，显示加载动画 */}
       {loading && (
         <div className="flex items-center justify-center p-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-800"></div>
           <span className="ml-2">加载中...</span>
         </div>
       )}
       
       {/* 渲染PDF文档 */}
-      <Document    // 这里使用了react-pdf包import进来的功能组件。  
-        file={url}
-        onLoadSuccess={onDocumentLoadSuccess} //配置了“加载成功”的回调函数
-        loading={null}   //Document有内置额的加载状态管理，由于我们用了自定的loading管理，{null}意味着内置loading功能不启用。
-      >
-
-        <Page 
-          pageNumber={pageNumber} // 指定要渲染的页码，组件会根据这个页面提取并渲染
-          renderTextLayer={false} // 禁用文本层渲染，这时只显示图像，提供渲染速度 （这个是可选的，默认是true） 
-          renderAnnotationLayer={false} // 不显示注释、标记和其他交互元素。 
-          className="max-w-full"
+      <div className="flex-1 overflow-y-auto w-full flex justify-center">
+        <Document    // 这里使用了react-pdf包import进来的功能组件。  
+          file={url}
+          onLoadSuccess={onDocumentLoadSuccess} //配置了“加载成功”的回调函数
+          loading={null}   //Document有内置额的加载状态管理，由于我们用了自定的loading管理，{null}意味着内置loading功能不启用。
+        >
+          <Page 
+            pageNumber={pageNumber} // 指定要渲染的页码，组件会根据这个页面提取并渲染
+            renderTextLayer={true} // 禁用文本层渲染，这时只显示图像，提供渲染速度 （这个是可选的，默认是true） 
+            renderAnnotationLayer={true} // 不显示注释、标记和其他交互元素。 
+            className="max-w-full"
         />
       </Document>
+      </div>
 
       {/* 如果文档加载完成，显示页码导航按钮，按钮使用了shadcn/ui的组件 */}
       {!loading && (
-        <div className="flex items-center gap-4 mt-4">
+        <div className="flex items-center justify-center gap-4 mt-4 sticky bottom-0 bg-white py-2 w-full">
           <Button 
             variant="outline"
             onClick={() => setPageNumber(page => Math.max(1, page - 1))} // 点击按钮，页面数-1, 最小为1

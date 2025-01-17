@@ -50,6 +50,26 @@
       "mimeType": "application/pdf",
       "status": "NONE",
       "createdAt": "2025-01-16T23:49:29.778Z"
+    },
+    {
+      "id": "16005f7b-313b-4bc3-9c67-ca8626b83d7d",
+      "name": "招标公告-中信.pdf",
+      "url": "http://localhost:3001/uploads/1737077439678-536466139-招标公告-中信.pdf",
+      "size": 200445,
+      "type": "PDF",
+      "mimeType": "application/pdf",
+      "status": "NONE",
+      "createdAt": "2025-01-17T01:30:39.683Z"
+    },
+    {
+      "id": "9964b00c-227a-4950-9173-969dda86a206",
+      "name": "招标公告-中信.docx",
+      "url": "http://localhost:3001/uploads/1737085210542-689917176-招标公告-中信.docx",
+      "size": 21976,
+      "type": "WORD",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "status": "NONE",
+      "createdAt": "2025-01-17T03:40:10.547Z"
     }
   ]
 }
