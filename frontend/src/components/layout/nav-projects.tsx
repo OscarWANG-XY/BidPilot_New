@@ -56,7 +56,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 
-import { CreateProjectDialog } from "@/components/project/create_project"
+import { CreateProjectDialog } from "@/components/projects/create_project"
 
 export function NavProjects({
 projects,

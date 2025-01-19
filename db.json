@@ -13,6 +13,48 @@
       "updateTime": "2025-01-17T15:46:02.519Z",
       "lastModifiedBy": "system",
       "createBy": "system"
+    },
+    {
+      "id": "fd83",
+      "name": "麦德龙食堂",
+      "projectType": "CANTEEN_PROCUREMENT",
+      "tenderee": "麦德龙",
+      "status": "DRAFT",
+      "currentPhase": "INITIATION",
+      "phases": [],
+      "progress": 0,
+      "createTime": "2025-01-18T14:42:02.692Z",
+      "updateTime": "2025-01-18T14:42:02.692Z",
+      "lastModifiedBy": "system",
+      "createBy": "system"
+    },
+    {
+      "id": "1a5e",
+      "name": "中国银行食堂",
+      "projectType": "CANTEEN_PROCUREMENT",
+      "tenderee": "中国银行",
+      "status": "DRAFT",
+      "currentPhase": "INITIATION",
+      "phases": [],
+      "progress": 0,
+      "createTime": "2025-01-18T14:43:52.576Z",
+      "updateTime": "2025-01-18T14:43:52.576Z",
+      "lastModifiedBy": "system",
+      "createBy": "system"
+    },
+    {
+      "id": "91c9",
+      "name": "北京铁路年节福利",
+      "projectType": "ENTERPRISE_WELFARE",
+      "tenderee": "北京铁路",
+      "status": "DRAFT",
+      "currentPhase": "INITIATION",
+      "phases": [],
+      "progress": 0,
+      "createTime": "2025-01-18T14:44:18.740Z",
+      "updateTime": "2025-01-18T14:44:18.740Z",
+      "lastModifiedBy": "system",
+      "createBy": "system"
     }
   ],
   "files": [
@@ -45,46 +87,6 @@
       "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "status": "NONE",
       "createdAt": "2025-01-16T12:43:06.813Z"
-    },
-    {
-      "id": "629607a8-9438-40b1-bc7c-b070ac52a6b1",
-      "name": "case3st_北京铁运投标人须知.pdf",
-      "url": "http://localhost:3001/uploads/1737064069437-672858263-case3st_北京铁运投标人须知.pdf",
-      "size": 535853,
-      "type": "PDF",
-      "mimeType": "application/pdf",
-      "status": "NONE",
-      "createdAt": "2025-01-16T21:47:49.453Z"
-    },
-    {
-      "id": "8ea5a5c1-65cc-4669-ba9e-48a951a707c5",
-      "name": "case1-淮安市实验小学春节福利物品采购.pdf",
-      "url": "http://localhost:3001/uploads/1737071369772-528593632-case1-淮安市实验小学春节福利物品采购.pdf",
-      "size": 196994,
-      "type": "PDF",
-      "mimeType": "application/pdf",
-      "status": "NONE",
-      "createdAt": "2025-01-16T23:49:29.778Z"
-    },
-    {
-      "id": "16005f7b-313b-4bc3-9c67-ca8626b83d7d",
-      "name": "招标公告-中信.pdf",
-      "url": "http://localhost:3001/uploads/1737077439678-536466139-招标公告-中信.pdf",
-      "size": 200445,
-      "type": "PDF",
-      "mimeType": "application/pdf",
-      "status": "NONE",
-      "createdAt": "2025-01-17T01:30:39.683Z"
-    },
-    {
-      "id": "9964b00c-227a-4950-9173-969dda86a206",
-      "name": "招标公告-中信.docx",
-      "url": "http://localhost:3001/uploads/1737085210542-689917176-招标公告-中信.docx",
-      "size": 21976,
-      "type": "WORD",
-      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "status": "NONE",
-      "createdAt": "2025-01-17T03:40:10.547Z"
     }
   ]
 }

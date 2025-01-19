@@ -19,7 +19,7 @@ import {
 import { Upload, File, Trash2, Eye } from "lucide-react"
 import { useFiles } from "@/hooks/useFiles"
 import { useToast } from "@/hooks/use-toast"
-import { FilePreview } from "@/components/preview/FilePreview"
+import { FilePreview } from "@/components/files/FilePreview/FilePreview"
 import { FileRecord } from "@/types/files_dt_stru"  // 引入自定义的数据类型
 
 
@@ -53,7 +53,7 @@ export function FileUpload({onFileUpload }: FileUploadProps) {
   const [selectedFile, setSelectedFile] = useState<FileRecord | null>(null);
 
   // ------------- 文件上传处理 (done check!) ------------- 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
   //                              检查是否Input事件触发，一旦有触发箭头函数执行  
     // 检查是否有文件被选择，
     if (!e.target.files?.length) return;
@@ -184,7 +184,7 @@ const handlePreview = (file: FileRecord) => {
       <div className="flex items-center gap-4">
         <Input
           type="file"
-          onChange={handleFileSelect}
+          onChange={handleUpload}
           className="hidden"
           id="file-upload"
           disabled={isUploading}

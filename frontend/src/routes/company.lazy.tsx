@@ -1,5 +1,5 @@
 import { createLazyFileRoute } from '@tanstack/react-router'
-import { FileUpload } from "@/components/upload/upload"
+import { FileManager } from "@/components/files/_FileManager"
 
 
 export const Route = createLazyFileRoute('/company')({
@@ -17,9 +17,8 @@ function RouteComponent() {
 
   return(
     <div>
-        <FileUpload 
-            onFileUpload={handleFileUpload}
-        />
+        <FileManager onFileUpload={handleFileUpload}
+      />
     </div>
   )
 

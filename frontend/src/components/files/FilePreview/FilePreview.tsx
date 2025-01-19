@@ -1,6 +1,6 @@
-import { PDFPreview } from '@/components/preview/PDFPreview';
+import { PDFPreview } from '@/components/files/FilePreview/PDFPreview';
 //import PDFViewer from '@/components/preview/PDFPreview2';
-import { DocxPreview } from '@/components/preview/DocxPreview';
+import { DocxPreview } from '@/components/files/FilePreview/DocxPreview';
 
 
 //------- 定义组件的props  ---------
