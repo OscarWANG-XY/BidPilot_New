@@ -18,11 +18,27 @@ import { Route as ProjectsProjectIdImport } from './routes/projects.$projectId'
 
 // Create Virtual Routes
 
+const ProjectsmanagerLazyImport = createFileRoute('/projects_manager')()
+const FilesmanagerLazyImport = createFileRoute('/files_manager')()
 const CompanyLazyImport = createFileRoute('/company')()
 const AboutLazyImport = createFileRoute('/about')()
 const IndexLazyImport = createFileRoute('/')()
 
 // Create/Update Routes
+
+const ProjectsmanagerLazyRoute = ProjectsmanagerLazyImport.update({
+  id: '/projects_manager',
+  path: '/projects_manager',
+  getParentRoute: () => rootRoute,
+} as any).lazy(() =>
+  import('./routes/projects_manager.lazy').then((d) => d.Route),
+)
+
+const FilesmanagerLazyRoute = FilesmanagerLazyImport.update({
+  id: '/files_manager',
+  path: '/files_manager',
+  getParentRoute: () => rootRoute,
+} as any).lazy(() => import('./routes/files_manager.lazy').then((d) => d.Route))
 
 const CompanyLazyRoute = CompanyLazyImport.update({
   id: '/company',
@@ -86,6 +102,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompanyLazyImport
       parentRoute: typeof rootRoute
     }
+    '/files_manager': {
+      id: '/files_manager'
+      path: '/files_manager'
+      fullPath: '/files_manager'
+      preLoaderRoute: typeof FilesmanagerLazyImport
+      parentRoute: typeof rootRoute
+    }
+    '/projects_manager': {
+      id: '/projects_manager'
+      path: '/projects_manager'
+      fullPath: '/projects_manager'
+      preLoaderRoute: typeof ProjectsmanagerLazyImport
+      parentRoute: typeof rootRoute
+    }
     '/projects/$projectId': {
       id: '/projects/$projectId'
       path: '/$projectId'
@@ -115,6 +145,8 @@ export interface FileRoutesByFullPath {
   '/projects': typeof ProjectsRouteWithChildren
   '/about': typeof AboutLazyRoute
   '/company': typeof CompanyLazyRoute
+  '/files_manager': typeof FilesmanagerLazyRoute
+  '/projects_manager': typeof ProjectsmanagerLazyRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
 }
 
@@ -123,6 +155,8 @@ export interface FileRoutesByTo {
   '/projects': typeof ProjectsRouteWithChildren
   '/about': typeof AboutLazyRoute
   '/company': typeof CompanyLazyRoute
+  '/files_manager': typeof FilesmanagerLazyRoute
+  '/projects_manager': typeof ProjectsmanagerLazyRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
 }
 
@@ -132,20 +166,38 @@ export interface FileRoutesById {
   '/projects': typeof ProjectsRouteWithChildren
   '/about': typeof AboutLazyRoute
   '/company': typeof CompanyLazyRoute
+  '/files_manager': typeof FilesmanagerLazyRoute
+  '/projects_manager': typeof ProjectsmanagerLazyRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/projects' | '/about' | '/company' | '/projects/$projectId'
+  fullPaths:
+    | '/'
+    | '/projects'
+    | '/about'
+    | '/company'
+    | '/files_manager'
+    | '/projects_manager'
+    | '/projects/$projectId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/projects' | '/about' | '/company' | '/projects/$projectId'
+  to:
+    | '/'
+    | '/projects'
+    | '/about'
+    | '/company'
+    | '/files_manager'
+    | '/projects_manager'
+    | '/projects/$projectId'
   id:
     | '__root__'
     | '/'
     | '/projects'
     | '/about'
     | '/company'
+    | '/files_manager'
+    | '/projects_manager'
     | '/projects/$projectId'
   fileRoutesById: FileRoutesById
 }
@@ -155,6 +207,8 @@ export interface RootRouteChildren {
   ProjectsRoute: typeof ProjectsRouteWithChildren
   AboutLazyRoute: typeof AboutLazyRoute
   CompanyLazyRoute: typeof CompanyLazyRoute
+  FilesmanagerLazyRoute: typeof FilesmanagerLazyRoute
+  ProjectsmanagerLazyRoute: typeof ProjectsmanagerLazyRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
@@ -162,6 +216,8 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectsRoute: ProjectsRouteWithChildren,
   AboutLazyRoute: AboutLazyRoute,
   CompanyLazyRoute: CompanyLazyRoute,
+  FilesmanagerLazyRoute: FilesmanagerLazyRoute,
+  ProjectsmanagerLazyRoute: ProjectsmanagerLazyRoute,
 }
 
 export const routeTree = rootRoute
@@ -177,7 +233,9 @@ export const routeTree = rootRoute
         "/",
         "/projects",
         "/about",
-        "/company"
+        "/company",
+        "/files_manager",
+        "/projects_manager"
       ]
     },
     "/": {
@@ -194,6 +252,12 @@ export const routeTree = rootRoute
     },
     "/company": {
       "filePath": "company.lazy.tsx"
+    },
+    "/files_manager": {
+      "filePath": "files_manager.lazy.tsx"
+    },
+    "/projects_manager": {
+      "filePath": "projects_manager.lazy.tsx"
     },
     "/projects/$projectId": {
       "filePath": "projects.$projectId.tsx",

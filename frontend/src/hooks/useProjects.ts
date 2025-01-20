@@ -60,13 +60,18 @@ export const useProjects = () => {
     }
   });
 
-  // --------------- 更新项目 --------------- 
+  // --------------- 更新项目 done check!--------------- 
   const updateProject = useMutation({
-    mutationFn: ({ id, project }: { id: string; project: Partial<Project> }) =>
-      projectsApi.updateProject(id, project),
+
+    // 更新项目的函数接收两个输入参数： 项目ID 和 项目信息（Partial<Project>）
+    // 参数直接传导给projectsApi.updateProject()进行处理
+    mutationFn: ({ project_id, project_data }: { project_id: string; project_data: Partial<Project> }) =>
+      projectsApi.updateProject(project_id, project_data),
+
+    // 更新成功时， 更新缓存数据
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['projectsKey'] });
-      queryClient.invalidateQueries({ queryKey: ['SingleProjectKey', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['SingleProjectKey', variables.project_id] });
     }
   });
 

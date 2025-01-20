@@ -1,5 +1,5 @@
 import { createLazyFileRoute } from '@tanstack/react-router'
-import { FileManager } from "@/components/files/_FileManager"
+import { TipTapEditor } from '@/components/shared/TipTapEditor'
 
 
 export const Route = createLazyFileRoute('/company')({
@@ -7,19 +7,12 @@ export const Route = createLazyFileRoute('/company')({
 })
 
 function RouteComponent() {
-  const handleFileUpload = (file: File) => {
-    console.log('File uploaded successfully:', file);
-    // 例如：更新文件列表
-    // setFiles(prevFiles => [...prevFiles, file]);
-    // 或者触发其他操作
-    // updateProjectStatus();
-  }
+  const handleSave = async (content: string) => {
+    // 这里可以添加保存内容的逻辑
+    console.log('保存的内容:', content);
+  };
 
-  return(
-    <div>
-        <FileManager onFileUpload={handleFileUpload}
-      />
-    </div>
-  )
-
+  return <div>Have A try on TipTapEditor, 毛坯版!
+    <TipTapEditor initialContent="Hello, World!" onSave={handleSave} />
+  </div>
 }

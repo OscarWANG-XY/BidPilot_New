@@ -1,42 +1,3 @@
-/**
-* 项目导航组件 (NavProjects)
-* 
-* 功能描述:
-* - 显示项目列表，每个项目包含图标和名称
-* - 每个项目项都有一个悬停显示的操作菜单（三个点）
-* - 操作菜单提供：查看项目、分享项目、删除项目等功能
-* - 列表末尾有一个"More"项
-* - 响应式设计，根据移动端状态调整下拉菜单位置
-* 
-* 组件结构:
-* SidebarGroup                    // 侧边栏组容器(在图标折叠模式下隐藏)
-*   └── SidebarMenu              // 菜单容器
-*        ├── SidebarMenuItem     // 项目菜单项
-*        │    ├── SidebarMenuButton  // 项目按钮(包含图标和名称)
-*        │    └── DropdownMenu       // 项目操作下拉菜单
-*        │         ├── DropdownMenuTrigger  // 触发器(三个点图标)
-*        │         └── DropdownMenuContent  // 下拉菜单内容
-*        │              └── DropdownMenuItem // 菜单选项
-*        │
-*        └── SidebarMenuItem     // "More"菜单项
-*
-* 使用的组件:
-* - Sidebar 相关组件(@/components/ui/sidebar):
-*   SidebarGroup, SidebarMenu, SidebarMenuItem,
-*   SidebarMenuButton, SidebarMenuAction
-* 
-* - DropdownMenu 相关组件(@/components/ui/dropdown-menu):
-*   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-*   DropdownMenuSeparator, DropdownMenuTrigger
-* 
-* - Lucide 图标组件:
-*   Folder, Forward, MoreHorizontal, Trash2
-* 
-* @param {Object[]} projects - 项目配置数组
-* @param {string} projects[].name - 项目名称
-* @param {string} projects[].url - 项目链接
-* @param {LucideIcon} projects[].icon - 项目图标组件
-*/
 
 "use client" // 表示代码是客户端组件，如果不添加，Next.js会尝试在服务器端运行，从而导致错误。 
 import {Building2, MoreHorizontal, PenLine, Star} from "lucide-react"
@@ -56,7 +17,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 
-import { CreateProjectDialog } from "@/components/projects/create_project"
+import { CreateProjectDialog } from "@/components/projects/ProjectCreate"
 
 export function NavProjects({
 projects,
@@ -82,7 +43,7 @@ projects,
           </SidebarMenuButton>
         </SidebarMenuItem>
 
-        <SidebarMenuItem>
+        <SidebarMenuItem className="mb-2">
           <SidebarMenuButton asChild>
             <a href="/company" className="w-full flex items-center gap-2 px-2">
               <Building2 className="h-4 w-4" /> 
@@ -90,8 +51,32 @@ projects,
             </a>
           </SidebarMenuButton>
         </SidebarMenuItem>
+
+
+        <SidebarMenuItem className="mb-2">
+          <SidebarMenuButton asChild>
+            <a href="/projects_manager" className="w-full flex items-center gap-2 px-2">
+              <Building2 className="h-4 w-4" /> 
+              <span className="text-lg">项目管理后台</span>
+            </a>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+
+
+        <SidebarMenuItem>
+          <SidebarMenuButton asChild>
+            <a href="/files_manager" className="w-full flex items-center gap-2 px-2">
+              <Building2 className="h-4 w-4" /> 
+              <span className="text-lg">文件管理后台</span>
+            </a>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+
+
+
       </SidebarMenu>
     </SidebarGroup>
+
 
     {/* 收藏项目+历史项目 */}
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
