@@ -1,61 +1,95 @@
-import { 
-  createRootRoute, 
-//  Link, 
-  Outlet 
-} from '@tanstack/react-router'  //Link拿掉了
-import { TanStackRouterDevtools } from '@tanstack/router-devtools'
-//import { LayoutPage } from '@/components/layout/layout-page'
-import { AppSidebar } from "@/components/layout/app-sidebar"
-import { 
-  Breadcrumb, 
-  BreadcrumbItem, 
-  BreadcrumbLink, 
-  BreadcrumbList, 
-  BreadcrumbPage, 
-  BreadcrumbSeparator 
-} from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
-import { 
-  SidebarInset, 
-  SidebarProvider, 
-  SidebarTrigger 
-} from "@/components/ui/sidebar"
+import { createRootRoute, Outlet, redirect } from '@tanstack/react-router'    // 引入路由器
+import { TanStackRouterDevtools } from '@tanstack/router-devtools'  // 引入路由器调试工具
+import { useAuth, AuthProvider } from '@/contexts/auth-context_v2'  // 引入认证上下文
+import { AppSidebar } from "@/components/layout/app-sidebar"  // 引入自定义的侧边栏组件
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator 
+} from "@/components/ui/breadcrumb"  // 引入ui面包屑组件
+import { Separator } from "@/components/ui/separator"  // 引入ui分割线组件
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"  // 引入ui侧边栏组件
 
+
+
+// ---------------------- AuthenticatedLayout负责渲染经过身份验证的用户界面 ----------------------
+function AuthenticatedLayout() {
+  
+  // 获取认证状态
+  const { isLoading } = useAuth()
+
+  // 检查当前路径是否是认证相关的页面
+  // 在当前应用里，以 /auth 开头的路径，有登录（/auth/login）、注册（/auth/register），以及忘记密码（/auth/forgot-password）。 
+  const isAuthPage = window.location.pathname.startsWith('/auth')
+
+  if (isLoading) {
+    return <div>Loading...</div>
+  }
+
+  // 如果是auth相关的页面（登录，注册，忘记密码），则直接渲染子路由，不带布局。 
+  if (isAuthPage) {
+    return <Outlet />
+  }
+
+  // 如果当前路径不是认证相关的页面，则返回布局，并渲染子路由。 
+  return (
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+          <div className="flex items-center gap-2 px-4">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem className="hidden md:block">
+                  <BreadcrumbLink href="#">执智者</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator className="hidden md:block" />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>招投标项目</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
+        </header>
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+          <Outlet />
+        </div>
+      </SidebarInset>
+      <TanStackRouterDevtools initialIsOpen={false} position="bottom-right" />
+    </SidebarProvider>
+  )
+}
+
+// ========================= 根路由的管理 ================================
+// 布局实现封装在AuthenticatedLayout组件中. 
 export const Route = createRootRoute({
   component: () => (
-    <>
-    {/* 侧边栏 */}
-      <SidebarProvider>   {/* 伸缩状态处理，控制侧边栏的打开和关闭 */}
-        <AppSidebar />
-        <SidebarInset>  {/* */}
-          <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-            <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />   {/* 侧边栏的触发器，侧边栏右侧的按钮 */}
-            <Separator orientation="vertical" className="mr-2 h-4" />
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbLink href="#">
-                      执智者
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className="hidden md:block" />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>招投标项目</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
-            </div>
-          </header>
-
-          {/* 主内容区域 */}
-          <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-            <Outlet />
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
-
-      <TanStackRouterDevtools initialIsOpen={false} position="bottom-right" />
-    </>
+    // AuthProvider 作为第二道防线，负责更复杂的认证状态管理：token有效性，过期检查，自动刷新，登出，提供用户信息。
+    <AuthProvider>
+      <AuthenticatedLayout />
+    </AuthProvider>
   ),
+
+
+  // BeforeLoad 是一道防线，确保用户至少有一个token才能访问 非AUTH页面
+  beforeLoad: ({ location }) => {
+
+    // 如果当前路径是认证页面（即以 /auth 开头的路径），直接通过，进一步运行根路由
+    // location是经过路由库封装过的对象，不完全等同于window.location, 虽然是全局但作为参数输入是一种依赖注入的实践
+    // 认证页面包括：登录（/auth/login）、注册（/auth/register），以及忘记密码（/auth/forgot-password）。 
+    if (location.pathname.startsWith('/auth')) {
+      return
+    }
+
+    // localStorage 是 Web Storage API 的一部分
+    // 它允许在浏览器中存储数据，这些数据在页面刷新后仍然可用。
+    // 它通常用于存储用户会话、偏好设置等数据。
+    // 在JavaScript中，localStorage 是一个全局对象，提供了 setItem、getItem、removeItem 和 clear 等方法。
+    // 这些方法用于在 localStorage 中存储和检索数据。
+    const token = localStorage.getItem('token')
+    if (!token) {
+      throw redirect({
+        to: '/auth/login',
+      })
+    }
+  },
 })

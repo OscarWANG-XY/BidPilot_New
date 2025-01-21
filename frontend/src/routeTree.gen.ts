@@ -15,6 +15,11 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Route as rootRoute } from './routes/__root'
 import { Route as ProjectsImport } from './routes/projects'
 import { Route as ProjectsProjectIdImport } from './routes/projects.$projectId'
+import { Route as AuthServiceTermImport } from './routes/auth/service-term'
+import { Route as AuthRegisterImport } from './routes/auth/register'
+import { Route as AuthPrivacyPolicyImport } from './routes/auth/privacy-policy'
+import { Route as AuthLoginImport } from './routes/auth/login'
+import { Route as AuthForgotPasswordImport } from './routes/auth/forgot-password'
 
 // Create Virtual Routes
 
@@ -70,6 +75,36 @@ const ProjectsProjectIdRoute = ProjectsProjectIdImport.update({
   getParentRoute: () => ProjectsRoute,
 } as any)
 
+const AuthServiceTermRoute = AuthServiceTermImport.update({
+  id: '/auth/service-term',
+  path: '/auth/service-term',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const AuthRegisterRoute = AuthRegisterImport.update({
+  id: '/auth/register',
+  path: '/auth/register',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const AuthPrivacyPolicyRoute = AuthPrivacyPolicyImport.update({
+  id: '/auth/privacy-policy',
+  path: '/auth/privacy-policy',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const AuthLoginRoute = AuthLoginImport.update({
+  id: '/auth/login',
+  path: '/auth/login',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const AuthForgotPasswordRoute = AuthForgotPasswordImport.update({
+  id: '/auth/forgot-password',
+  path: '/auth/forgot-password',
+  getParentRoute: () => rootRoute,
+} as any)
+
 // Populate the FileRoutesByPath interface
 
 declare module '@tanstack/react-router' {
@@ -116,6 +151,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsmanagerLazyImport
       parentRoute: typeof rootRoute
     }
+    '/auth/forgot-password': {
+      id: '/auth/forgot-password'
+      path: '/auth/forgot-password'
+      fullPath: '/auth/forgot-password'
+      preLoaderRoute: typeof AuthForgotPasswordImport
+      parentRoute: typeof rootRoute
+    }
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/auth/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginImport
+      parentRoute: typeof rootRoute
+    }
+    '/auth/privacy-policy': {
+      id: '/auth/privacy-policy'
+      path: '/auth/privacy-policy'
+      fullPath: '/auth/privacy-policy'
+      preLoaderRoute: typeof AuthPrivacyPolicyImport
+      parentRoute: typeof rootRoute
+    }
+    '/auth/register': {
+      id: '/auth/register'
+      path: '/auth/register'
+      fullPath: '/auth/register'
+      preLoaderRoute: typeof AuthRegisterImport
+      parentRoute: typeof rootRoute
+    }
+    '/auth/service-term': {
+      id: '/auth/service-term'
+      path: '/auth/service-term'
+      fullPath: '/auth/service-term'
+      preLoaderRoute: typeof AuthServiceTermImport
+      parentRoute: typeof rootRoute
+    }
     '/projects/$projectId': {
       id: '/projects/$projectId'
       path: '/$projectId'
@@ -147,6 +217,11 @@ export interface FileRoutesByFullPath {
   '/company': typeof CompanyLazyRoute
   '/files_manager': typeof FilesmanagerLazyRoute
   '/projects_manager': typeof ProjectsmanagerLazyRoute
+  '/auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/privacy-policy': typeof AuthPrivacyPolicyRoute
+  '/auth/register': typeof AuthRegisterRoute
+  '/auth/service-term': typeof AuthServiceTermRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
 }
 
@@ -157,6 +232,11 @@ export interface FileRoutesByTo {
   '/company': typeof CompanyLazyRoute
   '/files_manager': typeof FilesmanagerLazyRoute
   '/projects_manager': typeof ProjectsmanagerLazyRoute
+  '/auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/privacy-policy': typeof AuthPrivacyPolicyRoute
+  '/auth/register': typeof AuthRegisterRoute
+  '/auth/service-term': typeof AuthServiceTermRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
 }
 
@@ -168,6 +248,11 @@ export interface FileRoutesById {
   '/company': typeof CompanyLazyRoute
   '/files_manager': typeof FilesmanagerLazyRoute
   '/projects_manager': typeof ProjectsmanagerLazyRoute
+  '/auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/privacy-policy': typeof AuthPrivacyPolicyRoute
+  '/auth/register': typeof AuthRegisterRoute
+  '/auth/service-term': typeof AuthServiceTermRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
 }
 
@@ -180,6 +265,11 @@ export interface FileRouteTypes {
     | '/company'
     | '/files_manager'
     | '/projects_manager'
+    | '/auth/forgot-password'
+    | '/auth/login'
+    | '/auth/privacy-policy'
+    | '/auth/register'
+    | '/auth/service-term'
     | '/projects/$projectId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -189,6 +279,11 @@ export interface FileRouteTypes {
     | '/company'
     | '/files_manager'
     | '/projects_manager'
+    | '/auth/forgot-password'
+    | '/auth/login'
+    | '/auth/privacy-policy'
+    | '/auth/register'
+    | '/auth/service-term'
     | '/projects/$projectId'
   id:
     | '__root__'
@@ -198,6 +293,11 @@ export interface FileRouteTypes {
     | '/company'
     | '/files_manager'
     | '/projects_manager'
+    | '/auth/forgot-password'
+    | '/auth/login'
+    | '/auth/privacy-policy'
+    | '/auth/register'
+    | '/auth/service-term'
     | '/projects/$projectId'
   fileRoutesById: FileRoutesById
 }
@@ -209,6 +309,11 @@ export interface RootRouteChildren {
   CompanyLazyRoute: typeof CompanyLazyRoute
   FilesmanagerLazyRoute: typeof FilesmanagerLazyRoute
   ProjectsmanagerLazyRoute: typeof ProjectsmanagerLazyRoute
+  AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
+  AuthLoginRoute: typeof AuthLoginRoute
+  AuthPrivacyPolicyRoute: typeof AuthPrivacyPolicyRoute
+  AuthRegisterRoute: typeof AuthRegisterRoute
+  AuthServiceTermRoute: typeof AuthServiceTermRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
@@ -218,6 +323,11 @@ const rootRouteChildren: RootRouteChildren = {
   CompanyLazyRoute: CompanyLazyRoute,
   FilesmanagerLazyRoute: FilesmanagerLazyRoute,
   ProjectsmanagerLazyRoute: ProjectsmanagerLazyRoute,
+  AuthForgotPasswordRoute: AuthForgotPasswordRoute,
+  AuthLoginRoute: AuthLoginRoute,
+  AuthPrivacyPolicyRoute: AuthPrivacyPolicyRoute,
+  AuthRegisterRoute: AuthRegisterRoute,
+  AuthServiceTermRoute: AuthServiceTermRoute,
 }
 
 export const routeTree = rootRoute
@@ -235,7 +345,12 @@ export const routeTree = rootRoute
         "/about",
         "/company",
         "/files_manager",
-        "/projects_manager"
+        "/projects_manager",
+        "/auth/forgot-password",
+        "/auth/login",
+        "/auth/privacy-policy",
+        "/auth/register",
+        "/auth/service-term"
       ]
     },
     "/": {
@@ -258,6 +373,21 @@ export const routeTree = rootRoute
     },
     "/projects_manager": {
       "filePath": "projects_manager.lazy.tsx"
+    },
+    "/auth/forgot-password": {
+      "filePath": "auth/forgot-password.tsx"
+    },
+    "/auth/login": {
+      "filePath": "auth/login.tsx"
+    },
+    "/auth/privacy-policy": {
+      "filePath": "auth/privacy-policy.tsx"
+    },
+    "/auth/register": {
+      "filePath": "auth/register.tsx"
+    },
+    "/auth/service-term": {
+      "filePath": "auth/service-term.tsx"
     },
     "/projects/$projectId": {
       "filePath": "projects.$projectId.tsx",
