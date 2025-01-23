@@ -12,8 +12,6 @@ import { UserResponse, UserUpdateInput } from '@/types/user_dt_stru';
 // ApiError: 表示API返回的错误信息的数据结构
 import { ApiError } from '@/types/error_dt_stru';
 
-// 定义 API 的基础 URL，这里使用的是本地开发服务器的默认端口
-const API_BASE_URL = 'http://localhost:3000'; // json-server 默认端口
 
 /**
  * =获取当前用户信息
@@ -26,7 +24,7 @@ export const getCurrentUser = async (): Promise<UserResponse> => {
   try {
     // 使用axios发送GET请求，获取当前用户信息
     // 请求的URL为 `${API_BASE_URL}/users/me`, 根据当前认证的用户返回用户信息
-    const response = await axios.get(`${API_BASE_URL}/users/me`);
+    const response = await axios.get(`/api/users/me`);
 
     // 如果请求成功，返回响应数据，并将其类型断言为UserResponse
     return response.data as UserResponse;
@@ -54,7 +52,7 @@ export const updateUser = async (userId: string, data: UserUpdateInput): Promise
   try {
     // 使用axios发送PUT请求，更新指定用户的信息
     // 请求的URL为 `${API_BASE_URL}/users/${userId}`，请求体为data
-    const response = await axios.put(`${API_BASE_URL}/users/${userId}`, data);
+    const response = await axios.put(`/api/users/${userId}`, data);
 
     // 如果请求成功，返回响应数据，并将其类型断言为UserResponse
     return response.data as UserResponse;

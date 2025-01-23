@@ -4,6 +4,9 @@ import { Request, Response, NextFunction } from 'express';
 import { generateToken, authMiddleware } from './middleware/auth';
 import bcrypt from 'bcryptjs';
 import { CaptchaClient } from './utils/client';
+import { SmsService } from './services/sms';
+import { VerificationService } from './services/verification';
+import { smsLimiter, loginLimiter } from './middleware/rate-limit';
 
 // 定义接口
 interface User {
@@ -65,27 +68,33 @@ server.post('/auth/captcha', async (req: Request, res: Response) => {
 });
 
 // ---------------  验证码登录 ---------------
-server.post('/auth/login/captcha', async (req: Request, res: Response) => {
+server.post('/auth/login/captcha', loginLimiter, async (req: Request, res: Response) => {
   const { phone, captcha, agreeToTerms } = req.body;
   const db = router.db as any;
 
-  if (captcha !== '123456') {
-    return res.status(400).json({ message: 'Invalid captcha' });
+  try {
+    // 验证短信验证码
+    const isValid = await VerificationService.verifyCode(phone, captcha);
+    if (!isValid) {
+      return res.status(400).json({ message: '验证码无效或已过期' });
+    }
+
+    const user = db.get('users').find({ phone }).value();
+    if (!user) {
+      return res.status(400).json({ message: '用户不存在' });
+    }
+
+    const token = generateToken(user);
+    const { password: _, ...userWithoutPassword } = user;
+    
+    res.json({
+      user: userWithoutPassword,
+      token,
+    });
+  } catch (error) {
+    console.error('登录错误:', error);
+    res.status(500).json({ message: '登录失败' });
   }
-
-  const user = db.get('users').find({ phone }).value();
-
-  if (!user) {
-    return res.status(400).json({ message: 'User not found' });
-  }
-
-  const token = generateToken(user);
-
-  const { password: _, ...userWithoutPassword } = user;
-  res.json({
-    user: userWithoutPassword,
-    token,
-  });
 });
 
 // ---------------  密码登录 ---------------  
@@ -237,6 +246,96 @@ server.get('/auth/me', (req: Request, res: Response) => {
   }
   const { password: _, ...userWithoutPassword } = req.user;
   res.json(userWithoutPassword);
+});
+
+// ---------------  图形验证码验证 ---------------
+server.post('/auth/graphical_captcha/verify', async (req: Request, res: Response) => {
+  const { captchaVerifyParam, ...bizParams } = req.body;
+
+  try {
+    console.log('收到验证请求，验证参数:', captchaVerifyParam);
+    
+    // 调用阿里云验证码服务
+    const isValid = await CaptchaClient.verifyCaptcha(captchaVerifyParam);
+    console.log('阿里云验证结果:', isValid);
+    
+    if (!isValid) {
+      console.log('验证失败');
+      return res.status(400).json({ 
+        captchaResult: false,
+        bizResult: false,
+        message: '图形验证码验证失败'
+      });
+    }
+
+    console.log('验证成功');
+    return res.json({
+      captchaResult: true,
+      bizResult: true
+    });
+  } catch (error) {
+    console.error('图形验证码验证错误:', error);
+    res.status(500).json({ 
+      captchaResult: false,
+      bizResult: false,
+      message: '图形验证码服务错误'
+    });
+  }
+});
+
+// ---------------  发送短信验证码 ---------------
+server.post('/auth/sms/send', smsLimiter, async (req: Request, res: Response) => {
+  const { phone, scene } = req.body;
+
+  try {
+    // 检查发送频率
+    const canSend = await VerificationService.checkSmsFrequency(phone);
+    if (!canSend) {
+      return res.status(429).json({ message: '今日短信发送次数已达上限' });
+    }
+
+    // 生成验证码
+    const code = VerificationService.generateCode();
+    
+    // 发送短信
+    const sent = await SmsService.sendSms(phone, code);
+    if (!sent) {
+      return res.status(500).json({ message: '短信发送失败' });
+    }
+
+    // 存储验证码
+    await VerificationService.saveCode(phone, code);
+
+    res.json({ message: '短信验证码发送成功' });
+  } catch (error) {
+    console.error('短信服务错误:', error);
+    res.status(500).json({ message: '短信服务错误' });
+  }
+});
+
+// ---------------  验证短信验证码 ---------------
+server.post('/auth/sms/verify', async (req: Request, res: Response) => {
+  const { phone, code } = req.body;
+
+  try {
+    if (code !== '123456') {
+      return res.status(400).json({ 
+        success: false,
+        message: '短信验证码错误'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'SMS code verified successfully'
+    });
+  } catch (error) {
+    console.error('短信验证码验证错误:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'SMS verification error'
+    });
+  }
 });
 
 // ---------------  使用 json-server 的路由处理器 ---------------    

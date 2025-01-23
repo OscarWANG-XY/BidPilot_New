@@ -14,8 +14,6 @@ import {
   UpdateProjectPhaseRequest  // 更新项目阶段请求数据类型
 } from '@/types/projects_dt_stru';  // 引入自定义的数据类型
 
-const PROJECTS_SERVER_URL = 'http://localhost:3000'; // 项目数据服务端口
-
 
 // --------------- 添加请求拦截器 --------------- 
 axios.interceptors.request.use(function (config) {
@@ -33,20 +31,20 @@ axios.interceptors.request.use(function (config) {
 export const projectsApi = {
   // ------------- 获取所有项目 -------------
   getAllProjects: async (): Promise<Project[]> => {
-    const response = await axios.get(`${PROJECTS_SERVER_URL}/projects`);
+    const response = await axios.get(`/api/projects`);
     return response.data;
   },
 
   // ------------- 获取单个项目 -------------
   getProjectById: async (id: string): Promise<Project> => {
-    const response = await axios.get(`${PROJECTS_SERVER_URL}/projects/${id}`);
+    const response = await axios.get(`/api/projects/${id}`);
     return response.data;
   },
 
   // ------------- 创建新项目 （done check!）-------------
   // 创建项目传给服务器，服务器会自动生成id， 这个id通常是自增数字或UUID 
   createProject: async (project: CreateProjectRequest): Promise<Project> => {
-    const response = await axios.post(`${PROJECTS_SERVER_URL}/projects`, {
+    const response = await axios.post(`/api/projects`, {
       ...project,
       status: 'DRAFT',   // 每个项目阶段初建立的默认状态 
       currentPhase: 'INITIATION',  // 每个项目初建时都从初始化阶段开始
@@ -62,7 +60,7 @@ export const projectsApi = {
 
   // ------------- 更新项目 -------------
   updateProject: async (id: string, project: Partial<Project>): Promise<Project> => {
-    const response = await axios.patch(`${PROJECTS_SERVER_URL}/projects/${id}`, {
+    const response = await axios.patch(`/api/projects/${id}`, {
       ...project,
       updateTime: new Date()
     });
@@ -71,7 +69,7 @@ export const projectsApi = {
 
   // ------------- 更新项目状态 -------------
   updateProjectStatus: async (request: UpdateProjectStatusRequest): Promise<Project> => {
-    const response = await axios.patch(`${PROJECTS_SERVER_URL}/projects/${request.projectId}`, {
+    const response = await axios.patch(`/api/projects/${request.projectId}`, {
       status: request.status,
       remarks: request.remarks,
       updateTime: new Date()
@@ -81,7 +79,7 @@ export const projectsApi = {
 
   // ------------- 更新项目阶段 -------------
   updateProjectPhase: async (request: UpdateProjectPhaseRequest): Promise<Project> => {
-    const response = await axios.patch(`${PROJECTS_SERVER_URL}/projects/${request.projectId}`, {
+    const response = await axios.patch(`/api/projects/${request.projectId}`, {
       phases: request.phaseId,
       updateTime: new Date()
     });
@@ -90,6 +88,6 @@ export const projectsApi = {
 
   // ------------- 删除项目 -------------
   deleteProject: async (id: string): Promise<void> => {
-    await axios.delete(`${PROJECTS_SERVER_URL}/projects/${id}`);
+    await axios.delete(`/api/projects/${id}`);
   }
 };

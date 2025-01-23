@@ -58,9 +58,13 @@ function authMiddleware(req: Request, res: Response, next: NextFunction): void {
     '/auth/register',
     '/auth/captcha',
     '/auth/forgot-password',
+    '/auth/graphical_captcha/verify',
+    '/auth/sms/send',
+    '/auth/sms/verify'
   ];
   
-  if (publicPaths.includes(req.path)) {
+  const path = req.path.replace('/api', '');
+  if (publicPaths.includes(path)) {
     return next();
   }
 

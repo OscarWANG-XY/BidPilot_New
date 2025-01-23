@@ -4,9 +4,6 @@ import axios from 'axios';
 // FileRecord类型: name, url?, size, type, mimeType?, status, visibility, processingStatus, processingProgress?, errorMessage?, accessControl?, metadata?, remarks?
 import { FileRecord } from '@/types/files_dt_stru';
 
-const JSON_SERVER_API_URL = 'http://localhost:3000';  // 业务数据服务
-const FILE_SERVER_API_URL = 'http://localhost:3001';  // 文件上传服务
-
 
 // --------------- 添加请求拦截器 --------------- 
 axios.interceptors.request.use(function (config) {
@@ -31,7 +28,7 @@ export const fileApi = {
 
   // ----------- 获取所有文件 API.getAllFiles -------------
   getAllFiles: async (): Promise<FileRecord[]> => {
-    const url = `${JSON_SERVER_API_URL}/files`;
+    const url = `/api/files`;
     try {
       const { data } = await axios.get<FileRecord[]>(url);
       console.log('Fetched all files:', data);
@@ -56,12 +53,12 @@ export const fileApi = {
       formData.append('file', file);
       //                     await让程序暂停，直到axios.post异步操作完成返回解析值promise给uploadResponse
       // upload端点名需要和upload-server/server.js中的端点名一致
-      const uploadResponse = await axios.post(`${FILE_SERVER_API_URL}/upload`, formData);
+      const uploadResponse = await axios.post(`/api2/upload`, formData);
 
 
       // 2. 将文件信息保存到 json-server
       //                     await让程序暂停，直到axios.post异步操作完成返回解析值promise给fileRecord 
-      const fileRecord = await axios.post(`${JSON_SERVER_API_URL}/files`, {
+      const fileRecord = await axios.post(`/api/files`, {
         ...uploadResponse.data,  // 使用上传服务器返回的数据
         name: file.name, //为了处理json-server不能正确处理文件名的问题。
         status: 'NONE',
@@ -88,7 +85,7 @@ export const fileApi = {
       // 由于我们需要通过先从json-server获得文件信息，所以json-server的信息删除需要放到之后
       // promise响应对象中，包含data, status, statusText, headers, config, request 
       // data:fileInfo 表示将范围的promise的data解析值赋值给fileInfo 
-      const { data: fileInfo } = await axios.get(`${JSON_SERVER_API_URL}/files/${fileId}`);
+      const { data: fileInfo } = await axios.get(`/api/files/${fileId}`);
       console.log('fileInfo:', fileInfo);
       // 从 URL 中提取文件名
       const fileName = fileInfo.url.split('/uploads/').pop();
@@ -96,12 +93,12 @@ export const fileApi = {
 
       // 注意，虽然fileName正确提取了，当通过axios传递到文件服务器时HTTP协议会自动对URL编码，
       //所以在服务器端需要用decodeURIComponent解码
-      await axios.delete(`${FILE_SERVER_API_URL}/uploads/${fileName}`);
+      await axios.delete(`/api2/uploads/${fileName}`);
 
 
       // 2. 删除json-server的文件记录
       // 删除文件fileId, 返回的Promise解析值为 void类型, await让程序暂停等删除完成
-      await axios.delete(`${JSON_SERVER_API_URL}/files/${fileId}`);
+      await axios.delete(`/api/files/${fileId}`);
 
 
 
