@@ -10,6 +10,12 @@ const FILE_SERVER_API_URL = 'http://localhost:3001';  // 文件上传服务
 
 // --------------- 添加请求拦截器 --------------- 
 axios.interceptors.request.use(function (config) {
+  // 从 localStorage 中获取 Token
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`; // 添加 Token 到请求头
+  }
+
   if (config.data instanceof FormData) {
     const file = config.data.get('file') as File;
     console.log('Axios request interceptor - filename:', file.name);

@@ -3,10 +3,27 @@
     {
       "id": 1,
       "phone": "1234567890",
-      "password": "$2a$10$examplehashedpassword",
+      "email": "user@example.com",
+      "password": "$2a$10$54c14xfneRRJI645xIr7g.7xWkYM.o6w/V2xKTFvXqOBwCA1Asddu",
       "role": "user",
       "createdAt": "2023-10-01T00:00:00.000Z",
       "updatedAt": "2023-10-01T00:00:00.000Z"
+    },
+    {
+      "id": 1737592620954,
+      "phone": "1234567891",
+      "password": "$2a$10$HNmGFoSsks6wcepHkSfC2uy7wp70uxwJIXNe7HRqrSvFoOqALAUqu",
+      "role": "user",
+      "createdAt": "2025-01-23T00:37:00.954Z",
+      "updatedAt": "2025-01-23T00:37:00.954Z"
+    },
+    {
+      "id": 1737599150412,
+      "phone": "1234567892",
+      "password": "$2a$10$O8ktLv/X/.n/fYAozzOPT.xGDsXRQBaewnSnmB1z3Q9YKgW8SwA3a",
+      "role": "user",
+      "createdAt": "2025-01-23T02:25:50.412Z",
+      "updatedAt": "2025-01-23T02:25:50.412Z"
     }
   ],
   "projects": [
@@ -86,6 +103,16 @@
       "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "status": "NONE",
       "createdAt": "2025-01-16T12:43:06.813Z"
+    },
+    {
+      "id": "d200ed83-66fb-4dc2-b7d4-eb9ddc05354f",
+      "name": "上海市一证通用法人数字证书申请表（企业）0727.pdf",
+      "url": "http://localhost:3001/uploads/1737523326753-280658073-上海市一证通用法人数字证书申请表（企业）0727.pdf",
+      "size": 235013,
+      "type": "PDF",
+      "mimeType": "application/pdf",
+      "status": "NONE",
+      "createdAt": "2025-01-22T05:22:06.767Z"
     }
   ]
 }

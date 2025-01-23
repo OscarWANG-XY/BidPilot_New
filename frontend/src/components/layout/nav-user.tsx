@@ -1,51 +1,3 @@
-/**
-* 用户导航组件 (NavUser)
-* 
-* 功能描述:
-* - 显示当前用户信息的下拉菜单组件
-* - 在侧边栏底部显示用户头像、姓名和邮箱
-* - 点击展开下拉菜单，提供用户相关的操作选项
-* - 响应式设计，根据移动端状态调整下拉菜单位置
-* 
-* 组件结构:
-* SidebarMenu                     // 菜单容器
-*   └── SidebarMenuItem          // 菜单项
-*        └── DropdownMenu        // 下拉菜单
-*             ├── DropdownMenuTrigger   // 触发器
-*             │    └── SidebarMenuButton // 包含用户头像和信息的按钮
-*             │         ├── Avatar      // 用户头像
-*             │         └── UserInfo    // 用户名和邮箱
-*             │
-*             └── DropdownMenuContent   // 下拉菜单内容
-*                  ├── DropdownMenuLabel    // 用户信息标签
-*                  ├── DropdownMenuGroup    // "升级专业版"选项组
-*                  ├── DropdownMenuGroup    // 账户相关选项组
-*                  │    ├── Account        // 账户设置
-*                  │    ├── Billing        // 账单
-*                  │    └── Notifications  // 通知
-*                  └── LogOut              // 登出选项
-*
-* 使用的组件:
-* - Sidebar 相关组件(@/components/ui/sidebar):
-*   SidebarMenu, SidebarMenuItem, SidebarMenuButton
-* 
-* - DropdownMenu 相关组件(@/components/ui/dropdown-menu):
-*   DropdownMenu, DropdownMenuContent, DropdownMenuGroup,
-*   DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
-*   DropdownMenuTrigger
-* 
-* - Avatar 相关组件(@/components/ui/avatar):
-*   Avatar, AvatarImage, AvatarFallback
-* 
-* - Lucide 图标组件:
-*   BadgeCheck, Bell, ChevronsUpDown, CreditCard, LogOut, Sparkles
-* 
-* @param {Object} user - 用户信息对象
-* @param {string} user.name - 用户名称
-* @param {string} user.email - 用户邮箱
-* @param {string} user.avatar - 用户头像URL
-*/
-
 "use client" // 表示代码是客户端组件，如果不添加，Next.js会尝试在服务器端运行，从而导致错误。 
 import {
   BadgeCheck,
@@ -76,6 +28,8 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { useAuth } from "@/contexts/auth-context"
+import { useToast } from "@/hooks/use-toast"
 
 export function NavUser({
   user,
@@ -87,6 +41,24 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const { logout } = useAuth()
+  const { toast } = useToast()
+
+  const handleLogout = async () => {
+    try {
+      logout()
+      toast({
+        title: "已退出登录",
+        description: "期待您的再次访问",
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "退出失败",
+        description: error instanceof Error ? error.message : "请稍后重试",
+      })
+    }
+  }
 
   return (
     <SidebarMenu>
@@ -149,9 +121,9 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <LogOut />
-              Log out
+            <DropdownMenuItem onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              登出
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

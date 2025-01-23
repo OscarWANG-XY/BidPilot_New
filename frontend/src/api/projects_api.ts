@@ -17,6 +17,17 @@ import {
 const PROJECTS_SERVER_URL = 'http://localhost:3000'; // 项目数据服务端口
 
 
+// --------------- 添加请求拦截器 --------------- 
+axios.interceptors.request.use(function (config) {
+  // 从 localStorage 中获取 Token
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`; // 添加 Token 到请求头
+  }
+  
+  return config;
+});
+
 
 // ================================ projectsAPI 模块 =================================== 
 export const projectsApi = {

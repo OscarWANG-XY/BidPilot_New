@@ -12,24 +12,23 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { Link } from "@tanstack/react-router"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Link, useNavigate } from "@tanstack/react-router"
 
-export function RegisterForm({
+export function ResetPasswordForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
   const [phone, setPhone] = useState("")
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
   const [verificationCode, setVerificationCode] = useState("")
-  const [agreed, setAgreed] = useState(false)
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isSendingCode, setIsSendingCode] = useState(false)
   const [countdown, setCountdown] = useState(0)
-  
-  const { register, requestCaptcha } = useAuth()
+
+  const { forgotPassword, requestCaptcha } = useAuth()
   const { toast } = useToast()
+  const navigate = useNavigate()
 
   // 发送验证码
   const handleSendCode = async () => {
@@ -44,7 +43,7 @@ export function RegisterForm({
 
     try {
       setIsSendingCode(true)
-      await requestCaptcha(phone, 'register')
+      await requestCaptcha(phone, 'resetPassword')
       
       // 开始倒计时
       setCountdown(60)
@@ -76,7 +75,7 @@ export function RegisterForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (password !== confirmPassword) {
+    if (newPassword !== confirmPassword) {
       toast({
         variant: "destructive",
         title: "密码不匹配",
@@ -88,21 +87,23 @@ export function RegisterForm({
     setIsLoading(true)
 
     try {
-      await register({ 
-        phone, 
-        password,
+      await forgotPassword({
+        phone,
         captcha: verificationCode,
-        confirmPassword,
-        agreeToTerms: agreed 
+        newPassword,
       })
+      
       toast({
-        title: "注册成功",
-        description: "欢迎加入我们！",
+        title: "密码重置成功",
+        description: "请使用新密码登录",
       })
+      
+      // 重置成功后跳转到登录页
+      navigate({ to: "/auth/login" })
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "注册失败",
+        title: "重置失败",
         description: error instanceof Error ? error.message : "请检查您的输入",
       })
     } finally {
@@ -114,9 +115,9 @@ export function RegisterForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">创建账号</CardTitle>
+          <CardTitle className="text-xl">重置密码</CardTitle>
           <CardDescription>
-            请输入您的手机号、密码和验证码，创建账号。
+            请输入您的手机号和验证码来重置密码
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -145,32 +146,6 @@ export function RegisterForm({
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="password">密码</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="请输入密码"
-                  disabled={isLoading}
-                  required
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="confirmPassword">确认密码</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="请再次输入密码"
-                  disabled={isLoading}
-                  required
-                />
-              </div>
-
-              <div className="grid gap-2">
                 <Label htmlFor="code">验证码</Label>
                 <div className="flex gap-2">
                   <Input
@@ -193,44 +168,40 @@ export function RegisterForm({
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="terms" 
-                  checked={agreed}
-                  onCheckedChange={(checked) => setAgreed(checked as boolean)}
+              <div className="grid gap-2">
+                <Label htmlFor="newPassword">新密码</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="请输入新密码"
+                  disabled={isLoading}
+                  required
                 />
-                <label htmlFor="terms" className="text-sm text-muted-foreground">
-                  我已阅读并同意
-                  <Link 
-                    to="/auth/service-term" 
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  > 用户协议 </Link>
-                  与
-                  <Link 
-                    to="/auth/privacy-policy" 
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  > 隐私政策</Link>
-                </label>
               </div>
 
-              <Button type="submit" className="w-full" disabled={isLoading || !agreed}>
-                {isLoading ? "注册中..." : "注册"}
+              <div className="grid gap-2">
+                <Label htmlFor="confirmPassword">确认新密码</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="请再次输入新密码"
+                  disabled={isLoading}
+                  required
+                />
+              </div>
+
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "重置中..." : "重置密码"}
               </Button>
 
-              <div className="flex items-center justify-between text-sm">
-                <Link
-                  to="/auth/forgot-password"
-                  className="text-muted-foreground hover:underline"
-                >
-                  忘记密码?
-                </Link>
+              <div className="text-center">
                 <Link
                   to="/auth/login"
-                  className="text-primary hover:underline"
+                  className="text-sm text-primary hover:underline"
                 >
                   返回登录
                 </Link>
