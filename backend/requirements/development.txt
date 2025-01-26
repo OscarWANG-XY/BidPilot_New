@@ -1,0 +1,18 @@
+开发环境： bidpilot_new_env
+支持postgresql数据库
+
+
+支持Jupyther notebook的即时测试
+jupyter 1.1.1
+ipython 8.31.0
+django-extensions 3.2.3
+
+
+
+支持大模型功能测试： 
+
+
+
+API文档化：
+
+drf-spectacular 0.28.0

@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
 # Quick-start development settings - unsuitable for production
@@ -39,10 +39,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
-    #'apps.authentication',
+    'apps.authentication',
+    'drf_spectacular',  # 用于生成OPENAPI文档
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # 需要放在最前面
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -76,19 +78,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',  # 数据库引擎
-        'NAME': 'bidpilot_new',  # 数据库名称
-        'USER': 'postgres',  # 数据库用户
-        'PASSWORD': '123456',  # 数据库密码\
-        'HOST': 'localhost',  # 数据库主机
-        'PORT': '5432',  # 数据库端口
-        'OPTIONS': {
-            'client_encoding': 'UTF8',  # 确保客户端编码为 UTF-8
-        },
-    }
-}
+
 
 
 # Password validation
@@ -113,7 +103,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'zh-hans'   # 语言 英文是en-us，中文是zh-hans
 
 TIME_ZONE = 'UTC'
 
@@ -131,3 +121,59 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# ------------------------------ DRF 配置 用于生成OPENAPI文档 ------------------------------
+# DRF 配置
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
+# Spectacular 设置
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'BidPilot API',
+    'DESCRIPTION': 'BidPilot 后端 API 文档',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'TAGS': [
+        {'name': 'auth', 'description': '认证相关接口'},
+    ],
+}
+# ----------------------------------------------------------------------------------------------
+
+
+
+
+# -----------------------  CORS设置 （与前端连接的必要配置）--------------------------------------
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # React 开发服务器
+    "http://localhost:5173",  # Vite 开发服务器
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
