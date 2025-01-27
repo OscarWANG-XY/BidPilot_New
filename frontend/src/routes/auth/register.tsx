@@ -3,6 +3,13 @@ import { RegisterForm } from '@/components/auth/register-form'
 
 export const Route = createFileRoute('/auth/register')({
   component: RegisterPage,
+
+  // ***************  添加控制台日志 （Start）  ****************
+  loader: () => {
+    console.log('[Route Loader] /auth/register - 开始加载');
+    return null;
+  },
+
 })
 
 function RegisterPage() {

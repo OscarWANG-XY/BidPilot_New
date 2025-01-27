@@ -13,10 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { VerificationCodeInput } from "@/components/auth/verification-code-input"
 
-
-// ============================== 重置密码组件 ==============================
 export function ResetPasswordForm({
   className,
   ...props
@@ -26,26 +23,59 @@ export function ResetPasswordForm({
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [isSendingCode, setIsSendingCode] = useState(false)
+  const [countdown, setCountdown] = useState(0)
 
-  const { forgotPassword } = useAuth()
+  const { forgotPassword, requestCaptcha } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
 
+  // 发送验证码
+  const handleSendCode = async () => {
+    if (!phone) {
+      toast({
+        variant: "destructive",
+        title: "请输入手机号",
+        description: "发送验证码前需要填写手机号",
+      })
+      return
+    }
 
-  // ------------------------- 表单提交 -------------------------
-  const handleResetPassword = async (e: React.FormEvent) => {
+    try {
+      setIsSendingCode(true)
+      await requestCaptcha(phone, 'resetPassword')
+      
+      // 开始倒计时
+      setCountdown(60)
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+
+      toast({
+        title: "验证码已发送",
+        description: "请查看手机短信",
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "发送失败",
+        description: error instanceof Error ? error.message : "请稍后重试",
+      })
+    } finally {
+      setIsSendingCode(false)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    console.log('[ResetPasswordForm] 表单提交 - 开始', {
-      phone,
-      verificationCode,
-      newPassword,
-      confirmPassword,
-      timestamp: new Date().toISOString()
-    })
-    
     if (newPassword !== confirmPassword) {
-      console.log('[ResetPasswordForm] 密码不匹配')
       toast({
         variant: "destructive",
         title: "密码不匹配",
@@ -57,15 +87,12 @@ export function ResetPasswordForm({
     setIsLoading(true)
 
     try {
-      console.log('[ResetPasswordForm] 调用 forgotPassword API')
       await forgotPassword({
         phone,
         captcha: verificationCode,
         newPassword,
-        confirmPassword,
       })
       
-      console.log('[ResetPasswordForm] 密码重置成功')
       toast({
         title: "密码重置成功",
         description: "请使用新密码登录",
@@ -74,7 +101,6 @@ export function ResetPasswordForm({
       // 重置成功后跳转到登录页
       navigate({ to: "/auth/login" })
     } catch (error) {
-      console.error('[ResetPasswordForm] 重置失败', error)
       toast({
         variant: "destructive",
         title: "重置失败",
@@ -82,12 +108,9 @@ export function ResetPasswordForm({
       })
     } finally {
       setIsLoading(false)
-      console.log('[ResetPasswordForm] 重置流程结束')
     }
   }
 
-
-  // ------------------------- 渲染组件 -------------------------
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -98,7 +121,7 @@ export function ResetPasswordForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleResetPassword}>
+          <form onSubmit={handleSubmit}>
             <div className="grid gap-6">
               <div className="grid gap-2">
                 <Label htmlFor="phone">手机号</Label>
@@ -122,13 +145,28 @@ export function ResetPasswordForm({
                 </div>
               </div>
 
-              <VerificationCodeInput
-                phone={phone}
-                type="resetPassword"
-                disabled={isLoading}
-                value={verificationCode}
-                onChange={setVerificationCode}
-              />
+              <div className="grid gap-2">
+                <Label htmlFor="code">验证码</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="code"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value)}
+                    placeholder="请输入验证码"
+                    disabled={isLoading}
+                    required
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={handleSendCode}
+                    disabled={isLoading || isSendingCode || countdown > 0}
+                    className="flex-shrink-0"
+                  >
+                    {countdown > 0 ? `${countdown}秒后重试` : "发送验证码"}
+                  </Button>
+                </div>
+              </div>
 
               <div className="grid gap-2">
                 <Label htmlFor="newPassword">新密码</Label>

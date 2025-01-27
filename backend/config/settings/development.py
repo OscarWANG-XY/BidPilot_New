@@ -24,3 +24,33 @@ AUTH_USER_MODEL = 'authentication.User'
 # 调试输出
 print("Development settings loaded")
 print("INSTALLED_APPS:", INSTALLED_APPS)
+
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        '': {  # Root logger
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'apps.authentication': {  # 您的应用logger
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

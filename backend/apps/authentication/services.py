@@ -18,6 +18,12 @@ class AuthService:
     def generate_tokens(user):
         """生成JWT令牌"""
         refresh = RefreshToken.for_user(user)
+
+        logger.info("生成令牌：", 
+                    "access_token: ", str(refresh.access_token),
+                    "refresh_token: ", str(refresh),
+                    "user: ", user)
+
         return {
             'access_token': str(refresh.access_token),
             'refresh_token': str(refresh),
@@ -28,14 +34,21 @@ class AuthService:
     @staticmethod
     def login_with_password(phone_or_email: str, password: str):
         """密码登录"""
+        logger.info("=== 密码登录过程 service.py/login_with_password ===")
+        logger.info("登录参数:")
+        logger.info("- 手机号/邮箱: %s", phone_or_email)
+        logger.info("- 密码长度: %d", len(password))
+
         # 判断是手机号还是邮箱
         field = 'phone' if phone_or_email.isdigit() else 'email'
         credentials = {field: phone_or_email, 'password': password}
         
         user = authenticate(**credentials)
         if not user:
+            logger.error("认证失败：用户名或密码错误")
             raise ValueError('用户名或密码错误')
         
+        logger.info("用户认证成功: %s", user.phone if hasattr(user, 'phone') else user.email)
         return AuthService.generate_tokens(user)
 
 
@@ -43,27 +56,36 @@ class AuthService:
     @staticmethod
     def generate_captcha(phone: str, type: str):
         """生成验证码"""
+        logger.info("=== 生成验证码过程 service.py/generate_captcha ===")
+        logger.info("验证码生成参数:")
+        logger.info("- 手机号: %s", phone)
+        logger.info("- 验证码类型: %s", type)
+
         # 检查是否频繁发送
         cache_key = f'captcha_limit_{phone}'
         if cache.get(cache_key):
+            logger.error("验证码发送过于频繁")
             raise ValueError('请求过于频繁，请稍后再试')
 
         # 生成6位数验证码
         code = ''.join(random.choices('0123456789', k=6))
+        logger.info("生成的验证码: %s", code)
         
         # 保存验证码
-        VerificationCode.objects.create(
+        verification = VerificationCode.objects.create(
             phone=phone,
             code=code,
             type=type,
             expires_at=timezone.now() + timedelta(minutes=5)
         )
-        
+        logger.info("验证码保存成功，过期时间: %s", verification.expires_at)
+
         # 设置发送限制
-        cache.set(cache_key, True, 60)  # 60秒内不能重复发送
+        cache.set(cache_key, True, 60)
+        logger.info("设置发送限制: 60秒")
         
         # TODO: 调用短信服务发送验证码
-        logger.info(f'向 {phone} 发送验证码: {code}')
+        logger.info("准备发送验证码到手机: %s", phone)
         
         return True
 
@@ -114,11 +136,19 @@ class AuthService:
     @staticmethod
     def login_with_captcha(phone: str, code: str):
         """验证码登录"""
+        logger.info("=== 验证码登录过程 service.py/login_with_captcha ===")
+        logger.info("登录参数:")
+        logger.info("- 手机号: %s", phone)
+        logger.info("- 验证码: %s", code)
+
         if not AuthService.verify_captcha(phone, code, 'login'):
+            logger.error("验证码验证失败")
             raise ValueError('验证码验证失败')
         
         # 获取或创建用户
         user, created = User.objects.get_or_create(phone=phone)
+        logger.info("用户%s: %s", "创建" if created else "获取", user.phone)
+        
         return AuthService.generate_tokens(user)
 
 
@@ -145,8 +175,12 @@ class AuthService:
             
             # 创建用户
             user = User.objects.create_user(phone=phone, password=password)
+
             logger.info("用户创建成功: %s", user.phone)
+            logger.info("传递完整用户对象到给到 generate_tokens 方法", user)
             return AuthService.generate_tokens(user)
+        
+
         except Exception as e:
             logger.error("注册过程出错: %s", str(e))
             raise
@@ -158,17 +192,26 @@ class AuthService:
         """重置密码
         注意：new_password 已经在序列化器层面验证过两次输入是否一致
         """
+        logger.info("=== 密码重置过程 service.py/reset_password ===")
+        logger.info("重置参数:")
+        logger.info("- 手机号: %s", phone)
+        logger.info("- 验证码: %s", captcha)
+        logger.info("- 新密码长度: %d", len(new_password))
+
         # 验证验证码
         if not AuthService.verify_captcha(phone, captcha, 'resetPassword'):
+            logger.error("验证码验证失败")
             raise ValueError('验证码验证失败')
         
         # 更新密码
         user = User.objects.filter(phone=phone).first()
         if not user:
+            logger.error("用户不存在: %s", phone)
             raise ValueError('用户不存在')
         
         user.set_password(new_password)
         user.save()
+        logger.info("密码重置成功: %s", user.phone)
         return True
 
 
@@ -177,6 +220,9 @@ class AuthService:
     @staticmethod
     def handle_wechat_login(code: str):
         """处理微信登录"""
+        logger.info("=== 微信登录过程 service.py/handle_wechat_login ===")
+        logger.info("登录参数:")
+        logger.info("- 微信code: %s", code)
         # TODO: 调用微信API获取用户信息
         # 这里需要实现微信登录的具体逻辑
         pass
@@ -184,5 +230,10 @@ class AuthService:
     @staticmethod
     def bind_wechat_phone(phone: str, captcha: str, temp_token: str):
         """绑定微信手机号"""
+        logger.info("=== 微信绑定手机号过程 service.py/bind_wechat_phone ===")
+        logger.info("绑定参数:")
+        logger.info("- 手机号: %s", phone)
+        logger.info("- 验证码: %s", captcha)
+        logger.info("- 临时令牌: %s", temp_token)
         # TODO: 实现微信手机号绑定逻辑
         pass 

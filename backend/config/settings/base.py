@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'apps.authentication',
     'drf_spectacular',  # 用于生成OPENAPI文档
+    'rest_framework_simplejwt.token_blacklist', # 用于管理JWT令牌的黑名单 for logout
 ]
 
 MIDDLEWARE = [

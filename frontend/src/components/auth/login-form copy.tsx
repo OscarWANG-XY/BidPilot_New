@@ -31,7 +31,7 @@ export function LoginForm({
 }: React.ComponentPropsWithoutRef<"div">) {
 
   // 使用 useAuth 钩子获取登录和请求验证码的函数
-  const { login } = useAuth();
+  const { login, requestCaptcha } = useAuth();
   
   // 使用 useToast 钩子获取显示 Toast 提示的函数
   const { toast } = useToast();
@@ -52,21 +52,21 @@ export function LoginForm({
 
   // ----------------------------------- 处理短信验证 ----------------------------------
   // 定义发送短信验证码的函数
-  // const handleSendSMSCode = async () => {
-  //   if (!formState.phone) { // 如果手机号为空，显示错误提示
-  //     toast({ variant: "destructive", title: "错误", description: "请输入手机号" });
-  //     return;
-  //   }
-  //   try {
-  //     // 请求短信验证码，传入手机号和登录类型
-  //     // requestCaptcha是来自auth-context.tsx的useAuth钩子里的requestCaptcha函数
-  //     await requestCaptcha(formState.phone, 'login');
-  //     toast({ title: "验证码已发送", description: "请注意查收短信" }); // 显示成功提示
-  //   } catch (error) {
-  //     // 如果请求失败，显示错误提示
-  //     toast({ variant: "destructive", title: "验证码发送失败", description: error instanceof Error ? error.message : "请稍后重试" });
-  //   }
-  // };
+  const handleSendSMSCode = async () => {
+    if (!formState.phone) { // 如果手机号为空，显示错误提示
+      toast({ variant: "destructive", title: "错误", description: "请输入手机号" });
+      return;
+    }
+    try {
+      // 请求短信验证码，传入手机号和登录类型
+      // requestCaptcha是来自auth-context.tsx的useAuth钩子里的requestCaptcha函数
+      await requestCaptcha(formState.phone, 'login');
+      toast({ title: "验证码已发送", description: "请注意查收短信" }); // 显示成功提示
+    } catch (error) {
+      // 如果请求失败，显示错误提示
+      toast({ variant: "destructive", title: "验证码发送失败", description: error instanceof Error ? error.message : "请稍后重试" });
+    }
+  };
 
 
 
@@ -89,7 +89,7 @@ export function LoginForm({
   //}, [initGphCaptcha]);
 
 
-  // ------------------------ 以下处理'短信验证码登录'和'密码登录'的表单提交------------------------------------
+  // ------------------------ 以下处理‘短信验证码登录’和‘密码登录’的表单提交------------------------------------
   // 验证码登录，指的是用户已经收到了短信验证码，录入进行登录的操作。微信登录不在这段代码里，其逻辑处理被放在了useWechatLogin.tsx里
 
     // 验证手机号格式
@@ -230,6 +230,7 @@ export function LoginForm({
                   isLoading={isLoading}
                   onPhoneChange={(value) => handleChange('phone', value)}
                   onCodeChange={(value) => handleChange('verificationCode', value)}
+                  onSendCode={handleSendSMSCode}
                 />
               ) : (
                 <PasswordLoginForm

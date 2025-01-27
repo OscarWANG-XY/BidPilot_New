@@ -31,6 +31,8 @@ import {
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
 
+
+// ========================= 用户导航栏 =========================
 export function NavUser({
   user,
 }: {
@@ -44,6 +46,8 @@ export function NavUser({
   const { logout } = useAuth()
   const { toast } = useToast()
 
+
+  // -------------------  定义注销方法  -------------------  
   const handleLogout = async () => {
     try {
       logout()
@@ -60,6 +64,8 @@ export function NavUser({
     }
   }
 
+
+  // -------------------  组件渲染  -------------------  
   return (
     <SidebarMenu>
       <SidebarMenuItem>

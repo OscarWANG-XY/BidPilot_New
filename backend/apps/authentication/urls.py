@@ -1,13 +1,14 @@
 from django.urls import path
 from .views import (
     RegisterView,
-    LoginView,
+    PasswordLoginView,
     CaptchaLoginView,
     CaptchaRequestView,
     PasswordResetView,
     WechatLoginView,
     WechatBindPhoneView,
-    UserProfileView
+    UserProfileView,
+    LogoutView
 )
 
 app_name = 'authentication'
@@ -17,7 +18,7 @@ urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
     
     # 登录相关
-    path('login/', LoginView.as_view(), name='login'),
+    path('login/password/', PasswordLoginView.as_view(), name='password-login'),
     path('login/captcha/', CaptchaLoginView.as_view(), name='captcha-login'),
     path('login/wechat/', WechatLoginView.as_view(), name='wechat-login'),
     
@@ -32,4 +33,7 @@ urlpatterns = [
     
     # 用户信息
     path('profile/', UserProfileView.as_view(), name='user-profile'),
+    
+    # 登出
+    path('logout/', LogoutView.as_view(), name='logout'),
 ] 

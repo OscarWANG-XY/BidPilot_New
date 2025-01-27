@@ -17,7 +17,7 @@ export function useLoginFormState() {
   // - agreed: 是否同意协议，初始为false
   const [formState, setFormState] = useState({
     phone: '',
-    email: '',
+    phoneOrEmail: '',
     password: '',
     verificationCode: '',
     agreed: false,

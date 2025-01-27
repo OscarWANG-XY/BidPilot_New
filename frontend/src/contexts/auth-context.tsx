@@ -18,9 +18,15 @@ import {
   bindPhoneAfterWechatLogin,
   registerUser,
   forgotPassword,
+  logout,
 } from '@/api/auth_api'
 import { UserResponse } from '@/types/user_dt_stru';
 import { getCurrentUser} from '@/api/user_api';
+
+const STORAGE_KEYS = {
+  TOKEN: 'token',
+  REFRESH_TOKEN: 'refreshToken'
+} as const;
 
 // 定义 AuthContextType 类型，用于描述AuthContext对象的结构
 interface AuthContextType {
@@ -49,72 +55,183 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   // 使用 useQuery 获取当前用户信息
   const { data: user, isLoading } = useQuery<UserResponse | null>({
-    queryKey: ['auth-user'], // 缓存的唯一标识符
-    queryFn: getCurrentUser, // 获取用户数据的函数
-    staleTime: 1000 * 60 * 5, // 数据缓存的有效时间（5 分钟）
-    initialData: null, // 初始数据为 null
+    queryKey: ['auth-user'],
+    queryFn: async () => {
+      console.log('[AuthContext] 开始获取当前用户信息');
+      try {
+        const userData = await getCurrentUser();
+        console.log('[AuthContext] 获取用户信息成功:', userData);
+        return userData;
+      } catch (error) {
+        console.error('[AuthContext] 获取用户信息失败:', error);
+        throw error;
+      }
+    },
+    staleTime: 1000 * 60 * 5,
+    initialData: null,
   });
 
   
-  // 定义请求验证码的 mutation
+  // ------------------ 定义请求验证码的 mutation  ------------------
+  // 与后端连接 测试完成 
   const requestCaptchaMutation = useMutation({
-    mutationFn: (params: { phone: string; type: 'login' | 'register' | 'resetPassword' }) =>
-      requestCaptcha({ phone: params.phone, type: params.type }), // 调用 API 请求验证码
+    mutationFn: (params: { phone: string; type: 'login' | 'register' | 'resetPassword' }) => {
+      console.log('[AuthContext] 请求验证码 - 开始:', params);
+      return requestCaptcha({ phone: params.phone, type: params.type });
+    },
+    onSuccess: (data) => {
+      console.log('[AuthContext] 验证码请求成功:', data);
+    },
+    onError: (error) => {
+      console.error('[AuthContext] 验证码请求失败:', error);
+    }
   });
 
-  // -------------------  定义登录的 mutation （测试通过）  -------------------  
-  console.log('AuthContext 识别的登录方式：', LoginMethod);
+  // -------------------  登录的 mutation （测试通过）  -------------------  
   const loginMutation = useMutation({
     mutationFn: (params: {
       method: LoginMethod;
       credentials: CaptchaLoginForm | PasswordLoginForm | WechatLoginRequest;
-    }) => login(params.method, params.credentials), // 调用 API 进行登录
-    onSuccess: (data) => {
-      if ('token' in data) {
-        // 如果是密码登录或验证码登录成功
-        localStorage.setItem('token', data.token); // 将 token 存储到 localStorage
-        queryClient.setQueryData(['auth-user'], data.user); // 更新用户数据
-        navigate({ to: '/' }); // 导航到首页
-      } else {
-        // 如果是微信登录成功，返回 WechatLoginResponse
-        return data;
-      }
+    }) => {
+      console.log('[AuthContext] 登录请求 - 开始:', {
+        method: params.method,
+        credentials: { ...params.credentials, password: '***' } // 隐藏密码
+      });
+      return login(params.method, params.credentials);
     },
+    onSuccess: (data) => {
+      console.log('[AuthContext] 登录成功, 响应数据:', {
+        ...data,
+        token: '***', // 隐藏敏感信息
+        refreshToken: '***'
+      });
+
+      if ('token' in data) {
+        localStorage.setItem(STORAGE_KEYS.TOKEN, data.token);
+        localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refreshToken);
+        console.log('[AuthContext] Token 已存储到 localStorage');
+
+        queryClient.setQueryData(['auth-user'], data.user);
+        console.log('[AuthContext] 用户数据已更新到缓存');
+        
+        navigate({ to: '/' });
+      }
+      return data;
+    },
+    onError: (error) => {
+      console.error('[AuthContext] 登录失败:', error);
+    }
   });
 
-  // 定义绑定手机号的 mutation
+  // ------------------ 定义绑定手机号的 mutation  ------------------
   const bindPhoneMutation = useMutation({
-    mutationFn: bindPhoneAfterWechatLogin, // 调用 API 绑定手机号
-    onSuccess: (data) => {
-      localStorage.setItem('token', data.token); // 将 token 存储到 localStorage
-      queryClient.setQueryData(['auth-user'], data.user); // 更新用户数据
-      navigate({ to: '/' }); // 导航到首页
+    mutationFn: (form: WechatBindPhoneForm) => {
+      console.log('[AuthContext] 绑定手机号 - 开始:', { ...form, captcha: '***' });
+      return bindPhoneAfterWechatLogin(form);
     },
+    onSuccess: (data) => {
+      console.log('[AuthContext] 绑定手机号成功:', {
+        ...data,
+        token: '***'
+      });
+      localStorage.setItem('token', data.token);
+      queryClient.setQueryData(['auth-user'], data.user);
+      navigate({ to: '/' });
+    },
+    onError: (error) => {
+      console.error('[AuthContext] 绑定手机号失败:', error);
+    }
   });
 
   // -------------------  定义注册的 mutation （测试通过）  -------------------  
+  // 与后端连接中
   const registerMutation = useMutation({
-    mutationFn: registerUser, // 调用 API 进行注册
-    onSuccess: (data) => {
-      localStorage.setItem('token', data.token); // 将 token 存储到 localStorage
-      queryClient.setQueryData(['auth-user'], data.user); // 更新用户数据
-      navigate({ to: '/' }); // 导航到首页
+    mutationFn: (form: RegisterForm) => {
+      console.log('[AuthContext] 注册请求 - 开始:', {
+        ...form,
+        password: '***',
+        captcha: '***'
+      });
+      return registerUser(form);
     },
+    onSuccess: (data) => {
+      console.log('[AuthContext] 注册成功:', {
+        ...data,
+        token: '***',
+        refreshToken: '***'
+      });
+      
+      localStorage.setItem(STORAGE_KEYS.TOKEN, data.token);
+      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refreshToken);
+      
+      const storedRefreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+      console.log('[AuthContext] Token 存储验证:', {
+        hasToken: !!localStorage.getItem(STORAGE_KEYS.TOKEN),
+        hasRefreshToken: !!storedRefreshToken
+      });
+      
+      queryClient.setQueryData(['auth-user'], data.user);
+      navigate({ to: '/' });
+    },
+    onError: (error) => {
+      console.error('[AuthContext] 注册失败:', error);
+    }
   });
 
   // 定义忘记密码的 mutation
   const forgotPasswordMutation = useMutation({
-    mutationFn: forgotPassword, // 调用 API 处理忘记密码
+    mutationFn: (form: ForgotPasswordForm) => {
+      console.log('[AuthContext] 重置密码 - 开始:', {
+        ...form,
+        newPassword: '***',
+        confirmPassword: '***',
+        captcha: '***'
+      });
+      return forgotPassword(form);
+    },
+    onSuccess: () => {
+      console.log('[AuthContext] 重置密码成功');
+    },
+    onError: (error) => {
+      console.error('[AuthContext] 重置密码失败:', error);
+    }
   });
 
-  // -------------------  定义注销方法（测试通过）  -------------------  
-  const logout = () => {
-    localStorage.removeItem('token'); // 清除 localStorage 中的 token
-    queryClient.setQueryData(['auth-user'], null); // 将用户数据设置为 null
-    queryClient.invalidateQueries({ queryKey: ['auth-user'] }); // 强制刷新用户数据查询
-    navigate({ to: '/auth/login' }); // 导航到登录页面
-  };
-
+  // -------------------  定义注销方法  -------------------  
+  const logoutMutation = useMutation({
+    mutationFn: (refreshToken: string) => {
+      console.log('[AuthContext] 注销请求 - 开始');
+      return logout(refreshToken);
+    },
+    onSuccess: () => {
+      console.log('[AuthContext] 注销成功 - 开始清理本地数据');
+      
+      localStorage.removeItem(STORAGE_KEYS.TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+      console.log('[AuthContext] localStorage 已清理');
+      
+      queryClient.setQueryData(['auth-user'], null);
+      queryClient.invalidateQueries({ queryKey: ['auth-user'] });
+      console.log('[AuthContext] 用户数据缓存已清理');
+      
+      setTimeout(() => {
+        console.log('[AuthContext] 开始导航到登录页');
+        navigate({ to: '/auth/login' });
+      }, 1000);
+    },
+    onError: (error) => {
+      console.error('[AuthContext] 注销失败:', error);
+      console.log('[AuthContext] 尽管注销失败，仍清理本地数据');
+      
+      localStorage.removeItem(STORAGE_KEYS.TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+      queryClient.setQueryData(['auth-user'], null);
+      
+      setTimeout(() => {
+        navigate({ to: '/auth/login' });
+      }, 1000);
+    }
+  });
 
   // 暴露的上下文值，包含用户状态和操作方法
   const value = {
@@ -127,7 +244,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loginMutation.mutateAsync({ method, credentials }), // 登录
     bindPhone: (form: WechatBindPhoneForm) => bindPhoneMutation.mutateAsync(form), // 绑定手机号
     register: (form: RegisterForm) => registerMutation.mutateAsync(form), // 注册
-    logout, // 注销
+    logout: () => {
+      const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+      console.log('[AuthContext] logout 获取的 refreshToken：', refreshToken);
+      if (refreshToken) {
+        return logoutMutation.mutateAsync(refreshToken);
+      } else {
+        // 如果没有 refresh_token，直接执行清理操作
+        localStorage.removeItem(STORAGE_KEYS.TOKEN);
+        localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+        queryClient.setQueryData(['auth-user'], null);
+        setTimeout(() => {
+          navigate({ to: '/auth/login' });
+        }, 1000);
+      }
+    },
     forgotPassword: (form: ForgotPasswordForm) => forgotPasswordMutation.mutateAsync(form), // 忘记密码
   };
 

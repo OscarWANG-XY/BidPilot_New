@@ -14,7 +14,6 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Link } from "@tanstack/react-router"
 import { Checkbox } from "@/components/ui/checkbox"
-import { VerificationCodeInput } from "@/components/auth/verification-code-input"
 
 
 // ========================= 注册表单组件 =========================
@@ -31,9 +30,65 @@ export function RegisterForm({
   const [verificationCode, setVerificationCode] = useState("")
   const [agreed, setAgreed] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isSendingCode, setIsSendingCode] = useState(false)
+  const [countdown, setCountdown] = useState(0)
   
-  const { register} = useAuth()
+  const { register, requestCaptcha } = useAuth()
   const { toast } = useToast()
+
+  // -------------- 发送验证码 ---------------
+  // 与后端连接 测试完成 
+  const handleSendCode = async () => {
+    if (!phone) {
+      toast({
+        variant: "destructive",
+        title: "请输入手机号",
+        description: "发送验证码前需要填写手机号",
+      })
+      return
+    }
+
+    try {
+      setIsSendingCode(true)
+
+      // ******  添加控制台日志  ******
+      console.log('[RegisterForm] 发送验证码 - 开始', {
+        phone,
+        type: 'register',
+        timestamp: new Date().toISOString()
+      });
+      
+      await requestCaptcha(phone, 'register')
+      
+      // ******  添加成功日志  ******
+      console.log('[RegisterForm] 发送验证码 - 成功');
+      
+      // 开始倒计时
+      setCountdown(60)
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+
+      toast({
+        title: "验证码已发送",
+        description: "请查看手机短信",
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "发送失败",
+        description: error instanceof Error ? error.message : "请稍后重试",
+      })
+    } finally {
+      setIsSendingCode(false)
+    }
+  }
 
   // -------------- 表单提交 ---------------
   const handleSubmit = async (e: React.FormEvent) => {
@@ -150,13 +205,28 @@ export function RegisterForm({
                 />
               </div>
 
-              <VerificationCodeInput
-                phone={phone}
-                type="register"
-                disabled={isLoading}
-                value={verificationCode}
-                onChange={setVerificationCode}
-              />
+              <div className="grid gap-2">
+                <Label htmlFor="code">验证码</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="code"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value)}
+                    placeholder="请输入验证码"
+                    disabled={isLoading}
+                    required
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={handleSendCode}
+                    disabled={isLoading || isSendingCode || countdown > 0}
+                    className="flex-shrink-0"
+                  >
+                    {countdown > 0 ? `${countdown}秒后重试` : "发送验证码"}
+                  </Button>
+                </div>
+              </div>
 
               <div className="flex items-center space-x-2">
                 <Checkbox 

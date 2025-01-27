@@ -4,22 +4,22 @@ import { Label } from "@/components/ui/label"; // 标签组件
 import { Link } from "@tanstack/react-router"; // 路由链接组件，用于导航
 
 // 定义 PasswordLoginForm 组件，接收以下属性：
-// email: 当前输入的邮箱或手机号
+// phoneOrEmail: 当前输入的邮箱或手机号
 // password: 当前输入的密码
 // isLoading: 是否正在加载中，用于禁用输入框
-// onEmailChange: 当邮箱或手机号输入框内容变化时的回调函数
+// onPhoneOrEmailChange: 当邮箱或手机号输入框内容变化时的回调函数
 // onPasswordChange: 当密码输入框内容变化时的回调函数
 export function PasswordLoginForm({
-  email,
+  phoneOrEmail,
   password,
   isLoading,
-  onEmailChange,
+  onPhoneOrEmailChange,
   onPasswordChange,
 }: {
-  email: string;
+  phoneOrEmail: string;
   password: string;
   isLoading: boolean;
-  onEmailChange: (value: string) => void;
+  onPhoneOrEmailChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
 }) {
   return (
@@ -33,8 +33,8 @@ export function PasswordLoginForm({
         <Input
           id="emailOrPhone" // 输入框的唯一标识符
           type="text" // 输入框类型为文本
-          value={email} // 输入框的值为 email 属性
-          onChange={(e) => onEmailChange(e.target.value)} // 当输入框内容变化时，调用 onEmailChange 回调函数
+          value={phoneOrEmail} // 输入框的值为 email 属性
+          onChange={(e) => onPhoneOrEmailChange(e.target.value)} // 当输入框内容变化时，调用 onEmailChange 回调函数
           placeholder="请输入手机号或邮箱" // 输入框的占位符文本
           disabled={isLoading} // 根据 isLoading 属性决定是否禁用输入框
           required // 输入框为必填项

@@ -21,7 +21,7 @@ class CustomUserManager(BaseUserManager):
             user.set_password(password)
         # 保存用户对象到数据库
         user.save(using=self._db)
-        # 返回创建的用户对象
+        # 返回创建的用户对象 （注意这里返回的是完整的用户对象）
         return user
 
     # 创建超级用户的方法

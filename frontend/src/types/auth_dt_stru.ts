@@ -36,6 +36,7 @@ export enum LoginMethod {
     phone: string; // 手机号
     captcha: string; // 验证码
     newPassword: string; // 新密码
+    confirmPassword: string; // 确认密码
   }
   
   // 微信扫码登录后绑定手机号表单
@@ -46,9 +47,9 @@ export enum LoginMethod {
   
   // 登录响应
   export interface AuthResponse {
-    user: UserResponse; // 用户信息
-    token: string; // JWT 令牌
-    refreshToken: string; // 刷新令牌
+    token: string;
+    refreshToken: string;  // 确保这里使用的是 refreshToken 而不是 refresh_token
+    user: UserResponse;
   }
   
   // 验证码请求
