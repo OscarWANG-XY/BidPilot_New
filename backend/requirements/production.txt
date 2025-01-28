@@ -1,0 +1,20 @@
+# production.txt
+-r base.txt
+
+# WSGI/ASGI Servers
+uvicorn==0.32.0
+gunicorn==21.2.0
+
+# Monitoring & Logging
+prometheus_client==0.21.1
+coloredlogs==15.0.1
+
+# Performance & Caching
+redis==5.0.1
+celery==5.3.6
+
+# Security
+certifi==2024.2.2
+
+# Production Utilities
+python-json-logger==3.2.1

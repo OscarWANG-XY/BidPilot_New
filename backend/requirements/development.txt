@@ -1,18 +1,30 @@
-开发环境： bidpilot_new_env
-支持postgresql数据库
+# development.txt
+-r base.txt
 
+# Testing
+pytest==8.3.4
+pytest-django==4.9.0
 
-支持Jupyther notebook的即时测试
-jupyter 1.1.1
-ipython 8.31.0
-django-extensions 3.2.3
+# Debugging & Development Tools
+ipython==8.12.3
+ipykernel==6.29.0
+debugpy==1.8.0
+jupyter==1.1.1
+jupyter-client==8.6.0
+jupyter-core==5.7.1
+jupyterlab==4.3.4
 
+# Code Quality & Analysis
+black==24.1.1
+flake8==7.0.0
+mypy==1.8.0
+pylint==3.0.3
 
+# Documentation
+Sphinx==7.2.6
+sphinx-rtd-theme==2.0.0
 
-支持大模型功能测试： 
-
-
-
-API文档化：
-
-drf-spectacular 0.28.0
+# Development Utilities
+watchfiles==0.24.0
+pip-tools==7.3.0
+python-json-logger==3.2.1  # Useful for development debugging and log analysis
