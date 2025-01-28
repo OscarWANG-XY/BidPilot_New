@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-eue96xem5j9v0-sj$@blb(bh56es614w@_o7gmq$q15!xfnjfk
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['115.159.6.83', 'localhost', '127.0.0.1']
 
 
 # Application definition
@@ -79,7 +79,20 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-
+# 数据库配置
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',  # 数据库引擎
+        'NAME': 'bidpilot_new',  # 数据库名称
+        'USER': 'postgres',  # 数据库用户
+        'PASSWORD': '123456',  # 数据库密码\
+        'HOST': 'localhost',  # 数据库主机
+        'PORT': '5432',  # 数据库端口
+        'OPTIONS': {
+            'client_encoding': 'UTF8',  # 确保客户端编码为 UTF-8
+        },
+    }
+}
 
 
 # Password validation
@@ -117,6 +130,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # 收集静态文件的目录
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -153,6 +167,8 @@ SPECTACULAR_SETTINGS = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # React 开发服务器
     "http://localhost:5173",  # Vite 开发服务器
+    "http://115.159.6.83:5173",  # Vite 开发服务器 
+    "http://115.159.6.83:3000",  # React 开发服务器 
 ]
 
 CORS_ALLOW_CREDENTIALS = True

@@ -1,22 +1,15 @@
 from .base import *
 
 DEBUG = True
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['115.159.6.83', 'localhost', '127.0.0.1']
 
-# 数据库配置
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',  # 数据库引擎
-        'NAME': 'bidpilot_new',  # 数据库名称
-        'USER': 'postgres',  # 数据库用户
-        'PASSWORD': '123456',  # 数据库密码\
-        'HOST': 'localhost',  # 数据库主机
-        'PORT': '5432',  # 数据库端口
-        'OPTIONS': {
-            'client_encoding': 'UTF8',  # 确保客户端编码为 UTF-8
-        },
-    }
-}
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # React 开发服务器
+    "http://localhost:5173",  # Vite 开发服务器
+    "http://115.159.6.83:5173",  # Vite 开发服务器   主要是这行
+    "http://115.159.6.83:3000",  # React 开发服务器 
+]
+# CORS_ALLOW_ALL_ORIGINS = True  # 仅开发阶段使用 (development.py)
 
 # 自定义用户模型
 AUTH_USER_MODEL = 'authentication.User'
