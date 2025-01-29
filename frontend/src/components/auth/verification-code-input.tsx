@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
 import { CaptchaRequest } from "@/types/auth_dt_stru"
+import { useCaptchaCountdown } from "@/components/auth/use-captcha-countdown"
 
 interface VerificationCodeInputProps {
   phone: string
@@ -25,10 +26,12 @@ export function VerificationCodeInput({
   className
 }: VerificationCodeInputProps) {
   const [isSendingCode, setIsSendingCode] = useState(false)
-  const [countdown, setCountdown] = useState(0)
+  const { countdowns, startCountdown } = useCaptchaCountdown()
   const { requestCaptcha } = useAuth()
   const { toast } = useToast()
 
+  // 获取当前手机号的倒计时
+  const countdown = phone ? countdowns[phone] || 0 : 0
 
   // ---------------------- 发送验证码 ----------------------------
   const handleSendCode = async () => {
@@ -53,17 +56,8 @@ export function VerificationCodeInput({
       
       console.log(`[VerificationCodeInput] 发送验证码 - 成功`)
       
-      // 开始倒计时
-      setCountdown(60)
-      const timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer)
-            return 0
-          }
-          return prev - 1
-        })
-      }, 1000)
+      // 使用共享的倒计时状态
+      startCountdown(phone)
 
       toast({
         title: "验证码已发送",
