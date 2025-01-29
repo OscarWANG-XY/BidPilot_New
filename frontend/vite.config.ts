@@ -34,9 +34,10 @@ export default defineConfig({
 
       // 代理到 django 的 api
       '/api': {
-        target: 'http://localhost:8000',
+        target: process.env.VITE_API_URL || 'http://localhost:8000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
+        //rewrite: (path) => path.replace(/^\/api/, '')
+        rewrite: (path) => path
       },
 // 之前用在 upload-server 上，现在用 django, 就不用了     
 //      '/api2': {

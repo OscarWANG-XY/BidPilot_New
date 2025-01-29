@@ -28,7 +28,7 @@ import {
 
 // 定义 API 的基础 URL，这里使用的是本地开发服务器的默认端口
 //const API_BASE_URL = 'http://localhost:3000'; // json-server 默认端口
-const API_BASE_URL = 'http://localhost:8000/api'; // Django 后端端口
+const API_BASE_URL = '/api'; // Django 后端端口
 
 // 所有的端点都应该以斜杠结尾
 const endpoints = {
