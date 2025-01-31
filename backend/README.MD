@@ -49,6 +49,13 @@ backend/
 │   │   ├── tests.py         # Test cases
 │   │   ├── urls.py          # URL configuration  (为构建)
 │   │   └── views.py         # API endpoints
+├── apps/files/
+│   ├── __init__.py
+│   ├── storage.py
+│   ├── models.py
+│   ├── serializers.py
+│   ├── views.py
+│   └── urls.py
 ├── config/
 │   ├── __init__.py
 │   ├── settings/

@@ -5,41 +5,65 @@ from pathlib import Path
 import logging
 
 
-# 允许在异步环境中进行同步操作
+#=================auth_tests.ipynb测试是引入的setup项========================= 
+
+# 允许在异步环境（如 Jupyter Notebook）中使用 Django ORM
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 
-# 将项目根目录添加到 Python 路径
+# 计算项目根目录并添加到 Python 路径，确保可以正确导入 Django 代码
 PROJECT_ROOT = str(Path(__file__).resolve().parent.parent)
-
 sys.path.append(PROJECT_ROOT)
 
-# 设置 Django 设置模块
+# 指定 Django 配置文件，确保正确加载项目设置
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.development')
 
-# 初始化 Django
-django.setup() 
+# 初始化 Django，加载应用、数据库等配置信息
+django.setup()
 
-from django.conf import settings
-print(f"Using settings from: {os.environ['DJANGO_SETTINGS_MODULE']}")
-print(f"Project root: {PROJECT_ROOT}")
-print("\nInstalled Apps:")
-for app in settings.INSTALLED_APPS:
-    print(f"- {app}")
-
-
-# 清理所有现有的 handlers
+# 清理所有已有的日志处理器，避免 Jupyter Notebook 中日志重复输出
 logging.root.handlers = []
 
-# 配置根 logger
+# 配置全局日志，确保输出格式统一
 logging.basicConfig(
     level=logging.INFO,
     format='%(message)s',
     handlers=[logging.StreamHandler(sys.stdout)]
 )
 
-# 获取应用 logger 并配置
+# 重新配置应用日志（示例：apps.authentication），确保日志正常输出
 app_logger = logging.getLogger('apps.authentication')
-app_logger.setLevel(logging.INFO)  # 确保设置了正确的日志级别
-app_logger.handlers = []  # 清理现有的 handlers
-app_logger.addHandler(logging.StreamHandler(sys.stdout))  # 添加新的 handler
-app_logger.propagate = False  # 防止日志传播
+app_logger.setLevel(logging.INFO)
+app_logger.handlers = []  # 清除旧的 handlers，避免日志重复
+app_logger.addHandler(logging.StreamHandler(sys.stdout))  # 绑定新的日志输出
+app_logger.propagate = False  # 禁止日志向上层传播，防止重复打印
+
+
+
+#=================files_tests.ipynb测试是添加的setup项========================= 
+
+# 加载 Django 设置和存储系统
+from django.conf import settings
+from django.core.files.storage import default_storage
+from storages.backends.s3boto3 import S3Boto3Storage
+
+# 如果存储使用 S3（如腾讯云 COS），则强制初始化 S3 存储，避免懒加载问题
+if settings.DEFAULT_FILE_STORAGE == "storages.backends.s3boto3.S3Boto3Storage":
+    try:
+        storage = S3Boto3Storage()
+        default_storage._wrapped = storage  # 替换默认存储
+        print("Successfully initialized S3Boto3Storage")
+    except Exception as e:
+        print(f"Failed to initialize S3Boto3Storage: {e}")
+
+
+
+# =============== setup关键结果打印 便于检查调试 =========================  
+
+# 打印关键配置信息，便于调试
+print(f"Settings从哪里加载？: {os.environ['DJANGO_SETTINGS_MODULE']}")
+print(f"项目根目录对么？: {PROJECT_ROOT}")
+print(f"文件存储settings对么？: {settings.DEFAULT_FILE_STORAGE}")
+print(f"文件default_storage对么？: {default_storage.__class__.__name__}")
+print("\n已经安装的应用 Installed Apps 完整了么？:")
+for app in settings.INSTALLED_APPS:
+    print(f"- {app}")

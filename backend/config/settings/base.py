@@ -9,12 +9,15 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
-
+import os, sys 
 from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-
+#sys.path.insert(0,str(BASE_DIR))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -39,10 +42,35 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    'storages',  # 用于存储文件对象
     'apps.authentication',
+    'apps.files',
     'drf_spectacular',  # 用于生成OPENAPI文档
     'rest_framework_simplejwt.token_blacklist', # 用于管理JWT令牌的黑名单 for logout
+
 ]
+
+
+
+# ----------------------- 腾讯COS文件存储配置 (Boto3+Storage) 暂时弃用 --------------------------------------
+DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"  # 使用Boto3+Storage (推荐)
+#DEFAULT_FILE_STORAGE = 'apps.files.storage.COSStorage'  # 使用COSStorage
+AWS_ACCESS_KEY_ID = os.getenv('TENCENT_COS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('TENCENT_COS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = 'bidpilot-1332405885'
+AWS_S3_REGION_NAME = 'ap-shanghai'  # 例如：ap-beijing
+
+# f"https://{COS_BUCKET_NAME}.cos.{COS_REGION}.myqcloud.com"
+AWS_S3_ENDPOINT_URL = 'https://bidpilot-1332405885.cos.ap-shanghai.myqcloud.com'
+AWS_S3_ADDRESSING_STYLE = 'path' # 路径风格
+AWS_QUERYSTRING_AUTH = False  # 不加签名，直接公开 URL 访问
+AWS_DEFAULT_ACL = 'public-read'  # 设置默认的访问控制级别为公开读取
+
+# AWS_S3_CUSTOM_DOMAIN 主要用于生成文件的访问 URL，不影响存储路径。它决定了通过 file.url 获取到的 URL 的域名部分
+AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.cos.{AWS_S3_REGION_NAME}.myqcloud.com"
+AWS_S3_FILE_OVERWRITE = False  # 不覆盖同名文件
+AWS_LOCATION = ''  # 这会生成类似 uploads/2025/01/31/ 的路径
+
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # 需要放在最前面
@@ -147,6 +175,8 @@ REST_FRAMEWORK = {
     ),
 }
 
+
+
 # Spectacular 设置
 SPECTACULAR_SETTINGS = {
     'TITLE': 'BidPilot API',
@@ -170,6 +200,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://115.159.6.83:5173",  # Vite 开发服务器 
     "http://115.159.6.83:3000",  # React 开发服务器 
 ]
+
+CORS_ALLOW_ALL_ORIGINS = True  # 允许所有来源 (生产环境不要开启)
 
 CORS_ALLOW_CREDENTIALS = True
 

@@ -1,6 +1,10 @@
 from .base import *
 
 DEBUG = True
+
+# 存储后端设置
+#DEFAULT_FILE_STORAGE = 'apps.files.storage.COSStorage'
+
 ALLOWED_HOSTS = ['115.159.6.83', 'localhost', '127.0.0.1']
 
 CORS_ALLOWED_ORIGINS = [
@@ -41,6 +45,11 @@ LOGGING = {
             'level': 'INFO',
         },
         'apps.authentication': {  # 您的应用logger
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'apps.files': {  # 您的应用logger
             'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,

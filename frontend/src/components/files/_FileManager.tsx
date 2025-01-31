@@ -44,6 +44,12 @@ export function FileManager({ onFileUpload }: FileManagerProps) {
   // File类型(这是一个对象)，这个类型是浏览器自带，通过 <input type="file" /> 元素选择文件时自动创建
   // File文件对象包含.name、.type、.size、.lastModified （时间戳），lastModifiedDate （日期），.webkitRelativePath （文件路径）
   const handleUpload = async (inputfile: File) => {
+    console.log('🚀 [_FileManager.tsx] 开始处理文件上传:', {
+      fileName: inputfile.name,
+      fileSize: inputfile.size,
+      fileType: inputfile.type
+    });
+
     try {
 
       // 引用FileHelpers.ts里的validateFile函数，验证文件类型和大小 
@@ -53,7 +59,7 @@ export function FileManager({ onFileUpload }: FileManagerProps) {
       // 引用useFiles.ts里的uploadFile函数，上传文件
       uploadFile(inputfile, {
         onSuccess: () => {
-          // 父组件的回调函数，该函数在父组件定义和执行逻辑操作。
+          console.log('✅ [_FileManager.tsx] 文件上传成功:', inputfile.name);
           onFileUpload(inputfile);
           toast({
             title: "文件上传成功",
@@ -61,7 +67,10 @@ export function FileManager({ onFileUpload }: FileManagerProps) {
           });
         },
         onError: (error: any) => {
-          console.error('Upload error details:', error);
+          console.error('❌ [_FileManager.tsx] 上传错误详情:', {
+            error,
+            message: error?.response?.data?.message || error.message
+          });
           toast({
             title: "上传失败",
             description: error?.response?.data?.message || error.message || "请稍后重试",
@@ -70,7 +79,7 @@ export function FileManager({ onFileUpload }: FileManagerProps) {
         },
       });
     } catch (error: any) {
-      console.error('File handling error:', error);
+      console.error('❌ [_FileManager.tsx] 文件处理错误:', error);
       toast({
         title: "处理失败",
         description: error.message || "文件处理过程中出现错误",
@@ -81,16 +90,22 @@ export function FileManager({ onFileUpload }: FileManagerProps) {
 
   // ------------------ 文件删除的处理逻辑（函数）done check! ------------------ 
   const handleDelete = (fileId: string) => {
+    console.log('🗑️ [_FileManager.tsx] 开始删除文件:', fileId);
 
     // 引用useFiles.ts里的deleteFile函数来实现文件删除， 输入文件的id
     deleteFile(fileId, {
       onSuccess: () => {
+        console.log('✅ [_FileManager.tsx] 文件删除成功:', fileId);
         toast({
           title: "文件已删除",
         });
       },
       onError: (error: any) => {
-        console.error('Delete error details:', error);
+        console.error('❌ [_FileManager.tsx] 删除错误详情:', {
+          fileId,
+          error,
+          message: error?.response?.data?.message || error.message
+        });
         toast({
           title: "删除失败",
           description: error?.response?.data?.message || error.message || "请稍后重试",
@@ -105,7 +120,11 @@ export function FileManager({ onFileUpload }: FileManagerProps) {
   // 在FileTable.tsx里， 点击文件的预览按钮， 触发这个函数
   // 输入FileRecord类型， 这个类型是useFiles.ts里的files的类型, 在FileTable遍历渲染遍历时获得。
   const handlePreview = (file: FileRecord) => {
-    // 更新选择的文件
+    console.log('👁️ [_FileManager.tsx] 预览文件:', {
+      fileId: file.id,
+      fileName: file.name,
+      fileUrl: file.url
+    });
     setSelectedFile(file);
     // 打开预览对话框 => 这个值传给FilePreviewDialog.tsx来控制
     setIsPreviewOpen(true);

@@ -57,6 +57,10 @@ yarn-error.log*
 
 # environment variables
 .env
+.env.development
+.env.production
 
 # 忽略上传的文件
 upload-server/uploads/
+
+backend/uploads/

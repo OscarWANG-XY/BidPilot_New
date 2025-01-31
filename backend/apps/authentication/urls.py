@@ -1,4 +1,5 @@
 from django.urls import path
+from rest_framework_simplejwt.views import TokenRefreshView  # 添加这行
 from .views import (
     RegisterView,
     PasswordLoginView,
@@ -22,6 +23,10 @@ urlpatterns = [
     path('login/captcha/', CaptchaLoginView.as_view(), name='captcha-login'),
     path('login/wechat/', WechatLoginView.as_view(), name='wechat-login'),
     
+
+    # 添加 JWT token 刷新路由
+    path('token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
+
     # 验证码相关
     path('captcha/', CaptchaRequestView.as_view(), name='request-captcha'),
     
