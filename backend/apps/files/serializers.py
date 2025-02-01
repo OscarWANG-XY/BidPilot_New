@@ -15,30 +15,43 @@ class UserSerializer(serializers.ModelSerializer):
 
 # 文件记录（FileRecord）序列化器  - 读取/查询时使用 
 class FileRecordSerializer(serializers.ModelSerializer):
-    # url的生成通过 以下 get_url() 方法获得
-    url = serializers.SerializerMethodField() 
-
+    # 基础字段转换
+    createdAt = serializers.DateTimeField(source='created_at', read_only=True)
+    createdBy = serializers.CharField(source='created_by', read_only=True)
+    updatedAt = serializers.DateTimeField(source='updated_at', read_only=True)
+    updatedBy = serializers.CharField(source='updated_by', read_only=True)
+    
+    # 处理状态相关字段转换
+    processingStatus = serializers.CharField(source='processing_status')
+    processingProgress = serializers.IntegerField(source='processing_progress')
+    errorMessage = serializers.CharField(source='error_message')
+    
+    # 文件相关字段转换
+    mimeType = serializers.CharField(source='mime_type')
+    
     # 关联字段：文件的所有者，使用 UserSerializer 进行序列化（只读）
     owner = UserSerializer(read_only=True)
 
     # 关联字段：可读用户列表，使用 UserSerializer 进行序列化（只读）
-    read_users = UserSerializer(many=True, read_only=True)
+    readUsers = UserSerializer(source='read_users', many=True, read_only=True)
 
     # 关联字段：可写用户列表，使用 UserSerializer 进行序列化（只读）
-    write_users = UserSerializer(many=True, read_only=True)
+    writeUsers = UserSerializer(source='write_users', many=True, read_only=True)
+    
+    url = serializers.SerializerMethodField()
     
     class Meta:
         model = FileRecord  # 指定序列化的模型
         fields = [
-            'id', 'name', 'file', 'size', 'type', 'mime_type',
-            'processing_status', 'processing_progress', 'error_message',
-            'read_users', 'write_users', 'owner', 'metadata', 'remarks',
-            'created_at', 'created_by', 'updated_at', 'updated_by',
+            'id', 'name', 'file', 'size', 'type', 'mimeType',
+            'processingStatus', 'processingProgress', 'errorMessage',
+            'readUsers', 'writeUsers', 'owner', 'metadata', 'remarks',
+            'createdAt', 'createdBy', 'updatedAt', 'updatedBy',
             'version', 'url'
         ]  # 指定序列化的字段
 
         # 只读字段，这些字段不会被 API 直接修改
-        read_only_fields = ['id', 'created_at', 'created_by', 'updated_at', 'updated_by', 'version']
+        read_only_fields = ['id', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy', 'version']
 
     def get_url(self, obj):
         """获取文件的预签名 URL，如果请求参数 presigned=true，则返回预签名 URL"""
@@ -75,23 +88,27 @@ class FileRecordCreateSerializer(serializers.ModelSerializer):
 
 # 文件与项目的关联（FileProjectLink）序列化器
 class FileProjectLinkSerializer(serializers.ModelSerializer):
-
-    # 外键字段：返回了整个文件对象的信息，直观避免API额外查询，但相比类似file_id包含更多数据量（只读）
-    file_key = FileRecordSerializer(read_only=True)
-
-    # 文件 ID，用户提供文件 ID 进行写入，而不直接传递完整的文件对象
-    file_id = serializers.UUIDField(write_only=True)
+    fileKey = FileRecordSerializer(source='file_key', read_only=True)
+    fileId = serializers.UUIDField(source='file_id', write_only=True)
+    projectId = serializers.CharField(source='project_id')
+    linkType = serializers.CharField(source='link_type')
+    sortOrder = serializers.IntegerField(source='sort_order', required=False)
+    isDeleted = serializers.BooleanField(source='is_deleted')
+    createdAt = serializers.DateTimeField(source='created_at', read_only=True)
+    createdBy = serializers.CharField(source='created_by', read_only=True)
+    updatedAt = serializers.DateTimeField(source='updated_at', read_only=True)
+    updatedBy = serializers.CharField(source='updated_by', read_only=True)
 
     class Meta:
         model = FileProjectLink  # 指定序列化的模型
         fields = [
-            'id', 'file_key', 'file_id', 'project_id', 'link_type',
-            'sort_order', 'is_deleted', 'created_at', 'created_by',
-            'updated_at', 'updated_by', 'version'
+            'id', 'fileKey', 'fileId', 'projectId', 'linkType',
+            'sortOrder', 'isDeleted', 'createdAt', 'createdBy',
+            'updatedAt', 'updatedBy', 'version'
         ]  # 指定序列化的字段
 
         # 只读字段
-        read_only_fields = ['id', 'created_at', 'created_by', 'updated_at', 'updated_by', 'version']
+        read_only_fields = ['id', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy', 'version']
 
     def create(self, validated_data):
         """
@@ -105,6 +122,6 @@ class FileProjectLinkSerializer(serializers.ModelSerializer):
             return FileProjectLink.objects.create(file_key=file_record, **validated_data)
         except FileRecord.DoesNotExist:
             # 如果文件记录不存在，则返回验证错误
-            raise serializers.ValidationError({'file_id': 'File record does not exist'})
+            raise serializers.ValidationError({'fileId': 'File record does not exist'})
 
 
