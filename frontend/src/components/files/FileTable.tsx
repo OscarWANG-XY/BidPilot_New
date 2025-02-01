@@ -57,7 +57,15 @@ export function FileTable({ files, onDelete, onPreview, isDeleting }: FileTableP
             {/* 文件大小 */}
             <TableCell>{formatFileSize(file.size)}</TableCell>
             {/* 上传时间 */}
-            <TableCell>{new Date(file.createdAt).toLocaleString()}</TableCell>
+            <TableCell>
+            {file.createdAt ? 
+                (() => {
+                  console.log('createdAt 原始数据:', file.createdAt);
+                  return new Date(file.createdAt).toLocaleString();
+                })() 
+                : 'N/A'
+              }
+            </TableCell>
             {/* 预览按钮 */}
             <TableCell>
               <Button 

@@ -1,6 +1,8 @@
 # 用来更详细跟踪文件上传到COS的过程
 
 from storages.backends.s3boto3 import S3Boto3Storage
+from django.core.files.storage import default_storage
+from django.conf import settings
 import logging
 
 logger = logging.getLogger(__name__)
@@ -34,6 +36,33 @@ class COSStorage(S3Boto3Storage):
         url = super().url(name)
         logger.debug(f"生成文件 URL: {url}")
         return url 
+
+def initialize_storage():
+    """
+    强制初始化 COS 存储
+    在应用启动时调用此函数
+    """
+    try:
+        # 根据配置选择存储后端
+        if settings.DEFAULT_FILE_STORAGE == "storages.backends.s3boto3.S3Boto3Storage":
+            logger.info("使用 S3Boto3Storage 初始化存储")
+            storage = S3Boto3Storage()
+            default_storage._wrapped = storage
+            logger.info("✅ 成功初始化 S3Boto3Storage")
+            logger.info(f"default_storage 的类型: {default_storage.__class__.__name__}")
+        elif settings.DEFAULT_FILE_STORAGE == "apps.files.storage.COSStorage":
+            logger.info("使用 COSStorage 初始化存储")
+            storage = COSStorage()
+            default_storage._wrapped = storage
+            logger.info("✅ 成功初始化 COSStorage")
+            logger.info(f"default_storage 的类型: {default_storage.__class__.__name__}")
+        else:
+            logger.warning(f"未知的存储后端: {settings.DEFAULT_FILE_STORAGE}")
+            return False
+        return True
+    except Exception as e:
+        logger.error(f"❌ 初始化存储失败: {str(e)}")
+        return False
 
 
 

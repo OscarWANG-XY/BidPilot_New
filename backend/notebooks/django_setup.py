@@ -44,16 +44,16 @@ app_logger.propagate = False  # 禁止日志向上层传播，防止重复打印
 # 加载 Django 设置和存储系统
 from django.conf import settings
 from django.core.files.storage import default_storage
-from storages.backends.s3boto3 import S3Boto3Storage
+#from storages.backends.s3boto3 import S3Boto3Storage
 
 # 如果存储使用 S3（如腾讯云 COS），则强制初始化 S3 存储，避免懒加载问题
-if settings.DEFAULT_FILE_STORAGE == "storages.backends.s3boto3.S3Boto3Storage":
-    try:
-        storage = S3Boto3Storage()
-        default_storage._wrapped = storage  # 替换默认存储
-        print("Successfully initialized S3Boto3Storage")
-    except Exception as e:
-        print(f"Failed to initialize S3Boto3Storage: {e}")
+#if settings.DEFAULT_FILE_STORAGE == "storages.backends.s3boto3.S3Boto3Storage":
+#    try:
+#        storage = S3Boto3Storage()
+#        default_storage._wrapped = storage  # 替换默认存储
+#        print("Successfully initialized S3Boto3Storage")
+#   except Exception as e:
+#        print(f"Failed to initialize S3Boto3Storage: {e}")
 
 
 

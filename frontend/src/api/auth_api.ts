@@ -251,3 +251,90 @@ export const logout = async (refreshToken: string): Promise<void> => {
     throw new Error('Failed to logout');
   }
 };
+
+
+// ---------------------------- 响应拦截器处理 Token 过期问题 ----------------------------
+// 创建 axios 实例
+const axiosInstance = axios.create({
+    baseURL: '/api'
+});
+
+// 添加请求拦截器
+axiosInstance.interceptors.request.use(
+    (config) => {
+        // 从 localStorage 获取 token（注意：使用 'token' 而不是 'accessToken'）
+        const token = localStorage.getItem('token');
+        
+        // 记录详细的请求信息
+        console.log('🔍 Request details:', {
+            fullUrl: `${config.baseURL || ''}${config.url}`,
+            method: config.method,
+            headers: config.headers,
+        });
+        
+        // 如果存在 token，则添加到请求头
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+
+        return config;
+    },
+    (error) => {
+        console.error('❌ [auth_api.ts] 请求拦截器错误:', error);
+        return Promise.reject(error);
+    }
+);
+
+// 添加响应拦截器
+axiosInstance.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config;
+
+        // 如果是 401 错误且不是刷新 token 的请求
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
+
+            try {
+                // 从 localStorage 获取 refresh token
+                const refreshToken = localStorage.getItem('refreshToken');
+                
+                if (!refreshToken) {
+                    // 如果没有 refresh token，重定向到登录页
+                    window.location.href = '/login';
+                    return Promise.reject(error);
+                }
+
+                console.log('🔄 [auth_api.ts] 开始刷新 token');
+
+                // 修正刷新token的API端点
+                const response = await axios.post('/api/auth/token/refresh/', {
+                    refresh: refreshToken
+                });
+
+                // 更新 localStorage 中的 token（注意：使用 'token' 而不是 'accessToken'）
+                const { access } = response.data;
+                localStorage.setItem('token', access);
+
+                console.log('✅ [auth_api.ts] token 刷新成功');
+
+                // 更新原始请求的 Authorization header
+                originalRequest.headers.Authorization = `Bearer ${access}`;
+
+                // 重试原始请求
+                return axios(originalRequest);
+            } catch (refreshError) {
+                console.error('❌ [auth_api.ts] token 刷新失败:', refreshError);
+                // 如果刷新 token 失败，清除所有 token 并重定向到登录页
+                localStorage.removeItem('token');
+                localStorage.removeItem('refreshToken');
+                window.location.href = '/login';
+                return Promise.reject(refreshError);
+            }
+        }
+
+        return Promise.reject(error);
+    }
+);
+
+export default axiosInstance;

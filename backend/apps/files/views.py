@@ -132,7 +132,9 @@ class FileViewSet(viewsets.ModelViewSet):
     """
     permission_classes = [IsAuthenticated]  # 仅允许已认证用户访问
     parser_classes = (MultiPartParser, FormParser)  # 允许上传多部分表单数据（文件上传）
-    http_method_names = ['get', 'post', 'put', 'delete']  # 移除了 'patch'
+
+    # 允许的HTTP方法， 通过这个清单，我们可以控制，哪个方法可以被前端调用
+    http_method_names = ['get', 'post', 'put', 'delete','patch'] 
     
     def get_queryset(self):
         """
@@ -274,5 +276,23 @@ class FileViewSet(viewsets.ModelViewSet):
         self.perform_destroy(instance)
         
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+
+# 为了检查签名地址url
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        data = serializer.data
+        
+        # 获取预签名URL
+        presigned_url = instance.get_presigned_url()
+        if presigned_url:
+            data['url'] = presigned_url
+            logger.info(f"文件详情返回: id={instance.id}, name={instance.name}, url={presigned_url}")
+        else:
+            logger.warning(f"预签名URL生成失败: id={instance.id}, name={instance.name}")
+        
+        return Response(data)
 
 

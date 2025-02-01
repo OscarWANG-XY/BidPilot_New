@@ -120,11 +120,12 @@ export function FileManager({ onFileUpload }: FileManagerProps) {
   // 在FileTable.tsx里， 点击文件的预览按钮， 触发这个函数
   // 输入FileRecord类型， 这个类型是useFiles.ts里的files的类型, 在FileTable遍历渲染遍历时获得。
   const handlePreview = (file: FileRecord) => {
-    console.log('👁️ [_FileManager.tsx] 预览文件:', {
+    console.log('👁️ [_FileManager.tsx] 准备预览文件:', {
       fileId: file.id,
       fileName: file.name,
-      fileUrl: file.url
     });
+    
+    // 先设置选中的文件，FilePreviewDialog 组件会处理获取预签名 URL
     setSelectedFile(file);
     // 打开预览对话框 => 这个值传给FilePreviewDialog.tsx来控制
     setIsPreviewOpen(true);

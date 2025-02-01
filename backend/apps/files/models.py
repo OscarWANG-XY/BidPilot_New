@@ -8,6 +8,8 @@ from qcloud_cos import CosConfig, CosS3Client
 from django.conf import settings
 import boto3
 from botocore.config import Config
+import logging
+import magic
 
 # 获取用户模型
 User = get_user_model()
@@ -87,8 +89,6 @@ class FileRecord(BaseModel):
     class Meta:
         db_table = 'file_records'  # 指定数据库表名
 
-
-
     # 获取文件的直接访问URL, 因为有@property，所以file_record.url 就和 file_record.url() 效果一样。
     @property
     def url(self):
@@ -110,37 +110,44 @@ class FileRecord(BaseModel):
         """
         # 检查文件是否存在，如果不存在直接跳出函数。
         if not self.file:   
+            logging.warning(f"文件不存在: id={self.id}, name={self.name}")
             return None
-            
-        # 创建S3客户端 
-        s3_client = boto3.client(
-            's3',
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_S3_REGION_NAME,
-            endpoint_url=settings.AWS_S3_ENDPOINT_URL,
-            config=Config(
-                s3={'addressing_style': 'path'},  # 改用 path 风格的 URL
-                signature_version='s3v4'  # 使用AWS S3最新的签名版本
-            )
-        )
         
-        # 生成预签名URL，调用S3客户端的generate_presigned_url方法
+        logging.info(f"开始生成预签名URL: id={self.id}, name={self.name}, file_path={self.file.name}")
+        
         try:
-            # 使用完整的存储路径
-            url = s3_client.generate_presigned_url(
-                'get_object',   # 指定请求方法为GET， 即下载文件
-                Params={
-                    'Bucket': settings.AWS_STORAGE_BUCKET_NAME,
-                    'Key': self.file.name,
-                    'ResponseContentDisposition': f'inline; filename="{self.name}"',
-                    'ResponseContentType': self.mime_type or 'application/octet-stream'
-                },
-                ExpiresIn=expires   # URL的过期时间1小时。 
+            s3_client = boto3.client(
+                's3',
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                region_name=settings.AWS_S3_REGION_NAME,
+                endpoint_url=settings.AWS_S3_ENDPOINT_URL,
+                config=Config(
+                    s3={'addressing_style': 'path'},
+                    signature_version='s3v4'
+                )
             )
+            
+            params = {
+                'Bucket': settings.AWS_STORAGE_BUCKET_NAME,
+                'Key': self.file.name,
+                'ResponseContentDisposition': f'inline; filename="{self.name}"',
+                'ResponseContentType': self.mime_type or 'application/octet-stream'
+            }
+            
+            logging.debug(f"生成预签名URL参数: {params}")
+            
+            url = s3_client.generate_presigned_url(
+                'get_object',
+                Params=params,
+                ExpiresIn=expires
+            )
+            
+            logging.info(f"预签名URL生成成功: id={self.id}, url={url}")
             return url
+        
         except Exception as e:
-            print(f"Error generating presigned URL: {e}")
+            logging.error(f"生成预签名URL失败: id={self.id}, error={str(e)}")
             return None
         
     # 删除文件 
@@ -232,6 +239,22 @@ class FileRecord(BaseModel):
         except Exception as e:
             print(f"Error generating upload URL: {e}")
             return None
+
+
+# 自动检测文件类型, 为了检查加载问题添加的。 
+    def save(self, *args, **kwargs):
+        if not self.mime_type and self.file:
+            try:
+                # Windows 上使用 python-magic-bin, Linux 上使用 python-magic
+                mime = magic.Magic(mime=True)
+                self.mime_type = mime.from_buffer(self.file.read(1024))
+                self.file.seek(0)  # 重置文件指针
+                logging.info(f"自动检测文件类型: id={self.id}, name={self.name}, mime_type={self.mime_type}")
+            except Exception as e:
+                logging.error(f"检测文件类型失败: {str(e)}")
+                self.mime_type = 'application/octet-stream'  # 设置默认类型
+        
+        super().save(*args, **kwargs)
 
 
 # 定义文件与项目的关联模型

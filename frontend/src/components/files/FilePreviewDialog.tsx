@@ -9,6 +9,7 @@ import {
   DialogFooter 
 } from "@/components/ui/dialog";  // 对话框ui组件
 import { getPreviewFileName, isFileTypePreviewable } from "./FileHelpers";  // 预览相关的辅助函数
+import { useFiles } from "@/hooks/useFiles";  // 引入 useFiles 钩子
 
 
 
@@ -26,6 +27,22 @@ interface FilePreviewDialogProps {
 //========================= FilePreviewDialog.tsx 文件预览对话框模块 ========================= 
 // 作为渲染组件，没有逻辑处理函数，也没有引入状态管理 （对比_FileManger.tsx）
 export function FilePreviewDialog({ selectedfile, isOpen, onClose }: FilePreviewDialogProps) {
+  const { useFileDetail } = useFiles();   // 在FilePreviewDialog.tsx实现预签名URL的调用
+
+  // 调用useFileDetail获取文件详情， 这里presigned参数我们直接给了true
+  const fileDetailQuery = useFileDetail(selectedfile?.id || '', true);
+
+  const fileUrl = fileDetailQuery.data?.url || selectedfile?.url;
+  const isLoading = fileDetailQuery.isLoading;
+  const error = fileDetailQuery.error;
+
+  if (isLoading) {
+    return <div>加载中...</div>;
+  }
+
+  if (error) {
+    return <div>加载预览失败</div>;
+  }
 
   // 如果selectedfile为空，不渲染任何内容
   if (!selectedfile) return null;
@@ -48,7 +65,7 @@ export function FilePreviewDialog({ selectedfile, isOpen, onClose }: FilePreview
           {/* 如果文件类型支持预览，则渲染FilePreview组件，否则渲染不支持预览的提示 */}
           {isFileTypePreviewable(selectedfile.type) ? (
             <FilePreview 
-              fileUrl={selectedfile.url || ''} 
+              fileUrl={fileUrl || ''} 
               fileType={selectedfile.type}
             />
           ) : (

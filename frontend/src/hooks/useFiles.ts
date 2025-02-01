@@ -1,4 +1,3 @@
-
 // useQuery: 用于数据获取  useMutation: 用于数据修改  useQueryClient: 用于管理查询缓存
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fileApi } from '@/api/files_api';
@@ -29,11 +28,11 @@ export function useFiles() {
     },
 
     //其他关于缓存的配置参数
-    staleTime: 0, // 有效/新鲜的时间，例如 1000 * 60 * 5 是5分钟
-    gcTime: 0,   // 缓存保持时间（替换 cacheTime），例如 1000 * 60 * 30 是30分钟
-    refetchOnWindowFocus: true, // 窗口聚焦时重新请求
+    staleTime: 1000 * 60 * 5, // 有效/新鲜的时间，例如 1000 * 60 * 5 是5分钟
+    gcTime: 1000 * 60 * 30,   // 缓存保持时间（替换 cacheTime），例如 1000 * 60 * 30 是30分钟
+    refetchOnWindowFocus: false, // 窗口聚焦时重新请求
     retry: 1, // 失败时重试1次
-    initialData: [], // 初始数据为空数组
+    //initialData: [], // 初始数据为空数组
     // 可选：用placeholderData预取数据
     //placeholderData: (previousData) => previousData ?? [],
   });
@@ -132,11 +131,15 @@ export function useFiles() {
 
       // 第一个参数是缓存标识符queryKey, 第二个是回调函数()=>{}, old作为传参, 默认为[]
       console.log('💾 [useFiles.ts] 更新缓存数据 - 移除已删除文件');
+
       queryClient.setQueryData<FileRecord[]>(
         // 缓存的唯一标识符，在useQuery被初始化时配置。 
         ['fileskey'], 
         // 回调函数，用于更新缓存数据（通过.filter()返回一个新数组，新数组中不包含已删除的文件）
         // (file) => file.id !== fileId 是过滤条件，它会遍历old数组里的每一个file, 如果file.id不等于fileId, 则保留file, 否则删除file
+      //  (old = []) => old.filter((file) => file.id !== fileId)
+      //);
+
         (old = []) => {
           const newData = old.filter((file) => file.id !== fileId);
           console.log('📊 [useFiles.ts] 缓存更新结果:', {
@@ -147,6 +150,8 @@ export function useFiles() {
           return newData;
         }
       );
+
+
       // 手动让缓存数据过期，然后重新请求API
       // 只有这样，上传后的缓存数据与服务器的数据才会一致。
       console.log('🔄 [useFiles.ts] 使缓存失效，准备重新获取数据');
@@ -167,7 +172,23 @@ export function useFiles() {
     }
   });
 
-
+  // 添加获取单个文件详情的 Query hook
+  const useFileDetail = (fileId: string, presigned: boolean = false) => {
+    return useQuery({
+      // 使用数组作为 queryKey，包含文件ID和presigned参数
+      queryKey: ['file', fileId, presigned],
+      queryFn: async () => {
+        console.log('📥 [useFiles.ts] 开始获取文件详情:', { fileId, presigned });
+        const result = await fileApi.getFileDetail(fileId, presigned);
+        console.log('📦 [useFiles.ts] 获取文件详情结果:', result);
+        return result;
+      },
+      staleTime: 1000 * 60 * 5, // 5分钟内认为数据是新鲜的
+      gcTime: 1000 * 60 * 30,   // 30分钟后清除缓存
+      refetchOnWindowFocus: false,
+      retry: 1,
+    });
+  };
 
   // --------------- 返回所有状态和方法 --------------- 
   return {
@@ -182,12 +203,15 @@ export function useFiles() {
     // 这样的好处是：调用者可以选择是否等待操作完成，可再调用处使用try/catch来处理错误; 可获取到操作返回的数据
     uploadFile: uploadMutation.mutateAsync,  
     deleteFile: deleteMutation.mutateAsync,
-
     
     isUploading: uploadMutation.isPending,
     isDeleting: deleteMutation.isPending,
 
+    // 添加新的 hook 函数
+    useFileDetail,
+
     // 在组件里添加刷新按钮,调用refecth() 可实现强制刷新数据
     refecth: filesQuery.refetch,  
+
   };
 } 
