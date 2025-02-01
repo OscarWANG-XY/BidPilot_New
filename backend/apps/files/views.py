@@ -3,12 +3,15 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.utils import timezone
-from django.db import models
+from django.db import models, connection
 from .models import FileRecord
 from .serializers import FileRecordSerializer, FileRecordCreateSerializer
 import mimetypes
 import logging
 from drf_spectacular.utils import extend_schema, OpenApiParameter, extend_schema_view, OpenApiTypes, OpenApiExample
+import time
+from django.conf import settings
+from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -146,10 +149,13 @@ class FileViewSet(viewsets.ModelViewSet):
         """
         user = self.request.user
         return FileRecord.objects.filter(
-            models.Q(owner=user) |  # 用户拥有的文件
-            models.Q(read_users=user) |  # 用户有读权限的文件
-            models.Q(write_users=user)  # 用户有写权限的文件
-        ).distinct()  # 去重，确保同一文件不会重复出现
+            models.Q(owner=user) |
+            models.Q(read_users=user) |
+            models.Q(write_users=user)
+        ).select_related('owner').prefetch_related(
+            'read_users', 
+            'write_users'
+        ).distinct()
 
     def get_serializer_class(self):
         """
@@ -164,11 +170,60 @@ class FileViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         """
         获取文件列表。
-        GET /api/files/
+        处理 GET /api/files/ 请求。
         """
-        logger.info(f"User {request.user.phone} requesting file list")
+
+        # 记录查询开始时间
+        start_time = time.time()
+        logger.info(f"开始获取文件列表: User={request.user.phone}")
+
+        # ----- 从缓存中获取数据 -----
+        # 生成缓存键，使用用户 ID 作为区分，防止不同用户的数据混淆
+        cache_key = f'file_list_{request.user.id}'
+
+        # 从缓存获取数据，避免重复查询数据库
+        cached_data = cache.get(cache_key)
+
+        # 如果缓存存在且当前环境不是 DEBUG 模式，则直接返回缓存内容，提升性能
+        if cached_data and not settings.DEBUG:
+            logger.info(f"从缓存获取文件列表: User={request.user.phone}")
+            return Response(cached_data)
+    
+   
+        # 获取数据库查询集
         queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
+
+        context = {
+        'request': request,
+        'generate_presigned': request.query_params.get('presigned') == 'true'
+    }   
+        logger.info(f"请求上下文: {context}")
+    
+        # 传入request上下文，让序列化器知道是否需要生成预签名URL
+        serializer = self.get_serializer(
+            queryset, 
+            many=True,
+            context=context
+        )
+    
+        # 统计数据库查询的相关信息
+        query_count = len(connection.queries)  # 计算 SQL 查询次数
+        query_time = sum(float(q['time']) for q in connection.queries)  # 计算 SQL 查询总耗时
+        total_time = time.time() - start_time
+    
+        # 记录日志，便于后续性能分析和优化
+        logger.info(
+            f"文件列表获取完成: "
+            f"总耗时={total_time:.2f}s, "
+            f"查询次数={query_count}, "
+            f"查询耗时={query_time:.2f}s, "
+            f"记录数={queryset.count()}"
+        )
+    
+        # 将序列化后的数据存入缓存，缓存有效期 5 分钟（300 秒）
+        cache.set(cache_key, serializer.data, 300)
+    
+        # 返回文件列表数据
         return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
@@ -176,6 +231,8 @@ class FileViewSet(viewsets.ModelViewSet):
         上传文件。
         POST /api/files/
         """
+        # 记录查询开始时间
+        start_time = time.time()
         logger.info(f"用户 {request.user.phone} 正在上传文件")
         # 获取上传的文件对象
         file_obj = request.FILES.get('file')
@@ -186,6 +243,14 @@ class FileViewSet(viewsets.ModelViewSet):
             logger.warning(f"用户 {request.user.phone} 上传文件失败，没有文件")
             return Response(
                 {'error': '没有文件'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 添加文件大小限制
+        max_size = 100 * 1024 * 1024  # 例如：100MB
+        if file_obj.size > max_size:
+            return Response(
+                {'error': '文件大小超过限制'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -221,6 +286,23 @@ class FileViewSet(viewsets.ModelViewSet):
         response_serializer = FileRecordSerializer(instance)
         logger.info(f"文件上传成功: {response_serializer.data}")  # 添加日志
         
+        # 记录上传耗时
+        upload_time = time.time() - start_time
+        logger.info(f"文件上传完成: 耗时={upload_time:.2f}s, 大小={file_obj.size}bytes")
+        
+        # 统计数据库查询的相关信息
+        query_count = len(connection.queries)
+        query_time = sum(float(q['time']) for q in connection.queries)
+        total_time = time.time() - start_time
+
+        # 记录日志，便于后续性能分析和优化
+        logger.info(
+            f"文件创建完成: "
+            f"总耗时={total_time:.2f}s, "
+            f"查询次数={query_count}, "
+            f"查询耗时={query_time:.2f}s"
+        )
+
         return Response(
             response_serializer.data, 
             status=status.HTTP_201_CREATED
@@ -241,7 +323,10 @@ class FileViewSet(viewsets.ModelViewSet):
         logger.info(f"文件上传完成，存储位置: {instance.file.name}")
         logger.info(f"文件访问 URL: {instance.file.url}")
         
-        return instance  # 返回创建的实例
+        # 文件更新后清除缓存
+        cache_key = f'file_list_{self.request.user.id}'
+        cache.delete(cache_key)
+        return instance
     
 
     def perform_update(self, serializer):
@@ -260,6 +345,10 @@ class FileViewSet(viewsets.ModelViewSet):
         删除文件。
         DELETE /api/files/{id}/
         """
+        # 记录查询开始时间
+        start_time = time.time()
+        logger.info(f"开始删除文件: User={request.user.phone}")
+
         instance = self.get_object()
         logger.info(f"User {request.user.phone} attempting to delete file {instance.id}")
         
@@ -275,12 +364,30 @@ class FileViewSet(viewsets.ModelViewSet):
         logger.info(f"Deleting file {instance.id}")
         self.perform_destroy(instance)
         
+        # 统计数据库查询的相关信息
+        query_count = len(connection.queries)
+        query_time = sum(float(q['time']) for q in connection.queries)
+        total_time = time.time() - start_time
+
+        # 记录日志，便于后续性能分析和优化
+        logger.info(
+            f"文件删除完成: "
+            f"总耗时={total_time:.2f}s, "
+            f"查询次数={query_count}, "
+            f"查询耗时={query_time:.2f}s"
+        )
+
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 
 # 为了检查签名地址url
     def retrieve(self, request, *args, **kwargs):
+        # 记录查询开始时间
+        start_time = time.time()
+        logger.info(f"开始获取文件详情: User={request.user.phone}")
+
+
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         data = serializer.data
@@ -292,7 +399,21 @@ class FileViewSet(viewsets.ModelViewSet):
             logger.info(f"文件详情返回: id={instance.id}, name={instance.name}, url={presigned_url}")
         else:
             logger.warning(f"预签名URL生成失败: id={instance.id}, name={instance.name}")
-        
+
+        # 统计数据库查询的相关信息
+        query_count = len(connection.queries)
+        query_time = sum(float(q['time']) for q in connection.queries)
+        total_time = time.time() - start_time
+
+        # 记录日志，便于后续性能分析和优化
+        logger.info(
+            f"文件详情获取完成: "
+            f"总耗时={total_time:.2f}s, "
+            f"查询次数={query_count}, "
+            f"查询耗时={query_time:.2f}s"
+        )
+
+
         return Response(data)
 
 

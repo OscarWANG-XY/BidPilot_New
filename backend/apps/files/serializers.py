@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import FileRecord, FileProjectLink
+from django.core.cache import cache
 
 # 获取 Django 项目中自定义的用户模型
 # Django 允许自定义 User 模型，而 get_user_model() 可以动态获取当前项目使用的用户模型
@@ -54,11 +55,24 @@ class FileRecordSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy', 'version']
 
     def get_url(self, obj):
-        """获取文件的预签名 URL，如果请求参数 presigned=true，则返回预签名 URL"""
-        request = self.context.get('request')  # 获取请求上下文
-        if request and request.query_params.get('presigned') == 'true':  
-            return obj.get_presigned_url()  # 调用模型方法生成预签名 URL
-        return obj.url  # 默认返回文件的 URL
+        """获取文件的预签名 URL，如果上下文中 generate_presigned=True，则返回预签名 URL"""
+        # 1. 从序列化器上下文中检查是否需要生成预签名URL
+        if self.context.get('generate_presigned'):  
+            # 2. 尝试从缓存获取预签名URL
+            cache_key = f'presigned_url_{obj.id}'
+            cached_url = cache.get(cache_key)
+            if cached_url:
+                return cached_url
+                
+            # 3. 如果缓存不存在，生成新的预签名URL
+            url = obj.get_presigned_url()
+            if url:
+                # 缓存1小时（因为预签名URL通常有效期也是1小时）
+                cache.set(cache_key, url, 3600)
+            return url
+        
+        # 4. 如果不需要预签名URL，返回普通的存储URL
+        return obj.file.url if obj.file else None
 
 
 # 用于创建文件记录的序列化器  - 创建时使用

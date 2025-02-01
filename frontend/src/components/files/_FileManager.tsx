@@ -31,7 +31,8 @@ export function FileManager({ onFileUpload }: FileManagerProps) {
     uploadFile,
     deleteFile,
     isUploading,
-    isDeleting
+    isDeleting,
+    useFileDetail,
   } = useFiles();
 
   // 文件的状态管理： 文件的选择和更新， 预览组件的启用和关闭
@@ -164,10 +165,10 @@ export function FileManager({ onFileUpload }: FileManagerProps) {
       <FilePreviewDialog 
         selectedfile={selectedFile}  // FileManager 管理的文件状态的selectedFile
         isOpen={isPreviewOpen}  // FileManager 管理的预览框的状态开关
-
         // 回调FileManager.tsx里的setIsPreviewOpen，状态更新
         // <FilePreviewDialog>组件定义了回调函数是onclose:()=>void（不带参数，也无返回值）,实现由父组件提供。
         onClose={() => setIsPreviewOpen(false)}  
+        useFileDetail={useFileDetail}  // 引用useFiles.ts里的useFileDetail
       />
     </div>
   );

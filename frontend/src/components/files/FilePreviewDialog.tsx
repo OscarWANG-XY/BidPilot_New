@@ -9,7 +9,6 @@ import {
   DialogFooter 
 } from "@/components/ui/dialog";  // 对话框ui组件
 import { getPreviewFileName, isFileTypePreviewable } from "./FileHelpers";  // 预览相关的辅助函数
-import { useFiles } from "@/hooks/useFiles";  // 引入 useFiles 钩子
 
 
 
@@ -17,20 +16,31 @@ import { useFiles } from "@/hooks/useFiles";  // 引入 useFiles 钩子
 interface FilePreviewDialogProps {
   selectedfile: FileRecord | null;  // 输入一个文件，为FileRecord类型。
   isOpen: boolean;  // 输入对话框的开关状态，布尔类型。 
-
   // 这里定义了回调函数（不带参数，也无返回值），这样函数的具体实现则由父组件来提供。 
   // 父组件是_FileManager.tsx，定义了函数实现是： onClose={() => setIsPreviewOpen(false)}
   onClose: () => void;  
+  // 修改类型定义，接收一个hook函数
+  useFileDetail: (fileId: string, enabled?: boolean) => {
+    data?: FileRecord;
+    isLoading: boolean;
+    error: any;
+  };
 }
 
 
 //========================= FilePreviewDialog.tsx 文件预览对话框模块 ========================= 
 // 作为渲染组件，没有逻辑处理函数，也没有引入状态管理 （对比_FileManger.tsx）
-export function FilePreviewDialog({ selectedfile, isOpen, onClose }: FilePreviewDialogProps) {
-  const { useFileDetail } = useFiles();   // 在FilePreviewDialog.tsx实现预签名URL的调用
+export function FilePreviewDialog({ 
+  selectedfile, 
+  isOpen, 
+  onClose, 
+  useFileDetail  // 直接使用从props传入的hook
+}: FilePreviewDialogProps) {
 
-  // 调用useFileDetail获取文件详情， 这里presigned参数我们直接给了true
-  const fileDetailQuery = useFileDetail(selectedfile?.id || '', true);
+  // 只有在对话框打开时才启用查询
+  const fileId = isOpen ? selectedfile?.id || '' : '';
+  const presigned = isOpen;
+  const fileDetailQuery = useFileDetail(fileId, presigned);
 
   const fileUrl = fileDetailQuery.data?.url || selectedfile?.url;
   const isLoading = fileDetailQuery.isLoading;

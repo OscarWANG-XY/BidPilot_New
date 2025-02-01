@@ -26,6 +26,7 @@ export const fileApi = {
     console.log('🔍 [files_api.ts] 开始获取文件列表...');
     try {
       console.log('🔍 [files_api.ts] 获取所有文件的端点:', endpoints.getFiles);
+      // 不带 presigned 参数，默认不生成预签名URL 
       const { data } = await axiosInstance.get<FileRecord[]>(endpoints.getFiles);
       console.log('✅ [files_api.ts] 文件列表获取成功:', {
         count: data.length,
