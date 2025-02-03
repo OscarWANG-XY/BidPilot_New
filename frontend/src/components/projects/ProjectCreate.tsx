@@ -39,7 +39,7 @@ export function CreateProjectDialog() {
   // 添加表单数据状态
   const [formData, setFormData] = useState({
     name: '',
-    type: ProjectType.ENTERPRISE_WELFARE,
+    type: ProjectType.OTHER,
     companyName: ''
   })
 
@@ -47,7 +47,7 @@ export function CreateProjectDialog() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault() // 阻止表单的默认行为
     
-    console.log('1. 录入的formData:', formData)
+    console.log('[ProjectCreate.tsx] 录入的formData:', formData)
 
     try {
 
@@ -56,9 +56,9 @@ export function CreateProjectDialog() {
       // creatProject使用的是CreateProjectRequest的数据接口，这个接口还有很多字段，
       // 其他字段被改成了可选，用在之后过程中自动填补。 否则这里需要输入，不然会报错。
       const result = await createProject({
-        name: formData.name,
+        projectName: formData.name as string,
         projectType: formData.type as ProjectType,  // 这里强行将formData.type转换为ProjectType类型
-        tenderee: formData.companyName,
+        tenderee: formData.companyName as string,
         // 其他必要字段在后续步骤中补充
       })
       
@@ -71,7 +71,7 @@ export function CreateProjectDialog() {
       // 重置表单
       setFormData({
         name: '',
-        type: ProjectType.ENTERPRISE_WELFARE,
+        type: ProjectType.OTHER,
         companyName: ''
       })
       
@@ -79,10 +79,10 @@ export function CreateProjectDialog() {
       // 使用时，需要已经创建路由，tanstack的路由的创建方式很简单：直接在routes目录下新建文件。
       // 对于根据项目编号动态的路由，routes下新建的文件名可以为：如：projects.$projectId.tsx
       // 然后格式就是如下方式。
-      if (result?.id) {
+      if (result?.projectId) {
         navigate({ 
           to: '/projects/$projectId', 
-          params: { projectId: result.id } })
+          params: { projectId: result.projectId.toString() } })
       }
     } catch (error) {
       console.error('创建项目失败:', error)

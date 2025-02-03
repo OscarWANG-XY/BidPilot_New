@@ -51,7 +51,7 @@ export function ProjectList({
           <TableHead>项目类型</TableHead>
           <TableHead>招标单位</TableHead>
           <TableHead>创建时间</TableHead>
-          <TableHead>状态</TableHead>
+          <TableHead>当前阶段</TableHead>
           <TableHead>查看/编辑</TableHead>
           <TableHead className="text-right">操作</TableHead>
         </TableRow>
@@ -60,23 +60,23 @@ export function ProjectList({
       {/* -------表体 ------- */}
       <TableBody>
         {projects.map((project) => (
-          <TableRow key={project.id}>
+          <TableRow key={project.projectId}>
             {/* -- 项目名称 -- */}
-            <TableCell>{project.name}</TableCell>
+            <TableCell>{project.projectName}</TableCell>
             {/* -- 项目类型 -- */}
             <TableCell>{project.projectType}</TableCell>
             {/* -- 招标单位 -- */}
             <TableCell>{project.tenderee}</TableCell>
             {/* -- 创建时间 -- */}
             <TableCell>{new Date(project.createTime).toLocaleDateString()}</TableCell>
-            {/* -- 状态 -- */}
-            <TableCell>{project.status}</TableCell>
+            {/* -- 当前阶段 -- */}
+            <TableCell>{project.currentStage}</TableCell>
             {/* -- 查看/编辑 -- */}
             <TableCell>
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => onViewDetail(project.id)}
+                  onClick={() => onViewDetail(project.projectId.toString())}
                 >
                   <Eye className="h-4 w-4" />
                 </Button>
@@ -93,13 +93,13 @@ export function ProjectList({
                     <AlertDialogHeader>
                       <AlertDialogTitle>确认删除</AlertDialogTitle>
                       <AlertDialogDescription>
-                        确定要删除项目 "{project.name}" 吗？此操作不可撤销。
+                        确定要删除项目 "{project.projectName}" 吗？此操作不可撤销。
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>取消</AlertDialogCancel>
                       <AlertDialogAction
-                        onClick={() => onDeleteProject(project.id)}
+                        onClick={() => onDeleteProject(project.projectId.toString() )}
                         className="bg-red-500 hover:bg-red-600"
                       >
                         删除

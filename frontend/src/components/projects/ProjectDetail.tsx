@@ -38,7 +38,7 @@ export function ProjectDetail({ projectId, onClose }: ProjectDetailProps) {
   // 引入HOOKS 功能  
   const { toast } = useToast()
   const { singleProjectQuery, updateProject } = useProjects()
-  const { data: project, isLoading, error } = singleProjectQuery(projectId)
+  const { data: project, isLoading, error } = singleProjectQuery(Number(projectId))
 
   // 定义 编辑和项目 状态
   const [isEditing, setIsEditing] = useState(false)

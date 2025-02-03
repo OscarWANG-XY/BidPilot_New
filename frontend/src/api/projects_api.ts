@@ -1,93 +1,98 @@
-import axios from 'axios';  // 用于发送HTTP请求
-import { 
-  // ProjectBasicInfo类型: id, name, code, tenderee, bidder, projectType, industry, expectedBudget, createTime, updateTime, deadline
-  // Project类型(extended on ProjectBasicInfo): status, currentPhase, phases, progress, attachment?, lastModifiedBy, createBy, remarks?
-  Project,  
+import axiosInstance from './auth_api';
+import type { 
+  Project,
+  ProjectHistory,
+  CreateProjectRequest,
+  UpdateProjectStageRequest,
+  ProjectType,
+  ProjectStage
+} from '@/types/projects_dt_stru';
 
-  // CreateProjectRequest类型: name, code, tenderee, bidder, projectType, industry, expectedBudget, deadline, remarks?
-  CreateProjectRequest,  // 创建项目请求数据类型
+// 查询参数接口
+interface ProjectQueryParams {
+  current_stage?: ProjectStage;
+  project_type?: ProjectType;
+  is_urgent?: boolean;
+  search?: string;
+  ordering?: string;
+}
 
-  // UpdateProjectStatusRequest类型: projectId, status, remarks?
-  UpdateProjectStatusRequest,  // 更新项目状态请求数据类型
-
-  // UpdateProjectPhaseRequest类型: projectId, phaseId, status, assignee?, remarks?
-  UpdateProjectPhaseRequest  // 更新项目阶段请求数据类型
-} from '@/types/projects_dt_stru';  // 引入自定义的数据类型
-
-
-// --------------- 添加请求拦截器 --------------- 
-axios.interceptors.request.use(function (config) {
-  // 从 localStorage 中获取 Token
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`; // 添加 Token 到请求头
-  }
+// 将查询参数转换为URL查询字符串
+const buildQueryString = (params?: ProjectQueryParams): string => {
+  if (!params) return '';
   
-  return config;
-});
-
+  const queryParams = new URLSearchParams();
+  
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      queryParams.append(key, value.toString());
+    }
+  });
+  
+  return queryParams.toString();
+};
 
 // ================================ projectsAPI 模块 =================================== 
 export const projectsApi = {
-  // ------------- 获取所有项目 -------------
-  getAllProjects: async (): Promise<Project[]> => {
-    const response = await axios.get(`/api/projects`);
+  // 获取项目列表（支持过滤、搜索和排序）
+  getAllProjects: async (params?: ProjectQueryParams): Promise<Project[]> => {
+    console.log('📤 [projects_api.ts] 获取所有项目:', params);
+    const queryString = buildQueryString(params);
+    const response = await axiosInstance.get(`/projects/${queryString ? `?${queryString}` : ''}`);
+    console.log('📥 [projects_api.ts] 获取所有项目成功:', response.data);
     return response.data;
   },
 
-  // ------------- 获取单个项目 -------------
-  getProjectById: async (id: string): Promise<Project> => {
-    const response = await axios.get(`/api/projects/${id}`);
+  // 获取单个项目详情
+  getProjectById: async (projectId: number): Promise<Project> => {
+    console.log('📤 [projects_api.ts] 获取单个项目:', projectId);
+    const response = await axiosInstance.get(`/projects/${projectId}/`);
+    console.log('📥 [projects_api.ts] 获取单个项目成功:', response.data);
     return response.data;
   },
 
-  // ------------- 创建新项目 （done check!）-------------
-  // 创建项目传给服务器，服务器会自动生成id， 这个id通常是自增数字或UUID 
+  // 创建新项目
   createProject: async (project: CreateProjectRequest): Promise<Project> => {
-    const response = await axios.post(`/api/projects`, {
-      ...project,
-      status: 'DRAFT',   // 每个项目阶段初建立的默认状态 
-      currentPhase: 'INITIATION',  // 每个项目初建时都从初始化阶段开始
-      phases: [],   //项目各阶段的过程信息的记录，跳到新的阶段后，前阶段的信息会被存储在这里。 
-      progress: 0,  // 使用阶段权重进行计算 （需要建立阶段权重计算代码）
-      createTime: new Date(),
-      updateTime: new Date(),
-      lastModifiedBy: 'system', // 这里应该使用实际的用户信息, 暂时先使用system
-      createBy: 'system'  // 这里应该使用实际的用户信息, 暂时先使用system
-    });
+    console.log('📤 [projects_api.ts] 创建新项目:', project);
+    const response = await axiosInstance.post('/projects/', project);
+    console.log('📥 [projects_api.ts] 创建新项目成功:', response.data);
     return response.data;
   },
 
-  // ------------- 更新项目 -------------
-  updateProject: async (id: string, project: Partial<Project>): Promise<Project> => {
-    const response = await axios.patch(`/api/projects/${id}`, {
-      ...project,
-      updateTime: new Date()
-    });
+  // 更新项目信息
+  updateProject: async (projectId: number, projectData: Partial<Project>): Promise<Project> => {
+    console.log('📤 [projects_api.ts] 更新项目:', { projectId, projectData });
+    const response = await axiosInstance.patch(`/projects/${projectId}/`, projectData);
+    console.log('📥 [projects_api.ts] 更新项目成功:', response.data);
     return response.data;
   },
 
-  // ------------- 更新项目状态 -------------
-  updateProjectStatus: async (request: UpdateProjectStatusRequest): Promise<Project> => {
-    const response = await axios.patch(`/api/projects/${request.projectId}`, {
-      status: request.status,
-      remarks: request.remarks,
-      updateTime: new Date()
-    });
+  // 更新项目阶段
+  updateProjectStage: async (request: UpdateProjectStageRequest): Promise<Project> => {
+    console.log('📤 [projects_api.ts] 更新项目阶段:', request);
+    const response = await axiosInstance.patch(
+      `/projects/${request.projectId}/update_stage/`,
+      {
+        stage: request.stage,
+        remarks: request.remarks
+      }
+    );
+    console.log('📥 [projects_api.ts] 更新项目阶段成功:', response.data);
     return response.data;
   },
 
-  // ------------- 更新项目阶段 -------------
-  updateProjectPhase: async (request: UpdateProjectPhaseRequest): Promise<Project> => {
-    const response = await axios.patch(`/api/projects/${request.projectId}`, {
-      phases: request.phaseId,
-      updateTime: new Date()
-    });
+  // 获取项目历史记录
+  getProjectHistory: async (projectId: number): Promise<ProjectHistory[]> => {
+    console.log('📤 [projects_api.ts] 获取项目历史:', projectId);
+    const response = await axiosInstance.get(`/projects/${projectId}/histories/`);
+    console.log('📥 [projects_api.ts] 获取项目历史成功:', response.data);
     return response.data;
   },
 
-  // ------------- 删除项目 -------------
-  deleteProject: async (id: string): Promise<void> => {
-    await axios.delete(`/api/projects/${id}`);
+  // 删除项目
+  deleteProject: async (projectId: number): Promise<void> => {
+    console.log('📤 [projects_api.ts] 删除项目:', projectId);
+    await axiosInstance.delete(`/projects/${projectId}/`);
+    console.log('✅ [projects_api.ts] 删除项目成功:', projectId);
   }
 };

@@ -6,15 +6,17 @@ djangorestframework-simplejwt==5.4.0
 django-cors-headers==4.6.0
 django-extensions==3.2.3
 django-phonenumber-field==8.0.0
+django-filter==24.3 # 支持项目复杂的查询
 
 # Database
 psycopg2==2.9.10
 SQLAlchemy==2.0.36
 
 # Storage
-django-storages-1.14.4
-cos-python-sdk-v5-1.9.33
-boto3-1.36.9
+django-storages==1.14.4
+cos-python-sdk-v5==1.9.33
+boto3==1.36.9
+aioboto3==13.4.0 # 异步boto3
 
 
 # API Documentation

@@ -28,7 +28,7 @@ SECRET_KEY = 'django-insecure-eue96xem5j9v0-sj$@blb(bh56es614w@_o7gmq$q15!xfnjfk
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['115.159.6.83', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['115.159.6.83', 'localhost', '127.0.0.1','testserver']
 
 
 # Application definition
@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'storages',  # 用于存储文件对象
     'apps.authentication',
     'apps.files',
+    'apps.projects',
+    'django_filters',  # 用于过滤
     'drf_spectacular',  # 用于生成OPENAPI文档
     'rest_framework_simplejwt.token_blacklist', # 用于管理JWT令牌的黑名单 for logout
 
@@ -55,6 +57,7 @@ INSTALLED_APPS = [
 # ----------------------- 腾讯COS文件存储配置 (Boto3+Storage) 暂时弃用 --------------------------------------
 #DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"  # 使用Boto3+Storage (推荐)
 DEFAULT_FILE_STORAGE = 'apps.files.storage.COSStorage'  # 使用COSStorage
+#DEFAULT_FILE_STORAGE = 'apps.files.storage.AsyncCOSStorage'  # 使用AsyncCOSStorage
 AWS_ACCESS_KEY_ID = os.getenv('TENCENT_COS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.getenv('TENCENT_COS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = 'bidpilot-1332405885'

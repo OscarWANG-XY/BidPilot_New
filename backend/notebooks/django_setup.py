@@ -17,8 +17,14 @@ sys.path.append(PROJECT_ROOT)
 # 指定 Django 配置文件，确保正确加载项目设置
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.development')
 
+
+
 # 初始化 Django，加载应用、数据库等配置信息
 django.setup()
+
+# 在 django.setup() 之后添加这些行
+from django.conf import settings
+settings.ALLOWED_HOSTS = ['testserver', 'localhost', '127.0.0.1']
 
 # 清理所有已有的日志处理器，避免 Jupyter Notebook 中日志重复输出
 logging.root.handlers = []
