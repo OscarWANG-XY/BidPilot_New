@@ -1,4 +1,4 @@
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { ProjectDetail } from '@/components/projects/ProjectDetail'
 
 export const Route = createFileRoute('/projects/$id')({
@@ -7,20 +7,13 @@ export const Route = createFileRoute('/projects/$id')({
 
 function RouteComponent() {
   const { id } = Route.useParams()
-  const router = useRouter()
-  
-  console.log('ProjectDetail Route:', {
-    id,
-    params: Route.useParams(),
-    pathname: window.location.pathname,
-    routerState: router.state,
-    matchedRoute: router.state.matches.map(match => match.routeId)
-  })
   
   return (
     <div className="container mx-auto py-6">
       <ProjectDetail 
         projectId={id} 
+        
+        // 以下是关闭返回上一页，详看<ProjectDetail>的代码，并未被使用
         onClose={() => window.history.back()}
       />
     </div>
