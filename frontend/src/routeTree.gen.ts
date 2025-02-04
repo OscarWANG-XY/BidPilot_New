@@ -14,7 +14,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as ProjectsImport } from './routes/projects'
-import { Route as ProjectsProjectIdImport } from './routes/projects.$projectId'
+import { Route as ProjectsIdImport } from './routes/projects.$id'
 import { Route as AuthServiceTermImport } from './routes/auth/service-term'
 import { Route as AuthRegisterImport } from './routes/auth/register'
 import { Route as AuthPrivacyPolicyImport } from './routes/auth/privacy-policy'
@@ -69,9 +69,9 @@ const IndexLazyRoute = IndexLazyImport.update({
   getParentRoute: () => rootRoute,
 } as any).lazy(() => import('./routes/index.lazy').then((d) => d.Route))
 
-const ProjectsProjectIdRoute = ProjectsProjectIdImport.update({
-  id: '/$projectId',
-  path: '/$projectId',
+const ProjectsIdRoute = ProjectsIdImport.update({
+  id: '/$id',
+  path: '/$id',
   getParentRoute: () => ProjectsRoute,
 } as any)
 
@@ -186,11 +186,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthServiceTermImport
       parentRoute: typeof rootRoute
     }
-    '/projects/$projectId': {
-      id: '/projects/$projectId'
-      path: '/$projectId'
-      fullPath: '/projects/$projectId'
-      preLoaderRoute: typeof ProjectsProjectIdImport
+    '/projects/$id': {
+      id: '/projects/$id'
+      path: '/$id'
+      fullPath: '/projects/$id'
+      preLoaderRoute: typeof ProjectsIdImport
       parentRoute: typeof ProjectsImport
     }
   }
@@ -199,11 +199,11 @@ declare module '@tanstack/react-router' {
 // Create and export the route tree
 
 interface ProjectsRouteChildren {
-  ProjectsProjectIdRoute: typeof ProjectsProjectIdRoute
+  ProjectsIdRoute: typeof ProjectsIdRoute
 }
 
 const ProjectsRouteChildren: ProjectsRouteChildren = {
-  ProjectsProjectIdRoute: ProjectsProjectIdRoute,
+  ProjectsIdRoute: ProjectsIdRoute,
 }
 
 const ProjectsRouteWithChildren = ProjectsRoute._addFileChildren(
@@ -222,7 +222,7 @@ export interface FileRoutesByFullPath {
   '/auth/privacy-policy': typeof AuthPrivacyPolicyRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/service-term': typeof AuthServiceTermRoute
-  '/projects/$projectId': typeof ProjectsProjectIdRoute
+  '/projects/$id': typeof ProjectsIdRoute
 }
 
 export interface FileRoutesByTo {
@@ -237,7 +237,7 @@ export interface FileRoutesByTo {
   '/auth/privacy-policy': typeof AuthPrivacyPolicyRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/service-term': typeof AuthServiceTermRoute
-  '/projects/$projectId': typeof ProjectsProjectIdRoute
+  '/projects/$id': typeof ProjectsIdRoute
 }
 
 export interface FileRoutesById {
@@ -253,7 +253,7 @@ export interface FileRoutesById {
   '/auth/privacy-policy': typeof AuthPrivacyPolicyRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/service-term': typeof AuthServiceTermRoute
-  '/projects/$projectId': typeof ProjectsProjectIdRoute
+  '/projects/$id': typeof ProjectsIdRoute
 }
 
 export interface FileRouteTypes {
@@ -270,7 +270,7 @@ export interface FileRouteTypes {
     | '/auth/privacy-policy'
     | '/auth/register'
     | '/auth/service-term'
-    | '/projects/$projectId'
+    | '/projects/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -284,7 +284,7 @@ export interface FileRouteTypes {
     | '/auth/privacy-policy'
     | '/auth/register'
     | '/auth/service-term'
-    | '/projects/$projectId'
+    | '/projects/$id'
   id:
     | '__root__'
     | '/'
@@ -298,7 +298,7 @@ export interface FileRouteTypes {
     | '/auth/privacy-policy'
     | '/auth/register'
     | '/auth/service-term'
-    | '/projects/$projectId'
+    | '/projects/$id'
   fileRoutesById: FileRoutesById
 }
 
@@ -359,7 +359,7 @@ export const routeTree = rootRoute
     "/projects": {
       "filePath": "projects.tsx",
       "children": [
-        "/projects/$projectId"
+        "/projects/$id"
       ]
     },
     "/about": {
@@ -389,8 +389,8 @@ export const routeTree = rootRoute
     "/auth/service-term": {
       "filePath": "auth/service-term.tsx"
     },
-    "/projects/$projectId": {
-      "filePath": "projects.$projectId.tsx",
+    "/projects/$id": {
+      "filePath": "projects.$id.tsx",
       "parent": "/projects"
     }
   }

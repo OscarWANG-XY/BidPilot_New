@@ -113,11 +113,27 @@ class ProjectViewSet(viewsets.ModelViewSet):
     项目视图集，提供完整的CRUD功能
     """
     permission_classes = [IsAuthenticated]
+
+    # 过滤器： 使用Django_filters自带的过滤器， 搜索过滤器， 排序过滤器
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    # 过滤器字段，DjangoFilterBackend，自动处理字段名映射
     filterset_fields = ['current_stage', 'project_type', 'is_urgent']
+    # 搜索字段 - 使用统一的search参数，不存在命名转换
     search_fields = ['project_code', 'project_name', 'tenderee', 'bidder']
-    ordering_fields = ['create_time', 'bid_deadline', 'last_update_time']
-    ordering = ['-create_time']  # 默认按创建时间倒序
+
+    # 移除 ordering_fields 映射，直接使用模型字段名
+    ordering_fields = [
+        'project_name',
+        'project_type',
+        'tenderee',
+        'bidder',
+        'current_stage',
+        'is_urgent',
+        'bid_deadline',
+        'create_time',
+        'last_update_time'
+    ]
+    ordering = ['-create_time']
 
     def get_queryset(self):
         """
@@ -147,6 +163,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         """获取项目列表"""
         logger.info(f"获取项目列表， 过滤条件: {request.query_params}")
+        
+        # 移除不必要的序列化器验证
         response = super().list(request, *args, **kwargs)
         logger.info(f"查询集返回 {len(response.data)} 个项目")
         return response
@@ -154,15 +172,35 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         """创建新项目"""
         logger.info(f"创建新项目， 录入数据: {request.data}")
+
+        # 添加序列化器验证的详细日志
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            logger.error(f"创建项目数据验证失败，错误详情: {serializer.errors}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
         response = super().create(request, *args, **kwargs)
         logger.info(f"创建新项目成功， 返回项目ID: {response.data.get('id')}")
         return response
 
+    def perform_create(self, serializer):
+        """
+        创建项目时自动设置创建者
+        """
+        try:
+            logger.info(f"创建新项目， 设置创建者: {self.request.user.phone}")
+            serializer.save(creator=self.request.user)
+            logger.info("创建新项目成功")
+        except Exception as e:
+            logger.error(f"创建项目时发生错误: {str(e)}")
+            raise
+
     def retrieve(self, request, *args, **kwargs):
         """获取单个项目详情"""
         logger.info(f"获取单个项目详情， 项目ID: {kwargs.get('pk')}")
+        
         response = super().retrieve(request, *args, **kwargs)
-        logger.info(f"查询集返回项目: {response.data.get('project_code')}")
+        logger.info(f"查询集返回项目: {response.data.get('id')}")
         return response
 
     @action(detail=True, methods=['patch'])
@@ -177,7 +215,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         
         if serializer.is_valid():
             serializer.save()
-            logger.info(f"更新项目状态成功， 项目ID: {project.id}, 状态: {request.data.get('stage')}")
+            logger.info(f"更新项目状态成功， 项目ID: {project.id}, 状态: {request.data.get('currentStage')}")
             return Response(ProjectDetailSerializer(project).data)
         
         logger.warning(f"更新项目状态失败， 项目ID: {project.id}, 错误: {serializer.errors}")
@@ -196,17 +234,18 @@ class ProjectViewSet(viewsets.ModelViewSet):
         logger.info(f"查询集返回 {len(serializer.data)} 个状态历史记录")
         return Response(serializer.data)
 
-    def perform_create(self, serializer):
-        """
-        创建项目时自动设置创建者
-        """
-        logger.info(f"创建新项目， 设置创建者: {self.request.user.username}")
-        serializer.save()
-        logger.info("创建新项目成功")
-
     def update(self, request, *args, **kwargs):
         """更新项目信息"""
         logger.info(f"更新项目信息， 项目ID: {kwargs.get('pk')}, 录入数据: {request.data}")
+
+        # 添加序列化器验证的详细日志
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        if not serializer.is_valid():
+            logger.error(f"更新项目数据验证失败，错误详情: {serializer.errors}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
         response = super().update(request, *args, **kwargs)
         logger.info(f"更新项目信息成功， 项目ID: {kwargs.get('pk')}")
         return response
@@ -215,17 +254,24 @@ class ProjectViewSet(viewsets.ModelViewSet):
         """
         删除项目时的自定义逻辑
         """
-        project = self.get_object()
-        logger.info(f"尝试删除项目: {project.id} (当前状态: {project.current_stage})")
+        try: 
+            project = self.get_object()
+            logger.info(f"尝试删除项目: {project.id} (当前状态: {project.current_stage})")
         
-        if project.current_stage not in [Project.ProjectStage.DRAFT, Project.ProjectStage.CANCELLED]:
-            logger.warning(f"无法删除项目 {project.id} - 无效状态: {project.current_stage}")
-            return Response(
-                {"detail": "只能删除草稿或已取消的项目"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            if project.current_stage not in [Project.ProjectStage.DRAFT, Project.ProjectStage.CANCELLED]:
+                logger.warning(f"无法删除项目 {project.id} - 无效状态: {project.current_stage}")
+                return Response(
+                    {"detail": "只能删除草稿或已取消的项目"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             
-        logger.info(f"删除项目: {project.id}")
-        response = super().destroy(request, *args, **kwargs)
-        logger.info(f"删除项目成功: {project.id}")
-        return response
+            logger.info(f"删除项目: {project.id}")
+            response = super().destroy(request, *args, **kwargs)
+            logger.info(f"删除项目成功: {project.id}")
+            return response
+        except Exception as e:
+            logger.error(f"删除项目时发生错误: {str(e)}")
+            return Response(
+                {"detail": "删除项目时发生错误"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

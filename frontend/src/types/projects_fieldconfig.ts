@@ -105,7 +105,7 @@ export const PROJECT_FIELDS: FieldConfig[] = [
 
   // 系统信息组
   {
-    key: 'projectId',
+    key: 'id',
     label: '项目ID',
     type: 'readonly',
     editable: false,

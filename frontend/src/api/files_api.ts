@@ -1,4 +1,4 @@
-import axiosInstance from './auth_api';  // 使用配置好的 axios 实例
+import axiosInstance from './axios_instance';  // 更新导入路径，使用新的axios实例
 import { FileRecord } from '@/types/files_dt_stru';
 
 const API_BASE_URL = ''; // Django 后端端口

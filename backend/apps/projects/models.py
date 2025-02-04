@@ -27,14 +27,14 @@ class Project(models.Model):
     project_code = models.CharField('项目编号', max_length=100, unique=True, blank=True)
     project_name = models.CharField('项目名称', max_length=200)
     tenderee = models.CharField('招标单位', max_length=200)
-    bidder = models.CharField('投标单位', max_length=200)
+    bidder = models.CharField('投标单位', max_length=200, blank=True, default='')
     project_type = models.CharField(
         '项目类型',
         max_length=20,
         choices=ProjectType.choices,
         default=ProjectType.OTHER
     )
-    bid_deadline = models.DateTimeField('投标截止时间')
+    bid_deadline = models.DateTimeField('投标截止时间', blank=True, null=True)
     current_stage = models.CharField(
         '当前阶段',
         max_length=20,
@@ -70,9 +70,10 @@ class Project(models.Model):
         if not self.project_code:
             # 生成格式：BP-年份-类型-4位序号
             year = timezone.now().strftime('%Y')
-            # 获取当年的项目数量
+            # 获取当年同类型的项目数量
             count = Project.objects.filter(
-                create_time__year=timezone.now().year
+                create_time__year=timezone.now().year,
+                project_type=self.project_type  # 添加项目类型过滤
             ).count()
             # 生成项目编号
             self.project_code = f'BP-{year}-{self.project_type}-{str(count + 1).zfill(4)}'

@@ -1,4 +1,4 @@
-import { createRootRoute, Outlet, redirect, useLocation } from '@tanstack/react-router'    // 引入路由器
+import { createRootRoute, Outlet, redirect, useLocation, useRouter } from '@tanstack/react-router'    // 引入路由器
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'  // 引入路由器调试工具
 import { useAuth, AuthProvider } from '@/contexts/auth-context'  // 引入认证上下文
 import { AppSidebar } from "@/components/layout/app-sidebar"  // 引入自定义的侧边栏组件
@@ -17,7 +17,15 @@ function AuthenticatedLayout() {
 
   // 检查当前路径是否是认证相关的页面
   // 在当前应用里，以 /auth 开头的路径，有登录（/auth/login）、注册（/auth/register），以及忘记密码（/auth/forgot-password）。 
-  const location = useLocation();
+  const location = useLocation()
+  const router = useRouter()
+  
+  console.log('Root Layout:', {
+    pathname: location.pathname,
+    currentRoutes: router.state.matches.map(match => match.routeId),
+    fullState: router.state
+  })
+
   const isAuthPage = location.pathname.startsWith('/auth')
 
   if (isLoading) {

@@ -28,7 +28,7 @@ export const useProjects = () => {
   const queryClient = useQueryClient();
 
 
-  // --------------- 查询所有项目 （这是一个变量）--------------- 
+  // --------------- 查询所有项目 （支持过滤、搜索和排序）--------------- 
   const projectsQuery = (params?: ProjectQueryParams) => useQuery({
     queryKey: ['projectsKey', params],
     queryFn: async () => {
@@ -36,7 +36,13 @@ export const useProjects = () => {
       const result = await projectsApi.getAllProjects(params);
       console.log('📥 [useProjects] 查询所有项目:', result);
       return result;
-    }
+    },
+    refetchOnWindowFocus: false,  // 窗口获得焦点时不重新获取
+    staleTime: 0,                 // 数据立即变为陈旧
+    gcTime: 5 * 60 * 1000,      // 5分钟后清除缓存
+    // 添加 enabled 配置，只在非详情页面时启用查询
+    enabled: !window.location.pathname.includes('/projects/') || 
+             window.location.pathname === '/projects',
   });
 
 

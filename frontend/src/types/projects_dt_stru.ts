@@ -19,7 +19,7 @@ export enum ProjectStage {
 
 // 项目基本信息接口
 export interface Project {
-  projectId: number;                    // 项目ID (后端自增主键)
+  id: number;                    // 项目ID (后端自增主键)
   projectCode: string;           // 项目编号 (自动生成的唯一编号)
   projectName: string;           // 项目名称
   projectType: ProjectType;      // 项目类型
@@ -27,6 +27,7 @@ export interface Project {
   bidder: string;               // 投标单位
   bidDeadline: Date;            // 投标截止时间
   currentStage: ProjectStage;   // 当前阶段
+  stageHistories?: ProjectHistory[];  // 添加这个属性
   isUrgent: boolean;            // 是否紧急
   creator: {                    // 创建者信息
     id: number;
@@ -38,7 +39,7 @@ export interface Project {
 
 // 项目阶段历史记录接口
 export interface ProjectHistory {
-  id: number;
+  historyId: number;
   projectId: number;
   fromStage: ProjectStage;
   toStage: ProjectStage;

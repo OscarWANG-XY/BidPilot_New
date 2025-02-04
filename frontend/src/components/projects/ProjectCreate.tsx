@@ -79,10 +79,10 @@ export function CreateProjectDialog() {
       // 使用时，需要已经创建路由，tanstack的路由的创建方式很简单：直接在routes目录下新建文件。
       // 对于根据项目编号动态的路由，routes下新建的文件名可以为：如：projects.$projectId.tsx
       // 然后格式就是如下方式。
-      if (result?.projectId) {
+      if (result?.id) {
         navigate({ 
-          to: '/projects/$projectId', 
-          params: { projectId: result.projectId.toString() } })
+          to: '/projects/$id', 
+          params: { id: result.id.toString() } })
       }
     } catch (error) {
       console.error('创建项目失败:', error)
@@ -140,8 +140,9 @@ export function CreateProjectDialog() {
                 </SelectTrigger>
                 <SelectContent>
                   {/*SelectedItem的value需要和ProjectType的枚举对齐*/}
-                  <SelectItem value="ENTERPRISE_WELFARE">企业福利</SelectItem>
-                  <SelectItem value="CANTEEN_PROCUREMENT">食材配送</SelectItem>
+                  <SelectItem value="WELFARE">企业福利</SelectItem>
+                  <SelectItem value="FSD">食材配送</SelectItem>
+                  <SelectItem value="OTHER">其他</SelectItem>
                 </SelectContent>
               </Select>
             </div>

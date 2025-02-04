@@ -11,6 +11,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 // Import the generated route tree
 import { routeTree } from './routeTree.gen'
 
+
 // Create a new router instance
 const router = createRouter({ routeTree })
 
@@ -49,6 +50,6 @@ if (!rootElement.innerHTML) {
         <Toaster />
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>
-    </StrictMode>,
+    </StrictMode>
   )
 }

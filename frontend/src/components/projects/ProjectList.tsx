@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table"   // ui表格组件
 import { Button } from "@/components/ui/button"  // ui按钮组件
-import { Eye, Trash2 } from "lucide-react"  // 图标
+import { Eye, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"  // 图标
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,8 +25,10 @@ interface ProjectListProps {
   projects: Project[]
   isLoading: boolean
   error: Error | null
-  onViewDetail: (projectId: string) => void
-  onDeleteProject: (projectId: string) => Promise<void>
+  onViewDetail: (projectId: number) => void
+  onDeleteProject: (projectId: number) => Promise<void>
+  onSort: (field: string, direction: 'asc' | 'desc') => void
+  currentSort: string
 }
 // ================================== 项目列表组件  ================================== 
 export function ProjectList({ 
@@ -34,9 +36,40 @@ export function ProjectList({
   isLoading, 
   error, 
   onViewDetail,
-  onDeleteProject 
+  onDeleteProject,
+  onSort,
+  currentSort 
 }: ProjectListProps) {
 
+  // 处理排序点击
+  const handleSortClick = (field: string) => {
+    const isCurrentField = currentSort === field || currentSort === `-${field}`
+    const isDescending = currentSort === `-${field}`
+    
+    if (isCurrentField) {
+      // 如果已经是降序，切换到升序；如果是升序，切换到降序
+      onSort(field, isDescending ? 'asc' : 'desc')
+    } else {
+      // 默认新的排序字段从降序开始
+      onSort(field, 'desc')
+    }
+  }
+
+  // 获取排序状态
+  const getSortDirection = (field: string) => {
+    if (currentSort === field) return 'asc'
+    if (currentSort === `-${field}`) return 'desc'
+    return null
+  }
+
+  // 渲染排序图标
+  const renderSortIcon = (field: string) => {
+    const direction = getSortDirection(field)
+    if (!direction) return <ArrowUpDown className="ml-2 h-4 w-4" />
+    return direction === 'asc' 
+      ? <ArrowUp className="ml-2 h-4 w-4" />
+      : <ArrowDown className="ml-2 h-4 w-4" />
+  }
 
   // ---------------------------- 组件渲染 ----------------------------
   if (isLoading) return <div>加载中...</div>
@@ -47,11 +80,56 @@ export function ProjectList({
     {/* -------表头 ------- */}
       <TableHeader>
         <TableRow>
-          <TableHead>项目名称</TableHead>
-          <TableHead>项目类型</TableHead>
-          <TableHead>招标单位</TableHead>
-          <TableHead>创建时间</TableHead>
-          <TableHead>当前阶段</TableHead>
+          <TableHead>
+            <Button 
+              variant="ghost" 
+              onClick={() => handleSortClick('projectName')}
+              className="flex items-center"
+            >
+              项目名称
+              {renderSortIcon('projectName')}
+            </Button>
+          </TableHead>
+          <TableHead>
+            <Button 
+              variant="ghost" 
+              onClick={() => handleSortClick('projectType')}
+              className="flex items-center"
+            >
+              项目类型
+              {renderSortIcon('projectType')}
+            </Button>
+          </TableHead>
+          <TableHead>
+            <Button 
+              variant="ghost" 
+              onClick={() => handleSortClick('tenderee')}
+              className="flex items-center"
+            >
+              招标单位
+              {renderSortIcon('tenderee')}
+            </Button>
+          </TableHead>
+          <TableHead>
+            <Button 
+              variant="ghost" 
+              onClick={() => handleSortClick('createTime')}
+              className="flex items-center"
+            >
+              创建时间
+              {renderSortIcon('createTime')}
+            </Button>
+          </TableHead>
+          <TableHead>
+            <Button 
+              variant="ghost" 
+              onClick={() => handleSortClick('currentStage')}
+              className="flex items-center"
+            >
+              当前阶段
+              {renderSortIcon('currentStage')}
+            </Button>
+          </TableHead>
           <TableHead>查看/编辑</TableHead>
           <TableHead className="text-right">操作</TableHead>
         </TableRow>
@@ -59,57 +137,63 @@ export function ProjectList({
 
       {/* -------表体 ------- */}
       <TableBody>
-        {projects.map((project) => (
-          <TableRow key={project.projectId}>
-            {/* -- 项目名称 -- */}
-            <TableCell>{project.projectName}</TableCell>
-            {/* -- 项目类型 -- */}
-            <TableCell>{project.projectType}</TableCell>
-            {/* -- 招标单位 -- */}
-            <TableCell>{project.tenderee}</TableCell>
-            {/* -- 创建时间 -- */}
-            <TableCell>{new Date(project.createTime).toLocaleDateString()}</TableCell>
-            {/* -- 当前阶段 -- */}
-            <TableCell>{project.currentStage}</TableCell>
-            {/* -- 查看/编辑 -- */}
-            <TableCell>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onViewDetail(project.projectId.toString())}
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-            </TableCell>
-            {/* -- 删除 -- */}
-            <TableCell className="text-right">
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>确认删除</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        确定要删除项目 "{project.projectName}" 吗？此操作不可撤销。
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>取消</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => onDeleteProject(project.projectId.toString() )}
-                        className="bg-red-500 hover:bg-red-600"
-                      >
-                        删除
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+        {projects.map((project) => {
+          console.log('项目数据:', project); // 添加调试日志
+          return (
+            <TableRow key={project.id}>
+              {/* -- 项目名称 -- */}
+              <TableCell>{project.projectName}</TableCell>
+              {/* -- 项目类型 -- */}
+              <TableCell>{project.projectType}</TableCell>
+              {/* -- 招标单位 -- */}
+              <TableCell>{project.tenderee}</TableCell>
+              {/* -- 创建时间 -- */}
+              <TableCell>{new Date(project.createTime).toLocaleDateString()}</TableCell>
+              {/* -- 当前阶段 -- */}
+              <TableCell>{project.currentStage}</TableCell>
+              {/* -- 查看/编辑 -- */}
+              <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onViewDetail(project.id)}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
               </TableCell>
-            </TableRow>
-          ))}
+              {/* -- 删除 -- */}
+              <TableCell className="text-right">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>确认删除</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          确定要删除项目 "{project.projectName}" 吗？此操作不可撤销。
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>取消</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => {
+                            console.log('删除项目ID:', project.id); // 添加调试日志
+                            onDeleteProject(project.id);
+                          }}
+                          className="bg-red-500 hover:bg-red-600"
+                        >
+                          删除
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
   )

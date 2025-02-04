@@ -1,4 +1,4 @@
-import axiosInstance from './auth_api';
+import axiosInstance from './axios_instance';
 import type { 
   Project,
   ProjectHistory,
@@ -8,37 +8,21 @@ import type {
   ProjectStage
 } from '@/types/projects_dt_stru';
 
-// 查询参数接口
+// 查询参数接口（使用驼峰命名）
 interface ProjectQueryParams {
-  current_stage?: ProjectStage;
-  project_type?: ProjectType;
-  is_urgent?: boolean;
+  currentStage?: ProjectStage;
+  projectType?: ProjectType;
+  isUrgent?: boolean;
   search?: string;
   ordering?: string;
 }
-
-// 将查询参数转换为URL查询字符串
-const buildQueryString = (params?: ProjectQueryParams): string => {
-  if (!params) return '';
-  
-  const queryParams = new URLSearchParams();
-  
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      queryParams.append(key, value.toString());
-    }
-  });
-  
-  return queryParams.toString();
-};
 
 // ================================ projectsAPI 模块 =================================== 
 export const projectsApi = {
   // 获取项目列表（支持过滤、搜索和排序）
   getAllProjects: async (params?: ProjectQueryParams): Promise<Project[]> => {
     console.log('📤 [projects_api.ts] 获取所有项目:', params);
-    const queryString = buildQueryString(params);
-    const response = await axiosInstance.get(`/projects/${queryString ? `?${queryString}` : ''}`);
+    const response = await axiosInstance.get('/projects/', { params });
     console.log('📥 [projects_api.ts] 获取所有项目成功:', response.data);
     return response.data;
   },
