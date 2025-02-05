@@ -1,5 +1,3 @@
-
-
 // ================================ 文件数据结构定义 ============================================ 
 
 // 定义为？可选时，意味着对象形态可能有/没有这个字段，有字段的情况，值可能时undefined. 
@@ -39,17 +37,28 @@ export interface BaseEntity {
     processingStatus: 'NONE'|'UPLOADING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
     processingProgress?: number;  // 0-100
     errorMessage?: string;
-    
-    // 访问控制
-    accessControl?: {
-      readUserIds: string[];
-      writeUserIds: string[];
-      ownerUserId: string;
-    };
 
     // 元数据
     metadata?: Record<string, unknown>;
     remarks?: string;
+  }
+  
+  /** 文件与项目的关联关系（返回数据类型） */
+  export interface FileProjectLink extends BaseEntity {
+    fileRecord: FileRecord;  // 这里改为完整的 FileRecord 类型，因为后端会返回完整信息
+    project: string;
+    linkType: 'ATTACHMENT' | 'REFERENCE';
+    sortOrder?: number;
+    isDeleted: boolean;
+  }
+  
+  /** 创建文件与项目关联的输入类型 */
+  export interface FileProjectLinkCreateInput {
+    fileRecordId: string;    // 改名更清晰：这就是 FileRecord 的 id
+    project: string;
+    linkType: 'ATTACHMENT' | 'REFERENCE';
+    sortOrder?: number;
+    isDeleted: boolean;
   }
   
   /** 文件更新输入类型， 不是更新文件内容本身，比如对文件的备注，重命名等 */
@@ -58,15 +67,4 @@ export interface BaseEntity {
     'remarks' | 
     'metadata'
   >>;
-
-  /** 文件与项目的关联关系 */
-  export interface FileProjectLink extends BaseEntity {
-    fileId: string;
-    projectId: string;
-    linkType: 'ATTACHMENT' | 'REFERENCE';
-    sortOrder?: number;
-    isDeleted: boolean;
-  }
-  
-
   

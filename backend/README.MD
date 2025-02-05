@@ -69,3 +69,20 @@ backend/
     ├── base.txt
     ├── development.txt
     └── production.txt
+
+
+
+document_analysis/
+├── migrations/          # 数据库迁移文件
+│
+├── models.py           # 所有数据模型
+├── serializers.py      # DRF序列化器
+├── services.py         # 业务逻辑层
+├── tasks.py            # Celery异步任务
+├── consumers.py        # WebSocket consumers
+├── views.py            # API视图
+├── routing.py          # WebSocket路由配置
+├── urls.py             # REST API路由配置
+├── apps.py            
+├── admin.py           # Django admin配置
+└── tests.py           # 测试文件

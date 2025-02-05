@@ -29,12 +29,12 @@ export function CreateProjectDialog() {
   
   // 使用useNavigate() Hook, 用于导航到其他页面
   const navigate = useNavigate()    
-  
-  // 使用useState(), 用于控制对话框的开关状态
-  const [open, setOpen] = useState(false)  
-  
   // 添加 useProjects hook
   const { createProject } = useProjects()
+  
+
+  // 使用useState(), 用于控制对话框的开关状态
+  const [open, setOpen] = useState(false)  
 
   // 添加表单数据状态
   const [formData, setFormData] = useState({

@@ -10,6 +10,7 @@ import boto3
 from botocore.config import Config
 import logging
 import magic
+from apps.projects.models import Project
 
 # 获取用户模型
 User = get_user_model()
@@ -26,7 +27,7 @@ class BaseModel(models.Model):
     class Meta:
         abstract = True  # 定义为抽象模型，不能直接创建实例
 
-# 定义文件记录模型
+# 定义文件记录模型， 注意FileRecord继承了BaseModel
 class FileRecord(BaseModel):
     # 文件类型选项
     FILE_TYPE_CHOICES = [
@@ -257,7 +258,7 @@ class FileRecord(BaseModel):
         super().save(*args, **kwargs)
 
 
-# 定义文件与项目的关联模型
+# 定义文件与项目的关联模型； 需要注意的是继承了BaseModel
 class FileProjectLink(BaseModel):
     # 关联类型选项
     LINK_TYPE_CHOICES = [
@@ -265,11 +266,19 @@ class FileProjectLink(BaseModel):
         ('REFERENCE', 'Reference'),  # 参考资料
     ]
 
-    file_key = models.ForeignKey(FileRecord, on_delete=models.CASCADE)  # 关联文件的外键
-    project_id = models.UUIDField()  # 关联的项目 ID
-    link_type = models.CharField(max_length=20, choices=LINK_TYPE_CHOICES)  # 关联类型
-    sort_order = models.IntegerField(null=True, blank=True)  # 排序字段，可为空
-    is_deleted = models.BooleanField(default=False)  # 软删除标记，默认为 False
+    file_record = models.ForeignKey(
+        FileRecord, 
+        on_delete=models.CASCADE,
+        related_name='project_links'
+    )
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name='file_links'
+    )
+    link_type = models.CharField(max_length=20, choices=LINK_TYPE_CHOICES)
+    sort_order = models.IntegerField(null=True, blank=True)
+    is_deleted = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'file_project_links'  # 指定数据库表名

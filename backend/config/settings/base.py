@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'apps.authentication',
     'apps.files',
     'apps.projects',
+    'apps.doc_analysis',
     'django_filters',  # 用于过滤
     'drf_spectacular',  # 用于生成OPENAPI文档
     'rest_framework_simplejwt.token_blacklist', # 用于管理JWT令牌的黑名单 for logout

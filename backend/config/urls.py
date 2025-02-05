@@ -27,7 +27,8 @@ urlpatterns = [
     path('api/auth/', include('apps.authentication.urls')),
     path('api/', include('apps.files.urls')),
     path('api/', include('apps.projects.urls')),
-    
+    path('api/', include('apps.doc_analysis.urls')),
+
     # ------------------------------ API 文档 ------------------------------
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     # Swagger UI:

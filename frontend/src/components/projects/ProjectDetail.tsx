@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useProjects } from '@/hooks/useProjects'
 import { useToast } from '@/hooks/use-toast'
-import { Project, ProjectHistory } from '@/types/projects_dt_stru'
+import { Project } from '@/types/projects_dt_stru'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -11,49 +11,61 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
+import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Edit2, Save, X } from 'lucide-react'
 import { ScrollArea } from "@/components/ui/scroll-area"
-
-// 修改 Project 类型，添加 stageHistories 属性
-interface ProjectWithHistory extends Project {
-  stageHistories: ProjectHistory[];
-}
+import { Edit2, Save, X } from 'lucide-react'
 
 interface ProjectDetailProps {
   projectId: string
   onClose: () => void
 }
 
+// ====================== 项目详情 组件 ===========================
 export function ProjectDetail({ projectId }: ProjectDetailProps) {
+
   const { toast } = useToast()
   const { singleProjectQuery, updateProject } = useProjects()
+
+
   const { data: project, isLoading, error } = singleProjectQuery(Number(projectId))
 
   const [isEditing, setIsEditing] = useState(false)
-  const [editedProject, setEditedProject] = useState<ProjectWithHistory | undefined>(undefined)
+  
+  const [editedProject, setEditedProject] = useState<Project | undefined>(undefined)
 
+
+  // 监听项目数据变化，如果项目数据有变化，则更新编辑项目数据
+  // 处理project的非手动更新，数据发生变化时自动触发：
+  // 场景例如：初次加载，切换到不同项目，后端数据更新
   useEffect(() => {
     if (project) {
       setEditedProject({
-        ...project,
+        // 这里的project是新加载的项目数据 （这里不能使用prev，我们可能是切换到新项目）
+        // prev适合部分更新的场景，而这里是完全重置。 
+        ...project,  
+        // 当project.stageHistories为undefined，设置为空数组；如果后端确定返回非undefined，则可不用这样代码
         stageHistories: project.stageHistories || []
-      } as ProjectWithHistory)
+      })
     }
   }, [project])
 
+
+  // 编辑的 切换 功能， 用来处理手动编辑。 
+  // 下面渲染的场景：用户点击编辑按钮，用户取消编辑按钮；  保存调用的时handleSave
   const handleEditToggle = () => {
     if (isEditing && project) {
       setEditedProject({
+        // 无论是点击编辑，还是取消编辑，editedProject都重置为project （API返回的project数据）
         ...project,
+        // 当project.stageHistories为undefined 设置[]避免报错。  可以默认成不需要。 
         stageHistories: project.stageHistories || []
-      } as ProjectWithHistory)
+      })
     }
     setIsEditing(!isEditing)
   }
@@ -63,9 +75,8 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
       if (!prev) return prev
       return {
         ...prev,
-        [field]: value,
-        stageHistories: prev.stageHistories
-      } as ProjectWithHistory
+        [field]: value
+      }
     })
   }
 
@@ -90,10 +101,15 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
       })
     }
   }
+  
+  
+  
+  // ----------------- 渲染 组件 ---------------------
 
   if (isLoading) return <div>加载中...</div>
   if (error) return <div>加载失败: {error.message}</div>
   if (!project) return <div>项目不存在</div>
+
 
   return (
     <div className="space-y-4">
@@ -155,8 +171,8 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="TENDER">投标</SelectItem>
-                        <SelectItem value="BIDDING">中标</SelectItem>
+                        <SelectItem value="WELFARE">企业福利</SelectItem>
+                        <SelectItem value="FSD">食材配送</SelectItem>
                         <SelectItem value="OTHER">其他</SelectItem>
                       </SelectContent>
                     </Select>
@@ -186,7 +202,7 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {project.stageHistories?.map((history: ProjectHistory) => (
+                {project.stageHistories?.map((history) => (
                   <div key={history.historyId} className="border-b pb-2">
                     <p className="font-medium">
                       {history.fromStage} → {history.toStage}

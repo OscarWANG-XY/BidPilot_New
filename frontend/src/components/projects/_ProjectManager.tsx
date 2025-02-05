@@ -12,22 +12,24 @@ import { useNavigate } from '@tanstack/react-router'  // 修改为 TanStack Rout
 export function ProjectManager() {
   const navigate = useNavigate();  // TanStack Router 的 useNavigate
 
+    // Hooks 功能引用
+    const { toast } = useToast();
+    const { 
+      projectsQuery,
+      deleteProject, 
+      //createProject,         //单独在ProjectCreate.tsx里使用
+      //singleProjectQuery,    //单独在ProjectDetail组件里使用
+      //projectHistoryQuery,   //单独在ProjectDetail组件里使用 
+      //updateProject, 
+      //updateProjectStage,
+    } = useProjects();
+
+
+
   // 查询参数状态
   const [queryParams, setQueryParams] = useState<ProjectQueryParams>({
     ordering: '-create_time' // 默认按创建时间倒序
   });
-
-  // Hooks 功能引用
-  const { toast } = useToast();
-  const { 
-    projectsQuery,
-    //singleProjectQuery,
-    //projectHistoryQuery,
-    //createProject,
-    //updateProject,
-    //updateProjectStage,
-    deleteProject 
-  } = useProjects();
 
   // 使用 projectsQuery 函数获取查询结果
   const { data: projects, isLoading, error } = projectsQuery(queryParams);
@@ -36,6 +38,9 @@ export function ProjectManager() {
   // 处理查询参数变更
   const handleQueryChange = (newParams: Partial<ProjectQueryParams>) => {
     setQueryParams(prev => {
+
+      // 更新查询参数， 将新的查询参数与旧的查询参数合并
+      // 这个语法是对象展开运用符，包含旧和新，相同属性新值覆盖旧值。
       const updated = {
         ...prev,
         ...newParams
@@ -46,10 +51,12 @@ export function ProjectManager() {
   };
 
 
-  // 处理排序变更
+  // 处理排序变更，控制ordering的字段和方向变化，最后用handleQueryChange传参实现
   const handleSortChange = (field: string, direction: 'asc' | 'desc') => {
-    // 获取当前排序字段和方向
+    
+    // 获取当前排序字段 (使用？，如果无字段值返回undefined,整体赋值‘create_time’)
     const currentField = queryParams.ordering?.replace('-', '') || 'create_time';
+    // 获取当前排序方向
     const currentDirection = queryParams.ordering?.startsWith('-') ? 'desc' : 'asc';
     
     console.log('🔍 [ProjectManager] 排序变更 - 输入参数:', { field, direction });
@@ -64,12 +71,15 @@ export function ProjectManager() {
       console.log('🔄 [ProjectManager] 切换同一字段的排序方向');
       const newDirection = currentDirection === 'asc' ? 'desc' : 'asc';
       const ordering = newDirection === 'desc' ? `-${field}` : field;
+
       console.log('📝 [ProjectManager] 新的排序设置:', { 
         newDirection, 
         ordering,
         logic: '同字段切换方向' 
       });
+
       handleQueryChange({ ordering });
+
     } else {
       console.log('↗️ [ProjectManager] 切换到新的排序字段');
       // 如果是新字段，使用指定的方向
@@ -79,10 +89,10 @@ export function ProjectManager() {
         ordering,
         logic: '新字段排序' 
       });
+
       handleQueryChange({ ordering });
     }
   };
-
 
 
   // --------------- 处理项目详情查看的回调函数  -------------------------
@@ -97,7 +107,9 @@ export function ProjectManager() {
 
   // --------------- 处理删除项目  -------------------------
   const handleDeleteProject = async (projectId: number) => {
+    
     // 添加参数验证
+    // 如果projectId是假值（undefined,0,null等）， 或 projectId类型不是数字
     if (!projectId || typeof projectId !== 'number') {
       toast({
         title: '删除失败',
@@ -135,7 +147,9 @@ export function ProjectManager() {
 
       {/* 查询过滤器组件 */}
       <ProjectFilter 
+        // 传入查询参数
         queryParams={queryParams}
+        // 传入的查询参数在父组件进行变更管理
         onQueryChange={handleQueryChange}
       />
 
@@ -146,11 +160,12 @@ export function ProjectManager() {
         isLoading={isLoading}
         // 使用useProjects里的error传给ProjectList组件, 为了向用户展示数据提取的错误信息 
         error={error as Error}
-        // 回调项目详情的状态逻辑函数, 为了给到ProjectList组件里的"详情"按钮使用以激活。 
-        onViewDetail={handleViewDetail} 
-        // 回调项目删除的逻辑函数, 用来删除项目， 为了给到ProjectList组件里的"删除"按钮使用。
-        onDeleteProject={handleDeleteProject}
 
+        // 详情按钮 的回调， 在父组件激活项目详情弹窗，直接跳转页面
+        onViewDetail={handleViewDetail} 
+        // 删除按钮 的回调， 在父组件删除项目，新的projects数据通过以上传参传入。
+        onDeleteProject={handleDeleteProject}
+        // 排序按钮 的回调，它会改变在父组件获取的projects的顺序,通过上面传参传入。
         onSort = {handleSortChange}
 
         currentSort = {queryParams.ordering || '-create_time'} // 默认按创建时间倒序
