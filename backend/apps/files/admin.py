@@ -10,6 +10,6 @@ class FileRecordAdmin(admin.ModelAdmin):
     
 @admin.register(FileProjectLink)
 class FileProjectLinkAdmin(admin.ModelAdmin):
-    list_display = ['id', 'file_key', 'project_id', 'link_type', 'is_deleted']
+    list_display = ['id', 'file_record', 'project', 'link_type', 'is_deleted']
     list_filter = ['link_type', 'is_deleted']
-    search_fields = ['file_key__name', 'project_id']
+    search_fields = ['file_record__name', 'project__name']

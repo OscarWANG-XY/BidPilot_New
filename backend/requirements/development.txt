@@ -4,12 +4,14 @@
 # Testing
 pytest==8.3.4
 pytest-django==4.9.0
+factory-boy==3.3.3
 
 # Debugging & Development Tools
 ipython==8.12.3
 ipykernel==6.29.0
 debugpy==1.8.0
 jupyter==1.1.1
+
 jupyter-client==8.6.0
 jupyter-core==5.7.1
 jupyterlab==4.3.4

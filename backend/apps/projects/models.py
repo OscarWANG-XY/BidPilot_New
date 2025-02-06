@@ -23,7 +23,9 @@ class Project(models.Model):
         WELFARE = 'WELFARE', '企业福利'
         FSD = 'FSD', '食材配送'
         OTHER = 'OTHER', '其他'
-
+        
+    # id 将使用Django默认的自增主键（以下用了显式定义）
+    id = models.BigAutoField(primary_key=True)
     project_code = models.CharField('项目编号', max_length=100, unique=True, blank=True)
     project_name = models.CharField('项目名称', max_length=200)
     tenderee = models.CharField('招标单位', max_length=200)

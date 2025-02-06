@@ -17,7 +17,8 @@ User = get_user_model()
 
 # 定义基础模型，提供公共字段
 class BaseModel(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    # id 将使用Django默认的自增主键（以下用了显式定义）
+    id = models.BigAutoField(primary_key=True)
     created_at = models.DateTimeField(auto_now_add=True)  # 记录创建时间
     created_by = models.CharField(max_length=100)  # 记录创建者
     updated_at = models.DateTimeField(null=True, blank=True)  # 记录更新时间，可为空
@@ -281,4 +282,12 @@ class FileProjectLink(BaseModel):
     is_deleted = models.BooleanField(default=False)
 
     class Meta:
-        db_table = 'file_project_links'  # 指定数据库表名
+        db_table = 'file_project_links'
+        # 添加唯一性约束
+        constraints = [
+            models.UniqueConstraint(
+                fields=['file_record', 'project', 'link_type'],
+                name='unique_file_project_link'
+            )
+        ]
+        

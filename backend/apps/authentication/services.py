@@ -133,6 +133,8 @@ class AuthService:
 
 
     # -----------  验证码登录 done test   -------------
+    # 请注意，由于我们使用了get_or_create方法，如果用户不存在，会自动创建一个新用户。
+    # 因此，如果用户不存在，会自动创建一个新用户， 验证码登录即注册（具有注册功能）
     @staticmethod
     def login_with_captcha(phone: str, code: str):
         """验证码登录"""
