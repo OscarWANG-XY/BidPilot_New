@@ -5,8 +5,7 @@ from apps.projects.models import Project
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from datetime import datetime
-
-User = get_user_model()
+from django.conf import settings
 
 class AnalysisError(Exception):
     """文档分析相关的自定义异常基类"""
@@ -116,14 +115,14 @@ class DocumentAnalysis(models.Model):
     
     # 用户记录
     created_by = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         related_name='created_analyses',
         verbose_name='创建者'
     )
     confirmed_by = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         related_name='confirmed_analyses',

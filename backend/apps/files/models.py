@@ -1,9 +1,8 @@
 from django.db import models
-from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.files.storage import default_storage
 import uuid
-import datetime
+from django.utils import timezone
 from qcloud_cos import CosConfig, CosS3Client
 from django.conf import settings
 import boto3
@@ -11,9 +10,6 @@ from botocore.config import Config
 import logging
 import magic
 from apps.projects.models import Project
-
-# 获取用户模型
-User = get_user_model()
 
 # 定义基础模型，提供公共字段
 class BaseModel(models.Model):
@@ -68,19 +64,19 @@ class FileRecord(BaseModel):
     
     # 访问控制：可读用户列表
     read_users = models.ManyToManyField(
-        User, 
+        settings.AUTH_USER_MODEL,
         related_name='readable_files',
         blank=True
     )
     # 访问控制：可写用户列表
     write_users = models.ManyToManyField(
-        User,
+        settings.AUTH_USER_MODEL,
         related_name='writable_files',
         blank=True
     )
     # 文件所有者
     owner = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,  # 级联删除时删除相关文件
         related_name='owned_files'
     )
@@ -215,8 +211,10 @@ class FileRecord(BaseModel):
         )
 
         # 生成对象键，保持与 upload_to 一致的路径结构
-        now = datetime.datetime.now()
+        now = timezone.now()
         object_key = f'uploads/{now.year}/{now.month:02d}/{now.day:02d}/{filename}'
+
+
 
         try:
             # 准备上传参数

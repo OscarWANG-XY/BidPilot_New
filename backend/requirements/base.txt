@@ -40,4 +40,9 @@ asyncio==3.4.3
 pytz==2024.2
 tzdata==2024.2
 
+# LLM Core
+langchain==0.3.13
+langchain-core==0.3.28
+langchain-openai==0.2.14
+langchain-community == 0.3.13
 
