@@ -86,3 +86,28 @@ document_analysis/
 ├── apps.py            
 ├── admin.py           # Django admin配置
 └── tests.py           # 测试文件
+
+
+
+
+
+添加了apps/authentication/后的架构
+backend/
+├── apps/
+│   ├── authentication/
+│   ├── chat/
+│   ├── files/
+│   ├── projects/
+├── config/
+│   ├── __init__.py
+│   ├── settings/
+│   │   ├── __init__.py
+│   │   ├── base.py
+│   │   ├── development.py
+│   │   └── production.py
+│   ├── urls.py
+│   └── wsgi.py
+└── requirements/
+    ├── base.txt
+    ├── development.txt
+    └── production.txt

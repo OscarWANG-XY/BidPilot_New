@@ -9,8 +9,10 @@ django-phonenumber-field==8.0.0
 django-filter==24.3 # 支持项目复杂的查询
 
 # Database
-psycopg2==2.9.10
+psycopg[binary,pool]==3.2.4  #支持异步
+psycopg2==2.9.10 #需要保留用来支持celery
 SQLAlchemy==2.0.36
+
 
 # Storage
 django-storages==1.14.4
@@ -46,3 +48,8 @@ langchain-core==0.3.28
 langchain-openai==0.2.14
 langchain-community == 0.3.13
 
+
+redis==5.2.1
+celery==5.4.0
+django_celery_beat==2.7.0
+django_celery_results==2.5.1

@@ -122,6 +122,7 @@ DATABASES = {
         'PASSWORD': '123456',  # 数据库密码\
         'HOST': 'localhost',  # 数据库主机
         'PORT': '5432',  # 数据库端口
+        'CONN_MAX_AGE': 0,  # 对异步连接很重要
         'OPTIONS': {
             'client_encoding': 'UTF8',  # 确保客户端编码为 UTF-8
         },
@@ -236,3 +237,19 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
+
+
+
+# ------------------------------ Celery配置 ------------------------------
+
+# Celery Base Configuration
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+
+# 确保这些应用在所有环境中都可用
+INSTALLED_APPS += [
+    'django_celery_results',
+    'django_celery_beat',
+]
