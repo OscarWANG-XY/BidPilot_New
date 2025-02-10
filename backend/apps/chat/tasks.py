@@ -47,15 +47,18 @@ def process_chat_message_task(self, session_id: str, content: str, user_phone=No
         user_phone: 用户手机号（可选）
     """
     try:
-        # 如果提供了user_phone，获取User对象
+        logger.info(f"开始处理聊天消息 - 会话ID: {session_id}, 用户手机: {user_phone}")
+        
         user = None
         if user_phone:
             from django.contrib.auth import get_user_model
             User = get_user_model()
             user = User.objects.get(phone=user_phone)
+            logger.info(f"已获取用户信息 - 手机号: {user_phone}")
         
         # 创建pipeline实例
         pipeline = ChatPipeline()
+        logger.info("已创建ChatPipeline实例")
         
         # 使用asyncio运行异步pipeline
         import asyncio
@@ -65,12 +68,11 @@ def process_chat_message_task(self, session_id: str, content: str, user_phone=No
             user=user  # 现在传入的是User对象或None
         ))
         
-        # 记录处理完成
-        logger.info(f"Message processed for session {session_id}")
+        logger.info(f"消息处理完成 - 会话ID: {session_id}")
         return response
         
     except Exception as e:
-        logger.error(f"Error processing message: {str(e)}")
+        logger.error(f"消息处理失败: {str(e)}")
         self.retry(exc=e)
 
 
@@ -89,23 +91,27 @@ def batch_process_messages_task(self, messages: List[Dict], user_phone: str = No
         user_phone: 用户手机号（可选）
     """
     try:
-        # 如果提供了user_phone，获取User对象
+        logger.info(f"开始批量处理消息 - 消息数量: {len(messages)}, 用户手机: {user_phone}")
+        
         user = None
         if user_phone:
             from django.contrib.auth import get_user_model
             User = get_user_model()
             user = User.objects.get(phone=user_phone)
+            logger.info(f"已获取用户信息 - 手机号: {user_phone}")
             
         pipeline = ChatPipeline()
+        logger.info("已创建ChatPipeline实例，准备批量处理")
         
         # 使用asyncio运行异步pipeline
         import asyncio
         responses = asyncio.run(pipeline.process_batch(messages, user=user))
         
+        logger.info(f"批量处理完成 - 成功处理消息数: {len(responses)}")
         return responses
         
     except Exception as e:
-        logger.error(f"Error in batch processing: {str(e)}")
+        logger.error(f"批量处理失败: {str(e)}")
         self.retry(exc=e)
 
 
@@ -119,6 +125,8 @@ def cleanup_old_sessions_task(self, days: int = 30) -> Dict:
     清理旧的会话数据
     """
     try:
+        logger.info(f"开始清理旧会话数据 - 清理{days}天前的数据")
+        
         cutoff_date = timezone.now() - timedelta(days=days)
         
         # 获取要删除的会话数量
@@ -126,11 +134,14 @@ def cleanup_old_sessions_task(self, days: int = 30) -> Dict:
             timestamp__lt=cutoff_date
         ).count()
         
+        logger.info(f"准备删除的记录数: {to_delete}")
+        
         # 执行删除
         deleted, _ = ChatMessage.objects.filter(
             timestamp__lt=cutoff_date
         ).delete()
         
+        logger.info(f"清理完成 - 已删除记录数: {deleted}")
         return {
             "status": "success",
             "deleted_count": deleted,
@@ -138,7 +149,7 @@ def cleanup_old_sessions_task(self, days: int = 30) -> Dict:
         }
         
     except Exception as e:
-        logger.error(f"Error cleaning up sessions: {str(e)}")
+        logger.error(f"清理会话数据失败: {str(e)}")
         raise
 
 
@@ -153,18 +164,24 @@ def update_context_cache_task(self) -> Dict:
     更新上下文缓存的定期任务
     """
     try:
+        logger.info("开始更新上下文缓存")
+        
         context_manager = ContextManager()
         
         # 获取活跃会话列表
         active_sessions = ChatMessage.objects.values('session_id').distinct()
         
+        logger.info(f"发现活跃会话数: {len(active_sessions)}")
+        
         # 更新每个活跃会话的上下文缓存
         for session in active_sessions:
             session_id = session['session_id']
+            logger.info(f"正在更新会话上下文 - 会话ID: {session_id}")
             # 使用asyncio运行异步上下文更新
             import asyncio
             asyncio.run(context_manager.get_combined_context(session_id))
         
+        logger.info("上下文缓存更新完成")
         return {
             "status": "success",
             "sessions_updated": len(active_sessions),
@@ -172,7 +189,7 @@ def update_context_cache_task(self) -> Dict:
         }
         
     except Exception as e:
-        logger.error(f"Error updating context cache: {str(e)}")
+        logger.error(f"更新上下文缓存失败: {str(e)}")
         raise
 
 # Celery Beat 配置

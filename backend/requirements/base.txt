@@ -7,11 +7,13 @@ django-cors-headers==4.6.0
 django-extensions==3.2.3
 django-phonenumber-field==8.0.0
 django-filter==24.3 # 支持项目复杂的查询
+drf-nested-routers==0.94.1
 
 # Database
 psycopg[binary,pool]==3.2.4  #支持异步
 psycopg2==2.9.10 #需要保留用来支持celery
 SQLAlchemy==2.0.36
+
 
 
 # Storage

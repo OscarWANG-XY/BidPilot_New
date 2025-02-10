@@ -14,7 +14,9 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as ProjectsImport } from './routes/projects'
+import { Route as ChatImport } from './routes/chat'
 import { Route as ProjectsIdImport } from './routes/projects.$id'
+import { Route as ChatSessionIdImport } from './routes/chat.$sessionId'
 import { Route as AuthServiceTermImport } from './routes/auth/service-term'
 import { Route as AuthRegisterImport } from './routes/auth/register'
 import { Route as AuthPrivacyPolicyImport } from './routes/auth/privacy-policy'
@@ -63,6 +65,12 @@ const ProjectsRoute = ProjectsImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
+const ChatRoute = ChatImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => rootRoute,
+} as any)
+
 const IndexLazyRoute = IndexLazyImport.update({
   id: '/',
   path: '/',
@@ -73,6 +81,12 @@ const ProjectsIdRoute = ProjectsIdImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => ProjectsRoute,
+} as any)
+
+const ChatSessionIdRoute = ChatSessionIdImport.update({
+  id: '/$sessionId',
+  path: '/$sessionId',
+  getParentRoute: () => ChatRoute,
 } as any)
 
 const AuthServiceTermRoute = AuthServiceTermImport.update({
@@ -114,6 +128,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexLazyImport
+      parentRoute: typeof rootRoute
+    }
+    '/chat': {
+      id: '/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof ChatImport
       parentRoute: typeof rootRoute
     }
     '/projects': {
@@ -186,6 +207,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthServiceTermImport
       parentRoute: typeof rootRoute
     }
+    '/chat/$sessionId': {
+      id: '/chat/$sessionId'
+      path: '/$sessionId'
+      fullPath: '/chat/$sessionId'
+      preLoaderRoute: typeof ChatSessionIdImport
+      parentRoute: typeof ChatImport
+    }
     '/projects/$id': {
       id: '/projects/$id'
       path: '/$id'
@@ -197,6 +225,16 @@ declare module '@tanstack/react-router' {
 }
 
 // Create and export the route tree
+
+interface ChatRouteChildren {
+  ChatSessionIdRoute: typeof ChatSessionIdRoute
+}
+
+const ChatRouteChildren: ChatRouteChildren = {
+  ChatSessionIdRoute: ChatSessionIdRoute,
+}
+
+const ChatRouteWithChildren = ChatRoute._addFileChildren(ChatRouteChildren)
 
 interface ProjectsRouteChildren {
   ProjectsIdRoute: typeof ProjectsIdRoute
@@ -212,6 +250,7 @@ const ProjectsRouteWithChildren = ProjectsRoute._addFileChildren(
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexLazyRoute
+  '/chat': typeof ChatRouteWithChildren
   '/projects': typeof ProjectsRouteWithChildren
   '/about': typeof AboutLazyRoute
   '/company': typeof CompanyLazyRoute
@@ -222,11 +261,13 @@ export interface FileRoutesByFullPath {
   '/auth/privacy-policy': typeof AuthPrivacyPolicyRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/service-term': typeof AuthServiceTermRoute
+  '/chat/$sessionId': typeof ChatSessionIdRoute
   '/projects/$id': typeof ProjectsIdRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexLazyRoute
+  '/chat': typeof ChatRouteWithChildren
   '/projects': typeof ProjectsRouteWithChildren
   '/about': typeof AboutLazyRoute
   '/company': typeof CompanyLazyRoute
@@ -237,12 +278,14 @@ export interface FileRoutesByTo {
   '/auth/privacy-policy': typeof AuthPrivacyPolicyRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/service-term': typeof AuthServiceTermRoute
+  '/chat/$sessionId': typeof ChatSessionIdRoute
   '/projects/$id': typeof ProjectsIdRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexLazyRoute
+  '/chat': typeof ChatRouteWithChildren
   '/projects': typeof ProjectsRouteWithChildren
   '/about': typeof AboutLazyRoute
   '/company': typeof CompanyLazyRoute
@@ -253,6 +296,7 @@ export interface FileRoutesById {
   '/auth/privacy-policy': typeof AuthPrivacyPolicyRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/service-term': typeof AuthServiceTermRoute
+  '/chat/$sessionId': typeof ChatSessionIdRoute
   '/projects/$id': typeof ProjectsIdRoute
 }
 
@@ -260,6 +304,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/chat'
     | '/projects'
     | '/about'
     | '/company'
@@ -270,10 +315,12 @@ export interface FileRouteTypes {
     | '/auth/privacy-policy'
     | '/auth/register'
     | '/auth/service-term'
+    | '/chat/$sessionId'
     | '/projects/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/chat'
     | '/projects'
     | '/about'
     | '/company'
@@ -284,10 +331,12 @@ export interface FileRouteTypes {
     | '/auth/privacy-policy'
     | '/auth/register'
     | '/auth/service-term'
+    | '/chat/$sessionId'
     | '/projects/$id'
   id:
     | '__root__'
     | '/'
+    | '/chat'
     | '/projects'
     | '/about'
     | '/company'
@@ -298,12 +347,14 @@ export interface FileRouteTypes {
     | '/auth/privacy-policy'
     | '/auth/register'
     | '/auth/service-term'
+    | '/chat/$sessionId'
     | '/projects/$id'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexLazyRoute: typeof IndexLazyRoute
+  ChatRoute: typeof ChatRouteWithChildren
   ProjectsRoute: typeof ProjectsRouteWithChildren
   AboutLazyRoute: typeof AboutLazyRoute
   CompanyLazyRoute: typeof CompanyLazyRoute
@@ -318,6 +369,7 @@ export interface RootRouteChildren {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexLazyRoute: IndexLazyRoute,
+  ChatRoute: ChatRouteWithChildren,
   ProjectsRoute: ProjectsRouteWithChildren,
   AboutLazyRoute: AboutLazyRoute,
   CompanyLazyRoute: CompanyLazyRoute,
@@ -341,6 +393,7 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
+        "/chat",
         "/projects",
         "/about",
         "/company",
@@ -355,6 +408,12 @@ export const routeTree = rootRoute
     },
     "/": {
       "filePath": "index.lazy.tsx"
+    },
+    "/chat": {
+      "filePath": "chat.tsx",
+      "children": [
+        "/chat/$sessionId"
+      ]
     },
     "/projects": {
       "filePath": "projects.tsx",
@@ -388,6 +447,10 @@ export const routeTree = rootRoute
     },
     "/auth/service-term": {
       "filePath": "auth/service-term.tsx"
+    },
+    "/chat/$sessionId": {
+      "filePath": "chat.$sessionId.tsx",
+      "parent": "/chat"
     },
     "/projects/$id": {
       "filePath": "projects.$id.tsx",

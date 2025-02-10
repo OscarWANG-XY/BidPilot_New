@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from .models import ChatSession, ChatMessage
 from django.contrib.auth import get_user_model
+import logging
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -29,10 +32,13 @@ class ChatMessageSerializer(serializers.ModelSerializer):
     # 这里限定了发消息的role要么AI，要么用户。阻止了为空，或者是其他恶意role类型的情况。
     def validate_role(self, value):
         """验证 role 字段"""
+        logger.info(f'正在验证消息角色: {value}')
         if value not in dict(ChatMessage.ROLE_CHOICES):
+            logger.info(f'角色验证失败: {value} 不在允许的选项中')
             raise serializers.ValidationError(
                 f"Invalid role. Choices are: {dict(ChatMessage.ROLE_CHOICES).keys()}"
             )
+        logger.info(f'角色验证通过: {value}')
         return value
 
 class ChatMessageCreateSerializer(ChatMessageSerializer):
@@ -76,8 +82,11 @@ class ChatSessionSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """创建会话时自动关联当前用户"""
         user = self.context['request'].user
+        logger.info(f'正在创建新的聊天会话，用户ID: {user.id}')
         validated_data['created_by'] = user
-        return super().create(validated_data)
+        session = super().create(validated_data)
+        logger.info(f'聊天会话创建成功，会话ID: {session.id}')
+        return session
 
 class ChatSessionListSerializer(ChatSessionSerializer):
     """会话列表序列化器，不包含详细消息"""
@@ -96,11 +105,18 @@ class ChatSessionListSerializer(ChatSessionSerializer):
     # 反序列化过程，不会用到to_representation, 而是用到to_internal_value()
     def to_representation(self, instance):
         """添加消息数量和最后一条消息"""
+        logger.info(f'正在序列化会话信息，会话ID: {instance.id}')
         representation = super().to_representation(instance)
         # 获取消息数量
-        representation['message_count'] = instance.chatmessage_set.count()
+        message_count = instance.chatmessage_set.count()
+        representation['message_count'] = message_count
+        logger.info(f'会话 {instance.id} 的消息数量: {message_count}')
+        
         # 获取最后一条消息
         last_message = instance.chatmessage_set.last()
         if last_message:
             representation['last_message'] = ChatMessageSerializer(last_message).data
+            logger.info(f'会话 {instance.id} 的最后一条消息ID: {last_message.id}')
+        else:
+            logger.info(f'会话 {instance.id} 暂无消息')
         return representation

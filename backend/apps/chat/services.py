@@ -46,7 +46,7 @@ class CustomChatMessageHistory(BaseChatMessageHistory):
 
     def add_message(self, message: BaseMessage) -> None:
         """添加新消息"""
-        logger.debug(f"Adding message of type: {message.__class__.__name__}")
+        logger.info(f"正在添加消息，类型: {message.__class__.__name__}")
         logger.debug(f"Message content: {message.content}")
         try:
             role = self.ROLE_MAP[message.__class__]
@@ -55,6 +55,7 @@ class CustomChatMessageHistory(BaseChatMessageHistory):
                 role=role,
                 content=message.content
             )
+            logger.info(f"消息添加成功，会话ID: {self.session_id}")
 
         except Exception as e:
             logger.error(f"Error creating ChatMessage: {str(e)}")
@@ -79,10 +80,12 @@ class CustomChatMessageHistory(BaseChatMessageHistory):
     @property
     def messages(self) -> List[BaseMessage]:
         """获取所有消息 (必需的接口属性)"""
+        logger.info(f"正在获取会话 {self.session_id} 的所有消息")
         messages = ChatMessage.objects.filter(
             session_id=self.session_id
         ).order_by('sequence')
         
+        logger.info(f"从数据库获取到 {len(messages)} 条消息")
         logger.debug(f"Retrieved messages from DB: {[msg.role for msg in messages]}")
         
         try:
@@ -202,8 +205,10 @@ class ChainBasedChatService:
         documents: Optional[List[str]] = None
     ) -> Dict:
         """处理用户消息，使用多个链组合"""
+        logger.info(f"开始处理会话 {session_id} 的新消息")
         try:
             # 1. 输入分析
+            logger.info("开始进行输入分析")
             analysis_chain = self.llm_service.create_analysis_chain()
             analysis_result = await analysis_chain.ainvoke({"input": content})
             
@@ -212,6 +217,7 @@ class ChainBasedChatService:
             # 2. 如果有相关文档，使用 RAG 链
             rag_result = None
             if documents:
+                logger.info(f"检测到 {len(documents)} 个相关文档，开始 RAG 处理")
                 rag_chain = self.llm_service.create_rag_chain(documents)
                 rag_result = await rag_chain.ainvoke({
                     "context": "\n".join(documents),
@@ -219,6 +225,7 @@ class ChainBasedChatService:
                 })
             
             # 3. 使用对话链生成最终响应
+            logger.info("开始生成最终响应")
             conversation_chain = self.llm_service.create_conversation_chain(
                 session_id
             )
@@ -235,7 +242,7 @@ class ChainBasedChatService:
             # 生成最终响应
             response = await conversation_chain.ainvoke(chain_input)
             
-
+            logger.info("消息处理完成")
             return {
                 "response": response,
                 "metadata": {
@@ -247,5 +254,5 @@ class ChainBasedChatService:
             
 
         except Exception as e:
-            logger.error(f"Chain processing error: {str(e)}")
+            logger.error(f"消息处理出错: {str(e)}")
             raise

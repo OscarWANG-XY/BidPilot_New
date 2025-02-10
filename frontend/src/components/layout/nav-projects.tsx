@@ -63,7 +63,7 @@ projects,
         </SidebarMenuItem>
 
 
-        <SidebarMenuItem>
+        <SidebarMenuItem className="mb-2">
           <SidebarMenuButton asChild>
             <a href="/files_manager" className="w-full flex items-center gap-2 px-2">
               <Building2 className="h-4 w-4" /> 
@@ -72,6 +72,15 @@ projects,
           </SidebarMenuButton>
         </SidebarMenuItem>
 
+        <SidebarMenuItem>
+          <SidebarMenuButton asChild>
+            <a href="/chat" className="w-full flex items-center gap-2 px-2">
+              <Building2 className="h-4 w-4" /> 
+              <span className="text-lg">聊天机器人</span>
+            </a>
+
+          </SidebarMenuButton>
+        </SidebarMenuItem>
 
 
       </SidebarMenu>

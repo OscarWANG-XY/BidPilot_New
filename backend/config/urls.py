@@ -28,6 +28,7 @@ urlpatterns = [
     path('api/', include('apps.files.urls')),
     path('api/', include('apps.projects.urls')),
     path('api/', include('apps.doc_analysis.urls')),
+    path('api/', include('apps.chat.urls')),
 
     # ------------------------------ API 文档 ------------------------------
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
