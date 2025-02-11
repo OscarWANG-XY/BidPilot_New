@@ -37,7 +37,6 @@ class FileRecord(BaseModel):
     PROCESSING_STATUS_CHOICES = [
         ('NONE', 'None'),
         ('UPLOADING', 'Uploading'),
-        ('PROCESSING', 'Processing'),
         ('COMPLETED', 'Completed'),
         ('FAILED', 'Failed'),
     ]

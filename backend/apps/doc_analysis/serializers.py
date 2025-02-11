@@ -3,7 +3,6 @@ from .models import DocumentAnalysis, InvalidStatusTransition
 from django.utils import timezone
 from apps.files.models import FileRecord
 from apps.projects.models import Project
-from apps.files.models import FileProjectLink
 
 
 # 基础序列化器
@@ -27,11 +26,12 @@ class DocumentAnalysisBaseSerializer(serializers.ModelSerializer):
 class DocumentAnalysisCreateSerializer(DocumentAnalysisBaseSerializer):
     """文档分析创建序列化器"""
     project_id = serializers.IntegerField(write_only=True)
-    file_record_id = serializers.IntegerField(write_only=True)
+    file_record_id = serializers.IntegerField(write_only=True, required=False)  # 设为可选
     analysis_questions = serializers.ListField(
         child=serializers.CharField(max_length=500),
         write_only=True,
-        help_text="需要分析的问题列表，例如：['资质要求', '技术参数']"
+        help_text="需要分析的问题列表，例如：['资质要求', '技术参数']",
+        required=False
     )
 
     class Meta(DocumentAnalysisBaseSerializer.Meta):
@@ -43,46 +43,26 @@ class DocumentAnalysisCreateSerializer(DocumentAnalysisBaseSerializer):
 
     def validate(self, attrs):
         try:
-            # 获取并验证文件记录
-            file_record = FileRecord.objects.get(id=attrs['file_record_id'])
-            if not file_record.name.lower().endswith('.docx'):
-                raise serializers.ValidationError({
-                    "file_record_id": "目前仅支持DOCX格式文件"
-                })
-            
             # 获取并验证项目
             project = Project.objects.get(id=attrs['project_id'])
             
-            # 验证文件是否与项目关联
-            if not FileProjectLink.objects.filter(
-                file_record=file_record,
-                project=project,
-                is_deleted=False
-            ).exists():
-                raise serializers.ValidationError({
-                    "file_record_id": "文件不属于指定项目"
-                })
+            # 如果提供了文件记录ID，则验证文件
+            if 'file_record_id' in attrs:
+                file_record = FileRecord.objects.get(id=attrs['file_record_id'])
+                
+                # 添加文件状态检查
+                if file_record.processing_status != 'COMPLETED':
+                    raise serializers.ValidationError("文件尚未处理完成")
+                
+                # 验证文件格式
+                if not file_record.name.lower().endswith('.docx'):
+                    raise serializers.ValidationError({
+                        "file_record_id": "目前仅支持DOCX格式文件"
+                    })
+                
+                attrs['file_record'] = file_record
             
-            # 验证分析问题
-            if not attrs['analysis_questions']:
-                raise serializers.ValidationError({
-                    "analysis_questions": "分析问题不能为空"
-                })
-            
-            # 验证文件是否已被分析
-            if DocumentAnalysis.objects.filter(
-                project=project,
-                file_record=file_record
-            ).exists():
-                raise serializers.ValidationError("该文件已在此项目中进行过分析")
-            
-            # 保存验证后的对象引用
-            attrs['file_record'] = file_record
             attrs['project'] = project
-            
-            # 添加文件信息
-            attrs['file_type'] = 'DOCX'
-            attrs['file_size'] = file_record.size
             
         except (FileRecord.DoesNotExist, Project.DoesNotExist) as e:
             raise serializers.ValidationError(str(e))
@@ -211,7 +191,7 @@ class DocumentAnalysisDisplaySerializer(DocumentAnalysisBaseSerializer):
             seconds = obj.processing_time.total_seconds()
             return f"{seconds:.2f}秒"
         return None
-
+    
     def get_analysis_result(self, obj):
         """格式化分析结果供前端展示"""
         if not obj.analysis_result:

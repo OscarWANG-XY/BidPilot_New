@@ -1,11 +1,18 @@
 from django.db import models
-from django.contrib.auth import get_user_model
 from apps.files.models import FileRecord
 from apps.projects.models import Project
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-from datetime import datetime
 from django.conf import settings
+from .docx_parser._01_xml_loader import DocxXMLLoader  
+import requests
+import os
+import tempfile
+import uuid
+
+import logging
+logger = logging.getLogger(__name__)
+
 
 class AnalysisError(Exception):
     """文档分析相关的自定义异常基类"""
@@ -50,7 +57,9 @@ class DocumentAnalysis(models.Model):
         on_delete=models.CASCADE,
         related_name='document_analyses',
         verbose_name='关联文件',
-        db_index=True  # 添加索引
+        db_index=True,  # 添加索引
+        null=True,      # 允许为空
+        blank=True     # 允许为空
     )
     
     # 基础字段
@@ -61,17 +70,6 @@ class DocumentAnalysis(models.Model):
         default=AnalysisStatus.PENDING,
         verbose_name='分析状态',
         db_index=True
-    )
-    
-    # 文件信息
-    file_type = models.CharField(
-        max_length=20,
-        default='DOCX',
-        verbose_name='文件类型'
-    )
-    file_size = models.PositiveIntegerField(
-        verbose_name='文件大小(bytes)',
-        null=True
     )
     
     # 分析配置和结果
@@ -143,19 +141,19 @@ class DocumentAnalysis(models.Model):
     def __str__(self):
         return f"{self.title} - {self.get_status_display()}"
 
-    def clean(self):
-        """模型验证"""
-        if self.file_record and self.project:
-            # 通过 FileProjectLink 中间表验证关联关系
-            if not self.file_record.project_links.filter(project=self.project).exists():
-                raise ValidationError("文件必须通过项目文件关联链接到指定项目")
 
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)
 
 # ------------ 文档分析状态管理 ------------
-# 封装并简化"文档分析"处理过程中的状态更新和时间戳记录
+# 封装并简化"文档分析"处理过程中的状态更新和时间戳记录， 需要显式调用
+#  start_analysis(): PENDING -> PROCESSING
+#  complete_analysis(): PROCESSING -> COMPLETED
+#  fail_analysis(): PENDING/PROCESSING -> FAILED
+#  confirm_analysis(): COMPLETED -> CONFIRMED
+
+
     def start_analysis(self):
         """开始分析文档"""
         if self.status != self.AnalysisStatus.PENDING:
@@ -229,3 +227,106 @@ class DocumentAnalysis(models.Model):
             self.AnalysisStatus.CONFIRMED: []
         }
         return target_status in valid_transitions.get(self.status, [])
+
+    def extract_document_content(self):
+        """
+        从文件中提取文档内容
+        """
+        if not self.file_record or not self.file_record.file:
+            raise ValidationError("没有关联的文件记录")
+
+        temp_file_path = None
+        try:
+            # 获取文件的预签名URL
+            presigned_url = self.file_record.get_presigned_url()
+            if not presigned_url:
+                raise ValidationError("无法获取文件访问地址")
+
+            logger.info(f"开始下载文件: analysis_id={self.id}, file={self.file_record.name}")
+        
+            # 下载文件到临时文件
+            temp_file_path = os.path.join(tempfile.gettempdir(), f"doc_analysis_{uuid.uuid4()}.docx")
+            response = requests.get(presigned_url)
+            response.raise_for_status()  # 确保请求成功
+            
+            # 使用 with open 确保文件句柄被正确关闭
+            with open(temp_file_path, 'wb') as temp_file:
+                temp_file.write(response.content)
+            
+            # 使用DocxXMLLoader提取文档内容
+            logger.info(f"开始提取文档内容: analysis_id={self.id}, temp_file={temp_file_path}")
+            loader = DocxXMLLoader(temp_file_path)
+            raw_content = loader.extract_raw()  # 返回DocxContent对象
+            
+            # 保存主文档XML内容
+            self.raw_xml = raw_content.document
+            self.save()
+            
+            logger.info(f"成功从文件提取内容: analysis_id={self.id}, file={self.file_record.name}")
+        
+        except requests.RequestException as e:
+            error_msg = f"下载文件失败: {str(e)}"
+            logger.error(f"{error_msg}, analysis_id={self.id}, file={self.file_record.name}")
+            self.fail_analysis(error_msg)
+            raise ValidationError(error_msg)
+        
+        except Exception as e:
+            error_msg = f"提取文档内容失败: {str(e)}"
+            logger.error(f"{error_msg}, analysis_id={self.id}, file={self.file_record.name}")
+            self.fail_analysis(error_msg)
+            raise ValidationError(error_msg)
+        
+        finally:
+            # 确保临时文件被删除
+            if temp_file_path and os.path.exists(temp_file_path):
+                try:
+                    # 确保所有文件句柄都已关闭
+                    import gc
+                    gc.collect()  # 强制垃圾回收，确保所有文件句柄被释放
+                    os.remove(temp_file_path)
+                    logger.info(f"成功删除临时文件: {temp_file_path}")
+                except Exception as e:
+                    logger.warning(f"删除临时文件失败: {str(e)}, path={temp_file_path}")
+
+    def update_file_record(self, file_record):
+        """
+        更新关联的文件记录、并提取文档内容
+        
+        Args:
+            file_record: FileRecord 实例
+        """
+        #logger.info(f"开始更新文件记录: analysis_id={self.id}, file_record_id={file_record.id if file_record else 'None'}")
+        
+        if not file_record:
+            logger.error(f"传入的file_record为空: analysis_id={self.id}")
+            raise ValidationError("文件记录不能为空")
+        
+        if self.file_record:
+            logger.warning(f"文件记录已存在: analysis_id={self.id}, existing_file_id={self.file_record.id}")
+            raise ValidationError("文件记录已存在，不能重复设置")
+        
+        # 验证文件格式
+        #logger.info(f"验证文件格式: analysis_id={self.id}, filename={file_record.name}")
+        if not file_record.name.lower().endswith('.docx'):
+            logger.error(f"不支持的文件格式: analysis_id={self.id}, filename={file_record.name}")
+            raise ValidationError("目前仅支持DOCX格式文件")
+        
+        # 保存前记录状态
+        #logger.info(f"保存前状态: analysis_id={self.id}, file_record_id=None")
+        
+        self.file_record = file_record
+        self.save()
+        
+        # 保存后确认状态
+        #logger.info(f"保存后状态: analysis_id={self.id}, file_record_id={self.file_record.id if self.file_record else 'None'}")
+        
+        # 提取文档内容
+        #logger.info(f"开始提取文档内容: analysis_id={self.id}, file_record_id={file_record.id}")
+        self.extract_document_content()
+        
+        #logger.info(f"文件记录更新完成: analysis_id={self.id}, file_record_id={self.file_record.id}")
+
+    def clean(self):
+        """模型验证"""
+        # 移除了文件与项目关联的验证
+        pass

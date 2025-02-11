@@ -34,7 +34,7 @@ export interface BaseEntity {
     mimeType?: string; //可选，MIME Type 是文件标准，PDF, WORD, JPEG, png, html等都是范畴
     
     // 处理状态相关
-    processingStatus: 'NONE'|'UPLOADING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+    processingStatus: 'NONE'|'UPLOADING'| 'COMPLETED' | 'FAILED';
     processingProgress?: number;  // 0-100
     errorMessage?: string;
 
