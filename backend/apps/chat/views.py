@@ -281,7 +281,7 @@ class ChatMessageViewSet(mixins.CreateModelMixin,
             # 创建用户消息
             serializer = self.get_serializer(data={
                 **request.data,
-                #'session': session.id,
+                'session': session.id,
                 'role': 'user'  # 强制设置为用户消息
             })
             serializer.is_valid(raise_exception=True)
@@ -329,7 +329,6 @@ class ChatMessageViewSet(mixins.CreateModelMixin,
                     'message': 'Messages must be a list'
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            # 创建用户消息列表
             created_messages = []
             for msg_data in messages:
                 serializer = self.get_serializer(data={

@@ -55,16 +55,20 @@ export function ChatPanel({ sessionId }: ChatPanelProps) {
       return;
     }
 
+    const currentInput = input.trim();
+    setInput(''); // 提前清空输入框
+
     try {
       await sendMessage(input);
       console.log('[ChatPanel.tsx] 消息发送成功');
-      setInput('');
+
       // 重置输入框高度
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
     } catch (e) {
       console.error('[ChatPanel.tsx] 发送消息失败:', e);
+      setInput(currentInput); // 如果发送失败，恢复输入内容
     }
   };
 

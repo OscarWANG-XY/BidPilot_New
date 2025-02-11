@@ -43,28 +43,3 @@ export interface BaseEntity {
     remarks?: string;
   }
   
-  /** 文件与项目的关联关系（返回数据类型） */
-  export interface FileProjectLink extends BaseEntity {
-    fileRecord: FileRecord;  // 这里改为完整的 FileRecord 类型，因为后端会返回完整信息
-    project: string;
-    linkType: 'ATTACHMENT' | 'REFERENCE';
-    sortOrder?: number;
-    isDeleted: boolean;
-  }
-  
-  /** 创建文件与项目关联的输入类型 */
-  export interface FileProjectLinkCreateInput {
-    fileRecordId: string;    // 改名更清晰：这就是 FileRecord 的 id
-    project: string;
-    linkType: 'ATTACHMENT' | 'REFERENCE';
-    sortOrder?: number;
-    isDeleted: boolean;
-  }
-  
-  /** 文件更新输入类型， 不是更新文件内容本身，比如对文件的备注，重命名等 */
-  export type FileUpdateInput = Partial<Pick<FileRecord, 
-    'name' | 
-    'remarks' | 
-    'metadata'
-  >>;
-  

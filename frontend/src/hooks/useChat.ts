@@ -55,6 +55,23 @@ export function useChat(sessionId?: string): UseChatSession {
     mutationFn: async (content: string) => {
       console.log('📤 [useChat] 发送消息:', { sessionId, content });
       if (!sessionId) throw new Error('No active session');
+      
+      // 先乐观更新用户消息
+      queryClient.setQueryData<ChatMessage[]>(
+        QUERY_KEYS.messages(sessionId),
+        (old = []) => [
+          ...old,
+          {
+            id: `temp-${Date.now()}`, // 临时ID
+            sessionId: sessionId,
+            sequence: (old.length + 1) * 2 - 1,
+            content: content,
+            role: 'user',
+            createdAt: new Date().toISOString(),
+          },
+        ]
+      );
+
       const result = await chatApi.sendMessage(sessionId, { content });
       console.log('📥 [useChat] 发送消息结果:', result);
       return result;
@@ -64,35 +81,61 @@ export function useChat(sessionId?: string): UseChatSession {
       setError(undefined);
     },
     onSuccess: async (response) => {
+      console.log('📥 [useChat] 消息发送成功，服务器响应:', response);
+      
+      if (!response) {
+        setStatus('error');
+        setError('Invalid server response');
+        return;
+      }
+      
       setStatus('receiving');
       
-      // 乐观更新消息列表
-      queryClient.setQueryData<ChatMessage[]>(
-        QUERY_KEYS.messages(sessionId!),
-        (old = []) => [
-          ...old,
-          {
-            id: response.messageId,
-            sessionId: sessionId!,
-            sequence: response.sequence,
-            content: '', // AI 响应内容暂时为空
-            role: 'assistant',
-            createdAt: new Date().toISOString(),
-          },
-        ]
-      );
+      // 开始轮询获取AI响应
+      const pollInterval = 1000; // 1秒
+      const maxAttempts = 30; // 最大尝试次数
+      let attempts = 0;
 
-      // 轮询等待 AI 响应
-      await queryClient.invalidateQueries({
-        queryKey: QUERY_KEYS.messages(sessionId!),
-      });
+      const pollForResponse = async () => {
+        if (attempts >= maxAttempts) {
+          setStatus('error');
+          setError('Response timeout');
+          return;
+        }
+
+        attempts++;
+        
+        try {
+          // 刷新消息列表
+          await queryClient.invalidateQueries({
+            queryKey: QUERY_KEYS.messages(sessionId!),
+          });
+
+          // 获取最新消息
+          const messages = queryClient.getQueryData<ChatMessage[]>(QUERY_KEYS.messages(sessionId!));
+          const latestMessage = messages?.[messages.length - 1];
+
+          // 如果最新消息是AI的响应且有内容，则停止轮询
+          if (latestMessage?.role === 'assistant' && latestMessage?.content) {
+            setStatus('idle');
+            return;
+          }
+
+          // 继续轮询
+          setTimeout(pollForResponse, pollInterval);
+        } catch (error) {
+          console.error('轮询出错:', error);
+          setStatus('error');
+          setError('Failed to get AI response');
+        }
+      };
+
+      // 开始轮询
+      setTimeout(pollForResponse, pollInterval);
     },
     onError: (error) => {
       setStatus('error');
       setError(error.message);
-    },
-    onSettled: () => {
-      setStatus('idle');
     },
   });
 

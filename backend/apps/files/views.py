@@ -144,18 +144,11 @@ class FileViewSet(viewsets.ModelViewSet):
         获取当前用户可访问的文件列表。
         可访问的文件包括：
         1. 用户自己上传的文件（owner）
-        2. 用户有读取权限的文件（read_users）
-        3. 用户有写入权限的文件（write_users）
         """
         user = self.request.user
         return FileRecord.objects.filter(
-            models.Q(owner=user) |
-            models.Q(read_users=user) |
-            models.Q(write_users=user)
-        ).select_related('owner').prefetch_related(
-            'read_users', 
-            'write_users'
-        ).distinct()
+            models.Q(owner=user) 
+        ).select_related('owner')
 
     def get_serializer_class(self):
         """
@@ -327,7 +320,6 @@ class FileViewSet(viewsets.ModelViewSet):
         cache_key = f'file_list_{self.request.user.id}'
         cache.delete(cache_key)
         return instance
-    
 
     def perform_update(self, serializer):
         """
@@ -338,7 +330,6 @@ class FileViewSet(viewsets.ModelViewSet):
             updated_by=self.request.user.phone,  # 记录更新人的手机号
             updated_at=timezone.now()  # 记录更新时间
         )
-
 
     def destroy(self, request, *args, **kwargs):
         """
@@ -378,8 +369,6 @@ class FileViewSet(viewsets.ModelViewSet):
         )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-
 
 # 为了检查签名地址url
     def retrieve(self, request, *args, **kwargs):

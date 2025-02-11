@@ -1,9 +1,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.files.storage import default_storage
-import uuid
 from django.utils import timezone
-from qcloud_cos import CosConfig, CosS3Client
 from django.conf import settings
 import boto3
 from botocore.config import Config
@@ -62,18 +60,6 @@ class FileRecord(BaseModel):
     )
     error_message = models.TextField(null=True, blank=True)  # 处理错误信息，可为空
     
-    # 访问控制：可读用户列表
-    read_users = models.ManyToManyField(
-        settings.AUTH_USER_MODEL,
-        related_name='readable_files',
-        blank=True
-    )
-    # 访问控制：可写用户列表
-    write_users = models.ManyToManyField(
-        settings.AUTH_USER_MODEL,
-        related_name='writable_files',
-        blank=True
-    )
     # 文件所有者
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -257,35 +243,4 @@ class FileRecord(BaseModel):
         super().save(*args, **kwargs)
 
 
-# 定义文件与项目的关联模型； 需要注意的是继承了BaseModel
-class FileProjectLink(BaseModel):
-    # 关联类型选项
-    LINK_TYPE_CHOICES = [
-        ('ATTACHMENT', 'Attachment'),  # 附件
-        ('REFERENCE', 'Reference'),  # 参考资料
-    ]
-
-    file_record = models.ForeignKey(
-        FileRecord, 
-        on_delete=models.CASCADE,
-        related_name='project_links'
-    )
-    project = models.ForeignKey(
-        Project,
-        on_delete=models.CASCADE,
-        related_name='file_links'
-    )
-    link_type = models.CharField(max_length=20, choices=LINK_TYPE_CHOICES)
-    sort_order = models.IntegerField(null=True, blank=True)
-    is_deleted = models.BooleanField(default=False)
-
-    class Meta:
-        db_table = 'file_project_links'
-        # 添加唯一性约束
-        constraints = [
-            models.UniqueConstraint(
-                fields=['file_record', 'project', 'link_type'],
-                name='unique_file_project_link'
-            )
-        ]
         

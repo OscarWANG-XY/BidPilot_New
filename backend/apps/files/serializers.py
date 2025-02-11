@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import FileRecord, FileProjectLink
+from .models import FileRecord
 from apps.projects.serializers import ProjectListSerializer
 from apps.projects.models import Project
 from django.core.cache import cache
@@ -31,8 +31,6 @@ class FileRecordSerializer(serializers.ModelSerializer):
     mime_type = serializers.CharField()
     
     owner = UserSerializer(read_only=True)
-    read_users = UserSerializer(many=True, read_only=True)
-    write_users = UserSerializer(many=True, read_only=True)
     
     url = serializers.SerializerMethodField()
     
@@ -41,7 +39,7 @@ class FileRecordSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'file', 'size', 'type', 'mime_type',
             'processing_status', 'processing_progress', 'error_message',
-            'read_users', 'write_users', 'owner', 'metadata', 'remarks',
+            'owner', 'metadata', 'remarks',
             'created_at', 'created_by', 'updated_at', 'updated_by',
             'version', 'url'
         ]
@@ -92,53 +90,5 @@ class FileRecordCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("认证用户必须提供")
         return super().create(validated_data)  # 调用父类方法创建记录
 
-
-# ----------  文件与项目的关联（FileProjectLink）序列化器 (前端 <->后端）  -----------------
-# 前端传给后端的是file_id和project_id
-# 后端返回给前端的是file_record和project
-class FileProjectLinkSerializer(serializers.ModelSerializer):
-    # 用于创建的 ID 字段
-    fileRecordId = serializers.PrimaryKeyRelatedField(
-        source='file_record',
-        queryset=FileRecord.objects.all(),
-        write_only=True
-    )
-    
-    projectId = serializers.PrimaryKeyRelatedField(
-        source='project',
-        queryset=Project.objects.all(),
-        write_only=True
-    )
-    
-    # 用于返回的完整信息字段
-    file_record = FileRecordSerializer(read_only=True)
-    project = ProjectListSerializer(read_only=True)    # 使用 ProjectListSerializer
-    # 注意，ProjectListSerializer 的名字可能有点误导性。
-    # 实际上，它并不是"返回项目列表"的序列化器，而是"用于项目列表中显示单个项目"的序列化器。
-    # 它定义了在列表中显示一个项目时需要的字段。
-    
-
-    # 其他字段
-    link_type = serializers.CharField()
-    sort_order = serializers.IntegerField(required=False, allow_null=True)
-    is_deleted = serializers.BooleanField()
-    
-    # BaseModel 继承字段
-    created_at = serializers.DateTimeField(read_only=True)
-    created_by = serializers.CharField(read_only=True)
-    updated_at = serializers.DateTimeField(read_only=True)
-    updated_by = serializers.CharField(read_only=True)
-    version = serializers.IntegerField(read_only=True)
-
-    class Meta:
-        model = FileProjectLink
-        fields = [
-            'id', 'fileRecordId', 'file_record', 
-            'projectId', 'project', 'link_type',
-            'sort_order', 'is_deleted', 'created_at', 'created_by',
-            'updated_at', 'updated_by', 'version'
-        ]
-        read_only_fields = ['id', 'created_at', 'created_by', 
-                           'updated_at', 'updated_by', 'version']
 
 
