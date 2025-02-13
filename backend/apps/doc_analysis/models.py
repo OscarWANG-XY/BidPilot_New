@@ -4,7 +4,7 @@ from apps.projects.models import Project
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.conf import settings
-from .docx_parser._01_xml_loader import DocxXMLLoader  
+from .docx_parser.pipeline import DocxParserPipeline
 import requests
 import os
 import tempfile
@@ -85,6 +85,14 @@ class DocumentAnalysis(models.Model):
         verbose_name='分析结果',
         db_index=True  # 添加索引以支持JSON字段查询
     )
+    # 提取的文档元素
+    extracted_elements = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='提取的文档元素',
+        help_text='存储从文档中提取的结构化元素'
+    )
+    
     error_message = models.TextField(null=True, blank=True, verbose_name='错误信息')
     raw_xml = models.TextField(
         null=True,
@@ -228,65 +236,6 @@ class DocumentAnalysis(models.Model):
         }
         return target_status in valid_transitions.get(self.status, [])
 
-    def extract_document_content(self):
-        """
-        从文件中提取文档内容
-        """
-        if not self.file_record or not self.file_record.file:
-            raise ValidationError("没有关联的文件记录")
-
-        temp_file_path = None
-        try:
-            # 获取文件的预签名URL
-            presigned_url = self.file_record.get_presigned_url()
-            if not presigned_url:
-                raise ValidationError("无法获取文件访问地址")
-
-            logger.info(f"开始下载文件: analysis_id={self.id}, file={self.file_record.name}")
-        
-            # 下载文件到临时文件
-            temp_file_path = os.path.join(tempfile.gettempdir(), f"doc_analysis_{uuid.uuid4()}.docx")
-            response = requests.get(presigned_url)
-            response.raise_for_status()  # 确保请求成功
-            
-            # 使用 with open 确保文件句柄被正确关闭
-            with open(temp_file_path, 'wb') as temp_file:
-                temp_file.write(response.content)
-            
-            # 使用DocxXMLLoader提取文档内容
-            logger.info(f"开始提取文档内容: analysis_id={self.id}, temp_file={temp_file_path}")
-            loader = DocxXMLLoader(temp_file_path)
-            raw_content = loader.extract_raw()  # 返回DocxContent对象
-            
-            # 保存主文档XML内容
-            self.raw_xml = raw_content.document
-            self.save()
-            
-            logger.info(f"成功从文件提取内容: analysis_id={self.id}, file={self.file_record.name}")
-        
-        except requests.RequestException as e:
-            error_msg = f"下载文件失败: {str(e)}"
-            logger.error(f"{error_msg}, analysis_id={self.id}, file={self.file_record.name}")
-            self.fail_analysis(error_msg)
-            raise ValidationError(error_msg)
-        
-        except Exception as e:
-            error_msg = f"提取文档内容失败: {str(e)}"
-            logger.error(f"{error_msg}, analysis_id={self.id}, file={self.file_record.name}")
-            self.fail_analysis(error_msg)
-            raise ValidationError(error_msg)
-        
-        finally:
-            # 确保临时文件被删除
-            if temp_file_path and os.path.exists(temp_file_path):
-                try:
-                    # 确保所有文件句柄都已关闭
-                    import gc
-                    gc.collect()  # 强制垃圾回收，确保所有文件句柄被释放
-                    os.remove(temp_file_path)
-                    logger.info(f"成功删除临时文件: {temp_file_path}")
-                except Exception as e:
-                    logger.warning(f"删除临时文件失败: {str(e)}, path={temp_file_path}")
 
     def update_file_record(self, file_record):
         """
@@ -322,7 +271,7 @@ class DocumentAnalysis(models.Model):
         
         # 提取文档内容
         #logger.info(f"开始提取文档内容: analysis_id={self.id}, file_record_id={file_record.id}")
-        self.extract_document_content()
+        #self.extract_document_content()
         
         #logger.info(f"文件记录更新完成: analysis_id={self.id}, file_record_id={self.file_record.id}")
 

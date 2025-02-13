@@ -37,6 +37,7 @@ LOGGING = {
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
+            'level': 'DEBUG', 
         },
     },
     'loggers': {
@@ -52,6 +53,21 @@ LOGGING = {
         'apps.files': {  # 您的应用logger
             'handlers': ['console'],
             'level': 'INFO',
+            'propagate': False,
+        },
+        'apps.doc_analysis': {  # 您的应用logger
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'apps.projects': {  # 您的应用logger
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'apps.chat': {  # 您的应用logger
+            'handlers': ['console'],
+            'level': 'ERROR',
             'propagate': False,
         },
     },

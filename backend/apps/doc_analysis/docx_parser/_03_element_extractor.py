@@ -167,7 +167,7 @@ class ParagraphExtractor(BaseElementExtractor):
         2. 样式标题（如果没有大纲级别）
         """
         outline_level = None
-        style_level = None
+        #style_level = None
         
         # 检查大纲级别
         outline_element = self.parser.xpath(".//w:outlineLvl/@w:val", element)
@@ -178,15 +178,15 @@ class ParagraphExtractor(BaseElementExtractor):
                 pass
                 
         # 检查样式
-        style_id = self.parser.xpath("string(.//w:pStyle/@w:val)", element)
-        if style_id in self._heading_style_cache:
-            style_level = self._heading_style_cache[style_id]
+        #style_id = self.parser.xpath("string(.//w:pStyle/@w:val)", element)
+        #if style_id in self._heading_style_cache:
+        #    style_level = self._heading_style_cache[style_id]
         
         # 优先使用大纲级别
         if outline_level is not None:
             return True, outline_level, "outline"
-        elif style_level is not None:
-            return True, style_level, "style"
+        #elif style_level is not None:
+        #    return True, style_level, "style"
         
         return False, None, ""
     
@@ -686,6 +686,7 @@ class DocumentElementExtractor:
                     extracted.sequence_number = self._update_sequence()
                     
                     # 如果不在目录区域，尝试与目录项匹配
+                    """
                     if not is_in_toc and isinstance(extracted, ParagraphElement):
                         clean_content = self._clean_text_for_matching(extracted.content)
                         logger.debug(f"Trying to match content: '{clean_content}' (original: '{extracted.content}')")
@@ -731,7 +732,7 @@ class DocumentElementExtractor:
                                 extracted.heading_level = None
                                 extracted.heading_type = ""
                                 logger.debug(f"Converted unmatched heading to non-heading: {extracted}")
-                    
+                    """
                     self.elements.append(extracted)
                     logger.debug(f"Successfully extracted {element_type} element {i+1}")
                 else:
