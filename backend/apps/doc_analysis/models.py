@@ -92,6 +92,13 @@ class DocumentAnalysis(models.Model):
         verbose_name='提取的文档元素',
         help_text='存储从文档中提取的结构化元素'
     )
+
+    outline_analysis_result = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='大纲分析结果',
+        help_text='存储大纲分析的结果'
+    )
     
     error_message = models.TextField(null=True, blank=True, verbose_name='错误信息')
     raw_xml = models.TextField(

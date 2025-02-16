@@ -14,8 +14,6 @@ class ElementType(Enum):
     PARAGRAPH = "paragraph"
     TABLE = "table"
     FIGURE = "figure"
-    #REFERENCE = "reference"
-    #TOC = "toc"  # 新增目录类型
 
 @dataclass
 class DocumentElement:
@@ -25,13 +23,36 @@ class DocumentElement:
     content: str                                         # 元素内容
     raw_xml: str                                         # 原始XML
     style_id: Optional[str] = None                      # 样式ID
-    #language: Optional[str] = None                       # 语言
-    #position: Optional[Tuple[int, int]] = None          # 位置
-    #format_info: Dict = field(default_factory=dict)    # 格式信息
-    #parent_id: Optional[str] = None                   # 父ID  
-    #child_ids: List[str] = field(default_factory=list) # 子ID列表   
-    #creation_date: Optional[datetime] = None          # 创建日期
-    #last_modified: Optional[datetime] = None          # 最后修改日期
+
+    def to_dict(self) -> Dict:
+        """将DocumentElement转换为字典"""
+        base_dict = {
+            "type": self.element_type.value,
+            "position": self.sequence_number,
+            "content": self.content
+        }
+
+        # 处理目录元素
+        if hasattr(self, 'is_toc') and self.is_toc and self.toc_info:
+            toc_level = self.toc_info['toc_level']
+            base_dict['is_TOC'] = True
+            base_dict['TOC_level'] = {
+                1: 'chapter',
+                2: 'section',
+                3: 'subsection'
+            }.get(toc_level, 'other')
+
+        # 处理标题元素
+        if hasattr(self, 'is_heading') and self.is_heading:
+            base_dict['is_heading'] = True
+            base_dict['heading_level'] = {
+                1: 'chapter',
+                2: 'section',
+                3: 'subsection'
+            }.get(self.heading_level, 'other')
+
+        return base_dict
+
 
 @dataclass
 class ParagraphElement(DocumentElement):
@@ -43,25 +64,14 @@ class ParagraphElement(DocumentElement):
     alignment: str = "left"
     indentation: Optional[int] = None
     first_line_tabs: int = 0
-    #list_info: Optional[Dict] = None
-    #is_footer: bool = False
-    #is_header: bool = False
-    #reference_mark: Optional[str] = None
     is_toc: bool = False
     toc_info: Optional[Dict] = None
 
 @dataclass
 class TableElement(DocumentElement):
     """表格元素"""
-    #rows: int = 0 # 行数
-    #columns: int = 0 # 列数
-    #has_header: bool = False # 是否包含表头
-    #cell_merges: List[Dict] = field(default_factory=list) # 单元格合并
-    #borders: Dict = field(default_factory=dict) # 边框
     has_nested: bool = False # 是否有嵌套表格
     has_merged: bool = False # 是否有合并单元格
-    #parent_table_id: Optional[str] = None # 父表格ID
-    #caption: Optional[str] = None
 
 @dataclass
 class FigureElement(DocumentElement):
@@ -436,45 +446,11 @@ class ParagraphExtractor(BaseElementExtractor):
         except Exception as e:
             self.logger.error(f"Error extracting paragraph: {e}")
             return None
+        
 
 class TableExtractor(BaseElementExtractor):
     """表格提取器"""
-    
-    def extract_element(self, element: Any) -> Optional[TableElement]:
-        """提取表格元素"""
-        try:
-            # 检查是否有嵌套表格, 查当前element下的是否还有w:tbl 
-            has_nested = bool(self.parser.xpath(".//w:tbl", element)) 
-            
-            # 检查是否有合并单元格，查询前element下的是否有w:gridSpan或w:vMerge
-            has_merged = bool(self.parser.xpath(".//w:gridSpan|.//w:vMerge", element))
-            
-            # 获取表格内容的Markdown格式
-            content = self._get_table_content(element)
-            if not content:
-                return None
-                
-            # 获取原始XML
-            try:
-                raw_xml = self.parser.element_to_string(element)
-            except Exception as e:
-                logger.warning(f"Could not convert element to string: {e}")
-                raw_xml = ""
-            
-            return TableElement(
-                element_type=ElementType.TABLE,
-                sequence_number=-1,  # 将由DocumentElementExtractor设置
-                content=content,
-                raw_xml=raw_xml,
-                style_id=None,  # 表格样式暂不处理
-                has_nested=has_nested,
-                has_merged=has_merged
-            )
-            
-        except Exception as e:
-            logger.error(f"Error extracting table: {e}")
-            return None
-    
+
     def _get_table_content(self, element: Any) -> str:
         """提取表格内容，转换为Markdown格式"""
         try:
@@ -564,6 +540,43 @@ class TableExtractor(BaseElementExtractor):
         except Exception as e:
             logger.error(f"Error getting table content: {e}")
             return ""
+
+    def extract_element(self, element: Any) -> Optional[TableElement]:
+        """提取表格元素"""
+        try:
+            # 检查是否有嵌套表格, 查当前element下的是否还有w:tbl 
+            has_nested = bool(self.parser.xpath(".//w:tbl", element)) 
+            
+            # 检查是否有合并单元格，查询前element下的是否有w:gridSpan或w:vMerge
+            has_merged = bool(self.parser.xpath(".//w:gridSpan|.//w:vMerge", element))
+            
+            # 获取表格内容的Markdown格式
+            content = self._get_table_content(element)
+            if not content:
+                return None
+                
+            # 获取原始XML
+            try:
+                raw_xml = self.parser.element_to_string(element)
+            except Exception as e:
+                logger.warning(f"Could not convert element to string: {e}")
+                raw_xml = ""
+            
+            return TableElement(
+                element_type=ElementType.TABLE,
+                sequence_number=-1,  # 将由DocumentElementExtractor设置
+                content=content,
+                raw_xml=raw_xml,
+                style_id=None,  # 表格样式暂不处理
+                has_nested=has_nested,
+                has_merged=has_merged
+            )
+            
+        except Exception as e:
+            logger.error(f"Error extracting table: {e}")
+            return None
+    
+
 
 class DocumentElementExtractor:
     """文档元素提取器主类"""
@@ -744,3 +757,6 @@ class DocumentElementExtractor:
         
         logger.info(f"Extraction complete. Total elements extracted: {len(self.elements)}")
         return self.elements
+    
+
+

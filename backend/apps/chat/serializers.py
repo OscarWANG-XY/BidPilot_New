@@ -103,6 +103,18 @@ class ChatSessionListSerializer(ChatSessionSerializer):
     # 重写to_representation方法，添加消息数量和最后一条消息
     # to_representation是（后端->前端）序列化过程的核心步骤
     # 反序列化过程，不会用到to_representation, 而是用到to_internal_value()
+    
+    # 会话列表（前端展示，可展示最后消息和消息数量，这种方式现代聊天应用很常见。）
+    # ├── 会话1
+    # │   ├── 最后消息: "今天天气真好"
+    # │   └── 消息数量: 10条
+    # ├── 会话2
+    # │   ├── 最后消息: "好的，明天见"
+    # │   └── 消息数量: 5条
+    # └── 会话3
+    #    ├── 最后消息: "谢谢"
+    #    └── 消息数量: 3条
+
     def to_representation(self, instance):
         """添加消息数量和最后一条消息"""
         logger.info(f'正在序列化会话信息，会话ID: {instance.id}')
