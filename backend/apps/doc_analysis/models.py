@@ -93,6 +93,7 @@ class DocumentAnalysis(models.Model):
         help_text='存储从文档中提取的结构化元素'
     )
 
+    # 初步大纲分析结果
     outline_analysis_result = models.JSONField(
         null=True,
         blank=True,
@@ -100,6 +101,15 @@ class DocumentAnalysis(models.Model):
         help_text='存储大纲分析的结果'
     )
     
+    # 初步大纲优化后的文档元素
+    improved_docx_elements = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='初步大纲优化后的文档元素',
+        help_text='存储从经过初步大纲优化的结构化元素'
+    )
+
+
     error_message = models.TextField(null=True, blank=True, verbose_name='错误信息')
     raw_xml = models.TextField(
         null=True,

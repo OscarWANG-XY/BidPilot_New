@@ -13,10 +13,10 @@ class COSStorage(S3Boto3Storage):
     继承自 S3Boto3Storage
     """
     def __init__(self, *args, **kwargs):
-        logger.info("初始化 COSStorage")
+        #logger.info("初始化 COSStorage")
 
         # 打印更多信息以便调试
-        logger.info(f"Storage backend initialization with args: {args}, kwargs: {kwargs}")
+        #logger.info(f"Storage backend initialization with args: {args}, kwargs: {kwargs}")
 
         super().__init__(*args, **kwargs)
 
@@ -45,16 +45,16 @@ def initialize_storage():
     try:
         # 根据配置选择存储后端
         if settings.DEFAULT_FILE_STORAGE == "storages.backends.s3boto3.S3Boto3Storage":
-            logger.info("使用 S3Boto3Storage 初始化存储")
+            #logger.info("使用 S3Boto3Storage 初始化存储")
             storage = S3Boto3Storage()
             default_storage._wrapped = storage
-            logger.info("✅ 成功初始化 S3Boto3Storage")
+            #logger.info("✅ 成功初始化 S3Boto3Storage")
             logger.info(f"default_storage 的类型: {default_storage.__class__.__name__}")
         elif settings.DEFAULT_FILE_STORAGE == "apps.files.storage.COSStorage":
-            logger.info("使用 COSStorage 初始化存储")
+            #logger.info("使用 COSStorage 初始化存储")
             storage = COSStorage()
             default_storage._wrapped = storage
-            logger.info("✅ 成功初始化 COSStorage")
+            #logger.info("✅ 成功初始化 COSStorage")
             logger.info(f"default_storage 的类型: {default_storage.__class__.__name__}")
         else:
             logger.warning(f"未知的存储后端: {settings.DEFAULT_FILE_STORAGE}")

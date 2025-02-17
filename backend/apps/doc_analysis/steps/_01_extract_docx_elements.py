@@ -20,7 +20,7 @@ class DocxExtractorStep(PipelineStep[ModelData[DocumentAnalysis], DocxElements])
 
     def validate_output(self, data: DocxElements) -> bool:
         """验证输出数据"""
-        return isinstance(data, DocxElements) and len(data) > 0
+        return isinstance(data, DocxElements) and len(data.elements) > 0 and data.document_analysis is not None
 
     def process(self, data: ModelData[DocumentAnalysis]) -> DocxElements:
         """处理文档提取逻辑"""
@@ -31,16 +31,16 @@ class DocxExtractorStep(PipelineStep[ModelData[DocumentAnalysis], DocxElements])
             data.instance.fail_analysis(error_msg)
             raise ValidationError(error_msg)
 
-        document_analysis = data.instance
+        current_document_analysis = data.instance
         temp_file_path = None
         
         try:
             # 获取文件的预签名URL
-            presigned_url = document_analysis.file_record.get_presigned_url()
+            presigned_url = current_document_analysis.file_record.get_presigned_url()
             if not presigned_url:
                 raise ValidationError("无法获取文件访问地址")
 
-            logger.info(f"开始下载文件: analysis_id={document_analysis.id}, file={document_analysis.file_record.name}")
+            logger.info(f"开始下载文件: analysis_id={current_document_analysis.id}, file={current_document_analysis.file_record.name}")
         
             # 下载文件到临时文件
             temp_file_path = os.path.join(tempfile.gettempdir(), f"doc_analysis_{uuid.uuid4()}.docx")
@@ -51,37 +51,40 @@ class DocxExtractorStep(PipelineStep[ModelData[DocumentAnalysis], DocxElements])
                 temp_file.write(response.content)
             
             # 使用DocxParserPipeline提取文档元素
-            logger.info(f"开始提取文档内容: analysis_id={document_analysis.id}, temp_file={temp_file_path}")
+            logger.info(f"开始提取文档内容: analysis_id={current_document_analysis.id}, temp_file={temp_file_path}")
             pipeline = DocxParserPipeline(temp_file_path)
             elements = pipeline.process()
             
             # 转换为DocxElements
-            docx_elements = DocxElements([element.to_dict() for element in elements])
+            docx_elements = DocxElements(
+                elements = [element.to_dict() for element in elements],
+                document_analysis = ModelData(model=DocumentAnalysis, instance=current_document_analysis)
+            )   
             
             # 输出验证
             if not self.validate_output(docx_elements):
                 error_msg = "输出数据验证失败"
-                logger.error(f"{error_msg}, analysis_id={document_analysis.id}")
-                document_analysis.fail_analysis(error_msg)
+                logger.error(f"{error_msg}, analysis_id={current_document_analysis.id}")
+                current_document_analysis.fail_analysis(error_msg)  
                 raise ValidationError(error_msg)
             
             # 保存结果到模型
-            document_analysis.extracted_elements = docx_elements.to_model()
-            document_analysis.save()
+            current_document_analysis.extracted_elements = docx_elements.to_model()
+            current_document_analysis.save()
             
-            logger.info(f"成功从文件提取内容: analysis_id={document_analysis.id}")
+            logger.info(f"成功从文件提取内容: analysis_id={current_document_analysis.id}")
             return docx_elements
 
         except requests.RequestException as e:
             error_msg = f"下载文件失败: {str(e)}"
-            logger.error(f"{error_msg}, analysis_id={document_analysis.id}")
-            document_analysis.fail_analysis(error_msg)
+            logger.error(f"{error_msg}, analysis_id={current_document_analysis.id}")
+            current_document_analysis.fail_analysis(error_msg)
             raise ValidationError(error_msg)
         
         except Exception as e:
             error_msg = f"提取文档内容失败: {str(e)}"
-            logger.error(f"{error_msg}, analysis_id={document_analysis.id}")
-            document_analysis.fail_analysis(error_msg)
+            logger.error(f"{error_msg}, analysis_id={current_document_analysis.id}")
+            current_document_analysis.fail_analysis(error_msg)
             raise ValidationError(error_msg)
         
         finally:

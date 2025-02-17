@@ -35,8 +35,8 @@ class DocumentElement:
         # 处理目录元素
         if hasattr(self, 'is_toc') and self.is_toc and self.toc_info:
             toc_level = self.toc_info['toc_level']
-            base_dict['is_TOC'] = True
-            base_dict['TOC_level'] = {
+            base_dict['is_toc'] = True
+            base_dict['toc_level'] = {
                 1: 'chapter',
                 2: 'section',
                 3: 'subsection'
