@@ -36,20 +36,14 @@ class DocumentElement:
         if hasattr(self, 'is_toc') and self.is_toc and self.toc_info:
             toc_level = self.toc_info['toc_level']
             base_dict['is_toc'] = True
-            base_dict['toc_level'] = {
-                1: 'chapter',
-                2: 'section',
-                3: 'subsection'
-            }.get(toc_level, 'other')
+            base_dict['toc_level'] = int(toc_level)
+            
 
         # 处理标题元素
         if hasattr(self, 'is_heading') and self.is_heading:
             base_dict['is_heading'] = True
-            base_dict['heading_level'] = {
-                1: 'chapter',
-                2: 'section',
-                3: 'subsection'
-            }.get(self.heading_level, 'other')
+            base_dict['heading_level'] = int(self.heading_level)
+
 
         return base_dict
 
