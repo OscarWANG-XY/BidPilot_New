@@ -764,134 +764,37 @@ class DocxTree:
         self._rebuild_tree_from_ordered_nodes()
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 @dataclass
-class DocxTreeNodeToAdd(SimpleDocxNode):
-    """需要添加到文档树中的节点，继承自SimpleDocxNode并添加额外字段"""
-    reason: Optional[str] = None  # 建议添加该节点的原因
-    recommendation: Optional[str] = None  # 具体建议
-    confidence: float = 0.0  # 建议的置信度 0.0~1.0
-    user_confirm: bool = False  # 用户是否确认
-    insert_to: Optional[int] = None  # 建议插入到哪个节点之后（node_id）
+class DocxTreeAnalysisResult:
+    document_analysis: ModelData
+    sections_to_analyze: List[str]  # 需要进一步分析的章节列表
+    analysis_recommendations: Dict[str, str]  # 每个章节的分析建议
+    user_confirm: bool = False
 
-@dataclass
-class DocxTreeNodesToAdd:
-    """文档树节点添加建议集合"""
-    document_analysis: ModelData[DocumentAnalysis]
-    nodes_to_add: List[DocxTreeNodeToAdd] = field(default_factory=list)
-    user_confirm: bool = False  # 整体的用户确认状态
+    @staticmethod
+    def get_prompt_specification() -> str:
+        return """
+请按以下JSON格式输出分析结果：
+{
+    "sections_to_analyze": [
+        "需要进一步分析的章节标题1",
+        "需要进一步分析的章节标题2",
+        ...
+    ],
+    "analysis_recommendations": {
+        "章节标题1": "分析建议说明",
+        "章节标题2": "分析建议说明",
+        ...
+    }
+}
+"""
 
-    def add_node(self, 
-                 node_id: int,
-                 content: str,
-                 node_type: str = "title",
-                 level: Optional[int] = None,
-                 content_type: Optional[str] = None,  # 添加 SimpleDocxNode 的字段
-                 path_sequence: List[int] = None,     # 添加 SimpleDocxNode 的字段
-                 path_titles: str = "",               # 添加 SimpleDocxNode 的字段
-                 reason: Optional[str] = None,
-                 recommendation: Optional[str] = None,
-                 confidence: float = 0.0,
-                 insert_to: Optional[int] = None) -> None:
-        """添加一个需要插入的节点"""
-        if path_sequence is None:
-            path_sequence = []
-            
-        node = DocxTreeNodeToAdd(
-            node_id=node_id,
-            content=content,
-            node_type=node_type,
-            level=level,
-            content_type=content_type,
-            children=[],  # SimpleDocxNode 的字段
-            parent=None,  # SimpleDocxNode 的字段
-            prev_sibling=None,  # SimpleDocxNode 的字段
-            next_sibling=None,  # SimpleDocxNode 的字段
-            path_sequence=path_sequence,
-            path_titles=path_titles,
-            # DocxTreeNodeToAdd 特有的字段
-            reason=reason,
-            recommendation=recommendation,
-            confidence=confidence,
-            insert_to=insert_to
-        )
-        self.nodes_to_add.append(node)
 
-    def to_model(self) -> Dict:
-        """转换为可序列化的字典格式"""
-        return {
-            'nodes_to_add': [
-                {
-                    'node_id': node.node_id,
-                    'content': node.content,
-                    'node_type': node.node_type,
-                    'level': node.level,
-                    'reason': node.reason,
-                    'recommendation': node.recommendation,
-                    'confidence': node.confidence,
-                    'user_confirm': node.user_confirm,
-                    'insert_to': node.insert_to,
-                    'content_type': node.content_type,
-                    'path_sequence': node.path_sequence,
-                    'path_titles': node.path_titles
-                }
-                for node in self.nodes_to_add
-            ],
-            'document_analysis': {
-                'model': 'DocumentAnalysis',
-                'instance': self.document_analysis.instance.pk
-            },
-            'user_confirm': self.user_confirm
-        }
 
-    @classmethod
-    def from_model(cls, data: Dict) -> 'DocxTreeNodesToAdd':
-        """从字典创建实例"""
-        from ..models import DocumentAnalysis
-        
-        instance = cls(
-            document_analysis=ModelData(
-                model=DocumentAnalysis,
-                instance=DocumentAnalysis.objects.get(pk=data['document_analysis']['instance'])
-            ),
-            user_confirm=data.get('user_confirm', False)
-        )
-        
-        for node_data in data.get('nodes_to_add', []):
-            node = DocxTreeNodeToAdd(
-                node_id=node_data['node_id'],
-                content=node_data['content'],
-                node_type=node_data['node_type'],
-                level=node_data['level'],
-                reason=node_data['reason'],
-                recommendation=node_data['recommendation'],
-                confidence=node_data['confidence'],
-                user_confirm=node_data['user_confirm'],
-                insert_to=node_data['insert_to'],
-                content_type=node_data.get('content_type'),
-                path_sequence=node_data.get('path_sequence', []),
-                path_titles=node_data.get('path_titles', '')
-            )
-            instance.nodes_to_add.append(node)
-        
-        return instance
+
+
+
+
 
 
 

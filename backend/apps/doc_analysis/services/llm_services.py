@@ -145,3 +145,94 @@ class BidAnalysisService:
             _validate_structure(data, format_schema)
         except json.JSONDecodeError:
             raise ValueError("output_format不是有效的JSON格式")
+        
+
+
+    async def docxtree_analysis(self, request: LLMAnalysisInput, stream=False) -> dict:
+        """场景1：单个context，单个要求的分析"""
+        try:
+            logger.info(f"大纲分析请求: {request.__dict__}")
+
+            # 定义prompt模板
+            prompt = PromptTemplate(
+                input_variables=["context", "requirement", "output_format"],
+                template="""
+请作为专业的文档结构分析助手，分析和细化一份招标文档的章节结构。
+
+### 输入数据说明:
+{context}
+
+### 分析任务:
+{requirement}
+                
+### 输出要求
+1. 只输出JSON格式的结果，不要包含任何额外的解释或说明
+2. 不要使用任何Markdown格式（包括```json```等标识符）
+3. 确保JSON格式严格有效
+4. 如果元素不存在，请使用[]
+5. 严格按照以下格式输出：
+{output_format}
+"""
+            )
+
+            outline_chain = prompt | self.llm | StrOutputParser()
+            
+            # 根据stream参数决定是否使用流式输出
+            if stream:
+                result = await outline_chain.ainvoke(
+                    request.__dict__,
+                    config={"callbacks": [StreamingStdOutCallbackHandler()]}
+                )
+            else:
+                result = await outline_chain.ainvoke(request.__dict__)
+            
+            return result
+
+        except Exception as e:
+            logger.error(f"大纲分析过程发生错误: {str(e)}")
+            raise Exception(f"大纲分析过程发生错误: {str(e)}")
+
+    async def batch_docxtree_analysis(self, requests: List[LLMAnalysisInput], stream=False) -> List[dict]:
+        """
+        场景2：多个context，多个要求的批量分析
+        使用线程池并发执行多个分析任务
+        """
+        try:
+            logger.info(f"批量大纲分析请求: {len(requests)} 个任务")
+
+            # 将异步任务包装为同步函数，以便在线程池中运行
+            def _run_analysis(request):
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                return loop.run_until_complete(self.docxtree_analysis(request, stream))
+
+            # 使用线程池并发执行任务
+            raw_results = list(self.executor.map(_run_analysis, requests))
+
+            # 将结果转换为字典格式 并 合并
+            merged_result = {
+                "toc_only_elements": [],
+                "heading_only_elements": []
+            }
+            for raw_result in raw_results:
+                try:
+                    if isinstance(raw_result, str):
+                        result = json.loads(raw_result)  # 将 JSON 字符串解析为字典
+                    else:
+                        result = raw_result  # 如果已经是字典，直接使用
+
+                    # 合并结果
+                    if "toc_only_elements" in result:
+                        merged_result["toc_only_elements"].extend(result["toc_only_elements"])
+                    if "heading_only_elements" in result:
+                        merged_result["heading_only_elements"].extend(result["heading_only_elements"])
+                
+                except json.JSONDecodeError as e:
+                    logger.error(f"结果解析失败: {raw_result}, 错误: {str(e)}")
+                    raise ValueError(f"结果解析失败: {raw_result}")
+
+            return merged_result
+
+        except Exception as e:
+            logger.error(f"批量大纲分析过程发生错误: {str(e)}")
+            raise Exception(f"批量大纲分析过程发生错误: {str(e)}")
