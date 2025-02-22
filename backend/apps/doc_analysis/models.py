@@ -109,7 +109,6 @@ class DocumentAnalysis(models.Model):
         help_text='存储从经过初步大纲优化的结构化元素'
     )
 
-
    # 文档树
     docxtree = models.JSONField(
         null=True,

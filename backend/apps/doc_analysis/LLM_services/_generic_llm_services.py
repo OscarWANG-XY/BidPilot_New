@@ -1,5 +1,5 @@
-from typing import Optional, Dict, Any, Union, List
-from pydantic import BaseModel, Field
+from typing import Optional, Any
+from ._llm_data_types import LLMRequest, LLMConfig
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from langchain.callbacks import StreamingStdOutCallbackHandler
@@ -7,28 +7,11 @@ from langchain_core.output_parsers import StrOutputParser
 from concurrent.futures import ThreadPoolExecutor
 from openai import RateLimitError, APIError
 from requests.exceptions import Timeout
-import os, logging
+import os, logging, tiktoken
 
 
 logger = logging.getLogger(__name__)
 
-class LLMConfig(BaseModel):
-    """LLM配置模型"""
-    llm_model_name: str = "qwen-plus"
-    temperature: float = 0.7
-    top_p: float = 0.8
-    streaming: bool = True
-    api_key: Optional[str] = None
-    base_url: Optional[str] = Field(default="https://dashscope.aliyuncs.com/compatible-mode/v1")
-    max_workers: int = 4
-    timeout: int = Field(default=30, description="API 调用超时时间(秒)")
-    retry_times: int = Field(default=3, description="API 调用重试次数")
-
-class LLMRequest(BaseModel):
-    """通用LLM请求模型"""
-    context: str
-    requirement: str
-    output_format:str
 
 class GenericLLMService:
     """通用LLM服务实现"""
@@ -70,7 +53,6 @@ class GenericLLMService:
             prompt = ChatPromptTemplate.from_messages([
                 SystemMessagePromptTemplate.from_template(
                     "你是一个专业的文档分析助手，需要严格按照用户要求处理和分析文档内容。"
-                    "\n\n并严格按照用户要求的格式输出，格式要求：\n{output_format}"
                 ),
                 HumanMessagePromptTemplate.from_template(
                     self.prompt_template,
@@ -91,9 +73,15 @@ class GenericLLMService:
             formatted_prompt = await prompt.ainvoke(request_dict)
             logger.info(f"Final prompt:\n{formatted_prompt}")
 
+            input_tokens = self._count_tokens(str(formatted_prompt))
+            logger.info(f"Input tokens: {input_tokens}")
+
             # 直接使用配置中的streaming设置
             chain_config = {"callbacks": [StreamingStdOutCallbackHandler()]} if self.config.streaming else {}
             result = await chain.ainvoke(request_dict, config=chain_config)
+
+            output_tokens = self._count_tokens(str(result))
+            logger.info(f"Output tokens: {output_tokens}")
 
             return result
 
@@ -116,4 +104,8 @@ class GenericLLMService:
             raise
 
 
+    def _count_tokens(self, text: str) -> int:
+        """计算文本的token数量"""
+        encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
+        return len(encoding.encode(text))
 

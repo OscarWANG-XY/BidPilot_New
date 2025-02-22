@@ -4,6 +4,7 @@ from django.db.models import Model
 from typing import TypeVar, Generic, Type, Optional, Dict, List, Union
 from ..models import DocumentAnalysis
 import json, tiktoken
+from apps.doc_analysis.LLM_services._llm_data_types import LLMRequest, BatchResult
 
 #定义泛型Model类型 【通用的框架代码】
 DjangoModel = TypeVar('DjangoModel', bound=Model)
@@ -101,7 +102,7 @@ class DocxElements:
     def format_toc_chapters(self) -> str:
         """格式化所有chapter级别的目录元素为字符串"""
         formatted_toc = [
-            f"[{elem['position']}], Lvl:{elem['toc_level']}, 标题：{elem['content']}"
+            f'"position":{elem["position"]}, "Level":{elem["toc_level"]}, "title":{elem["content"]}'
             for elem in self.elements
             if elem.get('toc_level') == 1 and elem.get('is_toc', False)
         ]
@@ -110,7 +111,7 @@ class DocxElements:
     def format_heading_chapters(self) -> str:
         """格式化所有chapter级别的标题元素为字符串"""
         formatted_headings = [
-            f"[{elem['position']}], Lvl:{elem['heading_level']}, 标题：{elem['content']}"
+            f'"position":{elem["position"]}, "Level":{elem["heading_level"]}, "title":{elem["content"]}'
             for elem in self.elements
             if elem.get('heading_level') == 1 and elem.get('is_heading', False)
         ]
@@ -119,7 +120,7 @@ class DocxElements:
     def format_toc_sections(self) -> str:
         """格式化所有section级别的目录元素为字符串"""
         formatted_toc = [
-            f"[{elem['position']}], Lvl:{elem['toc_level']}, 标题：{elem['content']}"
+            f'"position":{elem["position"]}, "Level":{elem["toc_level"]}, "title":{elem["content"]}'
             for elem in self.elements
             if elem.get('toc_level') == 2 and elem.get('is_toc', False)
         ]
@@ -128,7 +129,7 @@ class DocxElements:
     def format_heading_sections(self) -> str:
         """格式化所有section级别的标题元素为字符串"""
         formatted_headings = [
-            f"[{elem['position']}], Lvl:{elem['heading_level']}, 标题：{elem['content']}"
+            f'"position":{elem["position"]}, "Level":{elem["heading_level"]}, "title":{elem["content"]}'
             for elem in self.elements
             if elem.get('heading_level') == 2 and elem.get('is_heading', False)
         ]
@@ -137,7 +138,7 @@ class DocxElements:
     def format_toc_subsections(self) -> str:
         """格式化所有subsection级别的目录元素为字符串"""
         formatted_toc = [
-            f"[{elem['position']}], Lvl:{elem['toc_level']}, 标题：{elem['content']}"
+            f'"position":{elem["position"]}, "Level":{elem["toc_level"]}, "title":{elem["content"]}'
             for elem in self.elements
             if elem.get('toc_level') == 3 and elem.get('is_toc', False)
         ]
@@ -146,7 +147,7 @@ class DocxElements:
     def format_heading_subsections(self) -> str:
         """格式化所有subsection级别的标题元素为字符串"""
         formatted_headings = [
-            f"[{elem['position']}], Lvl:{elem['heading_level']}, 标题：{elem['content']}"
+            f'"position":{elem["position"]}, "Level":{elem["heading_level"]}, "title":{elem["content"]}'
             for elem in self.elements
             if elem.get('heading_level') == 3 and elem.get('is_heading', False)
         ]
@@ -241,36 +242,121 @@ class OutlineAnalysisResult:
         return """
 请严格按照以下JSON格式输出目录分析结果，不要包含任何额外的解释或说明：
 {
-    # 目录独有的元素列表
-    "toc_only_elements": [
+    "toc_only_titles": [
         {
-            "position": int,  # 元素在文档中的位置索引
-            "content": str,   # 元素内容
-            "is_toc": bool,   # 是否为目录
-            "toc_level": int, # 目录级别（如1, 2, 3等）
-            "reason": str,        # 判断为入选的原因
-            "recommendation":str, # 建议在正文中找到对应元素，并将其改为与目录层级匹配的正文标题
-            "confidence": float,  # 评估recommendation可信度，0.0(完全不可信)~1.0(完全确信) 
-            "user_confirm": False,     # 尚未用户确认，所以一致取值False  
+            "title": "标题内容",
+            "position": "目录中的位置",
+            "level": "标题层级"
         }
     ],
-    # 正文独有的元素列表
-    "heading_only_elements": [
+    "heading_only_titles": [
         {
-            "position": int,      # 元素在文档中的位置索引
-            "content": str,       # 元素内容
-            "is_heading": bool,   # 是否为标题
-            "heading_level": int, # 标题级别（如1, 2, 3等）
-            "reason": str,        # 判断为入选的原因
-            "recommendation":str, # 建议在正文中找到对应标题元素，取消标题格式
-            "confidence": float,  # 评估recommendation可信度，0.0(完全不可信)~1.0(完全确信) 
-            "user_confirm": False,     # 尚未用户确认，所以一致取值False  
+            "title": "标题内容",
+            "position": "正文中的位置",
+            "level": "标题层级"
         }
-    ]
+    ],
 }
 """
 
 
+@dataclass
+class OutlineAnalysisResult_v2:
+    """目录分析结果"""
+    document_analysis: ModelData[DocumentAnalysis]
+    analysis_result: BatchResult  # 存储完整的大模型分析结果
+    user_confirm: bool = False  # 初始状态为False
+
+    def to_model(self) -> Dict:
+        """转换为可序列化的字典"""
+        return {
+            'document_analysis': {
+                'model': 'DocumentAnalysis',
+                'instance': self.document_analysis.instance.pk
+            },
+            'analysis_result': {
+                'result': self.analysis_result.result,
+                'success': self.analysis_result.success,
+                'error': str(self.analysis_result.error) if self.analysis_result.error else None,
+                'request_index': self.analysis_result.request_index,
+                'approach': self.analysis_result.approach,
+                'task_id': self.analysis_result.task_id,
+                'probability': self.analysis_result.probability,
+                'repeat_count': self.analysis_result.repeat_count,
+            },
+            'user_confirm': self.user_confirm,
+        }
+
+    @classmethod
+    def from_model(cls, data: Union[Dict, str]) -> 'OutlineAnalysisResult_v2':
+        """从字典创建实例"""
+        # 重建 BatchResult
+        batch_result = BatchResult(
+            result=data['analysis_result']['result'],
+            success=data['analysis_result']['success'],
+            error=Exception(data['analysis_result']['error']) if data['analysis_result']['error'] else None,
+            request_index=data['analysis_result']['request_index'],
+            approach=data['analysis_result']['approach'],
+            task_id=data['analysis_result']['task_id'],
+            probability=data['analysis_result']['probability'],
+            repeat_count=data['analysis_result']['repeat_count'],
+        )
+
+        return cls(
+            document_analysis=ModelData(
+                model=DocumentAnalysis,
+                instance=DocumentAnalysis.objects.get(pk=data['document_analysis']['instance'])
+            ),
+            analysis_result=batch_result,
+            user_confirm=data.get('user_confirm',[])
+        )
+
+    @property
+    def toc_only_elements(self) -> List[Dict]:
+        """提取目录独有的元素"""
+        elements = []
+        if self.analysis_result and self.analysis_result.result:
+            for item in self.analysis_result.result:
+                data = json.loads(item['value'])
+                elements.extend(data.get('toc_only_titles', []))
+        return elements
+
+    @property
+    def heading_only_elements(self) -> List[Dict]:
+        """提取正文独有的元素"""
+        elements = []
+        if self.analysis_result and self.analysis_result.result:
+            for item in self.analysis_result.result:
+                data = json.loads(item['value'])
+                elements.extend(data.get('heading_only_titles', []))
+        return elements
+
+
+    @staticmethod
+    def get_prompt_specification() -> str:
+        """
+        OutlineAnalysis会按chapter,section,subsection逐个层级比较<目录标题列表> 与 <正文标题列表>
+        以下定义了，大模型返回的输出格式的规范说明
+        """
+        return """
+请严格按照以下JSON格式输出目录分析结果，不要包含任何额外的解释或说明：
+{
+    "toc_only_titles": [
+        {
+            "title": "标题内容",
+            "position": "目录中的位置",
+            "level": "标题层级"
+        }
+    ],
+    "heading_only_titles": [
+        {
+            "title": "标题内容",
+            "position": "正文中的位置",
+            "level": "标题层级"
+        }
+    ],
+}
+"""
 
 # _03_outline_improvement的输出，数据存储在模型DocumentAnalysis的improved_docx_elements字段
 @dataclass
@@ -548,25 +634,27 @@ class DocxTree:
     # -------- 以string的方式提取标题 --------
     def format_titles(self) -> str:
         """
-        格式化所有标题节点，返回层级结构清晰的标题列表
+        格式化所有标题节点，返回层级结构清晰的标题列表，包含每个章节的token数量
         返回格式示例：
-        1. 第1章 [1级] [46]
-            1.1 第1节 [2级] [125]
-            1.2 第2节 [2级] [130]
-        2. 第2章 [1级] [95]
-            2.1 第1节 [2级] [159]
-                2.1.1 第1小节 [3级] [175]
+        1. 第1章 [1级] [ID:46] [Tokens:1500]
+            1.1 第1节 [2级] [ID:125] [Tokens:800]
+            1.2 第2节 [2级] [ID:130] [Tokens:700]
+        2. 第2章 [1级] [ID:95] [Tokens:2000]
+            2.1 第1节 [2级] [ID:159] [Tokens:1200]
+                2.1.1 第1小节 [3级] [ID:175] [Tokens:800]
         """
         return self._format_titles_recursive(self.root, level=1)
 
     def _format_titles_recursive(self, node: SimpleDocxNode, level: int) -> str:
-        """递归格式化标题节点"""
+        """递归格式化标题节点，包含token计算"""
         result = []
         indent = "    " * (level - 1)
         
-        # 如果是标题节点，则格式化
+        # 如果是标题节点，则格式化并计算tokens
         if node.node_type == "title":
-            result.append(f"{indent}{node.content} [{node.level}级] [{node.node_id}]")
+            # 计算当前节点及其所有子节点的总token数
+            total_tokens = self._calculate_section_tokens(node)
+            result.append(f"{indent}{node.content} [Level:{node.level}] [ID:{node.node_id}] [Tokens:{total_tokens}]")
         
         # 递归处理子节点，只处理标题节点
         for child in node.children:
@@ -574,6 +662,21 @@ class DocxTree:
                 result.append(self._format_titles_recursive(child, level + 1))
         
         return "\n".join(result)
+
+    def _calculate_section_tokens(self, node: SimpleDocxNode) -> int:
+        """计算一个章节（包括其所有子内容）的总token数"""
+        total_tokens = count_tokens(node.content)  # 计算当前节点内容的tokens
+        
+        # 递归计算所有子节点的tokens
+        for child in node.children:
+            # 如果是内容节点，直接计算其tokens
+            if child.node_type == "content":
+                total_tokens += count_tokens(child.content)
+            # 如果是标题节点，递归计算其所有内容
+            else:
+                total_tokens += self._calculate_section_tokens(child)
+                
+        return total_tokens
 
     # -------- 以JSON格式提取标题 --------
     def titles_to_json(self) -> Dict:
@@ -613,7 +716,6 @@ class DocxTree:
                 if (child_data := _process_node(child)) is not None
             ]
         }
-
 
     # -------- 插入标题节点 --------
 
