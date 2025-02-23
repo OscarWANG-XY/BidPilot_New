@@ -14,6 +14,16 @@ def count_tokens(text: str) -> int:
     encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
     return len(encoding.encode(text))
 
+## ---- to support example template -----
+@dataclass
+class EXAMPLE_INPUT:
+    example_input: str
+
+@dataclass
+class EXAMPLE_OUPUT:
+    example_out:str
+## ------- example template --------
+
 
 @dataclass
 class ModelData(Generic[DjangoModel]):
@@ -155,113 +165,9 @@ class DocxElements:
 
 
 # _02_outline_analysis的输出，数据存储在模型DocumentAnalysis的outline_analysis_result字段
-@dataclass   
-class OutlineAnalysisResult:
-    """目录分析结果"""
-    document_analysis: ModelData[DocumentAnalysis]
-    toc_only_elements: List[Dict] = field(default_factory=list)
-    heading_only_elements: List[Dict] = field(default_factory=list)
-    user_confirm: bool = False  # 初始状态为False
-    
-
-    def add_toc_element(self, 
-                        position: int, 
-                        content: str, 
-                        is_toc: bool = False, 
-                        toc_level: Optional[int] = None, 
-                        reason: Optional[str] = None,
-                        recommendation: Optional[str] = None, 
-                        confidence: float=0.0,  
-                        user_confirm: bool = False):   
-        """添加一个目录独有的元素"""
-        self.toc_only_elements.append({
-            'position': position,
-            'content': content,
-            'is_toc': is_toc,
-            'toc_level': toc_level,
-            'reason': reason,
-            'recommendation':recommendation, 
-            'confidence': confidence,  
-            'user_confirm': user_confirm,      
-        })
-
-    def add_heading_element(self, 
-                        position: int, 
-                        content: str, 
-                        is_heading: bool = False, 
-                        heading_level: Optional[int] = None, 
-                        reason: Optional[str] = None,
-                        recommendation: Optional[str] = None, 
-                        confidence: float=0.0,  
-                        user_confirm: bool = False):  
-        """添加一个正文独有的元素"""
-        self.heading_only_elements.append({
-            'position': position,
-            'content': content,
-            'is_heading': is_heading,
-            'heading_level': heading_level,
-            'reason': reason,
-            'recommendation':recommendation, 
-            'confidence': confidence,  
-            'user_confirm': user_confirm,   
-        })
-
-    def to_model(self) -> Dict:
-        """将结果转换为适合存储在models.py中的格式"""
-        return {
-            'toc_only_elements': self.toc_only_elements,
-            'heading_only_elements': self.heading_only_elements,
-            'document_analysis': {
-                'model': 'DocumentAnalysis',
-                'instance': self.document_analysis.instance.pk
-            },
-            'user_confirm': self.user_confirm
-        }
-
-    @classmethod
-    def from_model(cls, data: Union[Dict, str]) -> 'OutlineAnalysisResult':
-        """从models.py中的字段数据或大模型输出创建实例"""
-        from ..models import DocumentAnalysis
-        
-        return cls(
-            toc_only_elements=data.get('toc_only_elements', []),
-            heading_only_elements=data.get('heading_only_elements', []),
-            document_analysis=ModelData(
-                model=DocumentAnalysis,
-                instance=DocumentAnalysis.objects.get(pk=data['document_analysis']['instance'])
-            ),
-            user_confirm = data.get('user_confirm',[])
-        )
-
-    @staticmethod
-    def get_prompt_specification() -> str:
-        """
-        OutlineAnalysis会按chapter,section,subsection逐个层级比较<目录标题列表> 与 <正文标题列表>
-        以下定义了，大模型返回的输出格式的规范说明
-        """
-        return """
-请严格按照以下JSON格式输出目录分析结果，不要包含任何额外的解释或说明：
-{
-    "toc_only_titles": [
-        {
-            "title": "标题内容",
-            "position": "目录中的位置",
-            "level": "标题层级"
-        }
-    ],
-    "heading_only_titles": [
-        {
-            "title": "标题内容",
-            "position": "正文中的位置",
-            "level": "标题层级"
-        }
-    ],
-}
-"""
-
 
 @dataclass
-class OutlineAnalysisResult_v2:
+class OutlineAnalysisResult:
     """目录分析结果"""
     document_analysis: ModelData[DocumentAnalysis]
     analysis_result: BatchResult  # 存储完整的大模型分析结果
@@ -288,7 +194,7 @@ class OutlineAnalysisResult_v2:
         }
 
     @classmethod
-    def from_model(cls, data: Union[Dict, str]) -> 'OutlineAnalysisResult_v2':
+    def from_model(cls, data: Union[Dict, str]) -> 'OutlineAnalysisResult':
         """从字典创建实例"""
         # 重建 BatchResult
         batch_result = BatchResult(
@@ -867,10 +773,9 @@ class DocxTree:
 
 
 @dataclass
-class DocxTreeAnalysisResult:
+class DocxTreeTitlesAnalysisResult:
     document_analysis: ModelData
-    sections_to_analyze: List[str]  # 需要进一步分析的章节列表
-    analysis_recommendations: Dict[str, str]  # 每个章节的分析建议
+    analysis_result: BatchResult  # 存储完整的大模型分析结果
     user_confirm: bool = False
 
     @staticmethod
@@ -878,16 +783,14 @@ class DocxTreeAnalysisResult:
         return """
 请按以下JSON格式输出分析结果：
 {
-    "sections_to_analyze": [
-        "需要进一步分析的章节标题1",
-        "需要进一步分析的章节标题2",
-        ...
-    ],
-    "analysis_recommendations": {
-        "章节标题1": "分析建议说明",
-        "章节标题2": "分析建议说明",
-        ...
-    }
+    "titles_to_detail": [
+        {
+            "title": "标题内容",
+            "ID": "标题ID",
+            "level": "标题层级"
+            "reasons": "说明需要细化的原因"
+        }
+    ]
 }
 """
 

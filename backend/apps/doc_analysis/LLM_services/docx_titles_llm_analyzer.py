@@ -1,12 +1,13 @@
 from ._generic_llm_services import GenericLLMService, LLMRequest, LLMConfig
 from ._batch_llm_services import BatchLLMService
-from apps.doc_analysis.pipeline.types import OutlineAnalysisResult
+from apps.doc_analysis.pipeline.types import DocxTreeTitlesAnalysisResult
+from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from typing import Any, List
 import os
 
 
-class OutlineLLMAnalyzer:
-    """大纲分析专用步骤"""
+class DocxTreeTitlesLLMAnalyzer:
+    """章节标题分析工具"""
 
     @classmethod
     def build_config(cls, model_name: str = "qwen-plus") -> LLMConfig:
@@ -26,61 +27,43 @@ class OutlineLLMAnalyzer:
     @classmethod
     def build_prompt_template(cls) -> str:
         return """
-请为我分析招标文档的目录结构和正文标题的一致性。
-
-### 输入数据说明: 
-{context}
-
-### 具体分析任务: 
+## 任务目标: 
 {requirement}
 
-### 输出格式说明: 
+## 输入数据说明: 
+{context}
+
+## 输出格式说明: 
 1. 只输出JSON格式的结果，不要包含任何额外的解释或说明
 2. 不要使用任何Markdown格式（包括```json```等标识符）
 3. 确保JSON格式严格有效
 4. 如果元素不存在，请使用[]
-5. 严格按照以下格式输出：
 {output_format}
         """
 
-    @staticmethod
-    def build_context(formatted_toc: str, formatted_headings: str) -> str:
-        return f"""
-1. 目录标题列表：从文档目录中提取的标题
-2. 正文标题列表：从文档正文中提取的标题
-
-数据格式：
-"[文档位置], 标题层级, 标题内容"
-
-数据内容：
-1. <目录标题列表>：
-{formatted_toc}
-
-2. <正文标题列表>：
-{formatted_headings}
-"""
-
-    @staticmethod
     def build_requirement() -> str:
-        """
-        构建大模型分析任务要求
-        """
         return """
-请对比<目录标题列表>和<正文标题列表>的标题内容
-找出以下两类不同标题项：
-1. 目录列表里有，但正文里没有的标题项
-2. 目录列表里没有，但正文里有的标题项
+分析招标文档的章节结构，识别出内容过于庞大或主题范围过广，需要进一步细化的章节。
 
-请注意：只比对标题内容，不比对[文档位置] 和 标题层级
 """
 
-    @staticmethod
+    def build_context(formatted_docxtree_titles: str) -> str:
+        return f"""
+
+### 每个章节的标题格式：
+"标题内容 [标题层级][标题ID][章节Token数]"
+
+### 数据内容：
+{formatted_docxtree_titles}
+"""
+
+
+
     def build_output_format() -> str:
         """
         构建大模型分析的输出要求
         """
-        return OutlineAnalysisResult.get_prompt_specification()
-
+        return DocxTreeTitlesAnalysisResult.get_prompt_specification()
 
 
     @classmethod
@@ -109,7 +92,7 @@ class OutlineLLMAnalyzer:
         return await service.process(request)
 
     @classmethod
-    async def batch_analyze(cls, contexts: List[str], requirements: List[str], output_formats: List[str],model_name: str = "qwen-plus") -> List[Any]:
+    async def batch_analyze(cls, contexts: List[str], requirements: List[str], output_formats: List[str], model_name: str = "qwen-plus") -> List[Any]:
         """批量执行分析"""
         config = cls.build_config(model_name)
         service = cls.create_batch_service(config)
@@ -121,7 +104,7 @@ class OutlineLLMAnalyzer:
         return await service.batch_process(requests)
     
     @classmethod
-    async def batch_analyze_with_repeats(cls, contexts: List[str], requirements: List[str], output_formats: List[str], repeats: int = 1, model_name: str = "qwen-plus") -> List[Any]:
+    async def batch_analyze_with_group_id(cls, contexts: List[str], requirements: List[str], output_formats: List[str], repeats: int = 1, model_name: str = "qwen-plus") -> List[Any]:
         """批量执行分析"""
         config = cls.build_config(model_name)
         service = cls.create_batch_service(config)
@@ -132,4 +115,45 @@ class OutlineLLMAnalyzer:
             repeats = repeats
         )
         return await service.batch_process(requests)
+
+    @classmethod
+    def simulate_prompt(cls, context: str) -> str:
+        """
+        模拟生成完整的 prompt
+        
+        Args:
+            context: 输入的上下文信息
+            
+        Returns:
+            str: 完整的 prompt 内容
+        """
+        # 创建聊天提示模板
+        prompt = ChatPromptTemplate.from_messages([
+            SystemMessagePromptTemplate.from_template(
+                "你是一个专业的招标文档分析助手，帮助用户分析文档的结构和内容。"
+            ),
+            HumanMessagePromptTemplate.from_template(
+                cls.build_prompt_template(),
+                input_variables=["context", "requirement", "output_format"]
+            )
+        ])
+        
+        # 格式化模板
+        simulated_prompt = prompt.format_messages(
+            context=cls.build_context(),
+            requirement=cls.build_requirement(),
+            output_format=cls.build_output_format()
+        )
+
+                # 转换为易读的格式
+        formatted_messages = [
+            {
+                "role": message.type,
+                "content": message.content
+            }
+            for message in simulated_prompt
+        ]
+        
+        return simulated_prompt, formatted_messages
+
 

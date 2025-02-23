@@ -1,11 +1,11 @@
 from ..pipeline.base import PipelineStep
-from ..pipeline.types import DocxElements, OutlineAnalysisResult_v2, ImprovedDocxElements, ModelData
+from ..pipeline.types import DocxElements, OutlineAnalysisResult, ImprovedDocxElements, ModelData
 from apps.doc_analysis.models import DocumentAnalysis
 from typing import Tuple, Dict, List
 import json
 
-class OutlineImprovementStep(PipelineStep[Tuple[DocxElements, OutlineAnalysisResult_v2], ImprovedDocxElements]):
-    def process(self, data: Tuple[DocxElements, OutlineAnalysisResult_v2]) -> ImprovedDocxElements:
+class OutlineImprovementStep(PipelineStep[Tuple[DocxElements, OutlineAnalysisResult], ImprovedDocxElements]):
+    def process(self, data: Tuple[DocxElements, OutlineAnalysisResult]) -> ImprovedDocxElements:
         """处理文档元素，根据分析结果进行改进"""
 
         if not self.validate_input(data):
@@ -37,7 +37,35 @@ class OutlineImprovementStep(PipelineStep[Tuple[DocxElements, OutlineAnalysisRes
         return improved_docx_elements
     
 
-    def extract_titles_from_analysis(self, outline_analysis_result: OutlineAnalysisResult_v2) -> Dict[str, List[Dict]]:
+    def validate_input(self, data: Tuple[DocxElements, OutlineAnalysisResult]) -> bool:
+        """验证输入数据是否有效"""
+        docx_elements, analysis_result = data
+        
+        # 检查输入类型
+        if not isinstance(docx_elements, DocxElements):
+            raise ValueError(f"输入的docx_elements类型错误: 期望DocxElements, 实际为{type(docx_elements)}")
+            
+        if not isinstance(analysis_result, OutlineAnalysisResult):
+            raise ValueError(f"输入的analysis_result类型错误: 期望OutlineAnalysisResult, 实际为{type(analysis_result)}")
+        
+        # 检查用户确认状态
+        if not analysis_result.user_confirm:
+            raise ValueError("分析结果未经用户确认，请先确认分析结果")
+        
+        # 检查文档一致性
+        if docx_elements.document_analysis.instance.pk != analysis_result.document_analysis.instance.pk:
+            raise ValueError(
+                f"文档不匹配: docx_elements的文档ID为{docx_elements.document_analysis.instance.pk}, "
+                f"analysis_result的文档ID为{analysis_result.document_analysis.instance.pk}"
+            )
+        
+        return True
+
+    def validate_output(self, data: ImprovedDocxElements) -> bool:
+        """验证输出数据是否有效"""
+        return isinstance(data, ImprovedDocxElements)
+
+    def extract_titles_from_analysis(self, outline_analysis_result: OutlineAnalysisResult) -> Dict[str, List[Dict]]:
         """
         从分析结果中提取需要改进的标题
         
@@ -63,33 +91,6 @@ class OutlineImprovementStep(PipelineStep[Tuple[DocxElements, OutlineAnalysisRes
 
         return to_improve_titles
 
-    def validate_input(self, data: Tuple[DocxElements, OutlineAnalysisResult_v2]) -> bool:
-        """验证输入数据是否有效"""
-        docx_elements, analysis_result = data
-        
-        # 检查输入类型
-        if not isinstance(docx_elements, DocxElements):
-            raise ValueError(f"输入的docx_elements类型错误: 期望DocxElements, 实际为{type(docx_elements)}")
-            
-        if not isinstance(analysis_result, OutlineAnalysisResult_v2):
-            raise ValueError(f"输入的analysis_result类型错误: 期望OutlineAnalysisResult, 实际为{type(analysis_result)}")
-        
-        # 检查用户确认状态
-        if not analysis_result.user_confirm:
-            raise ValueError("分析结果未经用户确认，请先确认分析结果")
-        
-        # 检查文档一致性
-        if docx_elements.document_analysis.instance.pk != analysis_result.document_analysis.instance.pk:
-            raise ValueError(
-                f"文档不匹配: docx_elements的文档ID为{docx_elements.document_analysis.instance.pk}, "
-                f"analysis_result的文档ID为{analysis_result.document_analysis.instance.pk}"
-            )
-        
-        return True
-
-    def validate_output(self, data: ImprovedDocxElements) -> bool:
-        """验证输出数据是否有效"""
-        return isinstance(data, ImprovedDocxElements)
 
     def improve_document_elements(
         self, 

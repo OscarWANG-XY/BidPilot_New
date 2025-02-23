@@ -52,7 +52,7 @@ class GenericLLMService:
             # 创建聊天提示模板
             prompt = ChatPromptTemplate.from_messages([
                 SystemMessagePromptTemplate.from_template(
-                    "你是一个专业的文档分析助手，需要严格按照用户要求处理和分析文档内容。"
+                    "你是一个专业的招标文档分析助手，帮助用户分析文档的结构和内容。"
                 ),
                 HumanMessagePromptTemplate.from_template(
                     self.prompt_template,
