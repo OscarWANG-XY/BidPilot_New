@@ -199,7 +199,7 @@ class OutlineAnalysisResult:
                 'approach': self.analysis_result.approach,
                 'task_id': self.analysis_result.task_id,
                 'probability': self.analysis_result.probability,
-                'repeat_count': self.analysis_result.repeat_count,
+                'repeat_index': self.analysis_result.repeat_index,
             },
             'user_confirm': self.user_confirm,
         }
@@ -216,7 +216,7 @@ class OutlineAnalysisResult:
             approach=data['analysis_result']['approach'],
             task_id=data['analysis_result']['task_id'],
             probability=data['analysis_result']['probability'],
-            repeat_count=data['analysis_result']['repeat_count'],
+            repeat_index=data['analysis_result']['repeat_index'],
         )
 
         return cls(
@@ -313,6 +313,19 @@ class ImprovedDocxElements(DocxElements):
         ]
         return "\n".join(formatted_headings)
     
+    def normalize_heading_levels(self) -> None:
+        """
+        检查所有标题元素，将heading_level > 4的标题转换为普通元素
+        通过移除is_heading和heading_level字段来实现转换
+        """
+        for element in self.elements:
+            if element.get('is_heading', False) and element.get('heading_level', 0) > 4:
+                # 移除标题相关字段
+                element.pop('is_heading', None)
+                element.pop('heading_level', None)
+                # 将type设置为paragraph（如果之前不是其他特殊类型）
+                if element.get('type') == 'heading':
+                    element['type'] = 'paragraph'
 
 @dataclass
 class SimpleDocxNode:
@@ -985,10 +998,82 @@ class DocxTree:
         return "\n".join(output)
 
 @dataclass
-class DocxTreeTitlesAnalysisResult:
-    document_analysis: ModelData
+class DocxTreeMoreTitles:
+    document_analysis: ModelData[DocumentAnalysis]
     analysis_result: BatchResult  # 存储完整的大模型分析结果
     user_confirm: bool = False
+
+    def to_model(self) -> Dict:
+        """将DocxTreeMoreTitles转换为可序列化的字典"""
+        return {
+            'document_analysis': {
+                'model': 'DocumentAnalysis',
+                'instance': self.document_analysis.instance.pk
+            },
+            'analysis_result': {
+                'result': {
+                    'titles_to_detail': [
+                        {
+                            'ID': title['ID'],
+                            'level': title['level'],
+                            'occurrences': title['occurrences'],
+                            'probability': title['probability'],
+                            'repeat_index': title['repeat_index'],
+                            'title': title['title'],
+                            'user_confirm': title['user_confirm']
+                        }
+                        for title in self.analysis_result.result.get('titles_to_detail', [])
+                    ]
+                },
+                'success': self.analysis_result.success,
+                'error': str(self.analysis_result.error) if self.analysis_result.error else None,
+                'request_index': self.analysis_result.request_index,
+                'approach': self.analysis_result.approach,
+                'task_id': self.analysis_result.task_id,
+                'probability': self.analysis_result.probability,
+                'repeat_index': self.analysis_result.repeat_index,
+            },
+            'user_confirm': self.user_confirm
+        }
+
+    @classmethod
+    def from_model(cls, data: Dict) -> 'DocxTreeMoreTitles':
+        """从字典创建DocxTreeMoreTitles实例"""
+        from ..models import DocumentAnalysis
+        
+        # 重建 BatchResult
+        analysis_result = BatchResult(
+            result={
+                'titles_to_detail': [
+                    {
+                        'ID': title['ID'],
+                        'level': title['level'],
+                        'occurrences': title['occurrences'],
+                        'probability': title['probability'],
+                        'repeat_index': title['repeat_index'],
+                        'title': title['title'],
+                        'user_confirm': title['user_confirm']
+                    }
+                    for title in data['analysis_result']['result'].get('titles_to_detail', [])
+                ]
+            },
+            success=data['analysis_result']['success'],
+            error=Exception(data['analysis_result']['error']) if data['analysis_result']['error'] else None,
+            request_index=data['analysis_result']['request_index'],
+            approach=data['analysis_result']['approach'],
+            task_id=data['analysis_result']['task_id'],
+            probability=data['analysis_result']['probability'],
+            repeat_index=data['analysis_result']['repeat_index'],
+        )
+
+        return cls(
+            document_analysis=ModelData(
+                model=DocumentAnalysis,
+                instance=DocumentAnalysis.objects.get(pk=data['document_analysis']['instance'])
+            ),
+            analysis_result=analysis_result,
+            user_confirm=data.get('user_confirm', False)
+        )
 
     @staticmethod
     def get_prompt_specification() -> str:
@@ -1000,7 +1085,6 @@ class DocxTreeTitlesAnalysisResult:
             "title": "标题内容",
             "ID": "标题ID",
             "level": "标题层级"
-            "reasons": "说明需要细化的原因"
         }
     ]
 }

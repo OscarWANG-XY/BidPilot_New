@@ -30,6 +30,10 @@ class OutlineImprovementStep(PipelineStep[Tuple[DocxElements, OutlineAnalysisRes
         if not self.validate_output(improved_docx_elements):
             raise ValueError("大模型输出数据无效")
         
+
+        # 标准化标题级别
+        improved_docx_elements.normalize_heading_levels()
+        
         # 保存分析结果
         current_document_analysis.improved_docx_elements = improved_docx_elements.to_model()
         current_document_analysis.save()
@@ -83,7 +87,8 @@ class OutlineImprovementStep(PipelineStep[Tuple[DocxElements, OutlineAnalysisRes
         # Process each result in the batch
         for result in outline_analysis_result.analysis_result.result:
             # Parse the JSON string in the 'value' field
-            value_dict = json.loads(result['value'])
+            
+            value_dict = result['value']
         
             # Extend the merged lists with new titles
             to_improve_titles["toc_only_titles"].extend(value_dict["toc_only_titles"])

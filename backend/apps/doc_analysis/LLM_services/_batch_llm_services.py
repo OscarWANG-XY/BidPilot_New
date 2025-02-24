@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class BatchLLMService(GenericLLMService):
     """批量LLM服务实现"""
     
-    async def batch_process(self, requests: List[LLMRequest], parallel: str = "asyncio", max_concurrent: int = 10) -> List[BatchResult]:
+    async def batch_process(self, requests: List[LLMRequest], parallel: str = "asyncio", max_concurrent: int = 10, repeat: int = 1) -> List[BatchResult]:
         """
         批量处理LLM请求
         :param requests: LLM请求列表
@@ -34,12 +34,28 @@ class BatchLLMService(GenericLLMService):
                     asyncio.set_event_loop(loop)
                     try:
                         result = loop.run_until_complete(self.process(request))
+
+                        # 标准化输出格式
+                        if isinstance(result, str):
+                            try:
+                                processed_result = json.loads(result)
+                            except json.JSONDecodeError:
+                                # 解析失败，提供默认结构
+                                processed_result = {"titles_to_detail": []}
+                        elif isinstance(result, dict) and "titles_to_detail" in result:
+                            # 已经是正确格式的字典
+                            processed_result = result
+                        else:
+                            # 其他情况，提供默认结构
+                            processed_result = {"titles_to_detail": []}
+
                         return BatchResult(
-                            result=result,
+                            result=processed_result,
                             success=True,
                             request_index=idx,
                             approach="thread",
-                            task_id=request.task_id
+                            task_id=request.task_id,
+                            repeat_index=repeat
                         )
                     except Exception as e:
                         return BatchResult(
@@ -48,7 +64,8 @@ class BatchLLMService(GenericLLMService):
                             error=e,
                             request_index=idx,
                             approach="thread",
-                            task_id=request.task_id
+                            task_id=request.task_id,
+                            repeat_index=repeat
                         )
                     finally:
                         #loop.close()  # 关闭事件循环， 缺点是当请求量大时，会占用大量内存。 
@@ -65,8 +82,23 @@ class BatchLLMService(GenericLLMService):
                 async def _wrapped_process(request: LLMRequest, idx: int):
                     try:
                         result = await self.process(request)
+
+                        # 标准化输出格式
+                        if isinstance(result, str):
+                            try:
+                                processed_result = json.loads(result)
+                            except json.JSONDecodeError:
+                                # 解析失败，提供默认结构
+                                processed_result = {"titles_to_detail": []}
+                        elif isinstance(result, dict) and "titles_to_detail" in result:
+                            # 已经是正确格式的字典
+                            processed_result = result
+                        else:
+                            # 其他情况，提供默认结构
+                            processed_result = {"titles_to_detail": []}
+
                         return BatchResult(
-                            result=result,
+                            result=processed_result,
                             success=True,
                             request_index=idx,
                             approach="asyncio",

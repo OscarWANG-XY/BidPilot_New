@@ -117,6 +117,13 @@ class DocumentAnalysis(models.Model):
         help_text='存储从经过初步大纲优化的结构化元素'
     )
 
+    more_subtitles = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='更多子标题',
+        help_text='存储从经过初步大纲优化的结构化元素'
+    )
+
     error_message = models.TextField(null=True, blank=True, verbose_name='错误信息')
     raw_xml = models.TextField(
         null=True,

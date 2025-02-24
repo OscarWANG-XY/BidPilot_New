@@ -70,7 +70,12 @@ class LLMService:
             raise ValueError("总请求数量超过限制，最多支持30个并发请求（请求数 = 任务数 * 重复次数）")
 
         # 执行批量分析
-        return await service.batch_process(requests)
+        return await service.batch_process(
+            requests = requests,
+            parallel = "asyncio",
+            max_concurrent = 10,
+            repeat = repeats
+            )
 
     def simulate_prompt(self, data_input: str) -> str:
         """

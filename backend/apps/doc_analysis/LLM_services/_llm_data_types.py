@@ -124,7 +124,7 @@ class BatchResult(Generic[T]):
     approach: str = ""
     task_id: Optional[int] = None
     probability: Optional[float] = None
-    repeat_count: Optional[int] = None
+    repeat_index: Optional[int] = 1
 
     # 针对 任务并行合并，用在性能提升的场景，提升生成的速度
     @classmethod
@@ -313,6 +313,80 @@ class BatchResult(Generic[T]):
             )
         else:
             return cls(result=None, success=False, error=Exception("No successful results"))
+
+    @classmethod
+    def merge_titles_to_detail(cls, results: List['BatchResult[T]']) -> 'BatchResult[T]':
+        """
+        专门处理titles_to_detail列表的合并方法
+        - 合并所有titles_to_detail中的元素
+        - 计算每个ID出现的概率
+        - 保留每个元素的原始信息
+        """
+        if not results:
+            return cls(result=None, success=True)
+        
+        # 检查是否所有结果都是相同类型
+        if not all(isinstance(r, BatchResult) for r in results):
+            raise TypeError("All items must be BatchResult instances")
+
+        # 只考虑成功的结果
+        successful_results = [r for r in results if r.success]
+        
+        if not successful_results:
+            # 如果没有成功的结果，合并错误信息
+            error_msgs = [f"Error in batch {r.request_index}: {str(r.error)}" 
+                         for r in results if not r.success and r.error is not None]
+            return cls(
+                result=None,
+                success=False,
+                error=Exception(" | ".join(error_msgs)),
+                approach=results[0].approach
+            )
+
+        # 收集所有titles_to_detail
+        all_titles = []
+        for result in successful_results:
+            if isinstance(result.result, dict) and 'titles_to_detail' in result.result:
+                all_titles.extend(result.result['titles_to_detail'])
+
+        # 计算ID出现的频率
+        id_counter = Counter(item['ID'] for item in all_titles)
+        total_count = len(successful_results)
+
+        # 构建合并后的结果
+        merged_titles = []
+        seen_ids = set()
+        for item in all_titles:
+            if item['ID'] not in seen_ids:
+                seen_ids.add(item['ID'])  # 通过seen_ids来去重, 取得item是出现的第一个。 
+                # 计算该ID的概率
+                repeat_index = results[0].repeat_index if results[0].repeat_index is not None else 1
+                probability = id_counter[item['ID']] / repeat_index
+                # 创建新的合并后的item
+                merged_item = {
+                    **item,
+                    'probability': probability,
+                    'occurrences': id_counter[item['ID']],
+                    'repeat_index': results[0].repeat_index,
+                    'user_confirm': False
+                }
+                merged_titles.append(merged_item)
+
+        # 按ID排序
+        merged_titles.sort(key=lambda x: int(x['ID']))
+
+        final_result = {
+            'titles_to_detail': merged_titles,
+            'total_titles': len(merged_titles),
+            'total_llm_tasks': total_count
+        }
+
+        return cls(
+            result=final_result,
+            success=True,
+            approach=results[0].approach,
+            request_index=-1,
+        )
 
 
     

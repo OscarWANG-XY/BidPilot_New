@@ -45,21 +45,25 @@ class BuildDocxTree(PipelineStep[ImprovedDocxElements, DocxTree]):
         # 使用DocTree的from_docx_elements方法构建文档树
         root, ordered_nodes = self.from_docx_elements(elements)
 
-        doc_tree = DocxTree(
+        docx_tree = DocxTree(
             root=root,
             document_analysis=ModelData(model=DocumentAnalysis, instance=current_document_analysis),
             _ordered_nodes=ordered_nodes  # 添加有序节点列表
         )
 
         # 验证输出
-        if not self.validate_output(doc_tree):
+        if not self.validate_output(docx_tree):
             raise ValueError("Invalid output data from BuildDocxTree")
         
+        # 添加前言标题
+        docx_tree.add_introduction_titles()
+
+        
         # 保存分析结果
-        current_document_analysis.docxtree = doc_tree.to_model()
+        current_document_analysis.docxtree = docx_tree.to_model()
         current_document_analysis.save()
 
-        return doc_tree
+        return docx_tree
     
     def from_docx_elements(self, docx_elements: List[Dict]) -> SimpleDocxNode:
         """从ImprovedDocxElements构建文档树"""
