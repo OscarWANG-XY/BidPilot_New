@@ -2,6 +2,7 @@ from typing import List
 from ._generic_llm_services import GenericLLMService, LLMRequest
 from ._llm_data_types import BatchResult, LLMRequest
 import asyncio, logging, json
+from concurrent.futures import ThreadPoolExecutor
 
 
 logger = logging.getLogger(__name__)
@@ -10,16 +11,22 @@ logger = logging.getLogger(__name__)
 class BatchLLMService(GenericLLMService):
     """批量LLM服务实现"""
     
-    async def batch_process(self, requests: List[LLMRequest], parallel: str = "asyncio") -> List[BatchResult]:
+    async def batch_process(self, requests: List[LLMRequest], parallel: str = "asyncio", max_concurrent: int = 10) -> List[BatchResult]:
         """
         批量处理LLM请求
         :param requests: LLM请求列表
         :param parallel: 使用哪种并行处理方式
+        :param max_concurrent: 最大并发数量，默认为30
         :return: 处理结果列表
         """
         try:
-            logger.info(f"批量处理请求: {len(requests)} 个任务")
+            # 打印请求列表
+            logger.info(f"批量处理请求: {len(requests)} 个任务，最大并发数: {max_concurrent}")
             
+            #！！！！！ 限制最大并发量
+            if max_concurrent > 10:
+                max_concurrent = 10
+
             # 选择并发执行方式 - thread(多线程) 或 asyncio(异步)
             if parallel == "thread":    
                 def _run_process(request: LLMRequest, idx: int):
@@ -47,11 +54,12 @@ class BatchLLMService(GenericLLMService):
                         #loop.close()  # 关闭事件循环， 缺点是当请求量大时，会占用大量内存。 
                         pass
 
-                # 使用线程池并发执行任务
-                results = list(self.executor.map(
-                    lambda x: _run_process(x[1], x[0]), 
-                    enumerate(requests)
-                ))
+                # 使用线程池并发执行任务，限制最大线程数
+                with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
+                    results = list(executor.map(
+                        lambda x: _run_process(x[1], x[0]), 
+                        enumerate(requests)
+                    ))
             
             elif parallel == "asyncio":
                 async def _wrapped_process(request: LLMRequest, idx: int):
@@ -74,8 +82,15 @@ class BatchLLMService(GenericLLMService):
                             task_id=request.task_id
                         )
 
+                # 使用信号量控制并发数
+                semaphore = asyncio.Semaphore(max_concurrent)
+                
+                async def _controlled_process(request: LLMRequest, idx: int):
+                    async with semaphore:
+                        return await _wrapped_process(request, idx)
+
                 # 创建任务列表
-                tasks = [_wrapped_process(request, idx) 
+                tasks = [_controlled_process(request, idx) 
                         for idx, request in enumerate(requests)]
 
                 # 使用 asyncio 并发执行任务

@@ -4,7 +4,7 @@ from typing import List, Dict, Tuple
 from ..pipeline.base import PipelineStep
 from apps.doc_analysis.pipeline.types import EXAMPLE_INPUT, EXAMPLE_OUTPUT, ModelData
 from apps.doc_analysis.models import DocumentAnalysis
-from apps.doc_analysis.LLM_services.outline_llm_analyzer import OutlineLLMAnalyzer
+from backend.apps.doc_analysis.LLM_services._01_outline_llm_analyzer import OutlineLLMAnalyzer
 from apps.doc_analysis.LLM_services._llm_data_types import BatchResult
 
 import logging

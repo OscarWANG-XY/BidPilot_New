@@ -1,11 +1,13 @@
-import asyncio
+import asyncio, os
 import nest_asyncio
 from typing import List, Dict, Tuple
 from ..pipeline.base import PipelineStep
 from apps.doc_analysis.pipeline.types import DocxElements, ModelData, OutlineAnalysisResult
 from apps.doc_analysis.models import DocumentAnalysis
-from apps.doc_analysis.LLM_services.outline_llm_analyzer import OutlineLLMAnalyzer
-from apps.doc_analysis.LLM_services._llm_data_types import BatchResult
+from apps.doc_analysis.LLM_services._01_outline_llm_analyzer import OutlineLLMAnalyzer
+from apps.doc_analysis.LLM_services._llm_data_types import BatchResult, LLMConfig
+from apps.doc_analysis.LLM_services.llm_service import LLMService
+from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 
 import logging
 logger = logging.getLogger(__name__)
@@ -16,7 +18,6 @@ class DocxOutlineAnalyzerStep(PipelineStep[DocxElements, OutlineAnalysisResult])
 
     def __init__(self):
         super().__init__()
-        self.outline_llm_analyzer = OutlineLLMAnalyzer()
         nest_asyncio.apply()  # 允许在Jupyter Notebook中运行异步代码
 
 
@@ -55,16 +56,20 @@ class DocxOutlineAnalyzerStep(PipelineStep[DocxElements, OutlineAnalysisResult])
 
         # --------------------- 大模型分析 --------------------
         # build contexts, requirements & output_format
-        contexts, requirements, output_formats = self.prepare_requests_data(data)
 
-        # 调用大模型进行比较
-        #response = asyncio.run(self.bid_llm_analyzer.batch_outline_analysis(requests,stream=True))
+        llm_config = self.build_llm_config(model_name="qwen-max-0125")
+        prompt_template = self.build_prompt_template()
+        output_format = OutlineAnalysisResult.get_prompt_specification()
 
-        raw_batch_results = self.analyze(
-            contexts=contexts, 
-            requirements=requirements, 
-            output_formats=output_formats,
-            repeats=3
+        llm_service = LLMService(config=llm_config, prompt_template=prompt_template, output_format=output_format)
+
+
+        data_inputs = self.prepare_requests_data(data)
+
+
+        raw_batch_results = self.llm_analyze(
+            data_inputs=data_inputs, 
+            repeats=1
         )
         final_results = BatchResult.merge_hybrid(raw_batch_results)
 
@@ -86,13 +91,25 @@ class DocxOutlineAnalyzerStep(PipelineStep[DocxElements, OutlineAnalysisResult])
         
         return analysis_result
 
-    def analyze(self, contexts: List[str], requirements: List[str], output_formats: List[str], repeats: int = 1):
+    def llm_analyze(self, data_inputs: List[str], repeats: int = 1):
+        # 构建LLM服务所需配置
+        llm_config = self.build_llm_config(model_name="qwen-max-0125")
+        prompt_template = self.build_prompt_template()
+        output_format = OutlineAnalysisResult.get_prompt_specification()
+        
+        # 初始化LLM服务
+        llm_service = LLMService(
+            config=llm_config,
+            prompt_template=prompt_template,
+            output_format=output_format
+        )
+
+        # 异步分析封装
         async def _analyze():
-            return await self.outline_llm_analyzer.batch_analyze_with_repeats(
-                contexts=contexts, 
-                requirements=requirements, 
-                output_formats=output_formats,
-                repeats=repeats)
+            return await llm_service.batch_analyze_with_repeats(
+                data_inputs=data_inputs,
+                repeats=repeats
+            )
         
         return asyncio.run(_analyze())
     
@@ -116,24 +133,100 @@ class DocxOutlineAnalyzerStep(PipelineStep[DocxElements, OutlineAnalysisResult])
         heading_sections = data.format_heading_sections()#[:120]
         heading_subsections = data.format_heading_subsections()
 
-        # 3. 构建分析所需的上下文、要求和输出格式
-        chapter_context = self.outline_llm_analyzer.build_context(toc_chapters, heading_chapters)
-        section_context = self.outline_llm_analyzer.build_context(toc_sections, heading_sections)
-        subsection_context = self.outline_llm_analyzer.build_context(toc_subsections, heading_subsections)
+        # 3. 构建数据输入
+        data_input1 = self._build_data_input(toc_chapters, heading_chapters)
+        data_input2 = self._build_data_input(toc_sections, heading_sections)
+        data_input3 = self._build_data_input(toc_subsections, heading_subsections)
 
-        requirement = self.outline_llm_analyzer.build_requirement()
-        output_format = self.outline_llm_analyzer.build_output_format()
+        data_inputs = [data_input1, data_input2, data_input3]
 
-        contexts = [chapter_context, section_context, subsection_context]
-        requirements = [requirement, requirement, requirement]
-        output_formats = [output_format, output_format, output_format]
+        return data_inputs
 
-        return contexts, requirements, output_formats
+    def _build_data_input(self, data1: str, data2: str) -> List[str]:
+        """
+        构建大模型分析所需的数据输入
+        """
+        return f"""
+## TOC TITLE LIST
+{data1}
 
-
+## HEADING TITLE LIST
+{data2}
+"""
     
-    
+    def build_llm_config(self, model_name: str) -> LLMConfig:
+        """构建LLM配置"""
+        return LLMConfig(
+                    llm_model_name = model_name,  # qwen-plus
+                    temperature = 0.7,
+                    top_p =  0.8,
+                    streaming = True,
+                    api_key = os.getenv("ALIBABA_API_KEY"),
+                    base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                    max_workers = 4,
+                    timeout = 30,
+                    retry_times = 3
+                )
 
+    def build_prompt_template(self) -> str:
+        return """
+# Task
+分析招标文档的目录结构和正文标题之间的一致性
 
+# Requirements
+- 比对目录中的标题和正文中的实际标题
+- 忽略标点符号和空格的差异
+- 仅匹配标题的实际文本内容
+- 分别罗列出"目录中存在但正文中不存在"和"正文中存在但目录中不存在"的标题
 
+# Output
+## Rules
+- 只输出JSON格式的结果
+- 不使用Markdown格式
+- 确保JSON格式严格有效
+- 空元素使用[]
 
+## Format
+{output_format}
+
+# Input
+{data_input}
+"""
+
+    def simulate_prompt(self, data_input: str) -> str:
+        """
+        模拟生成完整的 prompt
+        
+        Args:
+            context: 输入的上下文信息
+            
+        Returns:
+            str: 完整的 prompt 内容
+        """
+        # 创建聊天提示模板
+        prompt = ChatPromptTemplate.from_messages([
+            SystemMessagePromptTemplate.from_template(
+                "你是一个专业的招标文档分析助手，帮助用户分析文档的结构和内容。"
+            ),
+            HumanMessagePromptTemplate.from_template(
+                self.build_prompt_template(),
+                input_variables=["data_input", "output_format"]
+            )
+        ])
+        
+        # 格式化模板
+        simulated_prompt = prompt.format_messages(
+            data_input=data_input,
+            output_format=OutlineAnalysisResult.get_prompt_specification()
+        )
+
+        # 转换为易读的格式
+        formatted_messages = [
+            {
+                "role": message.type,
+                "content": message.content
+            }
+            for message in simulated_prompt
+        ]
+        
+        return simulated_prompt, formatted_messages

@@ -1,16 +1,16 @@
 from ._generic_llm_services import GenericLLMService, LLMRequest, LLMConfig
 from ._batch_llm_services import BatchLLMService
-from apps.doc_analysis.pipeline.types import OutlineAnalysisResult
+from apps.doc_analysis.pipeline.types import DocxTreeTitlesAnalysisResult
 from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
-from typing import Any, List
+from typing import Any, List, Union
 import os
 
 
-class TemplateLLMAnalyzer:
-    """大纲分析专用步骤"""
+class DocxTreeTitlesLLMAnalyzer:
+    """章节标题分析工具"""
 
     @classmethod
-    def build_config(cls, model_name: str = "qwen-plus") -> LLMConfig:
+    def build_config(cls, model_name: str) -> LLMConfig:
         """构建LLM配置"""
         return LLMConfig(
                     llm_model_name = model_name,  # qwen-plus
@@ -48,15 +48,9 @@ class TemplateLLMAnalyzer:
 {output_format}
 
 # Input
-{data_input}
+{input_data}
 """
 
-    @staticmethod
-    def build_output_format() -> str:
-        """
-        构建大模型分析的输出要求
-        """
-        return OutlineAnalysisResult.get_prompt_specification()
 
     @classmethod
     def create_service(cls, config: LLMConfig) -> GenericLLMService:
@@ -72,31 +66,32 @@ class TemplateLLMAnalyzer:
 
 
     @classmethod
-    async def analyze(cls, data_input: str, model_name: str = "qwen-plus") -> Any:
+    async def analyze(cls, model_name: str, data_input: str) -> Any:
         """执行分析"""
 
-        context = cls.build_context(data_input)
-        requirement = cls.build_requirement()
-        output_format = cls.build_output_format()
+        # 构建LLM配置
         config = cls.build_config(model_name)
+
+        # 创建LLM服务实例
         service = cls.create_service(config)
+
+        # 创建LLM请求
         request = LLMRequest.create(
-            context = context,
-            requirement = requirement,
-            output_format = output_format
+            data_input = data_input,
+            output_format = DocxTreeTitlesAnalysisResult.get_prompt_specification()
         )
         return await service.process(request)
 
     
     @classmethod
-    async def batch_analyze_with_repeats(cls, data_inputs: List[str], repeats: int = 1, model_name: str = "qwen-plus") -> List[Any]:
+    async def batch_analyze_with_repeats(cls, model_name: str, data_inputs: Union[str, List[str]],  repeats: int = 1) -> List[Any]:
         """批量执行分析"""
 
-        # 将单个字符串转换为列表
+        # ！！！！！ 将单个字符串转换为列表
         if isinstance(data_inputs, str):
             data_inputs = [data_inputs]
 
-        # 对于任务数量做限制
+        # ！！！！！ 对于任务数量做限制
         if len(data_inputs) > 10:
             raise ValueError("任务数量超过限制，最多支持10个任务")
         
@@ -104,33 +99,31 @@ class TemplateLLMAnalyzer:
         if repeats > 3:
             raise ValueError("重复次数超过限制，最多支持3次")
 
-        contexts = []
-        requirements = []
-        output_formats = []
-        for data_input in data_inputs:
-            context = cls.build_context(data_input)
-            requirement = cls.build_requirement()
-            output_format = cls.build_output_format()
-            contexts.append(context)
-            requirements.append(requirement)
-            output_formats.append(output_format)
 
+        # 构建输出格式列表
+        output_formats = [DocxTreeTitlesAnalysisResult.get_prompt_specification() for _ in data_inputs]
+
+        # 构建LLM配置
         config = cls.build_config(model_name)
-        service = cls.create_batch_service(config)
+
+        # 创建批量服务实例
+        service = cls.create_batch_service(config)  
+
+        # 创建批量请求
         requests = LLMRequest.create_batch_with_repeats(
-            contexts = contexts,
-            requirements = requirements,
+            data_inputs = data_inputs,
             output_formats = output_formats,
             repeats = repeats
         )
-
-
 
         # ！！！！！ 执行前的任务请求数检查
         if len(requests) >30:
             raise ValueError("总请求数量超过限制，最多支持30个并发请求（请求数 = 任务数 * 重复次数）")
 
+        # 执行批量分析
         return await service.batch_process(requests)
+
+
 
 
     @classmethod
@@ -151,15 +144,14 @@ class TemplateLLMAnalyzer:
             ),
             HumanMessagePromptTemplate.from_template(
                 cls.build_prompt_template(),
-                input_variables=["context", "requirement", "output_format"]
+                input_variables=["data_input", "output_format"]
             )
         ])
         
         # 格式化模板
         simulated_prompt = prompt.format_messages(
-            context=cls.build_context(data_input),
-            requirement=cls.build_requirement(),
-            output_format=cls.build_output_format()
+            data_input=data_input,
+            output_format=DocxTreeTitlesAnalysisResult.get_prompt_specification()
         )
 
                 # 转换为易读的格式
@@ -172,3 +164,5 @@ class TemplateLLMAnalyzer:
         ]
         
         return simulated_prompt, formatted_messages
+
+

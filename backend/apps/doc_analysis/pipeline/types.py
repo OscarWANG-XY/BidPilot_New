@@ -46,15 +46,6 @@ class DocxElements:
     elements: List[Dict]  # 每个元素存储为字典
     document_analysis: ModelData[DocumentAnalysis]
 
-    def __len__(self):
-        return len(self.elements)
-
-    def __getitem__(self, index):
-        return self.elements[index]
-
-    def __iter__(self):
-        return iter(self.elements)
-
     def add_element(self, 
                     element_type: str, 
                     position: int, 
@@ -74,6 +65,26 @@ class DocxElements:
             'heading_level': heading_level
         }
         self.elements.append(element)
+
+    @staticmethod
+    def clean_content(content: str) -> str:
+        """
+        清理文本内容中的多余空格
+        1. 去除首尾空格
+        2. 将多个连续空格替换为单个空格
+        3. 去除换行符前后的多余空格
+        """
+        if not content:
+            return content
+            
+        # 去除首尾空格
+        content = content.strip()
+        # 将多个连续空格替换为单个空格
+        content = ' '.join(content.split())
+        # 处理换行符前后的空格
+        content = '\n'.join(line.strip() for line in content.splitlines())
+        
+        return content
 
     def to_model(self) -> Dict:
         """将DocxElements转换为可序列化的字典, 存储在extracted_elements字段中"""
@@ -112,7 +123,7 @@ class DocxElements:
     def format_toc_chapters(self) -> str:
         """格式化所有chapter级别的目录元素为字符串"""
         formatted_toc = [
-            f'"position":{elem["position"]}, "Level":{elem["toc_level"]}, "title":{elem["content"]}'
+            f'title:{self.clean_content(elem["content"])}, level:{elem["toc_level"]}, position:{elem["position"]}'
             for elem in self.elements
             if elem.get('toc_level') == 1 and elem.get('is_toc', False)
         ]
@@ -121,7 +132,7 @@ class DocxElements:
     def format_heading_chapters(self) -> str:
         """格式化所有chapter级别的标题元素为字符串"""
         formatted_headings = [
-            f'"position":{elem["position"]}, "Level":{elem["heading_level"]}, "title":{elem["content"]}'
+            f'title:{self.clean_content(elem["content"])}, level:{elem["heading_level"]}, position:{elem["position"]}'
             for elem in self.elements
             if elem.get('heading_level') == 1 and elem.get('is_heading', False)
         ]
@@ -130,7 +141,7 @@ class DocxElements:
     def format_toc_sections(self) -> str:
         """格式化所有section级别的目录元素为字符串"""
         formatted_toc = [
-            f'"position":{elem["position"]}, "Level":{elem["toc_level"]}, "title":{elem["content"]}'
+            f'title:{self.clean_content(elem["content"])}, level:{elem["toc_level"]}, position:{elem["position"]}'
             for elem in self.elements
             if elem.get('toc_level') == 2 and elem.get('is_toc', False)
         ]
@@ -139,7 +150,7 @@ class DocxElements:
     def format_heading_sections(self) -> str:
         """格式化所有section级别的标题元素为字符串"""
         formatted_headings = [
-            f'"position":{elem["position"]}, "Level":{elem["heading_level"]}, "title":{elem["content"]}'
+            f'title:{self.clean_content(elem["content"])}, level:{elem["heading_level"]}, position:{elem["position"]}'
             for elem in self.elements
             if elem.get('heading_level') == 2 and elem.get('is_heading', False)
         ]
@@ -148,7 +159,7 @@ class DocxElements:
     def format_toc_subsections(self) -> str:
         """格式化所有subsection级别的目录元素为字符串"""
         formatted_toc = [
-            f'"position":{elem["position"]}, "Level":{elem["toc_level"]}, "title":{elem["content"]}'
+            f'title:{self.clean_content(elem["content"])}, level:{elem["toc_level"]}, position:{elem["position"]}'
             for elem in self.elements
             if elem.get('toc_level') == 3 and elem.get('is_toc', False)
         ]
@@ -157,7 +168,7 @@ class DocxElements:
     def format_heading_subsections(self) -> str:
         """格式化所有subsection级别的标题元素为字符串"""
         formatted_headings = [
-            f'"position":{elem["position"]}, "Level":{elem["heading_level"]}, "title":{elem["content"]}'
+            f'title:{self.clean_content(elem["content"])}, level:{elem["heading_level"]}, position:{elem["position"]}'
             for elem in self.elements
             if elem.get('heading_level') == 3 and elem.get('is_heading', False)
         ]
@@ -347,6 +358,10 @@ class DocxTree:
     document_analysis: ModelData[DocumentAnalysis]
     _ordered_nodes: List[SimpleDocxNode] = field(default_factory=list)
 
+
+
+
+
     # -------- 存储到数据库的方法 --------
     def to_model(self) -> Dict:
         """将文档树转换为可序列化的字典"""
@@ -439,31 +454,45 @@ class DocxTree:
             
         return node
 
-    # 打印文档树结构
-    def print_tree(self, node_id: Optional[int] = None, indent: int = 0) -> None:
-        """递归打印文档树结构
-        
-        Args:
-            node_id: 要打印的起始节点ID，默认为根节点
-            indent: 当前缩进级别，默认为0
+    # -------- 以string的方式提取全部文档内容 --------
+    def format_for_llm(self) -> str:
         """
-        # 确定起始节点
-        if node_id is None:
-            node = self.root
+        将文档树格式化为适合大模型理解的文本格式
+        返回格式示例：
+        1. 第1章 [标题]
+            1.1 第1节 [标题]
+                - 段落1 [段落内容]
+                - 表格1 [表格内容]
+            1.2 第2节 [标题]
+        """
+        return self._format_node(self.root, level=1)
+
+    def _format_node(self, node: SimpleDocxNode, level: int) -> str:
+        """递归格式化单个节点"""
+        result = []
+        indent = "    " * (level - 1)
+        
+        # 添加当前节点
+        if node.node_type == "title":
+            #prefix = ".".join(str(i) for i in node.path_sequence[:level])
+            #result.append(f"{indent}{prefix}【标题 {node.level}级】: {node.content}")
+            result.append(f"【标题 {node.level}级】: {node.content}")
         else:
-            node = next((n for n in self._ordered_nodes if n.node_id == node_id), None)
-            if node is None:
-                raise ValueError(f"Node with id {node_id} not found")
+            # 对于非标题节点，简化标记
+            if node.content_type == "table":
+                result.append(f"{indent}【表格】: 内容隐藏")
+            elif node.content_type == "figure":
+                result.append(f"{indent}【图】: 内容隐藏")
+            elif node.content_type == "toc":
+                result.append(f"{indent}【目录】: {node.content}")
+            else:  # paragraph
+                result.append(f"{indent}{node.content[:50]}")
         
-        # 计算缩进空格
-        indent_str = "    " * indent
-        
-        # 打印当前节点
-        print(f"{indent_str}{node}")
-        
-        # 递归打印所有子节点
+        # 递归处理子节点
         for child in node.children:
-            self.print_tree(child.node_id, indent + 1)
+            result.append(self._format_node(child, level + 1))
+        
+        return "\n".join(result)
 
 
     #查找节点的方法
@@ -498,132 +527,34 @@ class DocxTree:
 
         return _search(self.root)
 
-    # -------- 以string的方式提取全部文档内容 --------
-    def format_for_llm(self) -> str:
-        """
-        将文档树格式化为适合大模型理解的文本格式
-        返回格式示例：
-        1. 第1章 [标题]
-            1.1 第1节 [标题]
-                - 段落1 [段落内容]
-                - 表格1 [表格内容]
-            1.2 第2节 [标题]
-        """
-        return self._format_node(self.root, level=1)
-
-    def _format_node(self, node: SimpleDocxNode, level: int) -> str:
-        """递归格式化单个节点"""
-        result = []
-        indent = "    " * (level - 1)
+    # 打印文档树结构
+    def print_tree(self, node_id: Optional[int] = None, indent: int = 0) -> None:
+        """递归打印文档树结构
         
-        # 添加当前节点
-        if node.node_type == "title":
-            prefix = ".".join(str(i) for i in node.path_sequence[:level])
-            result.append(f"{indent}{prefix}【标题 {node.level}级】: {node.content}")
+        Args:
+            node_id: 要打印的起始节点ID，默认为根节点
+            indent: 当前缩进级别，默认为0
+        """
+        # 确定起始节点
+        if node_id is None:
+            node = self.root
         else:
-            # 对于非标题节点，简化标记
-            if node.content_type == "table":
-                result.append(f"{indent}【表格】: {node.content}")
-            elif node.content_type == "figure":
-                result.append(f"{indent}【图】: {node.content}")
-            elif node.content_type == "toc":
-                result.append(f"{indent}【目录】: {node.content}")
-            else:  # paragraph
-                result.append(f"{indent}{node.content}")
+            node = next((n for n in self._ordered_nodes if n.node_id == node_id), None)
+            if node is None:
+                raise ValueError(f"Node with id {node_id} not found")
         
-        # 递归处理子节点
+        # 计算缩进空格
+        indent_str = "    " * indent
+        
+        # 打印当前节点
+        print(f"{indent_str}{node}")
+        
+        # 递归打印所有子节点
         for child in node.children:
-            result.append(self._format_node(child, level + 1))
-        
-        return "\n".join(result)
+            self.print_tree(child.node_id, indent + 1)
 
-    # -------- 以string的方式提取标题 --------
-    def format_titles(self) -> str:
-        """
-        格式化所有标题节点，返回层级结构清晰的标题列表，包含每个章节的token数量
-        返回格式示例：
-        1. 第1章 [1级] [ID:46] [Tokens:1500]
-            1.1 第1节 [2级] [ID:125] [Tokens:800]
-            1.2 第2节 [2级] [ID:130] [Tokens:700]
-        2. 第2章 [1级] [ID:95] [Tokens:2000]
-            2.1 第1节 [2级] [ID:159] [Tokens:1200]
-                2.1.1 第1小节 [3级] [ID:175] [Tokens:800]
-        """
-        return self._format_titles_recursive(self.root, level=1)
 
-    def _format_titles_recursive(self, node: SimpleDocxNode, level: int) -> str:
-        """递归格式化标题节点，包含token计算"""
-        result = []
-        indent = "    " * (level - 1)
-        
-        # 如果是标题节点，则格式化并计算tokens
-        if node.node_type == "title":
-            # 计算当前节点及其所有子节点的总token数
-            total_tokens = self._calculate_section_tokens(node)
-            result.append(f"{indent}{node.content} [Level:{node.level}] [ID:{node.node_id}] [Tokens:{total_tokens}]")
-        
-        # 递归处理子节点，只处理标题节点
-        for child in node.children:
-            if child.node_type == "title":
-                result.append(self._format_titles_recursive(child, level + 1))
-        
-        return "\n".join(result)
-
-    def _calculate_section_tokens(self, node: SimpleDocxNode) -> int:
-        """计算一个章节（包括其所有子内容）的总token数"""
-        total_tokens = count_tokens(node.content)  # 计算当前节点内容的tokens
-        
-        # 递归计算所有子节点的tokens
-        for child in node.children:
-            # 如果是内容节点，直接计算其tokens
-            if child.node_type == "content":
-                total_tokens += count_tokens(child.content)
-            # 如果是标题节点，递归计算其所有内容
-            else:
-                total_tokens += self._calculate_section_tokens(child)
-                
-        return total_tokens
-
-    # -------- 以JSON格式提取标题 --------
-    def titles_to_json(self) -> Dict:
-        """将文档树中的标题节点转换为JSON格式
-        
-        Returns:
-            Dict: 包含标题结构的字典，格式如：
-            {
-                "titles": [
-                    {
-                        "content": "第一章 绪论",
-                        "level": 1,
-                        "node_id": 46,
-                        "children": [...]
-                    },
-                    ...
-                ]
-            }
-        """
-        def _process_node(node: SimpleDocxNode) -> Optional[Dict]:
-            if node.node_type != "title":
-                return None
-            
-            return {
-                "content": node.content,
-                "level": node.level,
-                "node_id": node.node_id,
-                "children": [
-                    child_data for child in node.children
-                    if (child_data := _process_node(child)) is not None
-                ]
-            }
-        
-        return {
-            "titles": [
-                child_data for child in self.root.children
-                if (child_data := _process_node(child)) is not None
-            ]
-        }
-
-    # -------- 插入标题节点 --------
+    # -------- 插入标题节点, 并重建树结构 --------
 
     def add_title_node(self, content: str, level: int, after_node_id: int) -> SimpleDocxNode:
         """
@@ -771,6 +702,287 @@ class DocxTree:
         # 重建树结构
         self._rebuild_tree_from_ordered_nodes()
 
+    # -------- 添加章节前言标题 --------
+
+    def add_introduction_titles(self) -> None:
+        """
+        识别父标题和第一个子标题之间的前言内容，为其添加"前言文本"子标题。
+        这个方法会遍历所有标题节点，检查是否存在前言内容，如果存在则添加相应的子标题。
+        """
+        def has_content_before_first_title(node: SimpleDocxNode) -> bool:
+            """检查是否有内容节点在第一个标题节点之前"""
+            first_title_index = next(
+                (i for i, child in enumerate(node.children) 
+                 if child.node_type == "title"), 
+                len(node.children)
+            )
+            return any(
+                child.node_type == "content" 
+                for child in node.children[:first_title_index]
+            )
+
+        # 收集需要添加前言的节点
+        nodes_to_process = []
+        def collect_nodes(node: SimpleDocxNode) -> None:
+            if node.node_type == "title":
+                # 检查是否有子标题且在第一个子标题前有内容
+                has_title_children = any(child.node_type == "title" for child in node.children)
+                
+                if has_title_children and has_content_before_first_title(node):
+                    nodes_to_process.append(node)
+                
+                # 递归处理子标题
+                for child in node.children:
+                    if child.node_type == "title":
+                        collect_nodes(child)
+        
+        # 从root的子节点开始处理
+        for child in self.root.children:
+            collect_nodes(child)
+
+        # 然后按顺序处理每个节点
+        for node in nodes_to_process:
+            self.add_title_node(
+                content=f"前言",
+                level=node.level + 1,
+                after_node_id=node.node_id
+            )
+
+
+    # -------- 以string的方式提取标题 --------
+    def format_titles(self) -> str:
+        """
+        格式化所有标题节点，返回层级结构清晰的标题列表，包含每个章节的token数量
+        返回格式示例：
+        1. 第1章 [1级] [ID:46] [Tokens:1500]
+            1.1 第1节 [2级] [ID:125] [Tokens:800]
+            1.2 第2节 [2级] [ID:130] [Tokens:700]
+        2. 第2章 [1级] [ID:95] [Tokens:2000]
+            2.1 第1节 [2级] [ID:159] [Tokens:1200]
+                2.1.1 第1小节 [3级] [ID:175] [Tokens:800]
+        """
+        return self._format_titles_recursive(self.root, level=1)
+
+    def _format_titles_recursive(self, node: SimpleDocxNode, level: int) -> str:
+        """递归格式化标题节点，包含token计算"""
+        result = []
+        indent = "    " * (level - 1)
+        
+        # 如果是标题节点，则格式化并计算tokens
+        if node.node_type == "title":
+            # 计算当前节点及其所有子节点的总token数
+            total_tokens = self._calculate_section_tokens(node)
+            result.append(f"{indent}{node.content} [Level:{node.level}] [ID:{node.node_id}] [Tokens:{total_tokens}]")
+        
+        # 递归处理子节点，只处理标题节点
+        for child in node.children:
+            if child.node_type == "title":
+                result.append(self._format_titles_recursive(child, level + 1))
+        
+        return "\n".join(result)
+
+    def _calculate_section_tokens(self, node: SimpleDocxNode) -> int:
+        """计算一个章节（包括其所有子内容）的总token数"""
+        total_tokens = count_tokens(node.content)  # 计算当前节点内容的tokens
+        
+        # 递归计算所有子节点的tokens
+        for child in node.children:
+            # 如果是内容节点，直接计算其tokens
+            if child.node_type == "content":
+                total_tokens += count_tokens(child.content)
+            # 如果是标题节点，递归计算其所有内容
+            else:
+                total_tokens += self._calculate_section_tokens(child)
+                
+        return total_tokens
+
+    # -------- 以JSON格式提取标题 --------
+    def titles_to_json(self) -> Dict:
+        """将文档树中的标题节点转换为JSON格式
+        
+        Returns:
+            Dict: 包含标题结构的字典，格式如：
+            {
+                "titles": [
+                    {
+                        "content": "第一章 绪论",
+                        "level": 1,
+                        "node_id": 46,
+                        "children": [...]
+                    },
+                    ...
+                ]
+            }
+        """
+        def _process_node(node: SimpleDocxNode) -> Optional[Dict]:
+            if node.node_type != "title":
+                return None
+            
+            return {
+                "content": node.content,
+                "level": node.level,
+                "node_id": node.node_id,
+                "children": [
+                    child_data for child in node.children
+                    if (child_data := _process_node(child)) is not None
+                ]
+            }
+        
+        return {
+            "titles": [
+                child_data for child in self.root.children
+                if (child_data := _process_node(child)) is not None
+            ]
+        }
+
+
+    # -------- 获取所有叶标题节点 --------
+    def get_leaf_titles(self) -> List[SimpleDocxNode]:
+        """获取所有叶标题节点（没有子标题的标题节点）
+        
+        Returns:
+            List[SimpleDocxNode]: 叶标题节点列表
+        """
+        leaf_titles = []
+        
+        def _find_leaf_titles(node: SimpleDocxNode):
+            if node.node_type == "title":
+                # 检查是否有子标题
+                has_title_children = any(
+                    child.node_type == "title" 
+                    for child in node.children
+                )
+                if not has_title_children:
+                    leaf_titles.append(node)
+            
+            # 递归检查所有子节点
+            for child in node.children:
+                _find_leaf_titles(child)
+        
+        _find_leaf_titles(self.root)
+        return leaf_titles
+
+    def format_leaf_titles(self) -> List[Dict]:
+        """格式化所有叶标题节点为字典列表
+        
+        Returns:
+            List[Dict]: 叶标题列表，每个字典包含 ID、Title、Level、Tokens 信息
+            示例：
+            [
+                {
+                    "ID": 175,
+                    "Title": "1.1.1 引言",
+                    "Level": 3,
+                    "Tokens": 800,
+                    "Path": "第1章 > 第1节 > 第1小节"
+                },
+                ...
+            ]
+        """
+        leaf_titles = self.get_leaf_titles()
+        formatted_titles = []
+        
+        for node in leaf_titles:
+            # 计算该节点下内容的token数
+            total_tokens = self._calculate_section_tokens(node)
+            # 构建字典
+            formatted_titles.append({
+                "ID": node.node_id,
+                "Title": node.content,
+                "Level": node.level,
+                "Tokens": total_tokens,
+                "Path": node.path_titles
+            })
+        
+        return formatted_titles
+
+    def format_leaf_node_content_markdown(self, node: SimpleDocxNode) -> str:
+        """格式化叶节点的章节内容
+        
+        Args:
+            node (SimpleDocxNode): 要格式化的叶节点
+            
+        Returns:
+            str: 格式化后的内容字符串，包含标题、路径和内容
+            
+        Raises:
+            ValueError: 如果输入节点不是标题节点
+        """
+        if node.node_type != "title":
+            raise ValueError("Input node must be a title node")
+            
+        # 构建输出字符串
+        output = []
+        # 第一行：章节标题，[层级]，[ID]
+        output.append(f"{'#' * node.level} {node.content} [Level:{node.level}] [ID:{node.node_id}]")
+        
+        # 第二行：章节路径
+        output.append(f"Path: {node.path_titles}")
+    
+        # 收集该标题下的所有内容
+        content_parts = []
+        content_parts.append(f"---")
+
+        for child in node.children:
+            if child.node_type == "content":
+                if child.content_type == "table":
+                    content_parts.append("[表格内容]")
+                elif child.content_type == "figure":
+                    content_parts.append("[图片内容]")
+                else:  # paragraph or other text content
+                    content_parts.append(f"{child.content} [ID:{child.node_id}]")
+        
+        # 添加内容（如果有）
+        if content_parts:
+            output.append("\n".join(content_parts))
+        else:
+            output.append("[无内容]")
+            
+        return "\n".join(output)
+
+    def format_leaf_node_content_html(self, node: SimpleDocxNode) -> str:
+        """格式化叶节点的章节内容
+        
+        Args:
+            node (SimpleDocxNode): 要格式化的叶节点
+            
+        Returns:
+            str: 格式化后的内容字符串，包含标题、路径和内容
+            
+        Raises:
+            ValueError: 如果输入节点不是标题节点
+        """
+        if node.node_type != "title":
+            raise ValueError("Input node must be a title node")
+            
+        # 构建输出字符串
+        output = []
+        # 第一行：章节标题，[层级]，[ID]
+        output.append(f'<h{node.level}>{node.content}[ID:{node.node_id}]</h{node.level}>')
+        
+        # 第二行：章节路径
+        output.append(f'<path> {node.path_titles}</path>')
+    
+        # 收集该标题下的所有内容
+        content_parts = []
+        content_parts.append(f"<hr/>")  # 使用HTML分隔线
+
+        for child in node.children:
+            if child.node_type == "content":
+                if child.content_type == "table":
+                    content_parts.append('<table>[表格内容]</table>')
+                elif child.content_type == "figure":
+                    content_parts.append('<figure>[图片内容]</figure>')
+                else:  # paragraph or other text content
+                    content_parts.append(f'<p>{child.content} [ID:{child.node_id}]</p>')
+        
+        # 添加内容（如果有）
+        if content_parts:
+            output.append("\n".join(content_parts))
+        else:
+            output.append('<div class="content empty">[无内容]</div>')
+            
+        return "\n".join(output)
 
 @dataclass
 class DocxTreeTitlesAnalysisResult:
@@ -793,6 +1005,8 @@ class DocxTreeTitlesAnalysisResult:
     ]
 }
 """
+
+
 
 
 

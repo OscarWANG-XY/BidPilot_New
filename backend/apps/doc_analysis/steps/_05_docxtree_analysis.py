@@ -5,7 +5,7 @@ from ..pipeline.base import PipelineStep
 from apps.doc_analysis.pipeline.types import DocxTree, EXAMPLE_OUTPUT, ModelData
 from apps.doc_analysis.LLM_services._llm_data_types import BatchResult
 from apps.doc_analysis.models import DocumentAnalysis
-from apps.doc_analysis.LLM_services.outline_llm_analyzer import OutlineLLMAnalyzer
+from backend.apps.doc_analysis.LLM_services._01_outline_llm_analyzer import OutlineLLMAnalyzer
 
 
 import logging

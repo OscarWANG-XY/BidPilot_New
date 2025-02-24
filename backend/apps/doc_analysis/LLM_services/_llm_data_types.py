@@ -18,19 +18,17 @@ class LLMConfig(BaseModel):
 
 class LLMRequest(BaseModel):
     """通用LLM请求模型"""
-    context: str
-    requirement: str
+    data_input: str
     output_format: str
     # 新增字段 作为元数据，不会发送给大模型
     task_id: Optional[int] = Field(default=None, description="请求所属的组ID")  
 
     @classmethod
-    def create(cls, context: str, requirement: str, output_format: str) -> "LLMRequest":
+    def create(cls, data_input: str, output_format: str) -> "LLMRequest":
         """创建单个LLM请求实例
         
         Args:
-            context (str): 待分析的文档内容
-            requirement (str): 分析要求
+            data_input (str): 待分析的文档内容
             output_format (str): 期望的输出格式
             
         Returns:
@@ -39,24 +37,22 @@ class LLMRequest(BaseModel):
         Raises:
             ValueError: 当输入参数为空时
         """
-        if not context or not requirement or not output_format:
+        if not data_input or not output_format:
             raise ValueError("所有输入参数都不能为空")
         
         request = cls(
-            context=context,
-            requirement=requirement,
+            data_input=data_input,
             output_format=output_format
         )
 
         return request
 
     @classmethod
-    def create_batch(cls, contexts: List[str], requirements: List[str], output_formats: List[str]) -> List["LLMRequest"]:
+    def create_batch(cls, data_inputs: List[str], output_formats: List[str]) -> List["LLMRequest"]:
         """创建批量LLM请求实例
         
         Args:
-            contexts (List[str]): 待分析的文档内容列表
-            requirements (List[str]): 分析要求列表
+            data_inputs (List[str]): 待分析的文档内容列表
             output_formats (List[str]): 期望的输出格式列表
             
         Returns:
@@ -65,30 +61,28 @@ class LLMRequest(BaseModel):
         Raises:
             ValueError: 当输入参数列表长度不一致或为空时
         """
-        if not contexts or not requirements or not output_formats:
+        if not data_inputs or not output_formats:
             raise ValueError("所有输入参数列表都不能为空")
         
-        if not (len(contexts) == len(requirements) == len(output_formats)):
+        if not (len(data_inputs) == len(output_formats)):
             raise ValueError("所有输入参数列表长度必须相同")
         
         requests = [cls(
-                context=context,
-                requirement=requirement,
+                data_input=data_input,
                 output_format=output_format
             )
-            for context, requirement, output_format in zip(contexts, requirements, output_formats)
+            for data_input, output_format in zip(data_inputs, output_formats)
         ]
         
         return requests
 
     @classmethod
-    def create_batch_with_repeats(cls, contexts: List[str], requirements: List[str], 
-                                output_formats: List[str], repeats: int = 3) -> List["LLMRequest"]:
+    def create_batch_with_repeats(cls, data_inputs: List[str], output_formats: List[str], 
+                                repeats: int = 3) -> List["LLMRequest"]:
         """创建批量LLM请求实例，每组输入重复三次并添加task_id
         
         Args:
-            contexts (List[str]): 待分析的文档内容列表
-            requirements (List[str]): 分析要求列表
+            data_inputs (List[str]): 待分析的文档内容列表
             output_formats (List[str]): 期望的输出格式列表
             
         Returns:
@@ -97,18 +91,17 @@ class LLMRequest(BaseModel):
         Raises:
             ValueError: 当输入参数列表长度不一致或为空时
         """
-        if not contexts or not requirements or not output_formats:
+        if not data_inputs or not output_formats:
             raise ValueError("所有输入参数列表都不能为空")
         
-        if not (len(contexts) == len(requirements) == len(output_formats)):
+        if not (len(data_inputs) == len(output_formats)):
             raise ValueError("所有输入参数列表长度必须相同")
             
         requests = []
-        for task_id, (context, requirement, output_format) in enumerate(zip(contexts, requirements, output_formats)):
+        for task_id, (data_input, output_format) in enumerate(zip(data_inputs, output_formats)):
             for _ in range(repeats):  # 每组重复三次
                 request = cls(
-                    context=context,                    
-                    requirement=requirement,
+                    data_input=data_input,                    
                     output_format=output_format,
                     task_id=task_id  # 添加task_id
                 )

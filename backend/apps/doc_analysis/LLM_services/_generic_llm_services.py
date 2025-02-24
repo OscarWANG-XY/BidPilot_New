@@ -56,8 +56,7 @@ class GenericLLMService:
                 ),
                 HumanMessagePromptTemplate.from_template(
                     self.prompt_template,
-                    input_variables=["context", 
-                                     "requirement", 
+                    input_variables=["data_input",  
                                      "output_format",
                                      ]
                 )

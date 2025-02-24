@@ -1,16 +1,16 @@
 from ._generic_llm_services import GenericLLMService, LLMRequest, LLMConfig
 from ._batch_llm_services import BatchLLMService
-from apps.doc_analysis.pipeline.types import DocxTreeTitlesAnalysisResult
+from apps.doc_analysis.pipeline.types import OutlineAnalysisResult
 from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
-from typing import Any, List
+from typing import Any, List, Union
 import os
 
 
-class DocxTreeTitlesLLMAnalyzer:
-    """章节标题分析工具"""
+class OutlineLLMAnalyzer:
+    """大纲分析专用步骤"""
 
     @classmethod
-    def build_config(cls, model_name: str = "qwen-plus") -> LLMConfig:
+    def build_config(cls, model_name: str) -> LLMConfig:
         """构建LLM配置"""
         return LLMConfig(
                     llm_model_name = model_name,  # qwen-plus
@@ -27,43 +27,28 @@ class DocxTreeTitlesLLMAnalyzer:
     @classmethod
     def build_prompt_template(cls) -> str:
         return """
-## 任务目标: 
-{requirement}
+# Task
+分析招标文档的目录结构和正文标题之间的一致性
 
-## 输入数据说明: 
-{context}
+# Requirements
+- 比对目录中的标题和正文中的实际标题
+- 忽略标点符号和空格的差异
+- 仅匹配标题的实际文本内容
+- 分别罗列出"目录中存在但正文中不存在"和"正文中存在但目录中不存在"的标题
 
-## 输出格式说明: 
-1. 只输出JSON格式的结果，不要包含任何额外的解释或说明
-2. 不要使用任何Markdown格式（包括```json```等标识符）
-3. 确保JSON格式严格有效
-4. 如果元素不存在，请使用[]
+# Output
+## Rules
+- 只输出JSON格式的结果
+- 不使用Markdown格式
+- 确保JSON格式严格有效
+- 空元素使用[]
+
+## Format
 {output_format}
-        """
 
-    def build_requirement() -> str:
-        return """
-分析招标文档的章节结构，识别出内容过于庞大或主题范围过广，需要进一步细化的章节。
-
+# Input
+{data_input}
 """
-
-    def build_context(formatted_docxtree_titles: str) -> str:
-        return f"""
-
-### 每个章节的标题格式：
-"标题内容 [标题层级][标题ID][章节Token数]"
-
-### 数据内容：
-{formatted_docxtree_titles}
-"""
-
-
-
-    def build_output_format() -> str:
-        """
-        构建大模型分析的输出要求
-        """
-        return DocxTreeTitlesAnalysisResult.get_prompt_specification()
 
 
     @classmethod
@@ -80,44 +65,67 @@ class DocxTreeTitlesLLMAnalyzer:
 
 
     @classmethod
-    async def analyze(cls, context: str, requirement: str, output_format: str, model_name: str = "qwen-plus") -> Any:
+    async def analyze(cls, model_name: str, data_input: str) -> Any:
         """执行分析"""
+
+        # 构建LLM配置
         config = cls.build_config(model_name)
+
+        # 创建LLM服务实例
         service = cls.create_service(config)
+
+        # 创建LLM请求
         request = LLMRequest.create(
-            context = context,
-            requirement = requirement,
-            output_format = output_format
+            data_input = data_input,
+            output_format = OutlineAnalysisResult.get_prompt_specification()
         )
         return await service.process(request)
 
-    @classmethod
-    async def batch_analyze(cls, contexts: List[str], requirements: List[str], output_formats: List[str], model_name: str = "qwen-plus") -> List[Any]:
-        """批量执行分析"""
-        config = cls.build_config(model_name)
-        service = cls.create_batch_service(config)
-        requests = LLMRequest.create_batch(
-            contexts = contexts,
-            requirements = requirements,
-            output_formats = output_formats
-        )
-        return await service.batch_process(requests)
     
     @classmethod
-    async def batch_analyze_with_group_id(cls, contexts: List[str], requirements: List[str], output_formats: List[str], repeats: int = 1, model_name: str = "qwen-plus") -> List[Any]:
+    async def batch_analyze_with_repeats(cls, model_name: str, data_inputs: Union[str, List[str]],  repeats: int = 1) -> List[Any]:
         """批量执行分析"""
+
+        # ！！！！！ 将单个字符串转换为列表
+        if isinstance(data_inputs, str):
+            data_inputs = [data_inputs]
+
+        # ！！！！！ 对于任务数量做限制
+        if len(data_inputs) > 10:
+            raise ValueError("任务数量超过限制，最多支持10个任务")
+        
+        # 对于重复次数做限制
+        if repeats > 3:
+            raise ValueError("重复次数超过限制，最多支持3次")
+
+
+        # 构建输出格式列表
+        output_formats = [OutlineAnalysisResult.get_prompt_specification() for _ in data_inputs]
+
+        # 构建LLM配置
         config = cls.build_config(model_name)
-        service = cls.create_batch_service(config)
+
+        # 创建批量服务实例
+        service = cls.create_batch_service(config)  
+
+        # 创建批量请求
         requests = LLMRequest.create_batch_with_repeats(
-            contexts = contexts,
-            requirements = requirements,
+            data_inputs = data_inputs,
             output_formats = output_formats,
             repeats = repeats
         )
+
+        # ！！！！！ 执行前的任务请求数检查
+        if len(requests) >30:
+            raise ValueError("总请求数量超过限制，最多支持30个并发请求（请求数 = 任务数 * 重复次数）")
+
+        # 执行批量分析
         return await service.batch_process(requests)
 
+
+
     @classmethod
-    def simulate_prompt(cls, context: str) -> str:
+    def simulate_prompt(cls, data_input: str) -> str:
         """
         模拟生成完整的 prompt
         
@@ -134,15 +142,14 @@ class DocxTreeTitlesLLMAnalyzer:
             ),
             HumanMessagePromptTemplate.from_template(
                 cls.build_prompt_template(),
-                input_variables=["context", "requirement", "output_format"]
+                input_variables=["data_input", "output_format"]
             )
         ])
         
         # 格式化模板
         simulated_prompt = prompt.format_messages(
-            context=cls.build_context(),
-            requirement=cls.build_requirement(),
-            output_format=cls.build_output_format()
+            data_input=data_input,
+            output_format=OutlineAnalysisResult.get_prompt_specification()
         )
 
                 # 转换为易读的格式
@@ -155,5 +162,3 @@ class DocxTreeTitlesLLMAnalyzer:
         ]
         
         return simulated_prompt, formatted_messages
-
-
