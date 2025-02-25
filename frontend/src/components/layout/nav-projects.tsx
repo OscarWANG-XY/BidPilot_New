@@ -1,6 +1,6 @@
-
 "use client" // 表示代码是客户端组件，如果不添加，Next.js会尝试在服务器端运行，从而导致错误。 
 import {Building2, MoreHorizontal, PenLine, Star} from "lucide-react"
+import { useLocation } from "@tanstack/react-router"
 
 import {
   SidebarGroup,
@@ -30,6 +30,8 @@ projects,
     starred: boolean
   }[]
 }) {
+  const location = useLocation()
+  const pathname = location.pathname
 
   return (
   <>
@@ -45,7 +47,7 @@ projects,
 
         <SidebarMenuItem className="mb-2">
           <SidebarMenuButton asChild>
-            <a href="/company" className="w-full flex items-center gap-2 px-2">
+            <a href="/company" className={`w-full flex items-center gap-2 px-2 ${pathname === '/company' ? 'bg-gray-100 rounded' : ''}`}>
               <Building2 className="h-4 w-4" /> 
               <span className="text-lg">公司档案</span>
             </a>
@@ -55,7 +57,7 @@ projects,
 
         <SidebarMenuItem className="mb-2">
           <SidebarMenuButton asChild>
-            <a href="/projects_manager" className="w-full flex items-center gap-2 px-2">
+            <a href="/projects_manager" className={`w-full flex items-center gap-2 px-2 ${pathname === '/projects_manager' ? 'bg-gray-100 rounded' : ''}`}>
               <Building2 className="h-4 w-4" /> 
               <span className="text-lg">项目管理后台</span>
             </a>
@@ -65,7 +67,7 @@ projects,
 
         <SidebarMenuItem className="mb-2">
           <SidebarMenuButton asChild>
-            <a href="/files_manager" className="w-full flex items-center gap-2 px-2">
+            <a href="/files_manager" className={`w-full flex items-center gap-2 px-2 ${pathname === '/files_manager' ? 'bg-gray-100 rounded' : ''}`}>
               <Building2 className="h-4 w-4" /> 
               <span className="text-lg">文件管理后台</span>
             </a>
@@ -74,7 +76,7 @@ projects,
 
         <SidebarMenuItem>
           <SidebarMenuButton asChild>
-            <a href="/chat" className="w-full flex items-center gap-2 px-2">
+            <a href="/chat" className={`w-full flex items-center gap-2 px-2 ${pathname === '/chat' ? 'bg-gray-100 rounded' : ''}`}>
               <Building2 className="h-4 w-4" /> 
               <span className="text-lg">聊天机器人</span>
             </a>

@@ -17,7 +17,7 @@ interface FileUploadButtonProps {
 // 有逻辑处理函数 handleChange
 // 没有引入状态管理 （对比_FileManger.tsx）
 export function FileUploadButton({ onFileSelect, isUploading }: FileUploadButtonProps) {
-
+  console.log("🔄 [FileUploadButton.tsx] 渲染");
 
 
   // ------------ 用户文件输入处理逻辑 ------------

@@ -95,9 +95,9 @@ export function CreateProjectDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
         {/* 侧边栏上，触发对话框的按钮 “新建项目”*/}
       <DialogTrigger asChild>
-        <Button variant="ghost" className="w-full justify-start gap-2 px-2">
+        <Button variant="ghost" className="w-full justify-start gap-2 px-2 overflow-hidden">
           <FilePlus2 className="h-4 w-4 text-red-600" />
-          <span className="text-lg text-red-600">新建项目</span>
+          <span className="text-lg text-red-600 truncate">新建项目</span>
         </Button>
       </DialogTrigger>
 

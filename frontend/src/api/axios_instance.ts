@@ -61,15 +61,10 @@ const axiosInstance = axios.create({
 // 请求拦截器
 axiosInstance.interceptors.request.use(
     (config) => {
-        // 从 localStorage 获取 token
         const token = localStorage.getItem('token');
         
-        // 记录详细的请求信息
-        console.log('🔍 Request details:', {
-            fullUrl: `${config.baseURL || ''}${config.url}`,
-            method: config.method,
-            headers: config.headers,
-        });
+        // 简化请求日志
+        console.log(`🔍 ${config.method?.toUpperCase()} ${config.baseURL || ''}${config.url}`);
         
         // 如果存在 token，则添加到请求头
         if (token) {
@@ -81,16 +76,11 @@ axiosInstance.interceptors.request.use(
             config.headers['Content-Type'] = 'multipart/form-data';
         }
 
-        // 转换请求数据为下划线格式
-        console.log('🔍 [axios_instance.ts] 命名转换前的请求数据:', config.data);
-        if (config.data && !(config.data instanceof FormData)) {  // 不转换 FormData
+        // 移除转换前后的详细日志，保留关键信息
+        if (config.data && !(config.data instanceof FormData)) {
             config.data = convertKeysToSnake(config.data);
         }
-        console.log('🔍 [axios_instance.ts] 命名转换后的请求数据:', config.data);
 
-        // 转换 URL 查询参数为下划线格式
-        console.log('🔍 [axios_instance.ts] 命名转换前的查询参数:', config.params);
-        // 转换 URL 查询参数为下划线格式
         if (config.params) {
             // 特殊处理 ordering 参数
             if (config.params.ordering) {
@@ -98,12 +88,11 @@ axiosInstance.interceptors.request.use(
             }
             config.params = convertKeysToSnake(config.params);
         }
-        console.log('🔍 [axios_instance.ts] 命名转换后的查询参数:', config.params);
 
         return config;
     },
     (error) => {
-        console.error('❌ [axios_instance.ts] 请求拦截器错误:', error);
+        console.error('❌ 请求拦截器错误:', error);
         return Promise.reject(error);
     }
 );
@@ -111,12 +100,12 @@ axiosInstance.interceptors.request.use(
 // 响应拦截器
 axiosInstance.interceptors.response.use(
     (response) => {
-        // 转换响应数据为驼峰格式
-        console.log('🔍 [axios_instance.ts] 命名转换前的响应数据:', response.data);
+        // 简化响应日志
+        console.log(`✅ ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`);
+        
         if (response.data) {
             response.data = convertKeysToCamel(response.data);
         }
-        console.log('🔍 [axios_instance.ts] 命名转换后的响应数据:', response.data);
         return response;
     },
     async (error) => {
@@ -127,7 +116,6 @@ axiosInstance.interceptors.response.use(
             originalRequest._retry = true;
 
             try {
-                // 从 localStorage 获取 refresh token
                 const refreshToken = localStorage.getItem('refreshToken');
                 
                 if (!refreshToken) {
@@ -135,9 +123,7 @@ axiosInstance.interceptors.response.use(
                     return Promise.reject(error);
                 }
 
-                console.log('🔄 [axios_instance.ts] 开始刷新 token');
-
-                // 刷新 token 的请求不需要经过实例的拦截器
+                console.log('🔄 刷新 token');
                 const response = await axios.post('/api/auth/token/refresh/', {
                     refresh: refreshToken
                 });
@@ -145,15 +131,10 @@ axiosInstance.interceptors.response.use(
                 const { access } = response.data;
                 localStorage.setItem('token', access);
 
-                console.log('✅ [axios_instance.ts] token 刷新成功');
-
-                // 更新原始请求的 Authorization header
                 originalRequest.headers.Authorization = `Bearer ${access}`;
-
-                // 重试原始请求
                 return axiosInstance(originalRequest);
             } catch (refreshError) {
-                console.error('❌ [axios_instance.ts] token 刷新失败:', refreshError);
+                console.error('❌ token 刷新失败:', refreshError);
                 localStorage.removeItem('token');
                 localStorage.removeItem('refreshToken');
                 window.location.href = '/login';
@@ -161,7 +142,9 @@ axiosInstance.interceptors.response.use(
             }
         }
 
-        // 如果错误响应中包含数据，也转换为驼峰格式
+        // 简化错误日志
+        console.error(`❌ ${error.config.method?.toUpperCase()} ${error.config.url} - ${error.response?.status || 'Network Error'}`);
+        
         if (error.response?.data) {
             error.response.data = convertKeysToCamel(error.response.data);
         }

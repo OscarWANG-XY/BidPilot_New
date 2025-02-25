@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
 
 interface ProjectListProps {
   projects: Project[]
@@ -77,14 +78,14 @@ export function ProjectList({
 
   return (
     <Table>
-    {/* -------表头 ------- */}
-      <TableHeader>
+      {/* -------表头 ------- */}
+      <TableHeader className="bg-gray-50/50">
         <TableRow>
           <TableHead>
             <Button 
               variant="ghost" 
               onClick={() => handleSortClick('projectName')}
-              className="flex items-center"
+              className="flex items-center hover:bg-gray-100"
             >
               项目名称
               {renderSortIcon('projectName')}
@@ -94,7 +95,7 @@ export function ProjectList({
             <Button 
               variant="ghost" 
               onClick={() => handleSortClick('projectType')}
-              className="flex items-center"
+              className="flex items-center hover:bg-gray-100"
             >
               项目类型
               {renderSortIcon('projectType')}
@@ -104,7 +105,7 @@ export function ProjectList({
             <Button 
               variant="ghost" 
               onClick={() => handleSortClick('tenderee')}
-              className="flex items-center"
+              className="flex items-center hover:bg-gray-100"
             >
               招标单位
               {renderSortIcon('tenderee')}
@@ -114,7 +115,7 @@ export function ProjectList({
             <Button 
               variant="ghost" 
               onClick={() => handleSortClick('createTime')}
-              className="flex items-center"
+              className="flex items-center hover:bg-gray-100"
             >
               创建时间
               {renderSortIcon('createTime')}
@@ -124,7 +125,7 @@ export function ProjectList({
             <Button 
               variant="ghost" 
               onClick={() => handleSortClick('currentStage')}
-              className="flex items-center"
+              className="flex items-center hover:bg-gray-100"
             >
               当前阶段
               {renderSortIcon('currentStage')}
@@ -137,64 +138,58 @@ export function ProjectList({
 
       {/* -------表体 ------- */}
       <TableBody>
-        {projects.map((project) => {
-          console.log('项目数据:', project); // 添加调试日志
-          return (
-            <TableRow key={project.id}>
-              {/* -- 项目名称 -- */}
-              <TableCell>{project.projectName}</TableCell>
-              {/* -- 项目类型 -- */}
-              <TableCell>{project.projectType}</TableCell>
-              {/* -- 招标单位 -- */}
-              <TableCell>{project.tenderee}</TableCell>
-              {/* -- 创建时间 -- */}
-              <TableCell>{new Date(project.createTime).toLocaleDateString()}</TableCell>
-              {/* -- 当前阶段 -- */}
-              <TableCell>{project.currentStage}</TableCell>
-              {/* -- 查看/编辑 -- */}
-              <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onViewDetail(project.id)}
-                  >
-                    <Eye className="h-4 w-4" />
+        {projects.map((project) => (
+          <TableRow key={project.id} className="hover:bg-gray-50">
+            <TableCell className="font-medium">{project.projectName}</TableCell>
+            <TableCell>{project.projectType}</TableCell>
+            <TableCell>{project.tenderee}</TableCell>
+            <TableCell>
+              {new Date(project.createTime).toLocaleDateString()}
+            </TableCell>
+            <TableCell>
+              <Badge variant="outline" className="capitalize">
+                {project.currentStage}
+              </Badge>
+            </TableCell>
+            <TableCell>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onViewDetail(project.id)}
+                className="hover:bg-gray-100"
+              >
+                <Eye className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </TableCell>
+            <TableCell className="text-right">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="hover:bg-destructive/10">
+                    <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
-              </TableCell>
-              {/* -- 删除 -- */}
-              <TableCell className="text-right">
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>确认删除</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          确定要删除项目 "{project.projectName}" 吗？此操作不可撤销。
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>取消</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => {
-                            console.log('删除项目ID:', project.id); // 添加调试日志
-                            onDeleteProject(project.id);
-                          }}
-                          className="bg-red-500 hover:bg-red-600"
-                        >
-                          删除
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-  )
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>确认删除</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      确定要删除项目 "{project.projectName}" 吗？此操作不可撤销。
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>取消</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => onDeleteProject(project.id)}
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      删除
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
 }

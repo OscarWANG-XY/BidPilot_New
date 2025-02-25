@@ -37,6 +37,8 @@ export function FilePreviewDialog({
   useFileDetail  // 直接使用从props传入的hook
 }: FilePreviewDialogProps) {
 
+  console.log("🔄 [FilePreviewDialog.tsx] 渲染");
+
   // 只有在对话框打开时才启用查询
   const fileId = isOpen ? selectedfile?.id || '' : '';
   const presigned = isOpen;

@@ -7,10 +7,10 @@ interface ProjectFilterProps {
 
 export function ProjectFilter({ queryParams, onQueryChange }: ProjectFilterProps) {
   return (
-    <div className="flex flex-wrap gap-4 p-4 bg-white rounded-lg shadow">
+    <div className="flex flex-wrap gap-3 p-4 bg-background">
       {/* 项目状态过滤器 */}
       <select
-        className="border rounded px-2 py-1"
+        className="h-9 w-[180px] rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         value={queryParams.current_stage || ''}
         onChange={(e) => onQueryChange({ 
           current_stage: e.target.value as ProjectStage || undefined 
@@ -33,7 +33,7 @@ export function ProjectFilter({ queryParams, onQueryChange }: ProjectFilterProps
 
       {/* 项目类型过滤器 */}
       <select
-        className="border rounded px-2 py-1"
+        className="h-9 w-[180px] rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         value={queryParams.project_type || ''}
         onChange={(e) => onQueryChange({ 
           project_type: e.target.value as ProjectType || undefined 
@@ -52,19 +52,19 @@ export function ProjectFilter({ queryParams, onQueryChange }: ProjectFilterProps
       {/* 搜索框 */}
       <input
         type="text"
-        className="border rounded px-2 py-1 min-w-[200px]"
+        className="h-9 w-[240px] rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         placeholder="搜索项目名称、编号、单位..."
         value={queryParams.search || ''}
         onChange={(e) => onQueryChange({ search: e.target.value || undefined })}
       />
 
       {/* 紧急项目过滤器 */}
-      <label className="flex items-center">
+      <label className="flex h-9 items-center gap-2 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground">
         <input
           type="checkbox"
           checked={queryParams.is_urgent || false}
           onChange={(e) => onQueryChange({ is_urgent: e.target.checked || undefined })}
-          className="mr-2"
+          className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
         />
         紧急项目
       </label>

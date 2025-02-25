@@ -105,7 +105,7 @@ class MoreSubTitlesStep(PipelineStep[DocxTree, DocxTreeMoreTitles]):
         leaf_nodes = data.get_leaf_titles()
 
         data_inputs = []
-        for node in leaf_nodes[:1]:
+        for node in leaf_nodes:
             data_input = data.format_leaf_node_content_html(node)
             data_inputs.append(data_input)
 

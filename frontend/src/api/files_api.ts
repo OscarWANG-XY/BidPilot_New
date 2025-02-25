@@ -12,49 +12,32 @@ const endpoints = {
   updateFileDetail: `${API_BASE_URL}/files/`,   //+ ${fileId}
 };
 
+// 通用错误处理函数
+const handleError = (operation: string, error: unknown) => {
+  console.error(`❌ 文件操作失败 [${operation}]:`, error);
+  throw error instanceof Error ? error : new Error(`${operation} 失败`);
+};
 
 // ================================ 文件 API  ============================================ 
 export const fileApi = {
 
-
   // ----------- 获取所有文件 API.getAllFiles -------------
   getAllFiles: async (): Promise<FileRecord[]> => {
-  
-    const token = localStorage.getItem('token');
-    console.log('[files_api.ts] Current token:', token);
-    console.log('[files_api.ts] Authorization header:', `Bearer ${token}`);
-    console.log('🔍 [files_api.ts] 开始获取文件列表...');
+    console.log('🔍 开始获取文件列表');
     try {
-      console.log('🔍 [files_api.ts] 获取所有文件的端点:', endpoints.getFiles);
-      // 不带 presigned 参数，默认不生成预签名URL 
+      // 不带 presigned 参数，默认不生成预签名URL
       const { data } = await axiosInstance.get<FileRecord[]>(endpoints.getFiles);
-      console.log('✅ [files_api.ts] 文件列表获取成功:', {
-        count: data.length,
-        files: data.map(f => ({ id: f.id, name: f.name }))
-      });
+      console.log(`✅ 获取到 ${data.length} 个文件`);
       return data;
     } catch (error) {
-      console.error('❌ [files_api.ts] 获取文件列表失败:', {
-        error,
-        headers: (error as any)?.config?.headers,  // 添加请求头信息
-        status: (error as any)?.response?.status,
-        responseData: (error as any)?.response?.data
-      });
-      throw error;
+      return handleError('获取文件列表', error);
     }
   },
-
-
 
   // ----------- 上传文件 API.upload (done check)-------------
   // 上传文件的API， 返回的Promise解析值为 FileRecord类型
   uploadFile: async (file: File): Promise<FileRecord> => {
-    console.log('📤 [files_api.ts] 开始上传文件:', {
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type,
-      lastModified: new Date(file.lastModified).toISOString()
-    });
+    console.log(`📤 上传文件: ${file.name} (${file.size} bytes)`);
 
     try {
       // 1. 上传文件
@@ -65,108 +48,53 @@ export const fileApi = {
       formData.append('name', file.name);
       formData.append('type', 'OTHER');  // 或根据文件类型动态设置
 
-      console.log('🚀 [files_api.ts] 发送文件到上传服务器', endpoints.uploadFiles);
-
-      // 查看 FormData 内容
-      console.log('🚀 [files_api.ts] 发送的表单数据:');
-      formData.forEach((value, key) => {
-        console.log(`${key}:`, value);
-      });
-      
       const response = await axiosInstance.post(endpoints.uploadFiles, formData);
       
-      console.log('✅ [files_api.ts] 文件上传成功:', {
-        fileId: response.data.id,
-        fileName: response.data.name,
-        url: response.data.url
-      });
+      console.log(`✅ 文件上传成功: ${response.data.name}`);
       return response.data;
     } catch (error) {
-      console.error('❌ [files_api.ts] 文件上传失败:', {
-        fileName: file.name,
-        error,
-        response: (error as any)?.response?.data,
-        status: (error as any)?.response?.status,
-        message: error instanceof Error ? error.message : '未知错误'
-      });
-      throw new Error('文件上传失败');
+      return handleError('文件上传', error);
     }
   },
 
-
-  
   // ----------- 删除文件 API.deleteFile(done check!) -------------
   // 删除文件的API， 返回的Promise解析值为 void类型
   deleteFile: async (fileId: string): Promise<void> => {
-    console.log('🗑️ [files_api.ts] 开始删除文件:', { fileId });    
+    console.log(`🗑️ 删除文件: ${fileId}`);    
     
     try {
       await axiosInstance.delete(`${endpoints.deleteFiles}${fileId}/`);
-      console.log('✅ [files_api.ts] 文件删除成功:', { fileId });
+      console.log(`✅ 文件删除成功`);
     } catch (error) {
-      console.error('❌ [files_api.ts] 删除文件失败:', {
-        fileId,
-        error,
-        status: (error as any)?.response?.status,
-        response: (error as any)?.response?.data,
-        message: error instanceof Error ? error.message : '未知错误'
-      });
-      throw error;
+      return handleError('删除文件', error);
     }
   },
 
   // 获取单个文件详情
   // presigned 参数用于控制是否返回预签名URL, 在后端的serializers.py中, get_url方法中使用
   getFileDetail: async (fileId: string, presigned: boolean = false): Promise<FileRecord> => {
-    console.log('🔍 [files_api.ts] 获取文件详情:', { fileId, presigned });
+    console.log(`🔍 获取文件详情: ${fileId}`);
     
     try {
       const { data } = await axiosInstance.get(`${endpoints.getFileDetail}${fileId}/?presigned=${presigned}`);
-      console.log('✅ [files_api.ts] 文件详情获取成功:', {
-        fileId: data.id,
-        fileName: data.name,
-        url: data.url,
-        mimeType: data.mime_type
-      });
-
+      console.log(`✅ 获取到文件: ${data.name}`);
 
       return data;
     } catch (error) {
-      console.error('❌ [files_api.ts] 获取文件详情失败:', {
-        fileId,
-        error,
-        status: (error as any)?.response?.status,
-        response: (error as any)?.response?.data,
-        message: error instanceof Error ? error.message : '未知错误'
-      });
-      throw error;
+      return handleError('获取文件详情', error);
     }
   },
 
   // 更新文件信息
   updateFile: async (fileId: string, updateData: Partial<FileRecord>): Promise<FileRecord> => {
-    console.log('📝 [files_api.ts] 开始更新文件信息:', {
-      fileId,
-      updateData
-    });
+    console.log(`📝 更新文件: ${fileId}`);
     
     try {
       const { data } = await axiosInstance.put(`${endpoints.updateFileDetail}${fileId}/`, updateData);
-      console.log('✅ [files_api.ts] 文件信息更新成功:', {
-        fileId: data.id,
-        fileName: data.name,
-        updatedFields: Object.keys(updateData)
-      });
+      console.log(`✅ 文件更新成功: ${data.name}`);
       return data;
     } catch (error) {
-      console.error('❌ [files_api.ts] 更新文件信息失败:', {
-        fileId,
-        error,
-        status: (error as any)?.response?.status,
-        response: (error as any)?.response?.data,
-        message: error instanceof Error ? error.message : '未知错误'
-      });
-      throw error;
+      return handleError('更新文件信息', error);
     }
   }
 

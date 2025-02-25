@@ -22,6 +22,7 @@ interface FileManagerProps {
 */
 // 文件管理器 主函数
 export function FileManager({ onFileUpload }: FileManagerProps) {
+  console.log("🔄 [_FileManager.tsx] 渲染");
 
   // Hooks的功能引用： useToast() 和 useFiles()
   const { toast } = useToast();
@@ -38,6 +39,9 @@ export function FileManager({ onFileUpload }: FileManagerProps) {
   // 文件的状态管理： 文件的选择和更新， 预览组件的启用和关闭
   const [selectedFile, setSelectedFile] = useState<FileRecord | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  // 添加批量删除相关状态
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
 
 
 
@@ -132,6 +136,30 @@ export function FileManager({ onFileUpload }: FileManagerProps) {
     setIsPreviewOpen(true);
   };
 
+  // ------------------ 批量删除的处理逻辑 ------------------ 
+  const handleBatchDelete = async () => {
+    console.log('🗑️ [_FileManager.tsx] 开始批量删除文件:', selectedFiles);
+
+    try {
+      // 使用 Promise.all 并行删除所有选中的文件
+      await Promise.all(selectedFiles.map(fileId => deleteFile(fileId)));
+      
+      console.log('✅ [_FileManager.tsx] 批量删除成功');
+      toast({
+        title: "批量删除成功",
+        description: `已成功删除 ${selectedFiles.length} 个文件`
+      });
+      setSelectedFiles([]); // 清空已选文件
+    } catch (error: any) {
+      console.error('❌ [_FileManager.tsx] 批量删除错误:', error);
+      toast({
+        title: "批量删除失败",
+        description: error?.message || "请稍后重试",
+        variant: "destructive",
+      });
+    }
+  };
+
 
 
 
@@ -149,17 +177,30 @@ export function FileManager({ onFileUpload }: FileManagerProps) {
 
   // 返回文件管理器的组件渲染
   return (
-    <div className="space-y-4">
-      <FileUploadButton 
-        onFileSelect={handleUpload}  // 回调FileManager.tsx里的handleUpload逻辑函数 
-        isUploading={isUploading}  // 引用useFiles.ts里的isUploading  
-      />
+    <div className="space-y-4 p-4">
+      <div className="flex items-center justify-between">
+        <FileUploadButton 
+          onFileSelect={handleUpload}  // 回调FileManager.tsx里的handleUpload逻辑函数 
+          isUploading={isUploading}  // 引用useFiles.ts里的isUploading  
+        />
+        {selectedFiles.length > 0 && (
+          <button
+            onClick={handleBatchDelete}
+            disabled={isDeleting}
+            className="inline-flex items-center justify-center rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground shadow-sm transition-colors hover:bg-destructive/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none"
+          >
+            删除选中文件 ({selectedFiles.length})
+          </button>
+        )}
+      </div>
       
       <FileTable 
         files={files}  // 引用useFiles.ts里的files
         onDelete={handleDelete}  // 回调FileManager.tsx里的handleDelete逻辑函数 
         onPreview={handlePreview}  // 回调FileManager.tsx里的handlePreview逻辑函数  
         isDeleting={isDeleting}  // 引用useFiles.ts里的isDeleting
+        selectedFiles={selectedFiles}
+        onSelectFiles={setSelectedFiles}
       />
       
       <FilePreviewDialog 

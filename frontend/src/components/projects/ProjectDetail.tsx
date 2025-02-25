@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Edit2, Save, X } from 'lucide-react'
+import { FileUploadButton } from '@/components/files/FileUploadButton'
 
 interface ProjectDetailProps {
   projectId: string
@@ -137,87 +138,99 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
       </div>
 
       <ScrollArea className="h-[calc(100vh-12rem)] px-1">
-        <div className="grid gap-4">
-          {/* 基本信息卡片 */}
+        <div className="grid gap-4 w-full max-w-7xl mx-auto px-4">
+          {/* 合并后的卡片 */}
           <Card>
             <CardHeader>
-              <CardTitle>基本信息</CardTitle>
-              <CardDescription>项目的基本信息</CardDescription>
+              <CardTitle>项目概览</CardTitle>
+              <CardDescription>项目的基本信息和历史记录</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {/* 项目名称 */}
-                <div className="space-y-2">
-                  <label className="text-sm font-bold">项目名称</label>
-                  {isEditing ? (
-                    <Input
-                      value={editedProject?.projectName}
-                      onChange={(e) => handleFieldChange('projectName', e.target.value)}
-                    />
-                  ) : (
-                    <p>{project.projectName}</p>
-                  )}
-                </div>
-                
-                {/* 项目类型 */}
-                <div className="space-y-2">
-                  <label className="text-sm font-bold">项目类型</label>
-                  {isEditing ? (
-                    <Select
-                      value={editedProject?.projectType}
-                      onValueChange={(value) => handleFieldChange('projectType', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="WELFARE">企业福利</SelectItem>
-                        <SelectItem value="FSD">食材配送</SelectItem>
-                        <SelectItem value="OTHER">其他</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <p>{project.projectType}</p>
-                  )}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* 左侧 - 基本信息 */}
+                <div className="space-y-4">
+                  <div className="space-y-1 col-span-2">
+                    <label className="text-sm font-medium text-gray-600">项目名称</label>
+                    {isEditing ? (
+                      <Input
+                        value={editedProject?.projectName}
+                        onChange={(e) => handleFieldChange('projectName', e.target.value)}
+                        className="mt-1"
+                      />
+                    ) : (
+                      <p className="text-sm text-gray-900">{project.projectName}</p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-600">项目类型</label>
+                    {isEditing ? (
+                      <Select
+                        value={editedProject?.projectType}
+                        onValueChange={(value) => handleFieldChange('projectType', value)}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="WELFARE">企业福利</SelectItem>
+                          <SelectItem value="FSD">食材配送</SelectItem>
+                          <SelectItem value="OTHER">其他</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="text-sm text-gray-900">{project.projectType}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-600">项目编号</label>
+                    <p className="text-sm text-gray-900">{project.projectCode}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-600">当前阶段</label>
+                    <p className="text-sm text-gray-900">{project.currentStage}</p>
+                  </div>
                 </div>
 
-                {/* 其他只读字段 */}
-                <div className="space-y-2">
-                  <label className="text-sm font-bold">项目编号</label>
-                  <p>{project.projectCode}</p>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-bold">当前阶段</label>
-                  <p>{project.currentStage}</p>
+                {/* 右侧 - 项目历史 */}
+                <div className="space-y-4">
+                  {project.stageHistories?.map((history) => (
+                    <div key={history.historyId} className="border-b pb-2">
+                      <p className="font-medium">
+                        {history.fromStage} → {history.toStage}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {new Date(history.operationTime).toLocaleString()}
+                      </p>
+                      {history.remarks && (
+                        <p className="text-sm mt-1">{history.remarks}</p>
+                      )}
+                    </div>
+                  ))}
+                  {(!project.stageHistories || project.stageHistories.length === 0) && (
+                    <p className="text-sm text-gray-500">暂无历史记录</p>
+                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* 项目历史卡片 */}
+          {/* 新增招标文件分析卡片 */}
           <Card>
             <CardHeader>
-              <CardTitle>项目历史</CardTitle>
-              <CardDescription>项目状态变更记录</CardDescription>
+              <CardTitle>招标文件分析</CardTitle>
+              <CardDescription>上传并分析招标文件</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {project.stageHistories?.map((history) => (
-                  <div key={history.historyId} className="border-b pb-2">
-                    <p className="font-medium">
-                      {history.fromStage} → {history.toStage}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {new Date(history.operationTime).toLocaleString()}
-                    </p>
-                    {history.remarks && (
-                      <p className="text-sm mt-1">{history.remarks}</p>
-                    )}
-                  </div>
-                ))}
-                {(!project.stageHistories || project.stageHistories.length === 0) && (
-                  <p className="text-sm text-gray-500">暂无历史记录</p>
-                )}
+                <FileUploadButton
+                  onFileSelect={(file) => {
+                    // 这里可以添加处理上传文件的逻辑
+                    console.log('Selected file:', file)
+                  }}
+                  isUploading={false} // 可以根据需要添加上传状态管理
+                />
               </div>
             </CardContent>
           </Card>

@@ -141,36 +141,41 @@ export function ProjectManager() {
 
   // ------------------------------ 组件渲染 -----------------------------
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <CreateProjectDialog />
+        
+        {/* 添加一个占位元素保持布局平衡 */}
+        <div></div>
+      </div>
 
-      <CreateProjectDialog />
+      <div className="rounded-lg border bg-background shadow-sm">
+        {/* 查询过滤器组件 */}
+        <ProjectFilter 
+          // 传入查询参数
+          queryParams={queryParams}
+          // 传入的查询参数在父组件进行变更管理
+          onQueryChange={handleQueryChange}
+        />
+      </div>
 
-      {/* 查询过滤器组件 */}
-      <ProjectFilter 
-        // 传入查询参数
-        queryParams={queryParams}
-        // 传入的查询参数在父组件进行变更管理
-        onQueryChange={handleQueryChange}
-      />
-
-      <ProjectList
-        // 使用useProjects里的项目数据projects传给ProjectList组件 
-        projects={projects || []}
-        // 使用useProjects里的isLoading传给ProjectList组件 
-        isLoading={isLoading}
-        // 使用useProjects里的error传给ProjectList组件, 为了向用户展示数据提取的错误信息 
-        error={error as Error}
-
-        // 详情按钮 的回调， 在父组件激活项目详情弹窗，直接跳转页面
-        onViewDetail={handleViewDetail} 
-        // 删除按钮 的回调， 在父组件删除项目，新的projects数据通过以上传参传入。
-        onDeleteProject={handleDeleteProject}
-        // 排序按钮 的回调，它会改变在父组件获取的projects的顺序,通过上面传参传入。
-        onSort = {handleSortChange}
-
-        currentSort = {queryParams.ordering || '-create_time'} // 默认按创建时间倒序
-      />
-
+      <div className="rounded-lg border bg-background shadow-sm">
+        <ProjectList
+          // 使用useProjects里的项目数据projects传给ProjectList组件
+          projects={projects || []}
+          // 使用useProjects里的isLoading传给ProjectList组件
+          isLoading={isLoading}
+          // 使用useProjects里的error传给ProjectList组件, 为了向用户展示数据提取的错误信息
+          error={error as Error}
+          // 详情按钮 的回调， 在父组件激活项目详情弹窗，直接跳转页面
+          onViewDetail={handleViewDetail}
+          // 删除按钮 的回调， 在父组件删除项目，新的projects数据通过以上传参传入。
+          onDeleteProject={handleDeleteProject}
+          // 排序按钮 的回调，它会改变在父组件获取的projects的顺序,通过上面传参传入。
+          onSort={handleSortChange}
+          currentSort={queryParams.ordering || '-create_time'} // 默认按创建时间倒序
+        />
+      </div>
     </div>
   )
 }

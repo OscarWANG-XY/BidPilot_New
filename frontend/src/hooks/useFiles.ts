@@ -119,18 +119,23 @@ export function useFiles() {
 
   // ----------- 修改删除 mutation (done check!)-------------
   const deleteMutation = useMutation({
-    // 删除文件的Mutation函数, fileId作为参数传入，调用fileApi.deleteFile向服务器发出删除请求。
-    mutationFn: (fileId: string) => {
-      console.log('🗑️ [useFiles.ts] 开始删除文件:', fileId);
-      return fileApi.deleteFile(fileId);
+    // 删除文件的Mutation函数, fileIds作为参数传入，调用fileApi.deleteFile向服务器发出删除请求。
+    mutationFn: (fileIds: string | string[]) => {
+      const ids = Array.isArray(fileIds) ? fileIds : [fileIds];
+      console.log('🗑️ [useFiles.ts] 开始删除文件:', ids);
+      // 使用 Promise.all 并行删除多个文件
+      return Promise.all(ids.map(id => fileApi.deleteFile(id)));
     },
 
-    // 删除成功后，从缓存中移除已删除的文件
-    onSuccess: (_, fileId: string) => {
-      console.log('✅ [useFiles.ts] 文件删除成功:', fileId);
-
-      // 第一个参数是缓存标识符queryKey, 第二个是回调函数()=>{}, old作为传参, 默认为[]
-      console.log('💾 [useFiles.ts] 更新缓存数据 - 移除已删除文件');
+    // 修改成功处理逻辑, 从缓存中移除已删除的文件
+    // 第一个参数是缓存标识符queryKey, 第二个是回调函数()=>{}, old作为传参, 默认为[]    
+    // 修正类型定义，response 是后端响应数组
+    onSuccess: (response: any[], fileIds: string | string[]) => {
+      const ids = Array.isArray(fileIds) ? fileIds : [fileIds];
+      console.log('✅ [useFiles.ts] 文件删除成功:', {
+        ids,
+        response
+      });
 
       queryClient.setQueryData<FileRecord[]>(
         // 缓存的唯一标识符，在useQuery被初始化时配置。 
@@ -141,11 +146,11 @@ export function useFiles() {
       //);
 
         (old = []) => {
-          const newData = old.filter((file) => file.id !== fileId);
+          const newData = old.filter((file) => !ids.includes(file.id));
           console.log('📊 [useFiles.ts] 缓存更新结果:', {
             oldCount: old.length,
             newCount: newData.length,
-            removedFileId: fileId
+            removedFileIds: ids
           });
           return newData;
         }
