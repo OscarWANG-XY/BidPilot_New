@@ -81,7 +81,7 @@ export function CreateProjectDialog() {
       // 然后格式就是如下方式。
       if (result?.id) {
         navigate({ 
-          to: '/projects/$id', 
+          to: '/projects/$id/new', 
           params: { id: result.id.toString() } })
       }
     } catch (error) {

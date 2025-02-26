@@ -19,14 +19,11 @@ export function ProjectFilter({ queryParams, onQueryChange }: ProjectFilterProps
         <option value="">所有状态</option>
         {Object.values(ProjectStage).map(stage => (
           <option key={stage} value={stage}>
-            {stage === 'DRAFT' ? '草稿' :
-             stage === 'ANALYZING' ? '分析中' :
-             stage === 'PENDING_CONFIRM' ? '待确认' :
-             stage === 'WRITING' ? '编写中' :
-             stage === 'REVIEWING' ? '审核中' :
-             stage === 'REVISING' ? '修订中' :
-             stage === 'COMPLETED' ? '已完成' :
-             stage === 'CANCELLED' ? '已取消' : stage}
+            {stage === 'INITIALIZATION' ? '项目初始化' :
+             stage === 'TENDER_ANALYSIS' ? '招标文件解读' :
+             stage === 'BID_WRITING' ? '投标文件撰写' :
+             stage === 'BID_REVISION' ? '投标文件集成和整体修订' :
+             stage === 'BID_PRODUCTION' ? '生产投标文件' : stage}
           </option>
         ))}
       </select>

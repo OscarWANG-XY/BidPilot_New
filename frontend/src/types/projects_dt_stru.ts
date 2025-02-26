@@ -5,16 +5,20 @@ export enum ProjectType {
   OTHER = 'OTHER'        // 其他
 }
 
-// 项目阶段枚举
+// 项目状态枚举
+export enum ProjectStatus {
+  IN_PROGRESS = 'IN_PROGRESS', // 进行中
+  COMPLETED = 'COMPLETED',     // 已完成
+  CANCELLED = 'CANCELLED'      // 已取消
+}
+
+// 项目阶段枚举 (仅包含业务阶段)
 export enum ProjectStage {
-  DRAFT = 'DRAFT',               // 草稿
-  ANALYZING = 'ANALYZING',       // 分析中
-  PENDING_CONFIRM = 'PENDING_CONFIRM', // 待确认
-  WRITING = 'WRITING',          // 编写中
-  REVIEWING = 'REVIEWING',      // 审核中
-  REVISING = 'REVISING',        // 修订中
-  COMPLETED = 'COMPLETED',      // 已完成
-  CANCELLED = 'CANCELLED'       // 已取消
+  INITIALIZATION = 'INITIALIZATION',   // 项目初始化
+  TENDER_ANALYSIS = 'TENDER_ANALYSIS', // 招标文件解读
+  BID_WRITING = 'BID_WRITING',         // 投标文件撰写
+  BID_REVISION = 'BID_REVISION',       // 投标文件集成和整体修订
+  BID_PRODUCTION = 'BID_PRODUCTION'    // 生产投标文件
 }
 
 // 项目基本信息接口
@@ -26,7 +30,8 @@ export interface Project {
   tenderee: string;             // 招标单位
   bidder: string;               // 投标单位
   bidDeadline: Date;            // 投标截止时间
-  currentStage: ProjectStage;   // 当前阶段
+  status: ProjectStatus;        // 项目状态
+  currentStage: ProjectStage;    // 当前阶段
   stageHistories?: ProjectHistory[];  // 添加这个属性
   isUrgent: boolean;            // 是否紧急
   creator: {                    // 创建者信息

@@ -22,6 +22,10 @@ import { Route as AuthRegisterImport } from './routes/auth/register'
 import { Route as AuthPrivacyPolicyImport } from './routes/auth/privacy-policy'
 import { Route as AuthLoginImport } from './routes/auth/login'
 import { Route as AuthForgotPasswordImport } from './routes/auth/forgot-password'
+import { Route as ProjectsIdIndexImport } from './routes/projects.$id.index'
+import { Route as ProjectsIdNewImport } from './routes/projects.$id.new'
+import { Route as ProjectsIdPhasesPhaseIdImport } from './routes/projects.$id.phases.$phaseId'
+import { Route as ProjectsIdPhasesPhaseIdViewModeImport } from './routes/projects.$id.phases.$phaseId.$viewMode'
 
 // Create Virtual Routes
 
@@ -118,6 +122,31 @@ const AuthForgotPasswordRoute = AuthForgotPasswordImport.update({
   path: '/auth/forgot-password',
   getParentRoute: () => rootRoute,
 } as any)
+
+const ProjectsIdIndexRoute = ProjectsIdIndexImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ProjectsIdRoute,
+} as any)
+
+const ProjectsIdNewRoute = ProjectsIdNewImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => ProjectsIdRoute,
+} as any)
+
+const ProjectsIdPhasesPhaseIdRoute = ProjectsIdPhasesPhaseIdImport.update({
+  id: '/phases/$phaseId',
+  path: '/phases/$phaseId',
+  getParentRoute: () => ProjectsIdRoute,
+} as any)
+
+const ProjectsIdPhasesPhaseIdViewModeRoute =
+  ProjectsIdPhasesPhaseIdViewModeImport.update({
+    id: '/$viewMode',
+    path: '/$viewMode',
+    getParentRoute: () => ProjectsIdPhasesPhaseIdRoute,
+  } as any)
 
 // Populate the FileRoutesByPath interface
 
@@ -221,6 +250,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsIdImport
       parentRoute: typeof ProjectsImport
     }
+    '/projects/$id/new': {
+      id: '/projects/$id/new'
+      path: '/new'
+      fullPath: '/projects/$id/new'
+      preLoaderRoute: typeof ProjectsIdNewImport
+      parentRoute: typeof ProjectsIdImport
+    }
+    '/projects/$id/': {
+      id: '/projects/$id/'
+      path: '/'
+      fullPath: '/projects/$id/'
+      preLoaderRoute: typeof ProjectsIdIndexImport
+      parentRoute: typeof ProjectsIdImport
+    }
+    '/projects/$id/phases/$phaseId': {
+      id: '/projects/$id/phases/$phaseId'
+      path: '/phases/$phaseId'
+      fullPath: '/projects/$id/phases/$phaseId'
+      preLoaderRoute: typeof ProjectsIdPhasesPhaseIdImport
+      parentRoute: typeof ProjectsIdImport
+    }
+    '/projects/$id/phases/$phaseId/$viewMode': {
+      id: '/projects/$id/phases/$phaseId/$viewMode'
+      path: '/$viewMode'
+      fullPath: '/projects/$id/phases/$phaseId/$viewMode'
+      preLoaderRoute: typeof ProjectsIdPhasesPhaseIdViewModeImport
+      parentRoute: typeof ProjectsIdPhasesPhaseIdImport
+    }
   }
 }
 
@@ -236,12 +293,42 @@ const ChatRouteChildren: ChatRouteChildren = {
 
 const ChatRouteWithChildren = ChatRoute._addFileChildren(ChatRouteChildren)
 
+interface ProjectsIdPhasesPhaseIdRouteChildren {
+  ProjectsIdPhasesPhaseIdViewModeRoute: typeof ProjectsIdPhasesPhaseIdViewModeRoute
+}
+
+const ProjectsIdPhasesPhaseIdRouteChildren: ProjectsIdPhasesPhaseIdRouteChildren =
+  {
+    ProjectsIdPhasesPhaseIdViewModeRoute: ProjectsIdPhasesPhaseIdViewModeRoute,
+  }
+
+const ProjectsIdPhasesPhaseIdRouteWithChildren =
+  ProjectsIdPhasesPhaseIdRoute._addFileChildren(
+    ProjectsIdPhasesPhaseIdRouteChildren,
+  )
+
+interface ProjectsIdRouteChildren {
+  ProjectsIdNewRoute: typeof ProjectsIdNewRoute
+  ProjectsIdIndexRoute: typeof ProjectsIdIndexRoute
+  ProjectsIdPhasesPhaseIdRoute: typeof ProjectsIdPhasesPhaseIdRouteWithChildren
+}
+
+const ProjectsIdRouteChildren: ProjectsIdRouteChildren = {
+  ProjectsIdNewRoute: ProjectsIdNewRoute,
+  ProjectsIdIndexRoute: ProjectsIdIndexRoute,
+  ProjectsIdPhasesPhaseIdRoute: ProjectsIdPhasesPhaseIdRouteWithChildren,
+}
+
+const ProjectsIdRouteWithChildren = ProjectsIdRoute._addFileChildren(
+  ProjectsIdRouteChildren,
+)
+
 interface ProjectsRouteChildren {
-  ProjectsIdRoute: typeof ProjectsIdRoute
+  ProjectsIdRoute: typeof ProjectsIdRouteWithChildren
 }
 
 const ProjectsRouteChildren: ProjectsRouteChildren = {
-  ProjectsIdRoute: ProjectsIdRoute,
+  ProjectsIdRoute: ProjectsIdRouteWithChildren,
 }
 
 const ProjectsRouteWithChildren = ProjectsRoute._addFileChildren(
@@ -262,7 +349,11 @@ export interface FileRoutesByFullPath {
   '/auth/register': typeof AuthRegisterRoute
   '/auth/service-term': typeof AuthServiceTermRoute
   '/chat/$sessionId': typeof ChatSessionIdRoute
-  '/projects/$id': typeof ProjectsIdRoute
+  '/projects/$id': typeof ProjectsIdRouteWithChildren
+  '/projects/$id/new': typeof ProjectsIdNewRoute
+  '/projects/$id/': typeof ProjectsIdIndexRoute
+  '/projects/$id/phases/$phaseId': typeof ProjectsIdPhasesPhaseIdRouteWithChildren
+  '/projects/$id/phases/$phaseId/$viewMode': typeof ProjectsIdPhasesPhaseIdViewModeRoute
 }
 
 export interface FileRoutesByTo {
@@ -279,7 +370,10 @@ export interface FileRoutesByTo {
   '/auth/register': typeof AuthRegisterRoute
   '/auth/service-term': typeof AuthServiceTermRoute
   '/chat/$sessionId': typeof ChatSessionIdRoute
-  '/projects/$id': typeof ProjectsIdRoute
+  '/projects/$id/new': typeof ProjectsIdNewRoute
+  '/projects/$id': typeof ProjectsIdIndexRoute
+  '/projects/$id/phases/$phaseId': typeof ProjectsIdPhasesPhaseIdRouteWithChildren
+  '/projects/$id/phases/$phaseId/$viewMode': typeof ProjectsIdPhasesPhaseIdViewModeRoute
 }
 
 export interface FileRoutesById {
@@ -297,7 +391,11 @@ export interface FileRoutesById {
   '/auth/register': typeof AuthRegisterRoute
   '/auth/service-term': typeof AuthServiceTermRoute
   '/chat/$sessionId': typeof ChatSessionIdRoute
-  '/projects/$id': typeof ProjectsIdRoute
+  '/projects/$id': typeof ProjectsIdRouteWithChildren
+  '/projects/$id/new': typeof ProjectsIdNewRoute
+  '/projects/$id/': typeof ProjectsIdIndexRoute
+  '/projects/$id/phases/$phaseId': typeof ProjectsIdPhasesPhaseIdRouteWithChildren
+  '/projects/$id/phases/$phaseId/$viewMode': typeof ProjectsIdPhasesPhaseIdViewModeRoute
 }
 
 export interface FileRouteTypes {
@@ -317,6 +415,10 @@ export interface FileRouteTypes {
     | '/auth/service-term'
     | '/chat/$sessionId'
     | '/projects/$id'
+    | '/projects/$id/new'
+    | '/projects/$id/'
+    | '/projects/$id/phases/$phaseId'
+    | '/projects/$id/phases/$phaseId/$viewMode'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -332,7 +434,10 @@ export interface FileRouteTypes {
     | '/auth/register'
     | '/auth/service-term'
     | '/chat/$sessionId'
+    | '/projects/$id/new'
     | '/projects/$id'
+    | '/projects/$id/phases/$phaseId'
+    | '/projects/$id/phases/$phaseId/$viewMode'
   id:
     | '__root__'
     | '/'
@@ -349,6 +454,10 @@ export interface FileRouteTypes {
     | '/auth/service-term'
     | '/chat/$sessionId'
     | '/projects/$id'
+    | '/projects/$id/new'
+    | '/projects/$id/'
+    | '/projects/$id/phases/$phaseId'
+    | '/projects/$id/phases/$phaseId/$viewMode'
   fileRoutesById: FileRoutesById
 }
 
@@ -454,7 +563,31 @@ export const routeTree = rootRoute
     },
     "/projects/$id": {
       "filePath": "projects.$id.tsx",
-      "parent": "/projects"
+      "parent": "/projects",
+      "children": [
+        "/projects/$id/new",
+        "/projects/$id/",
+        "/projects/$id/phases/$phaseId"
+      ]
+    },
+    "/projects/$id/new": {
+      "filePath": "projects.$id.new.tsx",
+      "parent": "/projects/$id"
+    },
+    "/projects/$id/": {
+      "filePath": "projects.$id.index.tsx",
+      "parent": "/projects/$id"
+    },
+    "/projects/$id/phases/$phaseId": {
+      "filePath": "projects.$id.phases.$phaseId.tsx",
+      "parent": "/projects/$id",
+      "children": [
+        "/projects/$id/phases/$phaseId/$viewMode"
+      ]
+    },
+    "/projects/$id/phases/$phaseId/$viewMode": {
+      "filePath": "projects.$id.phases.$phaseId.$viewMode.tsx",
+      "parent": "/projects/$id/phases/$phaseId"
     }
   }
 }
