@@ -69,6 +69,16 @@ class FileRecord(BaseModel):
     metadata = models.JSONField(null=True, blank=True)  # 存储文件元数据，可为空
     remarks = models.TextField(null=True, blank=True)  # 备注信息，可为空
 
+    # 关联项目
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.SET_NULL,  # 当项目被删除时，不删除文件，而是将关联设为NULL
+        related_name='files',       # 通过 project.files 可以访问项目的所有文件
+        null=True,                  # 允许文件不关联到项目
+        blank=True,                 # 表单中可以不填写
+        verbose_name='关联项目'
+    )
+
     class Meta:
         db_table = 'file_records'  # 指定数据库表名
 

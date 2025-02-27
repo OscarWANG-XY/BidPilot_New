@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { ProjectPhaseView } from '@/components/projects/ProjectManagement/ProjectPhaseView'
-// 假设我们可以从某个地方导入或获取项目状态数据
-import { mockData } from '@/components/projects/ProjectManagement/mockData'
+import { ProjectPhaseView } from '@/components/projects/_06_ProjectPhaseView'
+// 导入更新后的mockData
+import { mockCompleteProjectData } from '@/components/projects/mockData'
 
 export const Route = createFileRoute('/projects/$id/phases/$phaseId/$viewMode')({
   
@@ -24,20 +24,21 @@ function PhaseViewComponent() {
   const { id, phaseId, viewMode } = Route.useParams()
   
   console.log('Rendering PhaseViewComponent with:', { id, phaseId, viewMode });
-  console.log('Available mockData:', mockData);
+  console.log('Available mockData:', mockCompleteProjectData);
   
-  // 从mockData中获取项目状态数据
+  // 从mockCompleteProjectData中获取项目数据
   // 注意：在实际应用中，您可能需要从API获取这些数据
-  const projectData = mockData.find(project => project.id === id) || mockData[0]
+  const projectData = mockCompleteProjectData.project
   console.log('Found projectData:', projectData);
   
-  const currentProjectStage = projectData?.stage || 'planning'
-  const projectStatus = projectData?.status || 'active'
+  // 获取当前项目阶段和状态
+  const currentProjectStage = projectData.currentStage
+  const projectStatus = projectData.status
   
   console.log('Using stage and status:', { currentProjectStage, projectStatus });
   
   // 检查phaseId是否存在于mockData中
-  const phaseExists = mockData.some(phase => phase.id === phaseId);
+  const phaseExists = mockCompleteProjectData.phases.some(phase => phase.id === phaseId);
   console.log('Phase exists in mockData:', phaseExists);
   
   return (

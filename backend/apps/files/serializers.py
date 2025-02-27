@@ -32,6 +32,14 @@ class FileRecordSerializer(serializers.ModelSerializer):
     
     owner = UserSerializer(read_only=True)
     
+    # 添加项目ID字段，用于前端显示和关联
+    project_id = serializers.PrimaryKeyRelatedField(
+        source='project',
+        queryset=Project.objects.all(),
+        required=False,
+        allow_null=True
+    )
+    
     url = serializers.SerializerMethodField()
     
     class Meta:
@@ -39,7 +47,7 @@ class FileRecordSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'file', 'size', 'type', 'mime_type',
             'processing_status', 'processing_progress', 'error_message',
-            'owner', 'metadata', 'remarks',
+            'owner', 'metadata', 'remarks', 'project_id',
             'created_at', 'created_by', 'updated_at', 'updated_by',
             'version', 'url'
         ]
@@ -71,11 +79,19 @@ class FileRecordSerializer(serializers.ModelSerializer):
 class FileRecordCreateSerializer(serializers.ModelSerializer):
     """用于文件创建的专用序列化器"""
 
+    # 添加项目ID字段，用于关联项目
+    project_id = serializers.PrimaryKeyRelatedField(
+        source='project',
+        queryset=Project.objects.all(),
+        required=False,
+        allow_null=True
+    )
+
     class Meta:
         model = FileRecord  # 指定序列化的模型
         fields = [
             'name', 'file', 'size', 'type', 'mime_type',
-            'metadata', 'remarks'
+            'metadata', 'remarks', 'project_id'
         ]  # 指定创建时需要的字段
 
     def create(self, validated_data):

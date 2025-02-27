@@ -1,8 +1,9 @@
 import React from 'react'
 import { Button } from '@/components/ui/button'
 import { Link } from '@tanstack/react-router'
-import { mockData } from './mockData'
+import { mockCompleteProjectData } from './mockData'
 import { PhaseStatus, ProjectPhase } from './types'
+import { ProjectStage } from '@/types/projects_dt_stru'
 
 interface ProjectOverviewProps {
   projectId: string
@@ -10,8 +11,38 @@ interface ProjectOverviewProps {
 
 export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projectId }) => {
   // 在实际应用中，你可能需要根据 projectId 获取项目信息
+  //const project = mockCompleteProjectData.project;
+  const phases = mockCompleteProjectData.phases;
   
-  // const projectName = `项目 #${projectId}`  
+  // 确保显示所有五个阶段，使用与mockData一致的ID格式
+  const allPhaseIds = ["phase-0", "phase-1", "phase-2", "phase-3", "phase-4"]; // 修改为与mockData一致的ID格式
+  const allPhaseNames = ["项目初始化", "招标文件分析", "投标文件撰写", "投标文件修订", "投标文件生产"]; // 阶段名称
+  
+  // 定义每个阶段对应的ProjectStage枚举值
+  const allPhaseStages = [
+    ProjectStage.INITIALIZATION,
+    ProjectStage.TENDER_ANALYSIS,
+    ProjectStage.BID_WRITING,
+    ProjectStage.BID_REVISION,
+    ProjectStage.BID_PRODUCTION
+  ];
+  
+  // 创建一个包含所有五个阶段的数组，如果mockData中没有某个阶段，则使用默认值
+  const completePhases = allPhaseIds.map((id, index) => {
+    const existingPhase = phases.find(p => p.id === id);
+    if (existingPhase) return existingPhase;
+    
+    // 如果没有找到对应阶段，返回默认值，包含所有必需的属性
+    return {
+      id,
+      name: allPhaseNames[index],
+      description: "暂无描述",
+      status: PhaseStatus.NOT_STARTED,
+      progress: 0,
+      stage: allPhaseStages[index], // 使用对应的ProjectStage枚举值
+      tasks: [] // 添加空的tasks数组
+    } as ProjectPhase;
+  });
   
   return (
     <div className="space-y-6">
@@ -26,8 +57,8 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projectId }) =
         <h3 className="text-lg font-medium mb-4">项目阶段</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/*遍历mockData渲染的项目阶段*/}
-          {mockData.map((phase: ProjectPhase) => (
+          {/*遍历phases渲染的项目阶段*/}
+          {completePhases.map((phase: ProjectPhase) => (
             <div key={phase.id} className="border rounded-lg bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between mb-2">
                 <h4 className="font-medium">{phase.name}</h4>

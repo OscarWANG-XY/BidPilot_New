@@ -38,6 +38,9 @@ export interface BaseEntity {
     processingProgress?: number;  // 0-100
     errorMessage?: string;
 
+    // 项目关联
+    project_id?: string;  // 可选，因为文件可能不关联到项目
+    
     // 元数据
     metadata?: Record<string, unknown>;
     remarks?: string;

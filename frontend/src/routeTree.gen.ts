@@ -15,7 +15,11 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Route as rootRoute } from './routes/__root'
 import { Route as ProjectsImport } from './routes/projects'
 import { Route as ChatImport } from './routes/chat'
+import { Route as PlaygroundIndexImport } from './routes/playground/index'
 import { Route as ProjectsIdImport } from './routes/projects.$id'
+import { Route as PlaygroundTree1Import } from './routes/playground/tree1'
+import { Route as PlaygroundLayoutImport } from './routes/playground/_layout'
+import { Route as PlaygroundAIAnalysisDashboardImport } from './routes/playground/AIAnalysisDashboard'
 import { Route as ChatSessionIdImport } from './routes/chat.$sessionId'
 import { Route as AuthServiceTermImport } from './routes/auth/service-term'
 import { Route as AuthRegisterImport } from './routes/auth/register'
@@ -29,6 +33,7 @@ import { Route as ProjectsIdPhasesPhaseIdViewModeImport } from './routes/project
 
 // Create Virtual Routes
 
+const PlaygroundImport = createFileRoute('/playground')()
 const ProjectsmanagerLazyImport = createFileRoute('/projects_manager')()
 const FilesmanagerLazyImport = createFileRoute('/files_manager')()
 const CompanyLazyImport = createFileRoute('/company')()
@@ -36,6 +41,12 @@ const AboutLazyImport = createFileRoute('/about')()
 const IndexLazyImport = createFileRoute('/')()
 
 // Create/Update Routes
+
+const PlaygroundRoute = PlaygroundImport.update({
+  id: '/playground',
+  path: '/playground',
+  getParentRoute: () => rootRoute,
+} as any)
 
 const ProjectsmanagerLazyRoute = ProjectsmanagerLazyImport.update({
   id: '/projects_manager',
@@ -81,11 +92,35 @@ const IndexLazyRoute = IndexLazyImport.update({
   getParentRoute: () => rootRoute,
 } as any).lazy(() => import('./routes/index.lazy').then((d) => d.Route))
 
+const PlaygroundIndexRoute = PlaygroundIndexImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PlaygroundRoute,
+} as any)
+
 const ProjectsIdRoute = ProjectsIdImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => ProjectsRoute,
 } as any)
+
+const PlaygroundTree1Route = PlaygroundTree1Import.update({
+  id: '/tree1',
+  path: '/tree1',
+  getParentRoute: () => PlaygroundRoute,
+} as any)
+
+const PlaygroundLayoutRoute = PlaygroundLayoutImport.update({
+  id: '/_layout',
+  getParentRoute: () => PlaygroundRoute,
+} as any)
+
+const PlaygroundAIAnalysisDashboardRoute =
+  PlaygroundAIAnalysisDashboardImport.update({
+    id: '/playground/AIAnalysisDashboard',
+    path: '/playground/AIAnalysisDashboard',
+    getParentRoute: () => rootRoute,
+  } as any)
 
 const ChatSessionIdRoute = ChatSessionIdImport.update({
   id: '/$sessionId',
@@ -243,12 +278,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatSessionIdImport
       parentRoute: typeof ChatImport
     }
+    '/playground/AIAnalysisDashboard': {
+      id: '/playground/AIAnalysisDashboard'
+      path: '/playground/AIAnalysisDashboard'
+      fullPath: '/playground/AIAnalysisDashboard'
+      preLoaderRoute: typeof PlaygroundAIAnalysisDashboardImport
+      parentRoute: typeof rootRoute
+    }
+    '/playground': {
+      id: '/playground'
+      path: '/playground'
+      fullPath: '/playground'
+      preLoaderRoute: typeof PlaygroundImport
+      parentRoute: typeof rootRoute
+    }
+    '/playground/_layout': {
+      id: '/playground/_layout'
+      path: '/playground'
+      fullPath: '/playground'
+      preLoaderRoute: typeof PlaygroundLayoutImport
+      parentRoute: typeof PlaygroundRoute
+    }
+    '/playground/tree1': {
+      id: '/playground/tree1'
+      path: '/tree1'
+      fullPath: '/playground/tree1'
+      preLoaderRoute: typeof PlaygroundTree1Import
+      parentRoute: typeof PlaygroundImport
+    }
     '/projects/$id': {
       id: '/projects/$id'
       path: '/$id'
       fullPath: '/projects/$id'
       preLoaderRoute: typeof ProjectsIdImport
       parentRoute: typeof ProjectsImport
+    }
+    '/playground/': {
+      id: '/playground/'
+      path: '/'
+      fullPath: '/playground/'
+      preLoaderRoute: typeof PlaygroundIndexImport
+      parentRoute: typeof PlaygroundImport
     }
     '/projects/$id/new': {
       id: '/projects/$id/new'
@@ -335,6 +405,22 @@ const ProjectsRouteWithChildren = ProjectsRoute._addFileChildren(
   ProjectsRouteChildren,
 )
 
+interface PlaygroundRouteChildren {
+  PlaygroundLayoutRoute: typeof PlaygroundLayoutRoute
+  PlaygroundTree1Route: typeof PlaygroundTree1Route
+  PlaygroundIndexRoute: typeof PlaygroundIndexRoute
+}
+
+const PlaygroundRouteChildren: PlaygroundRouteChildren = {
+  PlaygroundLayoutRoute: PlaygroundLayoutRoute,
+  PlaygroundTree1Route: PlaygroundTree1Route,
+  PlaygroundIndexRoute: PlaygroundIndexRoute,
+}
+
+const PlaygroundRouteWithChildren = PlaygroundRoute._addFileChildren(
+  PlaygroundRouteChildren,
+)
+
 export interface FileRoutesByFullPath {
   '/': typeof IndexLazyRoute
   '/chat': typeof ChatRouteWithChildren
@@ -349,7 +435,11 @@ export interface FileRoutesByFullPath {
   '/auth/register': typeof AuthRegisterRoute
   '/auth/service-term': typeof AuthServiceTermRoute
   '/chat/$sessionId': typeof ChatSessionIdRoute
+  '/playground/AIAnalysisDashboard': typeof PlaygroundAIAnalysisDashboardRoute
+  '/playground': typeof PlaygroundLayoutRoute
+  '/playground/tree1': typeof PlaygroundTree1Route
   '/projects/$id': typeof ProjectsIdRouteWithChildren
+  '/playground/': typeof PlaygroundIndexRoute
   '/projects/$id/new': typeof ProjectsIdNewRoute
   '/projects/$id/': typeof ProjectsIdIndexRoute
   '/projects/$id/phases/$phaseId': typeof ProjectsIdPhasesPhaseIdRouteWithChildren
@@ -370,6 +460,9 @@ export interface FileRoutesByTo {
   '/auth/register': typeof AuthRegisterRoute
   '/auth/service-term': typeof AuthServiceTermRoute
   '/chat/$sessionId': typeof ChatSessionIdRoute
+  '/playground/AIAnalysisDashboard': typeof PlaygroundAIAnalysisDashboardRoute
+  '/playground': typeof PlaygroundIndexRoute
+  '/playground/tree1': typeof PlaygroundTree1Route
   '/projects/$id/new': typeof ProjectsIdNewRoute
   '/projects/$id': typeof ProjectsIdIndexRoute
   '/projects/$id/phases/$phaseId': typeof ProjectsIdPhasesPhaseIdRouteWithChildren
@@ -391,7 +484,12 @@ export interface FileRoutesById {
   '/auth/register': typeof AuthRegisterRoute
   '/auth/service-term': typeof AuthServiceTermRoute
   '/chat/$sessionId': typeof ChatSessionIdRoute
+  '/playground/AIAnalysisDashboard': typeof PlaygroundAIAnalysisDashboardRoute
+  '/playground': typeof PlaygroundRouteWithChildren
+  '/playground/_layout': typeof PlaygroundLayoutRoute
+  '/playground/tree1': typeof PlaygroundTree1Route
   '/projects/$id': typeof ProjectsIdRouteWithChildren
+  '/playground/': typeof PlaygroundIndexRoute
   '/projects/$id/new': typeof ProjectsIdNewRoute
   '/projects/$id/': typeof ProjectsIdIndexRoute
   '/projects/$id/phases/$phaseId': typeof ProjectsIdPhasesPhaseIdRouteWithChildren
@@ -414,7 +512,11 @@ export interface FileRouteTypes {
     | '/auth/register'
     | '/auth/service-term'
     | '/chat/$sessionId'
+    | '/playground/AIAnalysisDashboard'
+    | '/playground'
+    | '/playground/tree1'
     | '/projects/$id'
+    | '/playground/'
     | '/projects/$id/new'
     | '/projects/$id/'
     | '/projects/$id/phases/$phaseId'
@@ -434,6 +536,9 @@ export interface FileRouteTypes {
     | '/auth/register'
     | '/auth/service-term'
     | '/chat/$sessionId'
+    | '/playground/AIAnalysisDashboard'
+    | '/playground'
+    | '/playground/tree1'
     | '/projects/$id/new'
     | '/projects/$id'
     | '/projects/$id/phases/$phaseId'
@@ -453,7 +558,12 @@ export interface FileRouteTypes {
     | '/auth/register'
     | '/auth/service-term'
     | '/chat/$sessionId'
+    | '/playground/AIAnalysisDashboard'
+    | '/playground'
+    | '/playground/_layout'
+    | '/playground/tree1'
     | '/projects/$id'
+    | '/playground/'
     | '/projects/$id/new'
     | '/projects/$id/'
     | '/projects/$id/phases/$phaseId'
@@ -474,6 +584,8 @@ export interface RootRouteChildren {
   AuthPrivacyPolicyRoute: typeof AuthPrivacyPolicyRoute
   AuthRegisterRoute: typeof AuthRegisterRoute
   AuthServiceTermRoute: typeof AuthServiceTermRoute
+  PlaygroundAIAnalysisDashboardRoute: typeof PlaygroundAIAnalysisDashboardRoute
+  PlaygroundRoute: typeof PlaygroundRouteWithChildren
 }
 
 const rootRouteChildren: RootRouteChildren = {
@@ -489,6 +601,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthPrivacyPolicyRoute: AuthPrivacyPolicyRoute,
   AuthRegisterRoute: AuthRegisterRoute,
   AuthServiceTermRoute: AuthServiceTermRoute,
+  PlaygroundAIAnalysisDashboardRoute: PlaygroundAIAnalysisDashboardRoute,
+  PlaygroundRoute: PlaygroundRouteWithChildren,
 }
 
 export const routeTree = rootRoute
@@ -512,7 +626,9 @@ export const routeTree = rootRoute
         "/auth/login",
         "/auth/privacy-policy",
         "/auth/register",
-        "/auth/service-term"
+        "/auth/service-term",
+        "/playground/AIAnalysisDashboard",
+        "/playground"
       ]
     },
     "/": {
@@ -561,6 +677,25 @@ export const routeTree = rootRoute
       "filePath": "chat.$sessionId.tsx",
       "parent": "/chat"
     },
+    "/playground/AIAnalysisDashboard": {
+      "filePath": "playground/AIAnalysisDashboard.tsx"
+    },
+    "/playground": {
+      "filePath": "playground",
+      "children": [
+        "/playground/_layout",
+        "/playground/tree1",
+        "/playground/"
+      ]
+    },
+    "/playground/_layout": {
+      "filePath": "playground/_layout.tsx",
+      "parent": "/playground"
+    },
+    "/playground/tree1": {
+      "filePath": "playground/tree1.tsx",
+      "parent": "/playground"
+    },
     "/projects/$id": {
       "filePath": "projects.$id.tsx",
       "parent": "/projects",
@@ -569,6 +704,10 @@ export const routeTree = rootRoute
         "/projects/$id/",
         "/projects/$id/phases/$phaseId"
       ]
+    },
+    "/playground/": {
+      "filePath": "playground/index.tsx",
+      "parent": "/playground"
     },
     "/projects/$id/new": {
       "filePath": "projects.$id.new.tsx",

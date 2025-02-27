@@ -133,22 +133,26 @@ class FileViewSet(viewsets.ModelViewSet):
     文件管理的视图集，提供文件的增删改查（CRUD）操作。
     该视图集继承自 `ModelViewSet`，包含标准的 RESTful API 端点。
     """
-    permission_classes = [IsAuthenticated]  # 仅允许已认证用户访问
-    parser_classes = (MultiPartParser, FormParser)  # 允许上传多部分表单数据（文件上传）
-
-    # 允许的HTTP方法， 通过这个清单，我们可以控制，哪个方法可以被前端调用
-    http_method_names = ['get', 'post', 'put', 'delete','patch'] 
+    permission_classes = [IsAuthenticated]
+    parser_classes = (MultiPartParser, FormParser) # 允许上传多部分表单数据（文件上传）
+    http_method_names = ['get', 'post', 'put', 'delete','patch']
     
     def get_queryset(self):
         """
         获取当前用户可访问的文件列表。
-        可访问的文件包括：
-        1. 用户自己上传的文件（owner）
+        可以通过 project_id 查询参数过滤特定项目的文件。
         """
         user = self.request.user
-        return FileRecord.objects.filter(
-            models.Q(owner=user) 
-        ).select_related('owner')
+        queryset = FileRecord.objects.filter(
+            models.Q(owner=user)
+        ).select_related('owner', 'project')
+        
+        # 如果提供了项目ID，则过滤该项目的文件
+        project_id = self.request.query_params.get('project_id')
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+            
+        return queryset
 
     def get_serializer_class(self):
         """
@@ -269,6 +273,12 @@ class FileViewSet(viewsets.ModelViewSet):
             file_data['type'] = 'IMAGE'
         else:
             file_data['type'] = 'OTHER'
+            
+        # 如果提供了项目ID，则关联到项目
+        project_id = request.data.get('project_id')
+        if project_id:
+            file_data['project_id'] = project_id
+            logger.info(f"文件将关联到项目: {project_id}")
 
         # 使用创建序列化器保存数据
         create_serializer = self.get_serializer(data=file_data)

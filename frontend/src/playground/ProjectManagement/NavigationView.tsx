@@ -5,7 +5,7 @@ import { Card, CardHeader, CardContent, CardFooter, CardDescription, CardTitle }
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Clock, ChevronRight, FileText, Users, Calendar } from 'lucide-react';
-import { NavigationViewProps } from '@/components/projects/ProjectManagement_v2/types';
+import { NavigationViewProps } from '@/playground/ProjectManagement/types';
 import PhaseIndicator from './PhaseIndicator';
 import StatusBadge from './StatusBadge';
 

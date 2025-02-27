@@ -29,6 +29,7 @@ interface FileTableProps {
   selectedFiles: string[];
   onSelectFiles: (fileIds: string[]) => void;
 
+  showProjectInfo?: boolean; // 新增属性，控制是否显示项目信息
 }
 
 
@@ -40,7 +41,8 @@ export const FileTable = memo(function FileTable({
   onPreview, 
   isDeleting,
   selectedFiles,
-  onSelectFiles 
+  onSelectFiles,
+  showProjectInfo = false
 }: FileTableProps) {
 
   console.log("🔄 [FileTable.tsx] 渲染");
@@ -92,6 +94,7 @@ export const FileTable = memo(function FileTable({
             <TableHead>文件类型</TableHead>
             <TableHead>大小</TableHead>
             <TableHead>上传时间</TableHead>
+            {showProjectInfo && <TableHead>项目</TableHead>}
             <TableHead>查看</TableHead>
             <TableHead>操作</TableHead>
           </TableRow>
@@ -130,6 +133,9 @@ export const FileTable = memo(function FileTable({
                     : 'N/A'
                   }
                 </TableCell>
+                {showProjectInfo && (
+                  <TableCell className="text-muted-foreground">{file.project_id || 'N/A'}</TableCell>
+                )}
                 <TableCell>
                   <Button 
                     variant="ghost" 

@@ -1,11 +1,11 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { mockData } from '@/components/projects/ProjectManagement/mockData'
+import { mockCompleteProjectData } from '@/components/projects/mockData'
 
 export const Route = createFileRoute('/projects/$id/new')({
   beforeLoad: ({ params }) => {
     try {
       // 获取项目的第一个阶段
-      const firstPhase = mockData[0]
+      const firstPhase = mockCompleteProjectData.phases[0]
       
       if (firstPhase) {
         throw redirect({

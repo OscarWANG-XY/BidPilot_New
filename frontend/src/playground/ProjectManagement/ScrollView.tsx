@@ -4,7 +4,7 @@ import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/com
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, FileText, Users, Calendar } from 'lucide-react';
-import { ScrollViewProps } from '@/components/projects/ProjectManagement_v2/types';
+import { ScrollViewProps } from '@/playground/ProjectManagement/types';
 import PhaseIndicator from './PhaseIndicator';
 import StatusBadge from './StatusBadge';
 

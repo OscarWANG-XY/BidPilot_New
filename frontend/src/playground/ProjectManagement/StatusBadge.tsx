@@ -2,7 +2,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
-import { StatusBadgeProps } from '@/components/projects/ProjectManagement_v2/types';
+import { StatusBadgeProps } from '@/playground/ProjectManagement/types';
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   switch (status) {

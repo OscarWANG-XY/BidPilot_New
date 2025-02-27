@@ -22,11 +22,15 @@ const handleError = (operation: string, error: unknown) => {
 export const fileApi = {
 
   // ----------- 获取所有文件 API.getAllFiles -------------
-  getAllFiles: async (): Promise<FileRecord[]> => {
-    console.log('🔍 开始获取文件列表');
+  getAllFiles: async (projectId?: string): Promise<FileRecord[]> => {
+    console.log('🔍 开始获取文件列表', projectId ? `项目ID: ${projectId}` : "全局模式");
     try {
       // 不带 presigned 参数，默认不生成预签名URL
-      const { data } = await axiosInstance.get<FileRecord[]>(endpoints.getFiles);
+      // 添加项目ID作为查询参数
+      const url = projectId 
+        ? `${endpoints.getFiles}?project_id=${projectId}` 
+        : endpoints.getFiles;
+      const { data } = await axiosInstance.get<FileRecord[]>(url);
       console.log(`✅ 获取到 ${data.length} 个文件`);
       return data;
     } catch (error) {
@@ -36,8 +40,10 @@ export const fileApi = {
 
   // ----------- 上传文件 API.upload (done check)-------------
   // 上传文件的API， 返回的Promise解析值为 FileRecord类型
-  uploadFile: async (file: File): Promise<FileRecord> => {
-    console.log(`📤 上传文件: ${file.name} (${file.size} bytes)`);
+  uploadFile: async (file: File, projectId?: string): Promise<FileRecord> => {
+    console.log(`📤 上传文件: ${file.name} (${file.size} bytes)`,
+      projectId ? `项目ID: ${projectId}` : "全局模式"
+    );
 
     try {
       // 1. 上传文件
@@ -48,6 +54,11 @@ export const fileApi = {
       formData.append('name', file.name);
       formData.append('type', 'OTHER');  // 或根据文件类型动态设置
 
+      // 如果有项目ID，添加到表单数据中
+      if (projectId) {
+        formData.append('project_id', projectId);
+      }
+      
       const response = await axiosInstance.post(endpoints.uploadFiles, formData);
       
       console.log(`✅ 文件上传成功: ${response.data.name}`);
@@ -91,7 +102,11 @@ export const fileApi = {
     
     try {
       const { data } = await axiosInstance.put(`${endpoints.updateFileDetail}${fileId}/`, updateData);
-      console.log(`✅ 文件更新成功: ${data.name}`);
+      console.log('✅ [files_api.ts] 文件信息更新成功:', {
+        fileId: data.id,
+        fileName: data.name,
+        updatedFields: Object.keys(updateData)
+      });
       return data;
     } catch (error) {
       return handleError('更新文件信息', error);

@@ -10,13 +10,24 @@ interface FileUploadButtonProps {
 
   // 父组件传入的上传状态，如果在上传，下面的Input组件不能使用。
   isUploading: boolean;   
+
+  // 添加接受的文件类型
+  acceptedFileTypes?: string;
+
+  // 添加是否允许多文件上传
+  allowMultiple?: boolean;
 }
 
 //========================= FileUploadButton.tsx 文件上传按钮模块 done check! ========================= 
 // 作为渲染组件
 // 有逻辑处理函数 handleChange
 // 没有引入状态管理 （对比_FileManger.tsx）
-export function FileUploadButton({ onFileSelect, isUploading }: FileUploadButtonProps) {
+export function FileUploadButton({ 
+  onFileSelect, 
+  isUploading, 
+  acceptedFileTypes,
+  allowMultiple = true
+}: FileUploadButtonProps) {
   console.log("🔄 [FileUploadButton.tsx] 渲染");
 
 
@@ -45,6 +56,8 @@ export function FileUploadButton({ onFileSelect, isUploading }: FileUploadButton
         className="hidden"
         id="file-upload"
         disabled={isUploading}
+        accept={acceptedFileTypes}
+        multiple={allowMultiple}
       />
       <label htmlFor="file-upload">
         <Button variant="outline" disabled={isUploading} asChild>

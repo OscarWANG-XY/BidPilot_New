@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { NavigationView } from './NavigationView';
 import { ScrollView } from './ScrollView';
-import { ProjectManagementProps } from '@/components/projects/ProjectManagement_v2/types';
+import { ProjectManagementProps } from '@/playground/ProjectManagement/types';
 import mockData from './mockData';
 
 const ProjectManagement: React.FC<ProjectManagementProps> = ({ projectData = mockData }) => {

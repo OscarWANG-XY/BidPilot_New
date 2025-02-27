@@ -5,7 +5,7 @@ import {
 // import { ProjectDetail } from '@/components/projects/ProjectDetail'
 //import { ProjectManagement} from '@/components/projects/projectstages'
 
-import { ProjectLayout } from '@/components/projects/ProjectManagement/ProjectLayout'
+import { ProjectLayout } from '@/components/projects/_04_ProjectLayout'
 
 export const Route = createFileRoute('/projects/$id')({
   component: ProjectLayoutComponent,

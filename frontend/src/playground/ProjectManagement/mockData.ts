@@ -1,5 +1,5 @@
 // data/mockData.ts
-import { ProjectPhase } from '@/components/projects/ProjectManagement_v2/types';
+import { ProjectPhase } from '@/playground/ProjectManagement/types';
 
 export const mockData: ProjectPhase[] = [
   {

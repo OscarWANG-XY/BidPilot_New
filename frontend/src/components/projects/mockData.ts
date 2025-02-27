@@ -1,12 +1,71 @@
 // data/mockData.ts
 import { ProjectPhase, PhaseStatus, TaskStatus, TaskType } from './types'
-import { ProjectStage, ProjectStatus } from '../../../types/projects_dt_stru'
-import { FileType } from '../../../types/files_dt_stru';
+import { ProjectStage, ProjectStatus, ProjectType, Project } from '../../types/projects_dt_stru'
+import { FileType } from '../../types/files_dt_stru';
 
 // 示例项目状态
 export const mockProjectStatus = ProjectStatus.IN_PROGRESS;
 
-export const mockData: ProjectPhase[] = [
+// 模拟项目阶段数据
+export const mockPhases: ProjectPhase[] = [
+  {
+    id: 'phase-0',
+    name: '项目初始化',
+    stage: ProjectStage.INITIALIZATION,
+    status: PhaseStatus.COMPLETED,
+    description: '完善项目基础信息，上传待分析的招标文件',
+    startDate: '2023-09-28',
+    endDate: '2023-09-30',
+    progress: 100,
+    tasks: [
+      {
+        id: 'task-0-1',
+        name: '完善项目基本信息',
+        type: TaskType.OTHER,
+        status: TaskStatus.COMPLETED,
+        priority: 'HIGH',
+        date: '2023-09-28',
+        description: '补充完善项目的基础信息',
+        progress: 100,
+      },
+      {
+        id: 'task-0-2',
+        name: '上传招标文件',
+        type: TaskType.OTHER,
+        status: TaskStatus.COMPLETED,
+        priority: 'HIGH',
+        date: '2023-09-29',
+        description: '上传招标文件以供后续分析',
+        progress: 100,
+        attachments: [
+          {
+            id: 'att-0',
+            name: '招标文件原件.pdf',
+            url: '/documents/tender_original.pdf',
+            size: 5120,
+            type: FileType.PDF,
+            processingStatus: 'COMPLETED',
+            createdAt: '2023-09-29',
+            createdBy: 'user-1',
+            version: 1
+          }
+        ]
+      }
+    ],
+    documents: [
+      {
+        id: 'doc-0',
+        name: '招标文件',
+        url: '/documents/tender_original.pdf',
+        size: 5120,
+        type: FileType.PDF,
+        processingStatus: 'COMPLETED',
+        createdAt: '2023-09-29',
+        createdBy: 'user-1',
+        version: 1
+      }
+    ]
+  },
   {
     id: 'phase-1',
     name: '招标文件分析',
@@ -187,4 +246,48 @@ export const mockData: ProjectPhase[] = [
   }
 ]
 
-export default mockData;
+// 模拟完整项目数据
+export const mockProject: Project = {
+  id: 1001,
+  projectCode: 'PRJ-2023-1001',
+  projectName: '某企业食材配送招标项目',
+  projectType: ProjectType.FSD,
+  tenderee: '某大型企业集团',
+  bidder: '我方公司名称',
+  bidDeadline: new Date('2023-11-15'),
+  status: ProjectStatus.IN_PROGRESS,
+  currentStage: ProjectStage.BID_WRITING,
+  isUrgent: true,
+  creator: {
+    id: 101,
+    username: '张经理'
+  },
+  createTime: new Date('2023-09-28'),
+  lastUpdateTime: new Date('2023-10-10'),
+  stageHistories: [
+    {
+      historyId: 1,
+      projectId: 1001,
+      fromStage: ProjectStage.INITIALIZATION,
+      toStage: ProjectStage.TENDER_ANALYSIS,
+      operationTime: new Date('2023-09-30'),
+      remarks: '项目初始化完成，开始招标文件分析'
+    },
+    {
+      historyId: 2,
+      projectId: 1001,
+      fromStage: ProjectStage.TENDER_ANALYSIS,
+      toStage: ProjectStage.BID_WRITING,
+      operationTime: new Date('2023-10-06'),
+      remarks: '招标文件分析完成，开始投标文件撰写'
+    }
+  ]
+};
+
+// 组合项目和阶段数据的完整模拟数据
+export const mockCompleteProjectData = {
+  project: mockProject,
+  phases: mockPhases
+};
+
+export default mockCompleteProjectData;

@@ -13,7 +13,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, childre
   const projectName = `项目 #${projectId}`
   
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto py-6 max-w-7xl">
       <Card>
         <CardHeader>
           <CardTitle>{projectName}</CardTitle>

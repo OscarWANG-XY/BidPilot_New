@@ -1,19 +1,19 @@
 import React from 'react'
 import { Link } from '@tanstack/react-router'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { PhaseIndicator } from './PhaseIndicator'
-import { PhaseDetailView } from './PhaseDetailView'
-import { PhaseNavigationView } from './PhaseNavigationView'
-import { mockData } from './mockData'
+import { PhaseIndicator } from './_06.1_PhaseIndicator'
+import { PhaseDetailView } from './_07.b_PhaseDetailView'
+import { PhaseNavigationView } from './_07.a_PhaseNavigationView'
+import { mockCompleteProjectData } from './mockData'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle, Clock, CheckCircle2, AlertTriangle } from 'lucide-react'
-import { ProjectStage, ProjectStatus } from '../../../types/projects_dt_stru'
+import { ProjectStage, ProjectStatus } from '../../types/projects_dt_stru'
 import { TaskStatus, PhaseStatus } from './types'
 
 interface ProjectPhaseViewProps {
   projectId: string
   phaseId: string
-  viewMode: 'navigation' | 'detail'
+  viewMode: 'navigation' | 'detail'   
   currentProjectStage: ProjectStage
   projectStatus: ProjectStatus
   phaseStatus?: PhaseStatus
@@ -27,8 +27,8 @@ export const ProjectPhaseView: React.FC<ProjectPhaseViewProps> = ({
   projectStatus,
   phaseStatus
 }) => {
-  // 获取当前阶段数据
-  const currentPhase = mockData.find(phase => phase.id === phaseId)
+  // 获取当前阶段数据 - 从mockCompleteProjectData.phases中查找
+  const currentPhase = mockCompleteProjectData.phases.find(phase => phase.id === phaseId)
   
   // 如果找不到指定阶段，显示错误信息并提供返回项目概览的链接
   if (!currentPhase) {
@@ -56,18 +56,19 @@ export const ProjectPhaseView: React.FC<ProjectPhaseViewProps> = ({
   const currentStageIndex = Object.values(ProjectStage).indexOf(currentProjectStage);
   const phaseStageIndex = Object.values(ProjectStage).indexOf(currentPhase.stage);
   
-  // 使用PhaseStatus来确定阶段状态
-  const isCompleted = phaseStatus === PhaseStatus.COMPLETED;
-  const isInProgress = phaseStatus === PhaseStatus.IN_PROGRESS;
-  const isBlocked = phaseStatus === PhaseStatus.BLOCKED;
-  const isNotStarted = phaseStatus === PhaseStatus.NOT_STARTED;
+  // 使用PhaseStatus来确定阶段状态 - 优先使用传入的phaseStatus，否则使用阶段自身的status
+  const currentPhaseStatus = phaseStatus || currentPhase.status;
+  const isCompleted = currentPhaseStatus === PhaseStatus.COMPLETED;
+  const isInProgress = currentPhaseStatus === PhaseStatus.IN_PROGRESS;
+  const isBlocked = currentPhaseStatus === PhaseStatus.BLOCKED;
+  const isNotStarted = currentPhaseStatus === PhaseStatus.NOT_STARTED;
   
   // 如果是未开始的阶段，显示提示信息
   if (isNotStarted && phaseStageIndex > currentStageIndex) {
     return (
       <div className="space-y-6">
         <PhaseIndicator 
-          phases={mockData}
+          phases={mockCompleteProjectData.phases}
           currentPhaseId={phaseId}
           projectId={projectId}
           currentProjectStage={currentProjectStage}
@@ -97,7 +98,7 @@ export const ProjectPhaseView: React.FC<ProjectPhaseViewProps> = ({
     return (
       <div className="space-y-6">
         <PhaseIndicator 
-          phases={mockData}
+          phases={mockCompleteProjectData.phases}
           currentPhaseId={phaseId}
           projectId={projectId}
           currentProjectStage={currentProjectStage}
@@ -152,7 +153,7 @@ export const ProjectPhaseView: React.FC<ProjectPhaseViewProps> = ({
         
         {/* 阶段指示器 - 灰显所有阶段 */}
         <PhaseIndicator 
-          phases={mockData}
+          phases={mockCompleteProjectData.phases}
           currentPhaseId={phaseId}
           projectId={projectId}
           currentProjectStage={currentProjectStage}
@@ -180,7 +181,7 @@ export const ProjectPhaseView: React.FC<ProjectPhaseViewProps> = ({
     return (
       <div className="space-y-6">
         <PhaseIndicator 
-          phases={mockData}
+          phases={mockCompleteProjectData.phases}
           currentPhaseId={phaseId}
           projectId={projectId}
           currentProjectStage={currentProjectStage}
@@ -237,7 +238,7 @@ export const ProjectPhaseView: React.FC<ProjectPhaseViewProps> = ({
           </TabsList>
           
           <TabsContent value="navigation">
-            <PhaseNavigationView phase={currentPhase} />
+            <PhaseNavigationView phase={currentPhase} projectId={projectId} />
           </TabsContent>
           
           <TabsContent value="detail">
@@ -252,7 +253,7 @@ export const ProjectPhaseView: React.FC<ProjectPhaseViewProps> = ({
     <div className="space-y-6">
       {/* 阶段指示器 */}
       <PhaseIndicator 
-        phases={mockData}
+        phases={mockCompleteProjectData.phases}
         currentPhaseId={phaseId}
         projectId={projectId}
         currentProjectStage={currentProjectStage}
@@ -324,7 +325,7 @@ export const ProjectPhaseView: React.FC<ProjectPhaseViewProps> = ({
         </TabsList>
         
         <TabsContent value="navigation">
-          <PhaseNavigationView phase={currentPhase} />
+          <PhaseNavigationView phase={currentPhase} projectId={projectId} />
         </TabsContent>
         
         <TabsContent value="detail">

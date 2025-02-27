@@ -1,5 +1,5 @@
-import { ProjectStage, ProjectType, ProjectStatus } from '../../../types/projects_dt_stru';
-import { FileRecord, FileType } from '../../../types/files_dt_stru';
+import { ProjectStage, ProjectType, ProjectStatus } from '../../types/projects_dt_stru';
+import { FileRecord, FileType } from '../../types/files_dt_stru';
 
 // 阶段状态枚举
 export enum PhaseStatus {

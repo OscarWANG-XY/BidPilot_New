@@ -10,8 +10,18 @@ import { FilePreviewDialog } from "./FilePreviewDialog";  // 预览对话框子�
 
 // 文件管理器 主函数 的 输入参数： 这里是一个回调函数， 用于在父组件中定义和执行逻辑操作。
 interface FileManagerProps {
-  // 该回调函数，在handleUpload函数中被调用，以inputfile为参数, 数据类型是File，不是FileRecord
-  onFileUpload: (inputfile: File) => void;
+  // 修改回调函数，返回布尔值表示是否应该继续上传
+  onFileUpload: (inputfile: File) => boolean | void;
+  // 添加上传成功的回调函数
+  onUploadSuccess?: () => void;
+  // 添加可选的项目ID参数，用于关联文件到特定项目
+  projectId?: string;
+  // 添加标题参数，可以根据不同场景显示不同标题
+  title?: string;
+  // 添加接受的文件类型
+  acceptedFileTypes?: string;
+  // 添加是否允许多文件上传
+  allowMultiple?: boolean;
 }
 
 
@@ -21,8 +31,15 @@ interface FileManagerProps {
 ** 作为协调器，连接不同的子组件：FileUploadButton.tsx、FileTable.tsx、FilePreviewDialog.tsx。
 */
 // 文件管理器 主函数
-export function FileManager({ onFileUpload }: FileManagerProps) {
-  console.log("🔄 [_FileManager.tsx] 渲染");
+export function FileManager({ 
+  onFileUpload, 
+  onUploadSuccess,
+  projectId, 
+  title = "文件管理", 
+  acceptedFileTypes,
+  allowMultiple = true 
+}: FileManagerProps) {
+  console.log("🔄 [_FileManager.tsx] 渲染", projectId ? `项目ID: ${projectId}` : "全局模式");
 
   // Hooks的功能引用： useToast() 和 useFiles()
   const { toast } = useToast();
@@ -34,7 +51,7 @@ export function FileManager({ onFileUpload }: FileManagerProps) {
     isUploading,
     isDeleting,
     useFileDetail,
-  } = useFiles();
+  } = useFiles(projectId); // 传入项目ID，用于过滤文件
 
   // 文件的状态管理： 文件的选择和更新， 预览组件的启用和关闭
   const [selectedFile, setSelectedFile] = useState<FileRecord | null>(null);
@@ -52,10 +69,17 @@ export function FileManager({ onFileUpload }: FileManagerProps) {
     console.log('🚀 [_FileManager.tsx] 开始处理文件上传:', {
       fileName: inputfile.name,
       fileSize: inputfile.size,
-      fileType: inputfile.type
+      fileType: inputfile.type,
+      projectId: projectId || "全局"
     });
 
     try {
+      // 调用父组件的验证函数，如果返回false则中止上传
+      const shouldProceed = onFileUpload(inputfile);
+      if (shouldProceed === false) {
+        console.log('⛔ [_FileManager.tsx] 上传被父组件阻止');
+        return;
+      }
 
       // 引用FileHelpers.ts里的validateFile函数，验证文件类型和大小 
       // 这里toast是useToast的toast功能， 在FileHelpers.ts里不引入， 在FileManager.tsx里以参数引入 
@@ -63,13 +87,16 @@ export function FileManager({ onFileUpload }: FileManagerProps) {
 
       // 引用useFiles.ts里的uploadFile函数，上传文件
       uploadFile(inputfile, {
+        projectId,
         onSuccess: () => {
           console.log('✅ [_FileManager.tsx] 文件上传成功:', inputfile.name);
-          onFileUpload(inputfile);
           toast({
             title: "文件上传成功",
             description: `${inputfile.name} 已成功上传`
           });
+          
+          // 调用上传成功的回调函数
+          onUploadSuccess?.();
         },
         onError: (error: any) => {
           console.error('❌ [_FileManager.tsx] 上传错误详情:', {
@@ -178,10 +205,13 @@ export function FileManager({ onFileUpload }: FileManagerProps) {
   // 返回文件管理器的组件渲染
   return (
     <div className="space-y-4 p-4">
+      <h2 className="text-xl font-semibold mb-4">{title}</h2>
       <div className="flex items-center justify-between">
         <FileUploadButton 
-          onFileSelect={handleUpload}  // 回调FileManager.tsx里的handleUpload逻辑函数 
-          isUploading={isUploading}  // 引用useFiles.ts里的isUploading  
+          onFileSelect={handleUpload} // 回调FileManager.tsx里的handleUpload逻辑函数
+          isUploading={isUploading} // 引用useFiles.ts里的isUploading
+          acceptedFileTypes={acceptedFileTypes}
+          allowMultiple={allowMultiple}
         />
         {selectedFiles.length > 0 && (
           <button
@@ -201,6 +231,7 @@ export function FileManager({ onFileUpload }: FileManagerProps) {
         isDeleting={isDeleting}  // 引用useFiles.ts里的isDeleting
         selectedFiles={selectedFiles}
         onSelectFiles={setSelectedFiles}
+        showProjectInfo={!projectId} // 如果不是在项目内，则显示项目信息
       />
       
       <FilePreviewDialog 

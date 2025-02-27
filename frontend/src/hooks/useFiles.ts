@@ -7,22 +7,23 @@ import { toast } from '@/hooks/use-toast';
 
 // ================================ 文件上传管理 hook  ============================================ 
 // useFiles 是自定义的HOOKS，用来返回与文件相关的数据 和 操作函数。
-export function useFiles() {
+export function useFiles(projectId?: string) {
 
   // 获取react-query的客户端实例，用于管理和操作缓存数据， 上传成功时会用到
   //
   const queryClient = useQueryClient();
-  console.log('🔄 [useFiles.ts] 初始化 useFiles hook');
+  console.log('🔄 [useFiles.ts] 初始化 useFiles hook', projectId ? `项目ID: ${projectId}` : "全局模式");
 
   // ---------------查询文件的Query管理 --------------- 
   const filesQuery = useQuery({
     // 缓存的唯一标识符，在useQuery被初始化时配置。 
-    queryKey: ['fileskey'], 
+    // 添加projectId作为查询键的一部分，这样不同项目的文件会有不同的缓存
+    queryKey: ['fileskey', projectId], 
     // 查询函数，返回所有文件，然后放进缓存。
     // 直到缓存数据被判定过期，否则新的API请求不会被触发，而是直接调用缓存数据。
     queryFn: async () => {
-      console.log('📥 [useFiles.ts] 开始获取所有文件');
-      const result = await fileApi.getAllFiles();
+      console.log('�� [useFiles.ts] 开始获取文件', projectId ? `项目ID: ${projectId}` : "全局模式");
+      const result = await fileApi.getAllFiles(projectId);
       console.log('📦 [useFiles.ts] 获取文件结果:', result);
       return result;
     },
@@ -57,14 +58,16 @@ export function useFiles() {
   const uploadMutation = useMutation({
 
     // 上传文件的Mutation函数, 参数file是从用户选择上传的文件对象, 是browser的File类型
-    mutationFn: (inputfile: File) => {
+    mutationFn: (params: { file: File, projectId?: string }) => {
+      const { file, projectId } = params;
       console.log('📤 [useFiles.ts] 开始上传文件:', {
-        fileName: inputfile.name,
-        fileSize: inputfile.size,
-        fileType: inputfile.type
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        projectId: projectId || "全局"
       });
-      // 调用fileApi.upload上传文件
-      return fileApi.uploadFile(inputfile);
+      // 调用fileApi.upload上传文件，传入项目ID
+      return fileApi.uploadFile(file, projectId);
     },
 
     // newFile是上传成功后服务器返回的文件信息(FileRecord类型)给到mutationFn, 不是文件对象本身（与file不同）
@@ -73,21 +76,22 @@ export function useFiles() {
     onSuccess: (newFile: FileRecord) => {
       console.log('✅ [useFiles.ts] 文件上传成功:', {
         fileId: newFile.id,
-        fileName: newFile.name
+        fileName: newFile.name,
+        projectId: newFile.project_id || "全局"
       });
 
       // 在queryClient中设置缓存数据，与useQuery中的filesQuery的缓存数据是同一个
       // 使用.setQueryData()方法，参数1是缓存唯一标识符，参数2是回调函数，用于更新缓存数据
       console.log('💾 [useFiles.ts] 更新缓存数据 - 添加新文件');
       queryClient.setQueryData<FileRecord[]>(
-        // 缓存的唯一标识符，在useQuery被初始化时配置。 
-        ['fileskey'], 
-        // 以下是回调函数，用于更新缓存数据，
-        // 缓存数据是响应式的，所有调用它的组件都会自动更新。
-        // 同时，这个更新会让缓存时间刷新，造成需要下一次过期，才会重新请求API。
-        // 于是需要之后的手动invalidateQeueries处理。
-        // 而以下上传的文件信息放入缓存的另外一个作用是让客户没有明显的等待时间。
-        // 但这会有极度短暂的不一致 
+                // 缓存的唯一标识符，在useQuery被初始化时配置。 
+                ['fileskey', newFile.project_id], 
+                // 以下是回调函数，用于更新缓存数据，
+                // 缓存数据是响应式的，所有调用它的组件都会自动更新。
+                // 同时，这个更新会让缓存时间刷新，造成需要下一次过期，才会重新请求API。
+                // 于是需要之后的手动invalidateQeueries处理。
+                // 而以下上传的文件信息放入缓存的另外一个作用是让客户没有明显的等待时间。
+                // 但这会有极度短暂的不一致 
         (old = []) => {
           const newData = [...old, newFile];
           console.log('📊 [useFiles.ts] 缓存更新结果:', {
@@ -100,7 +104,7 @@ export function useFiles() {
       // 手动让缓存数据过期，然后重新请求API
       // 只有这样，上传后的缓存数据与服务器的数据才会一致。
       console.log('🔄 [useFiles.ts] 使缓存失效，准备重新获取数据');
-      queryClient.invalidateQueries({ queryKey: ['fileskey'] });
+      queryClient.invalidateQueries({ queryKey: ['fileskey', newFile.project_id] });
     },
 
     onError: (error: any) => {
@@ -195,6 +199,25 @@ export function useFiles() {
     });
   };
 
+  // 修改uploadFile函数的接口
+  const uploadFileWrapper = async (file: File, options?: { 
+    projectId?: string, 
+    onSuccess?: () => void, 
+    onError?: (error: any) => void 
+  }) => {
+    try {
+      const result = await uploadMutation.mutateAsync({ 
+        file, 
+        projectId: options?.projectId || projectId 
+      });
+      options?.onSuccess?.();
+      return result;
+    } catch (error) {
+      options?.onError?.(error);
+      throw error;
+    }
+  };
+
   // --------------- 返回所有状态和方法 --------------- 
   return {
 
@@ -206,7 +229,7 @@ export function useFiles() {
     // .mutate() 本身不返回promise对象, 如果需要返回promise对象，则需要使用.mutateAsync()
     // 这里建议使用.mutateAsync() 更符合现代JavaScript的异步编程风格。 
     // 这样的好处是：调用者可以选择是否等待操作完成，可再调用处使用try/catch来处理错误; 可获取到操作返回的数据
-    uploadFile: uploadMutation.mutateAsync,  
+    uploadFile: uploadFileWrapper,  
     deleteFile: deleteMutation.mutateAsync,
     
     isUploading: uploadMutation.isPending,

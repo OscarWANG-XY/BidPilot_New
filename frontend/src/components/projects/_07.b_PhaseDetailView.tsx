@@ -1,10 +1,14 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
-import StatusBadge from './StatusBadge'
+import StatusBadge from './_06.2_StatusBadge'
 import { ProjectPhase, Task, TaskStatus, PhaseStatus } from './types'
-import { Calendar, FileText, Clock } from 'lucide-react'
+import { Calendar, FileText, Clock, Upload } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ProjectStage } from '@/types/projects_dt_stru'
+import { FileUploadButton } from '@/components/files/FileUploadButton'
+import { toast } from '@/hooks/use-toast'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 // Add a formatDate function
 const formatDate = (date?: string) => {
@@ -18,6 +22,9 @@ interface PhaseDetailViewProps {
 }
 
 export const PhaseDetailView: React.FC<PhaseDetailViewProps> = ({ phase }) => {
+  // 添加上传状态管理
+  const [isUploading, setIsUploading] = useState(false);
+  
   // Helper function to render status badge with appropriate color
   const renderStatusBadge = (status: PhaseStatus | TaskStatus) => {
     let variant: 'default' | 'secondary' | 'destructive' | 'outline' = 'default';
@@ -39,6 +46,82 @@ export const PhaseDetailView: React.FC<PhaseDetailViewProps> = ({ phase }) => {
     }
     
     return <StatusBadge status={status} />;
+  };
+
+  // 处理文件上传的函数
+  const handleFileUpload = async (file: File) => {
+    setIsUploading(true);
+    try {
+      // 这里可以添加实际的文件上传逻辑
+      console.log('Uploading file:', file.name);
+      
+      // 模拟上传延迟
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // 上传成功提示
+      toast({
+        title: "文件上传成功",
+        description: `${file.name} 已成功上传`,
+      });
+    } catch (error) {
+      console.error('File upload error:', error);
+      toast({
+        title: "上传失败",
+        description: "文件上传过程中发生错误，请重试",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // 渲染阶段特定组件
+  const renderPhaseSpecificComponents = () => {
+    switch (phase.stage) {
+      case ProjectStage.INITIALIZATION:
+        return (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <Upload className="h-5 w-5 mr-2" />
+                上传招标文件
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600 mb-4">
+                请上传招标文件，系统将自动分析文件内容，为后续阶段提供支持。
+              </p>
+              <FileUploadButton 
+                onFileSelect={handleFileUpload} 
+                isUploading={isUploading} 
+              />
+            </CardContent>
+          </Card>
+        );
+      case ProjectStage.TENDER_ANALYSIS:
+        return (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <FileText className="h-5 w-5 mr-2" />
+                招标文件结构
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600 mb-4">
+                系统已分析招标文件结构，您可以查看详细的章节内容。
+              </p>
+              {/* 这里可以添加招标文件结构的展示组件 */}
+              <div className="text-sm text-gray-500">
+                招标文件结构展示组件将在这里显示
+              </div>
+            </CardContent>
+          </Card>
+        );
+      // 可以继续添加其他阶段的特定组件
+      default:
+        return null;
+    }
   };
 
   return (
@@ -71,6 +154,9 @@ export const PhaseDetailView: React.FC<PhaseDetailViewProps> = ({ phase }) => {
       </div>
       
       <p className="text-gray-600">{phase.description}</p>
+      
+      {/* 渲染阶段特定组件 */}
+      {renderPhaseSpecificComponents()}
       
       <Tabs defaultValue="tasks">
         <TabsList>

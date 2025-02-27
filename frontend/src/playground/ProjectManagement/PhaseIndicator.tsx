@@ -1,7 +1,7 @@
 // PhaseIndicator.tsx
 import React from 'react';
 import { CheckCircle2 } from 'lucide-react';
-import { PhaseIndicatorProps } from '@/components/projects/ProjectManagement_v2/types';
+import { PhaseIndicatorProps } from '@/playground/ProjectManagement/types';
 
 export const PhaseIndicator: React.FC<PhaseIndicatorProps> = ({ phases, currentPhaseId }) => {
   return (
