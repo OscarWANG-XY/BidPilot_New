@@ -1,7 +1,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Clock, AlertCircle } from 'lucide-react';
-import { PhaseStatus, TaskStatus } from './types';
+import { PhaseStatus, TaskStatus } from '../../types/projects_stages_dt_stru';
 
 interface StatusBadgeProps {
   status: PhaseStatus | TaskStatus;

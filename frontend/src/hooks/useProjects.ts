@@ -47,7 +47,7 @@ export const useProjects = () => {
 
 
   // --------------- 查询单个项目 （这是一个函数）--------------- 
-  const singleProjectQuery = (projectId: number) => useQuery({
+  const singleProjectQuery = (projectId: string) => useQuery({
     queryKey: ['SingleProjectKey', projectId],
     queryFn: async () => {
       console.log('🔍 [useProjects] 查询单个项目, id:', projectId);
@@ -59,7 +59,7 @@ export const useProjects = () => {
 
 
   // --------------- 添加项目历史记录查询 （这是一个函数）--------------- 
-  const projectHistoryQuery = (projectId: number) => useQuery({
+  const projectHistoryQuery = (projectId: string) => useQuery({
     queryKey: ['projectHistory', projectId],
     queryFn: async () => {
       console.log('🔍 [useProjects] 查询项目历史, id:', projectId);
@@ -91,7 +91,7 @@ export const useProjects = () => {
 
   // --------------- 更新项目 done check!--------------- 
   const updateProject = useMutation({
-    mutationFn: async ({ projectId, projectData }: { projectId: number; projectData: Partial<Project> }) => {
+    mutationFn: async ({ projectId, projectData }: { projectId: string; projectData: Partial<Project> }) => {
       console.log('📤 [useProjects] 更新项目:', { projectId, projectData });
       const result = await projectsApi.updateProject(projectId, projectData);
       console.log('✅ [useProjects] 更新项目成功:', result);
@@ -114,16 +114,16 @@ export const useProjects = () => {
       return result;
     },
     onSuccess: (_, variables) => {
-      console.log('🔄 [useProjects] 更新项目阶段后, 更新缓存数据:', variables.projectId);
+      console.log('🔄 [useProjects] 更新项目阶段后, 更新缓存数据:', variables.id);
       queryClient.invalidateQueries({ queryKey: ['projectsKey'] });
-      queryClient.invalidateQueries({ queryKey: ['SingleProjectKey', variables.projectId] });
-      queryClient.invalidateQueries({ queryKey: ['projectHistory', variables.projectId] });
+      queryClient.invalidateQueries({ queryKey: ['SingleProjectKey', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['projectHistory', variables.id] });
     }
   });
 
   // 删除项目
   const deleteProject = useMutation({
-    mutationFn: async (projectId: number) => {
+    mutationFn: async (projectId: string) => {
       console.log('🗑️ [useProjects] 删除项目:', projectId);
       const result = await projectsApi.deleteProject(projectId);
       console.log('✅ [useProjects] 删除项目成功:', projectId);

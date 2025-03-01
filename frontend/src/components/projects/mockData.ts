@@ -1,5 +1,5 @@
 // data/mockData.ts
-import { ProjectPhase, PhaseStatus, TaskStatus, TaskType } from './types'
+import { ProjectPhase, PhaseStatus, TaskStatus, TaskType } from '../../types/projects_stages_dt_stru'
 import { ProjectStage, ProjectStatus, ProjectType, Project } from '../../types/projects_dt_stru'
 import { FileType } from '../../types/files_dt_stru';
 
@@ -248,7 +248,7 @@ export const mockPhases: ProjectPhase[] = [
 
 // 模拟完整项目数据
 export const mockProject: Project = {
-  id: 1001,
+  id: '1001',
   projectCode: 'PRJ-2023-1001',
   projectName: '某企业食材配送招标项目',
   projectType: ProjectType.FSD,
@@ -259,23 +259,23 @@ export const mockProject: Project = {
   currentStage: ProjectStage.BID_WRITING,
   isUrgent: true,
   creator: {
-    id: 101,
+    id: '101',
     username: '张经理'
   },
   createTime: new Date('2023-09-28'),
   lastUpdateTime: new Date('2023-10-10'),
   stageHistories: [
     {
-      historyId: 1,
-      projectId: 1001,
+      historyId: '1',
+      projectId: '1001',
       fromStage: ProjectStage.INITIALIZATION,
       toStage: ProjectStage.TENDER_ANALYSIS,
       operationTime: new Date('2023-09-30'),
       remarks: '项目初始化完成，开始招标文件分析'
     },
     {
-      historyId: 2,
-      projectId: 1001,
+      historyId: '2',
+      projectId: '1001',
       fromStage: ProjectStage.TENDER_ANALYSIS,
       toStage: ProjectStage.BID_WRITING,
       operationTime: new Date('2023-10-06'),

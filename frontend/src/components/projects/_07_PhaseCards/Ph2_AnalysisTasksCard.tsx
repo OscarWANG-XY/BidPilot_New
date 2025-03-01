@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
 import { Clock, FileText } from 'lucide-react'
-import { Task, TaskStatus, PhaseStatus } from '../types'
+import { Task, TaskStatus, PhaseStatus } from '../../../types/projects_stages_dt_stru'
 
 interface AnalysisTasksCardProps {
   tasks: Task[];

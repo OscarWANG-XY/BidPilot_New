@@ -7,8 +7,8 @@ import { PhaseNavigationView } from './_07.a_PhaseNavigationView'
 import { mockCompleteProjectData } from './mockData'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle, Clock, CheckCircle2, AlertTriangle } from 'lucide-react'
-import { ProjectStage, ProjectStatus } from '../../types/projects_dt_stru'
-import { TaskStatus, PhaseStatus } from './types'
+import { ProjectStage, ProjectStatus } from '@/types/projects_dt_stru'
+import { TaskStatus, PhaseStatus } from '@/types/projects_stages_dt_stru'
 
 interface ProjectPhaseViewProps {
   projectId: string

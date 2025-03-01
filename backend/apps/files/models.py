@@ -8,11 +8,12 @@ from botocore.config import Config
 import logging
 import magic
 from apps.projects.models import Project
+import uuid
 
 # 定义基础模型，提供公共字段
 class BaseModel(models.Model):
     # id 将使用Django默认的自增主键（以下用了显式定义）
-    id = models.BigAutoField(primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)  # 记录创建时间
     created_by = models.CharField(max_length=100)  # 记录创建者
     updated_at = models.DateTimeField(null=True, blank=True)  # 记录更新时间，可为空

@@ -1,4 +1,5 @@
-import { ProjectQueryParams, ProjectStage, ProjectType } from '@/types/projects_dt_stru';
+import { ProjectQueryParams } from '@/types/projects_dt_stru';
+import {ProjectStage, ProjectType } from '@/types/projects_dt_stru';
 
 interface ProjectFilterProps {
   queryParams: ProjectQueryParams;
@@ -11,9 +12,9 @@ export function ProjectFilter({ queryParams, onQueryChange }: ProjectFilterProps
       {/* 项目状态过滤器 */}
       <select
         className="h-9 w-[180px] rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        value={queryParams.current_stage || ''}
+        value={queryParams.currentStage || ''}
         onChange={(e) => onQueryChange({ 
-          current_stage: e.target.value as ProjectStage || undefined 
+          currentStage: e.target.value as ProjectStage || undefined 
         })}
       >
         <option value="">所有状态</option>
@@ -31,9 +32,9 @@ export function ProjectFilter({ queryParams, onQueryChange }: ProjectFilterProps
       {/* 项目类型过滤器 */}
       <select
         className="h-9 w-[180px] rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        value={queryParams.project_type || ''}
+        value={queryParams.projectType || ''}
         onChange={(e) => onQueryChange({ 
-          project_type: e.target.value as ProjectType || undefined 
+          projectType: e.target.value as ProjectType || undefined 
         })}
       >
         <option value="">所有类型</option>
@@ -59,8 +60,8 @@ export function ProjectFilter({ queryParams, onQueryChange }: ProjectFilterProps
       <label className="flex h-9 items-center gap-2 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground">
         <input
           type="checkbox"
-          checked={queryParams.is_urgent || false}
-          onChange={(e) => onQueryChange({ is_urgent: e.target.checked || undefined })}
+          checked={queryParams.isUrgent || false}
+          onChange={(e) => onQueryChange({ isUrgent: e.target.checked || undefined })}
           className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
         />
         紧急项目

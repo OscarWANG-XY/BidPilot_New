@@ -97,20 +97,20 @@ export function ProjectManager() {
 
   // --------------- 处理项目详情查看的回调函数  -------------------------
   // ProjectList的回调函数，用来设置selectedProjectId， 给项目详情弹窗使用。
-  const handleViewDetail = (id: number) => {
+  const handleViewDetail = (id: string) => {
     navigate({
       to: '/projects/$id',
-      params: { id: String(id) }
+      params: { id: id }
     });
   }
 
 
   // --------------- 处理删除项目  -------------------------
-  const handleDeleteProject = async (projectId: number) => {
+  const handleDeleteProject = async (projectId: string) => {
     
     // 添加参数验证
     // 如果projectId是假值（undefined,0,null等）， 或 projectId类型不是数字
-    if (!projectId || typeof projectId !== 'number') {
+    if (!projectId || typeof projectId !== 'string') {
       toast({
         title: '删除失败',
         description: '无效的项目ID',

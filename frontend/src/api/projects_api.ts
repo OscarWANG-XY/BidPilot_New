@@ -28,7 +28,7 @@ export const projectsApi = {
   },
 
   // 获取单个项目详情
-  getProjectById: async (projectId: number): Promise<Project> => {
+  getProjectById: async (projectId: string): Promise<Project> => {
     console.log('📤 [projects_api.ts] 获取单个项目:', projectId);
     const response = await axiosInstance.get(`/projects/${projectId}/`);
     console.log('📥 [projects_api.ts] 获取单个项目成功:', response.data);
@@ -44,7 +44,7 @@ export const projectsApi = {
   },
 
   // 更新项目信息
-  updateProject: async (projectId: number, projectData: Partial<Project>): Promise<Project> => {
+  updateProject: async (projectId: string, projectData: Partial<Project>): Promise<Project> => {
     console.log('📤 [projects_api.ts] 更新项目:', { projectId, projectData });
     const response = await axiosInstance.patch(`/projects/${projectId}/`, projectData);
     console.log('📥 [projects_api.ts] 更新项目成功:', response.data);
@@ -55,7 +55,7 @@ export const projectsApi = {
   updateProjectStage: async (request: UpdateProjectStageRequest): Promise<Project> => {
     console.log('📤 [projects_api.ts] 更新项目阶段:', request);
     const response = await axiosInstance.patch(
-      `/projects/${request.projectId}/update_stage/`,
+      `/projects/${request.id}/update_stage/`,
       {
         stage: request.stage,
         remarks: request.remarks
@@ -66,7 +66,7 @@ export const projectsApi = {
   },
 
   // 获取项目历史记录
-  getProjectHistory: async (projectId: number): Promise<ProjectHistory[]> => {
+  getProjectHistory: async (projectId: string): Promise<ProjectHistory[]> => {
     console.log('📤 [projects_api.ts] 获取项目历史:', projectId);
     const response = await axiosInstance.get(`/projects/${projectId}/histories/`);
     console.log('📥 [projects_api.ts] 获取项目历史成功:', response.data);
@@ -74,7 +74,7 @@ export const projectsApi = {
   },
 
   // 删除项目
-  deleteProject: async (projectId: number): Promise<void> => {
+  deleteProject: async (projectId: string): Promise<void> => {
     console.log('📤 [projects_api.ts] 删除项目:', projectId);
     await axiosInstance.delete(`/projects/${projectId}/`);
     console.log('✅ [projects_api.ts] 删除项目成功:', projectId);

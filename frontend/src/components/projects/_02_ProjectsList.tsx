@@ -26,8 +26,8 @@ interface ProjectListProps {
   projects: Project[]
   isLoading: boolean
   error: Error | null
-  onViewDetail: (projectId: number) => void
-  onDeleteProject: (projectId: number) => Promise<void>
+  onViewDetail: (projectId: string) => void
+  onDeleteProject: (projectId: string) => Promise<void>
   onSort: (field: string, direction: 'asc' | 'desc') => void
   currentSort: string
 }

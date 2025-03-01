@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link } from '@tanstack/react-router'
 import { CheckCircle2, Clock, AlertCircle } from 'lucide-react'
-import { PhaseStatus, ProjectPhase } from './types'
+import { PhaseStatus, ProjectPhase } from '../../types/projects_stages_dt_stru'
 import { ProjectStage, ProjectStatus } from '../../types/projects_dt_stru'
 
 interface PhaseIndicatorProps {

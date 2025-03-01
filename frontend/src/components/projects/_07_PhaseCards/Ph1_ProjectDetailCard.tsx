@@ -26,12 +26,12 @@ interface ProjectDetailProps {
 }
 
 // ====================== 项目详情 组件 ===========================
-export function ProjectDetail({ projectId, onClose }: ProjectDetailProps) {
+export function ProjectDetail({ projectId }: ProjectDetailProps) {
 
   const { toast } = useToast()
   const { singleProjectQuery, updateProject } = useProjects()
 
-  const { data: project, isLoading, error } = singleProjectQuery(Number(projectId))
+  const { data: project, isLoading, error } = singleProjectQuery(projectId)
 
   const [isEditing, setIsEditing] = useState(false)
   
@@ -81,7 +81,7 @@ export function ProjectDetail({ projectId, onClose }: ProjectDetailProps) {
 
     try {
       await updateProject({
-        projectId: Number(projectId),
+        projectId: projectId,
         projectData: editedProject
       })
       toast({

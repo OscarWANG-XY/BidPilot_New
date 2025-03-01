@@ -9,23 +9,24 @@ class Project(models.Model):
 
     # 项目状态选项
     class ProjectStage(models.TextChoices):
-        DRAFT = 'DRAFT', '草稿'
-        ANALYZING = 'ANALYZING', '分析中'
-        PENDING_CONFIRM = 'PENDING_CONFIRM', '待确认'
-        WRITING = 'WRITING', '编写中'
-        REVIEWING = 'REVIEWING', '审核中'
-        REVISING = 'REVISING', '修订中'
-        COMPLETED = 'COMPLETED', '已完成'
-        CANCELLED = 'CANCELLED', '已取消'
+        INITIALIZATION = 'INITIALIZATION','项目初始化'
+        TENDER_ANALYSIS = 'TENDER_ANALYSIS', '招标文件解读'
+        BID_WRITING = 'BID_WRITING', '投标文件撰写'
+        BID_REVISION = 'BID_REVISION', '投标文件修订'
+        BID_PRODUCTION = 'BID_PRODUCTION', '生产投标文件'
 
     # 项目类型选项（你可能需要根据实际需求调整）
     class ProjectType(models.TextChoices):
         WELFARE = 'WELFARE', '企业福利'
         FSD = 'FSD', '食材配送'
         OTHER = 'OTHER', '其他'
-        
-    # id 将使用Django默认的自增主键（以下用了显式定义）
-    id = models.BigAutoField(primary_key=True)
+
+    class ProjectStatus(models.TextChoices):
+        IN_PROGRESS = 'IN_PROGRESS', '进行中'
+        COMPLETED = 'COMPLETED', '已完成'
+        CANCELLED = 'CANCELLED', '已取消'
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     project_code = models.CharField('项目编号', max_length=100, unique=True, blank=True)
     project_name = models.CharField('项目名称', max_length=200)
     tenderee = models.CharField('招标单位', max_length=200)
@@ -37,12 +38,19 @@ class Project(models.Model):
         default=ProjectType.OTHER
     )
     bid_deadline = models.DateTimeField('投标截止时间', blank=True, null=True)
+    status = models.CharField(
+        '项目状态',
+        max_length=20,
+        choices=ProjectStatus.choices,
+        default=ProjectStatus.IN_PROGRESS
+    )
     current_stage = models.CharField(
         '当前阶段',
         max_length=20,
         choices=ProjectStage.choices,
-        default=ProjectStage.DRAFT
+        default=ProjectStage.INITIALIZATION
     )
+    
     is_urgent = models.BooleanField('是否紧急', default=False)
     creator = models.ForeignKey(    
         settings.AUTH_USER_MODEL,   #指向用户模型的引用
@@ -54,8 +62,8 @@ class Project(models.Model):
     last_update_time = models.DateTimeField('最后更新时间', auto_now=True)
 
     def save(self, *args, **kwargs):
-        # 如果这是一个已存在的项目（不是新创建的）
-        if self.pk:
+        # 使用 _state.adding 检查是否是新创建的对象
+        if not self._state.adding:  # 如果不是新创建的
             # 获取数据库中当前的状态
             old_instance = Project.objects.get(pk=self.pk)
             # 如果状态发生了变化
@@ -93,6 +101,8 @@ class Project(models.Model):
 
 
 class ProjectHistory(models.Model):
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     project = models.ForeignKey(
         Project,
         on_delete=models.CASCADE,
@@ -119,3 +129,5 @@ class ProjectHistory(models.Model):
 
     def __str__(self):
         return f"{self.project.project_code} - {self.from_stage} -> {self.to_stage}"
+
+

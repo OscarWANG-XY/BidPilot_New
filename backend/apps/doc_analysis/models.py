@@ -41,7 +41,7 @@ class DocumentAnalysis(models.Model):
         CONFIRMED = 'CONFIRMED', '已确认'
 
     # id 将使用Django默认的自增主键（以下用了显式定义）
-    id = models.BigAutoField(primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     # 关联字段， 建立多对一的关系。 ForeignKey引用的模型是"一"的一方
     # 即一个项目可以对应多个DocumentAnalysis

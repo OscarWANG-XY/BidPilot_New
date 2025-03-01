@@ -2,7 +2,7 @@ import React from 'react'
 import { Button } from '@/components/ui/button'
 import { Link } from '@tanstack/react-router'
 import { mockCompleteProjectData } from './mockData'
-import { PhaseStatus, ProjectPhase } from './types'
+import { PhaseStatus, ProjectPhase } from '../../types/projects_stages_dt_stru'
 import { ProjectStage } from '@/types/projects_dt_stru'
 
 interface ProjectOverviewProps {

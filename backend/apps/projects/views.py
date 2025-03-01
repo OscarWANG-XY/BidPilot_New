@@ -258,10 +258,10 @@ class ProjectViewSet(viewsets.ModelViewSet):
             project = self.get_object()
             logger.info(f"尝试删除项目: {project.id} (当前状态: {project.current_stage})")
         
-            if project.current_stage not in [Project.ProjectStage.DRAFT, Project.ProjectStage.CANCELLED]:
+            if project.current_stage not in [Project.ProjectStatus.CANCELLED]:
                 logger.warning(f"无法删除项目 {project.id} - 无效状态: {project.current_stage}")
                 return Response(
-                    {"detail": "只能删除草稿或已取消的项目"},
+                    {"detail": "只能删除已取消的项目"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             

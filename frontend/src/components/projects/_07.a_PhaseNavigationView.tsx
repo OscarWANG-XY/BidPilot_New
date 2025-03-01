@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { FileText, Upload } from 'lucide-react'
-import { ProjectPhase } from './types'
+import { ProjectPhase } from '../../types/projects_stages_dt_stru'
 import { ProjectStage } from '@/types/projects_dt_stru'
 import { FileManager } from '@/components/files/_FileManager'
 import { useFiles } from '@/hooks/useFiles'
