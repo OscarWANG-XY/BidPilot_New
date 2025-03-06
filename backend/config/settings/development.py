@@ -57,12 +57,12 @@ LOGGING = {
         },
         'apps.doc_analysis': {  # 您的应用logger
             'handlers': ['console'],
-            'level': 'ERROR',
+            'level': 'INFO',
             'propagate': False,
         },
         'apps.projects': {  # 您的应用logger
             'handlers': ['console'],
-            'level': 'ERROR',
+            'level': 'INFO',
             'propagate': False,
         },
         'apps.chat': {  # 您的应用logger

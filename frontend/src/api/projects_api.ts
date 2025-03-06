@@ -5,12 +5,14 @@ import type {
   CreateProjectRequest,
   UpdateProjectStageRequest,
   ProjectType,
-  ProjectStage
+  StageType,
+  ProjectOverviewResponse,
+  UpdateProjectStatusRequest
 } from '@/types/projects_dt_stru';
 
 // 查询参数接口（使用驼峰命名）
 interface ProjectQueryParams {
-  currentStage?: ProjectStage;
+  currentStage?: StageType;
   projectType?: ProjectType;
   isUrgent?: boolean;
   search?: string;
@@ -78,5 +80,27 @@ export const projectsApi = {
     console.log('📤 [projects_api.ts] 删除项目:', projectId);
     await axiosInstance.delete(`/projects/${projectId}/`);
     console.log('✅ [projects_api.ts] 删除项目成功:', projectId);
+  },
+
+  // 获取项目阶段概览
+  getProjectOverview: async (projectId: string): Promise<ProjectOverviewResponse> => {
+    console.log('📤 [projects_api.ts] 获取项目阶段概览:', projectId);
+    const response = await axiosInstance.get(`/projects/${projectId}/overview/`);
+    console.log('📥 [projects_api.ts] 获取项目阶段概览成功:', response.data);
+    return response.data;
+  },
+
+  // 更新项目状态 (修改为使用 UpdateProjectStatusRequest 类型)
+  updateProjectStatus: async (request: UpdateProjectStatusRequest): Promise<Project> => {
+    console.log('📤 [projects_api.ts] 更新项目状态:', request);
+    const response = await axiosInstance.patch(
+      `/projects/${request.id}/update_status/`,
+      {
+        status: request.status,
+        remarks: request.remarks
+      }
+    );
+    console.log('📥 [projects_api.ts] 更新项目状态成功:', response.data);
+    return response.data;
   }
 };

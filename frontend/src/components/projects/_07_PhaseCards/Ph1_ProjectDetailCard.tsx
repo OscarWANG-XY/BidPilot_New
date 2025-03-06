@@ -174,7 +174,7 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
           
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-600">当前阶段</label>
-            <p className="text-sm text-gray-900">{project.currentStage}</p>
+            <p className="text-sm text-gray-900">{project.currentActiveStage}</p>
           </div>
           
           {/* 可以根据需要添加更多项目信息字段 */}

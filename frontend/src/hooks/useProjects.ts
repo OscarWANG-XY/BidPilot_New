@@ -2,10 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';  
 import { projectsApi } from '@/api/projects_api';   // 引用项目API模块
 import type { 
   ProjectType,
-  ProjectStage,
+  StageType,
   Project, 
   CreateProjectRequest, 
-  UpdateProjectStageRequest 
+  UpdateProjectStageRequest,
+  UpdateProjectStatusRequest
 } from '@/types/projects_dt_stru';
 
 
@@ -14,7 +15,7 @@ import type {
 
 // 添加查询参数接口
 interface ProjectQueryParams {
-  current_stage?: ProjectStage;
+  current_stage?: StageType;
   project_type?: ProjectType;
   is_urgent?: boolean;
   search?: string;
@@ -121,6 +122,34 @@ export const useProjects = () => {
     }
   });
 
+  // 添加项目阶段概览查询
+  const projectOverviewQuery = (projectId: string) => useQuery({
+    queryKey: ['projectOverview', projectId],
+    queryFn: async () => {
+      console.log('🔍 [useProjects] 查询项目阶段概览, id:', projectId);
+      const result = await projectsApi.getProjectOverview(projectId);
+      console.log('📥 [useProjects] 查询项目阶段概览:', result);
+      return result;
+    }
+  });
+
+  // 修改项目状态更新函数，使用 UpdateProjectStatusRequest 类型
+  const updateProjectStatus = useMutation({
+    mutationFn: async (request: UpdateProjectStatusRequest) => {
+      console.log('📤 [useProjects] 更新项目状态:', request);
+      const result = await projectsApi.updateProjectStatus(request);
+      console.log('✅ [useProjects] 更新项目状态成功:', result);
+      return result;
+    },
+    onSuccess: (_, variables) => {
+      console.log('🔄 [useProjects] 更新项目状态后, 更新缓存数据:', variables.id);
+      queryClient.invalidateQueries({ queryKey: ['projectsKey'] });
+      queryClient.invalidateQueries({ queryKey: ['SingleProjectKey', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['projectHistory', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['projectOverview', variables.id] });
+    }
+  });
+
   // 删除项目
   const deleteProject = useMutation({
     mutationFn: async (projectId: string) => {
@@ -148,6 +177,8 @@ export const useProjects = () => {
     createProject: createProject.mutateAsync,  // 需要等待返回的项目ID来进行导航
     updateProject: updateProject.mutateAsync,  // 可能需要等待更新完成后执行其他操作
     updateProjectStage: updateProjectStage.mutateAsync,
-    deleteProject: deleteProject.mutateAsync
+    updateProjectStatus: updateProjectStatus.mutateAsync,  // 添加项目状态更新函数
+    deleteProject: deleteProject.mutateAsync,
+    projectOverviewQuery, // 添加项目阶段概览查询
   };
 };

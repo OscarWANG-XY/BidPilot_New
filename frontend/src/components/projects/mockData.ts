@@ -1,6 +1,6 @@
 // data/mockData.ts
 import { ProjectPhase, PhaseStatus, TaskStatus, TaskType } from '../../types/projects_stages_dt_stru'
-import { ProjectStage, ProjectStatus, ProjectType, Project } from '../../types/projects_dt_stru'
+import { StageType, ProjectStatus, ProjectType, Project } from '../../types/projects_dt_stru'
 import { FileType } from '../../types/files_dt_stru';
 
 // 示例项目状态
@@ -11,7 +11,7 @@ export const mockPhases: ProjectPhase[] = [
   {
     id: 'phase-0',
     name: '项目初始化',
-    stage: ProjectStage.INITIALIZATION,
+    stage: StageType.INITIALIZATION,
     status: PhaseStatus.COMPLETED,
     description: '完善项目基础信息，上传待分析的招标文件',
     startDate: '2023-09-28',
@@ -69,7 +69,7 @@ export const mockPhases: ProjectPhase[] = [
   {
     id: 'phase-1',
     name: '招标文件分析',
-    stage: ProjectStage.TENDER_ANALYSIS,
+    stage: StageType.TENDER_ANALYSIS,
     status: PhaseStatus.COMPLETED,
     description: '分析招标文件结构和要求',
     startDate: '2023-10-01',
@@ -129,7 +129,7 @@ export const mockPhases: ProjectPhase[] = [
   {
     id: 'phase-2',
     name: '投标文件撰写',
-    stage: ProjectStage.BID_WRITING,
+    stage: StageType.BID_WRITING,
     status: PhaseStatus.IN_PROGRESS,
     description: '编写投标文件各章节',
     startDate: '2023-10-06',
@@ -185,7 +185,7 @@ export const mockPhases: ProjectPhase[] = [
   {
     id: 'phase-3',
     name: '投标文件修订',
-    stage: ProjectStage.BID_REVISION,
+    stage: StageType.BID_REVISION,
     status: PhaseStatus.NOT_STARTED,
     description: '修订和完善投标文件',
     startDate: '2023-10-21',
@@ -216,7 +216,7 @@ export const mockPhases: ProjectPhase[] = [
   {
     id: 'phase-4',
     name: '投标文件生产',
-    stage: ProjectStage.BID_PRODUCTION,
+    stage: StageType.BID_PRODUCTION,
     status: PhaseStatus.NOT_STARTED,
     description: '生成最终投标文件',
     startDate: '2023-10-26',
@@ -256,7 +256,7 @@ export const mockProject: Project = {
   bidder: '我方公司名称',
   bidDeadline: new Date('2023-11-15'),
   status: ProjectStatus.IN_PROGRESS,
-  currentStage: ProjectStage.BID_WRITING,
+  currentActiveStage: StageType.BID_WRITING,
   isUrgent: true,
   creator: {
     id: '101',
@@ -268,16 +268,16 @@ export const mockProject: Project = {
     {
       historyId: '1',
       projectId: '1001',
-      fromStage: ProjectStage.INITIALIZATION,
-      toStage: ProjectStage.TENDER_ANALYSIS,
+      fromStage: StageType.INITIALIZATION,
+      toStage: StageType.TENDER_ANALYSIS,
       operationTime: new Date('2023-09-30'),
       remarks: '项目初始化完成，开始招标文件分析'
     },
     {
       historyId: '2',
       projectId: '1001',
-      fromStage: ProjectStage.TENDER_ANALYSIS,
-      toStage: ProjectStage.BID_WRITING,
+      fromStage: StageType.TENDER_ANALYSIS,
+      toStage: StageType.BID_WRITING,
       operationTime: new Date('2023-10-06'),
       remarks: '招标文件分析完成，开始投标文件撰写'
     }

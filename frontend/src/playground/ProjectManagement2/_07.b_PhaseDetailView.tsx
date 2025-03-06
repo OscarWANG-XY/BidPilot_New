@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
-import StatusBadge from './_06.2_StatusBadge'
-import { ProjectPhase, Task, TaskStatus, PhaseStatus } from '../../types/projects_stages_dt_stru'
+import StatusBadge from '../../components/projects/_06.2_StatusBadge'
+//import { ProjectPhase, Task, TaskStatus, PhaseStatus } from '../../types/projects_stages_dt_stru'
+import { ProjectStage, Task, TaskStatus, StageStatus } from '@/types/projects_dt_stru'
 import { Calendar, FileText, Clock, Upload } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { ProjectStage } from '@/types/projects_dt_stru'
+import { StageType } from '@/types/projects_dt_stru'
 import { FileUploadButton } from '@/components/files/FileUploadButton'
 import { toast } from '@/hooks/use-toast'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,7 +19,7 @@ const formatDate = (date?: string) => {
 };
 
 interface PhaseDetailViewProps {
-  phase: ProjectPhase
+  phase: ProjectStage
 }
 
 export const PhaseDetailView: React.FC<PhaseDetailViewProps> = ({ phase }) => {
@@ -26,18 +27,18 @@ export const PhaseDetailView: React.FC<PhaseDetailViewProps> = ({ phase }) => {
   const [isUploading, setIsUploading] = useState(false);
   
   // Helper function to render status badge with appropriate color
-  const renderStatusBadge = (status: PhaseStatus | TaskStatus) => {
+  const renderStatusBadge = (status: StageStatus | TaskStatus) => {
     let variant: 'default' | 'secondary' | 'destructive' | 'outline' = 'default';
     let label = '';
     
     // Handle both PhaseStatus and TaskStatus
-    if (status === PhaseStatus.COMPLETED || status === TaskStatus.COMPLETED || status === TaskStatus.CONFIRMED) {
+    if (status === StageStatus.COMPLETED || status === TaskStatus.COMPLETED || status === TaskStatus.CONFIRMED) {
       variant = 'default'; // Green
       label = '已完成';
-    } else if (status === PhaseStatus.IN_PROGRESS || status === TaskStatus.PROCESSING) {
+    } else if (status === StageStatus.IN_PROGRESS || status === TaskStatus.PROCESSING) {
       variant = 'secondary'; // Blue
       label = '进行中';
-    } else if (status === PhaseStatus.BLOCKED || status === TaskStatus.BLOCKED || status === TaskStatus.FAILED) {
+    } else if (status === StageStatus.BLOCKED || status === TaskStatus.BLOCKED || status === TaskStatus.FAILED) {
       variant = 'destructive'; // Red
       label = status === TaskStatus.FAILED ? '失败' : '阻塞中';
     } else {
@@ -78,7 +79,7 @@ export const PhaseDetailView: React.FC<PhaseDetailViewProps> = ({ phase }) => {
   // 渲染阶段特定组件
   const renderPhaseSpecificComponents = () => {
     switch (phase.stage) {
-      case ProjectStage.INITIALIZATION:
+      case StageType.INITIALIZATION:
         return (
           <Card className="mb-6">
             <CardHeader>
@@ -98,7 +99,7 @@ export const PhaseDetailView: React.FC<PhaseDetailViewProps> = ({ phase }) => {
             </CardContent>
           </Card>
         );
-      case ProjectStage.TENDER_ANALYSIS:
+      case StageType.TENDER_ANALYSIS:
         return (
           <Card className="mb-6">
             <CardHeader>

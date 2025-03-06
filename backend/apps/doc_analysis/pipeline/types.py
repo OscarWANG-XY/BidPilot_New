@@ -92,7 +92,7 @@ class DocxElements:
             'elements': self.elements,
             'document_analysis': {
                 'model': 'DocumentAnalysis',
-                'instance': self.document_analysis.instance.pk
+                'instance': str(self.document_analysis.instance.pk)
             }
         }
 
@@ -189,7 +189,7 @@ class OutlineAnalysisResult:
         return {
             'document_analysis': {
                 'model': 'DocumentAnalysis',
-                'instance': self.document_analysis.instance.pk
+                'instance': str(self.document_analysis.instance.pk)
             },
             'analysis_result': {
                 'result': self.analysis_result.result,
@@ -382,7 +382,7 @@ class DocxTree:
             'root': self._node_to_dict(self.root),
             'document_analysis': {
                 'model': 'DocumentAnalysis',
-                'instance': self.document_analysis.instance.pk
+                'instance': str(self.document_analysis.instance.pk)
             },
             'ordered_nodes': [node.node_id for node in self._ordered_nodes]  # 只存储节点ID的顺序
         }
@@ -1008,7 +1008,7 @@ class DocxTreeMoreTitles:
         return {
             'document_analysis': {
                 'model': 'DocumentAnalysis',
-                'instance': self.document_analysis.instance.pk
+                'instance': str(self.document_analysis.instance.pk)
             },
             'analysis_result': {
                 'result': {

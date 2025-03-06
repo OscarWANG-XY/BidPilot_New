@@ -54,7 +54,7 @@ export function ProjectManager() {
   // 处理排序变更，控制ordering的字段和方向变化，最后用handleQueryChange传参实现
   const handleSortChange = (field: string, direction: 'asc' | 'desc') => {
     
-    // 获取当前排序字段 (使用？，如果无字段值返回undefined,整体赋值‘create_time’)
+    // 获取当前排序字段 (使用？，如果无字段值返回undefined,整体赋值'create_time')
     const currentField = queryParams.ordering?.replace('-', '') || 'create_time';
     // 获取当前排序方向
     const currentDirection = queryParams.ordering?.startsWith('-') ? 'desc' : 'asc';
@@ -114,6 +114,19 @@ export function ProjectManager() {
       toast({
         title: '删除失败',
         description: '无效的项目ID',
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // 查找当前项目
+    const project = projects?.find(p => p.id === projectId);
+    
+    // 检查项目状态
+    if (project && project.status !== 'CANCELLED') {
+      toast({
+        title: '删除失败',
+        description: '只有已取消的项目才能被删除，请先取消项目',
         variant: "destructive",
       });
       return;

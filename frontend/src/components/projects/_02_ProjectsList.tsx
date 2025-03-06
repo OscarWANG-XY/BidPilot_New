@@ -124,6 +124,16 @@ export function ProjectList({
           <TableHead>
             <Button 
               variant="ghost" 
+              onClick={() => handleSortClick('status')}
+              className="flex items-center hover:bg-gray-100"
+            >
+              项目状态
+              {renderSortIcon('status')}
+            </Button>
+          </TableHead>
+          <TableHead>
+            <Button 
+              variant="ghost" 
               onClick={() => handleSortClick('currentStage')}
               className="flex items-center hover:bg-gray-100"
             >
@@ -147,8 +157,21 @@ export function ProjectList({
               {new Date(project.createTime).toLocaleDateString()}
             </TableCell>
             <TableCell>
+              <Badge 
+                variant={project.status === "IN_PROGRESS" ? "default" : 
+                        project.status === "COMPLETED" ? "secondary" : 
+                        project.status === "CANCELLED" ? "destructive" : "outline"}
+                className={`capitalize ${
+                  project.status === "COMPLETED" ? "bg-green-100 text-green-800 hover:bg-green-100" : 
+                  project.status === "CANCELLED" ? "bg-amber-100 text-amber-800 hover:bg-amber-100" : ""
+                }`}
+              >
+                {project.status || "未知"}
+              </Badge>
+            </TableCell>
+            <TableCell>
               <Badge variant="outline" className="capitalize">
-                {project.currentStage}
+                {project.currentActiveStage}
               </Badge>
             </TableCell>
             <TableCell>

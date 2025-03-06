@@ -1,5 +1,5 @@
 import { ProjectQueryParams } from '@/types/projects_dt_stru';
-import {ProjectStage, ProjectType } from '@/types/projects_dt_stru';
+import {StageType, ProjectType } from '@/types/projects_dt_stru';
 
 interface ProjectFilterProps {
   queryParams: ProjectQueryParams;
@@ -12,13 +12,13 @@ export function ProjectFilter({ queryParams, onQueryChange }: ProjectFilterProps
       {/* 项目状态过滤器 */}
       <select
         className="h-9 w-[180px] rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        value={queryParams.currentStage || ''}
+        value={queryParams.currentActiveStage || ''}
         onChange={(e) => onQueryChange({ 
-          currentStage: e.target.value as ProjectStage || undefined 
+          currentActiveStage: e.target.value as StageType || undefined 
         })}
       >
         <option value="">所有状态</option>
-        {Object.values(ProjectStage).map(stage => (
+        {Object.values(StageType).map(stage => (
           <option key={stage} value={stage}>
             {stage === 'INITIALIZATION' ? '项目初始化' :
              stage === 'TENDER_ANALYSIS' ? '招标文件解读' :

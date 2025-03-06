@@ -1,10 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { ProjectPhaseView } from '@/components/projects/_06_ProjectPhaseView'
-// 导入更新后的mockData
-import { mockCompleteProjectData } from '@/components/projects/mockData'
+import { useProjects } from '@/hooks/useProjects'
+import { StageType } from '@/types/projects_dt_stru'
+//import { LoadingView } from '@/components/LoadingView'
+//import { ErrorView } from '@/components/ErrorView'
 
 export const Route = createFileRoute('/projects/$id/phases/$phaseId/$viewMode')({
-  
+
   component: PhaseViewComponent,
 
   // parseParams 是tanstack router路由配置选项，用于解析路由参数
@@ -21,25 +23,40 @@ export const Route = createFileRoute('/projects/$id/phases/$phaseId/$viewMode')(
 })
 
 function PhaseViewComponent() {
+
   const { id, phaseId, viewMode } = Route.useParams()
+  const { projectOverviewQuery } = useProjects()
   
-  console.log('Rendering PhaseViewComponent with:', { id, phaseId, viewMode });
-  console.log('Available mockData:', mockCompleteProjectData);
+  console.log('渲染projects.$id.phases.$phaseId.$viewMode页面')
+
+
   
-  // 从mockCompleteProjectData中获取项目数据
-  // 注意：在实际应用中，您可能需要从API获取这些数据
-  const projectData = mockCompleteProjectData.project
-  console.log('Found projectData:', projectData);
+  // 使用projectOverviewQuery获取数据
+  const { 
+    data: projectOverview, 
+  //  isLoading, 
+  //  isError, 
+  //  error 
+  } = projectOverviewQuery(id)
+
+  console.log('projectOverview数据：', projectOverview)
   
-  // 获取当前项目阶段和状态
-  const currentProjectStage = projectData.currentStage
-  const projectStatus = projectData.status
+  // 处理加载和错误状态
+  //if (isLoading) return <LoadingView />
+  //if (isError) return <ErrorView error={error} />
   
-  console.log('Using stage and status:', { currentProjectStage, projectStatus });
-  
-  // 检查phaseId是否存在于mockData中
-  const phaseExists = mockCompleteProjectData.phases.some(phase => phase.id === phaseId);
-  console.log('Phase exists in mockData:', phaseExists);
+  // 从API响应中获取项目数据
+  if (!projectOverview) {
+    return <div>加载中...</div>; // 或其他加载状态组件
+  }
+
+  const { 
+    project,   // 项目在加载过程中，会出现undefined的情况， 所以上面添加了if (!projectOverview) 的处理。
+    stages 
+  } = projectOverview
+
+  const currentProjectStage = project.currentActiveStage || StageType.INITIALIZATION
+  const projectStatus = project.status
   
   return (
     <div className="phase-view-container">
@@ -49,6 +66,7 @@ function PhaseViewComponent() {
         viewMode={viewMode as 'navigation' | 'detail'} 
         currentProjectStage={currentProjectStage}
         projectStatus={projectStatus}
+        phases={stages}
       />
     </div>
   )

@@ -7,26 +7,26 @@ import {
 } from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
 import { Clock, FileText } from 'lucide-react'
-import { Task, TaskStatus, PhaseStatus } from '../../../types/projects_stages_dt_stru'
+import { Task, TaskStatus, StageStatus} from '@/types/projects_dt_stru'
 
 interface AnalysisTasksCardProps {
-  tasks: Task[];
+  tasks?: Task[];
   formatDate: (date: string | Date) => string;
 }
 
 // Helper function to render status badge
-const renderStatusBadge = (status: PhaseStatus | TaskStatus) => {
+const renderStatusBadge = (status: StageStatus | TaskStatus) => {
   let variant: 'default' | 'secondary' | 'destructive' | 'outline' = 'default';
   let label = '';
   
   // Handle both PhaseStatus and TaskStatus
-  if (status === PhaseStatus.COMPLETED || status === TaskStatus.COMPLETED || status === TaskStatus.CONFIRMED) {
+  if (status === StageStatus.COMPLETED || status === TaskStatus.COMPLETED || status === TaskStatus.CONFIRMED) {
     variant = 'default'; // Green
     label = '已完成';
-  } else if (status === PhaseStatus.IN_PROGRESS || status === TaskStatus.PROCESSING) {
+  } else if (status === StageStatus.IN_PROGRESS || status === TaskStatus.PROCESSING) {
     variant = 'secondary'; // Blue
     label = '进行中';
-  } else if (status === PhaseStatus.BLOCKED || status === TaskStatus.BLOCKED || status === TaskStatus.FAILED) {
+  } else if (status === StageStatus.BLOCKED || status === TaskStatus.BLOCKED || status === TaskStatus.FAILED) {
     variant = 'destructive'; // Red
     label = status === TaskStatus.FAILED ? '失败' : '阻塞中';
   } else {
