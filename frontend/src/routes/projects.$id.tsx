@@ -1,6 +1,6 @@
 import {
   createFileRoute,
-  Outlet
+  Outlet,
 } from '@tanstack/react-router'
 // import { ProjectDetail } from '@/components/projects/ProjectDetail'
 //import { ProjectManagement} from '@/components/projects/projectstages'

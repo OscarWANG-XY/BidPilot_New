@@ -27,9 +27,8 @@ import { Route as AuthPrivacyPolicyImport } from './routes/auth/privacy-policy'
 import { Route as AuthLoginImport } from './routes/auth/login'
 import { Route as AuthForgotPasswordImport } from './routes/auth/forgot-password'
 import { Route as ProjectsIdIndexImport } from './routes/projects.$id.index'
-import { Route as ProjectsIdNewImport } from './routes/projects.$id.new'
-import { Route as ProjectsIdPhasesPhaseIdImport } from './routes/projects.$id.phases.$phaseId'
-import { Route as ProjectsIdPhasesPhaseIdViewModeImport } from './routes/projects.$id.phases.$phaseId.$viewMode'
+import { Route as ProjectsIdTenderAnalysisImport } from './routes/projects.$id.tender-analysis'
+import { Route as ProjectsIdBidWritingImport } from './routes/projects.$id.bid-writing'
 
 // Create Virtual Routes
 
@@ -164,24 +163,17 @@ const ProjectsIdIndexRoute = ProjectsIdIndexImport.update({
   getParentRoute: () => ProjectsIdRoute,
 } as any)
 
-const ProjectsIdNewRoute = ProjectsIdNewImport.update({
-  id: '/new',
-  path: '/new',
+const ProjectsIdTenderAnalysisRoute = ProjectsIdTenderAnalysisImport.update({
+  id: '/tender-analysis',
+  path: '/tender-analysis',
   getParentRoute: () => ProjectsIdRoute,
 } as any)
 
-const ProjectsIdPhasesPhaseIdRoute = ProjectsIdPhasesPhaseIdImport.update({
-  id: '/phases/$phaseId',
-  path: '/phases/$phaseId',
+const ProjectsIdBidWritingRoute = ProjectsIdBidWritingImport.update({
+  id: '/bid-writing',
+  path: '/bid-writing',
   getParentRoute: () => ProjectsIdRoute,
 } as any)
-
-const ProjectsIdPhasesPhaseIdViewModeRoute =
-  ProjectsIdPhasesPhaseIdViewModeImport.update({
-    id: '/$viewMode',
-    path: '/$viewMode',
-    getParentRoute: () => ProjectsIdPhasesPhaseIdRoute,
-  } as any)
 
 // Populate the FileRoutesByPath interface
 
@@ -320,11 +312,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlaygroundIndexImport
       parentRoute: typeof PlaygroundImport
     }
-    '/projects/$id/new': {
-      id: '/projects/$id/new'
-      path: '/new'
-      fullPath: '/projects/$id/new'
-      preLoaderRoute: typeof ProjectsIdNewImport
+    '/projects/$id/bid-writing': {
+      id: '/projects/$id/bid-writing'
+      path: '/bid-writing'
+      fullPath: '/projects/$id/bid-writing'
+      preLoaderRoute: typeof ProjectsIdBidWritingImport
+      parentRoute: typeof ProjectsIdImport
+    }
+    '/projects/$id/tender-analysis': {
+      id: '/projects/$id/tender-analysis'
+      path: '/tender-analysis'
+      fullPath: '/projects/$id/tender-analysis'
+      preLoaderRoute: typeof ProjectsIdTenderAnalysisImport
       parentRoute: typeof ProjectsIdImport
     }
     '/projects/$id/': {
@@ -333,20 +332,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/projects/$id/'
       preLoaderRoute: typeof ProjectsIdIndexImport
       parentRoute: typeof ProjectsIdImport
-    }
-    '/projects/$id/phases/$phaseId': {
-      id: '/projects/$id/phases/$phaseId'
-      path: '/phases/$phaseId'
-      fullPath: '/projects/$id/phases/$phaseId'
-      preLoaderRoute: typeof ProjectsIdPhasesPhaseIdImport
-      parentRoute: typeof ProjectsIdImport
-    }
-    '/projects/$id/phases/$phaseId/$viewMode': {
-      id: '/projects/$id/phases/$phaseId/$viewMode'
-      path: '/$viewMode'
-      fullPath: '/projects/$id/phases/$phaseId/$viewMode'
-      preLoaderRoute: typeof ProjectsIdPhasesPhaseIdViewModeImport
-      parentRoute: typeof ProjectsIdPhasesPhaseIdImport
     }
   }
 }
@@ -363,30 +348,16 @@ const ChatRouteChildren: ChatRouteChildren = {
 
 const ChatRouteWithChildren = ChatRoute._addFileChildren(ChatRouteChildren)
 
-interface ProjectsIdPhasesPhaseIdRouteChildren {
-  ProjectsIdPhasesPhaseIdViewModeRoute: typeof ProjectsIdPhasesPhaseIdViewModeRoute
-}
-
-const ProjectsIdPhasesPhaseIdRouteChildren: ProjectsIdPhasesPhaseIdRouteChildren =
-  {
-    ProjectsIdPhasesPhaseIdViewModeRoute: ProjectsIdPhasesPhaseIdViewModeRoute,
-  }
-
-const ProjectsIdPhasesPhaseIdRouteWithChildren =
-  ProjectsIdPhasesPhaseIdRoute._addFileChildren(
-    ProjectsIdPhasesPhaseIdRouteChildren,
-  )
-
 interface ProjectsIdRouteChildren {
-  ProjectsIdNewRoute: typeof ProjectsIdNewRoute
+  ProjectsIdBidWritingRoute: typeof ProjectsIdBidWritingRoute
+  ProjectsIdTenderAnalysisRoute: typeof ProjectsIdTenderAnalysisRoute
   ProjectsIdIndexRoute: typeof ProjectsIdIndexRoute
-  ProjectsIdPhasesPhaseIdRoute: typeof ProjectsIdPhasesPhaseIdRouteWithChildren
 }
 
 const ProjectsIdRouteChildren: ProjectsIdRouteChildren = {
-  ProjectsIdNewRoute: ProjectsIdNewRoute,
+  ProjectsIdBidWritingRoute: ProjectsIdBidWritingRoute,
+  ProjectsIdTenderAnalysisRoute: ProjectsIdTenderAnalysisRoute,
   ProjectsIdIndexRoute: ProjectsIdIndexRoute,
-  ProjectsIdPhasesPhaseIdRoute: ProjectsIdPhasesPhaseIdRouteWithChildren,
 }
 
 const ProjectsIdRouteWithChildren = ProjectsIdRoute._addFileChildren(
@@ -440,10 +411,9 @@ export interface FileRoutesByFullPath {
   '/playground/tree1': typeof PlaygroundTree1Route
   '/projects/$id': typeof ProjectsIdRouteWithChildren
   '/playground/': typeof PlaygroundIndexRoute
-  '/projects/$id/new': typeof ProjectsIdNewRoute
+  '/projects/$id/bid-writing': typeof ProjectsIdBidWritingRoute
+  '/projects/$id/tender-analysis': typeof ProjectsIdTenderAnalysisRoute
   '/projects/$id/': typeof ProjectsIdIndexRoute
-  '/projects/$id/phases/$phaseId': typeof ProjectsIdPhasesPhaseIdRouteWithChildren
-  '/projects/$id/phases/$phaseId/$viewMode': typeof ProjectsIdPhasesPhaseIdViewModeRoute
 }
 
 export interface FileRoutesByTo {
@@ -463,10 +433,9 @@ export interface FileRoutesByTo {
   '/playground/AIAnalysisDashboard': typeof PlaygroundAIAnalysisDashboardRoute
   '/playground': typeof PlaygroundIndexRoute
   '/playground/tree1': typeof PlaygroundTree1Route
-  '/projects/$id/new': typeof ProjectsIdNewRoute
+  '/projects/$id/bid-writing': typeof ProjectsIdBidWritingRoute
+  '/projects/$id/tender-analysis': typeof ProjectsIdTenderAnalysisRoute
   '/projects/$id': typeof ProjectsIdIndexRoute
-  '/projects/$id/phases/$phaseId': typeof ProjectsIdPhasesPhaseIdRouteWithChildren
-  '/projects/$id/phases/$phaseId/$viewMode': typeof ProjectsIdPhasesPhaseIdViewModeRoute
 }
 
 export interface FileRoutesById {
@@ -490,10 +459,9 @@ export interface FileRoutesById {
   '/playground/tree1': typeof PlaygroundTree1Route
   '/projects/$id': typeof ProjectsIdRouteWithChildren
   '/playground/': typeof PlaygroundIndexRoute
-  '/projects/$id/new': typeof ProjectsIdNewRoute
+  '/projects/$id/bid-writing': typeof ProjectsIdBidWritingRoute
+  '/projects/$id/tender-analysis': typeof ProjectsIdTenderAnalysisRoute
   '/projects/$id/': typeof ProjectsIdIndexRoute
-  '/projects/$id/phases/$phaseId': typeof ProjectsIdPhasesPhaseIdRouteWithChildren
-  '/projects/$id/phases/$phaseId/$viewMode': typeof ProjectsIdPhasesPhaseIdViewModeRoute
 }
 
 export interface FileRouteTypes {
@@ -517,10 +485,9 @@ export interface FileRouteTypes {
     | '/playground/tree1'
     | '/projects/$id'
     | '/playground/'
-    | '/projects/$id/new'
+    | '/projects/$id/bid-writing'
+    | '/projects/$id/tender-analysis'
     | '/projects/$id/'
-    | '/projects/$id/phases/$phaseId'
-    | '/projects/$id/phases/$phaseId/$viewMode'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -539,10 +506,9 @@ export interface FileRouteTypes {
     | '/playground/AIAnalysisDashboard'
     | '/playground'
     | '/playground/tree1'
-    | '/projects/$id/new'
+    | '/projects/$id/bid-writing'
+    | '/projects/$id/tender-analysis'
     | '/projects/$id'
-    | '/projects/$id/phases/$phaseId'
-    | '/projects/$id/phases/$phaseId/$viewMode'
   id:
     | '__root__'
     | '/'
@@ -564,10 +530,9 @@ export interface FileRouteTypes {
     | '/playground/tree1'
     | '/projects/$id'
     | '/playground/'
-    | '/projects/$id/new'
+    | '/projects/$id/bid-writing'
+    | '/projects/$id/tender-analysis'
     | '/projects/$id/'
-    | '/projects/$id/phases/$phaseId'
-    | '/projects/$id/phases/$phaseId/$viewMode'
   fileRoutesById: FileRoutesById
 }
 
@@ -700,33 +665,26 @@ export const routeTree = rootRoute
       "filePath": "projects.$id.tsx",
       "parent": "/projects",
       "children": [
-        "/projects/$id/new",
-        "/projects/$id/",
-        "/projects/$id/phases/$phaseId"
+        "/projects/$id/bid-writing",
+        "/projects/$id/tender-analysis",
+        "/projects/$id/"
       ]
     },
     "/playground/": {
       "filePath": "playground/index.tsx",
       "parent": "/playground"
     },
-    "/projects/$id/new": {
-      "filePath": "projects.$id.new.tsx",
+    "/projects/$id/bid-writing": {
+      "filePath": "projects.$id.bid-writing.tsx",
+      "parent": "/projects/$id"
+    },
+    "/projects/$id/tender-analysis": {
+      "filePath": "projects.$id.tender-analysis.tsx",
       "parent": "/projects/$id"
     },
     "/projects/$id/": {
       "filePath": "projects.$id.index.tsx",
       "parent": "/projects/$id"
-    },
-    "/projects/$id/phases/$phaseId": {
-      "filePath": "projects.$id.phases.$phaseId.tsx",
-      "parent": "/projects/$id",
-      "children": [
-        "/projects/$id/phases/$phaseId/$viewMode"
-      ]
-    },
-    "/projects/$id/phases/$phaseId/$viewMode": {
-      "filePath": "projects.$id.phases.$phaseId.$viewMode.tsx",
-      "parent": "/projects/$id/phases/$phaseId"
     }
   }
 }

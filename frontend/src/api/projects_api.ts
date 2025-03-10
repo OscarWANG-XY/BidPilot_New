@@ -21,6 +21,14 @@ interface ProjectQueryParams {
 
 // ================================ projectsAPI 模块 =================================== 
 export const projectsApi = {
+  // 创建新项目
+  createProject: async (project: CreateProjectRequest): Promise<Project> => {
+    console.log('📤 [projects_api.ts] 创建新项目:', project);
+    const response = await axiosInstance.post('/projects/', project);
+    console.log('📥 [projects_api.ts] 创建新项目成功:', response.data);
+    return response.data;
+  },
+
   // 获取项目列表（支持过滤、搜索和排序）
   getAllProjects: async (params?: ProjectQueryParams): Promise<Project[]> => {
     console.log('📤 [projects_api.ts] 获取所有项目:', params);
@@ -37,13 +45,7 @@ export const projectsApi = {
     return response.data;
   },
 
-  // 创建新项目
-  createProject: async (project: CreateProjectRequest): Promise<Project> => {
-    console.log('📤 [projects_api.ts] 创建新项目:', project);
-    const response = await axiosInstance.post('/projects/', project);
-    console.log('📥 [projects_api.ts] 创建新项目成功:', response.data);
-    return response.data;
-  },
+
 
   // 更新项目信息
   updateProject: async (projectId: string, projectData: Partial<Project>): Promise<Project> => {

@@ -2,8 +2,13 @@ from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import NotFound
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import Project, ProjectHistory
+from .models import (
+    Project, ProjectHistory, ProjectStage, 
+    BaseTask, DocxExtractionTask, DocxTreeBuildTask,
+    ProjectStatus
+)
 from .serializers import (
     ProjectListSerializer,
     ProjectDetailSerializer,
@@ -12,7 +17,11 @@ from .serializers import (
     ProjectStageUpdateSerializer,
     ProjectHistorySerializer,
     ProjectStatusUpdateSerializer,
-    ProjectOverviewSerializer
+    ProjectOverviewSerializer,
+    ProjectStageSerializer,
+    BaseTaskSerializer,
+    DocxExtractionTaskSerializer,
+    DocxTreeBuildTaskSerializer
 )
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiTypes
 import logging
@@ -223,8 +232,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         """ 删除项目时的自定义逻辑 """ 
         project = self.get_object()
-        
-        if project.status not in [Project.ProjectStatus.CANCELLED]:
+
+        if project.status not in [ProjectStatus.CANCELLED]:
             return Response(
                 {"detail": "只能删除已取消的项目"},
                 status=status.HTTP_400_BAD_REQUEST
@@ -278,6 +287,394 @@ class ProjectViewSet(viewsets.ModelViewSet):
         project = self.get_object()
         serializer = self.get_serializer(project)
         return Response(serializer.data)
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=['project-stages'],
+        summary='获取项目阶段列表',
+        description='获取指定项目的所有阶段列表',
+        responses={
+            200: ProjectStageSerializer(many=True),
+            401: OpenApiTypes.OBJECT
+        }
+    ),
+    retrieve=extend_schema(
+        tags=['project-stages'],
+        summary='获取项目阶段详情',
+        description='获取指定项目阶段的详细信息',
+        responses={
+            200: ProjectStageSerializer,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
+    update=extend_schema(
+        tags=['project-stages'],
+        summary='更新项目阶段',
+        description='更新指定项目阶段的信息',
+        request=ProjectStageSerializer,
+        responses={
+            200: ProjectStageSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
+    partial_update=extend_schema(
+        tags=['project-stages'],
+        summary='部分更新项目阶段',
+        description='部分更新指定项目阶段的信息',
+        request=ProjectStageSerializer,
+        responses={
+            200: ProjectStageSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    )
+)
+class ProjectStageViewSet(viewsets.ModelViewSet):
+    """
+    项目阶段视图集，提供项目阶段的CRUD功能
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProjectStageSerializer
+    
+    def get_queryset(self):
+        """
+        获取查询集，只返回当前用户创建的项目的阶段
+        """
+        return ProjectStage.objects.filter(project__creator=self.request.user)
+    
+    def create(self, request, *args, **kwargs):
+        """
+        禁用直接创建阶段，阶段应该通过项目创建时自动生成
+        """
+        return Response(
+            {"detail": "项目阶段不能直接创建，应通过项目创建时自动生成"},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        禁用直接删除阶段
+        """
+        return Response(
+            {"detail": "项目阶段不能直接删除"},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=['tasks'],
+        summary='获取任务列表',
+        description='获取指定项目阶段的所有任务列表',
+        responses={
+            200: BaseTaskSerializer(many=True),
+            401: OpenApiTypes.OBJECT
+        }
+    ),
+    create=extend_schema(
+        tags=['tasks'],
+        summary='创建新任务',
+        description='创建一个新的任务记录',
+        request=BaseTaskSerializer,
+        responses={
+            201: BaseTaskSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT
+        }
+    ),
+    retrieve=extend_schema(
+        tags=['tasks'],
+        summary='获取任务详情',
+        description='获取指定任务的详细信息',
+        responses={
+            200: BaseTaskSerializer,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
+    update=extend_schema(
+        tags=['tasks'],
+        summary='更新任务信息',
+        description='更新指定任务的全部信息',
+        request=BaseTaskSerializer,
+        responses={
+            200: BaseTaskSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
+    partial_update=extend_schema(
+        tags=['tasks'],
+        summary='部分更新任务',
+        description='部分更新指定任务的信息',
+        request=BaseTaskSerializer,
+        responses={
+            200: BaseTaskSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
+    destroy=extend_schema(
+        tags=['tasks'],
+        summary='删除任务',
+        description='删除指定的任务',
+        responses={
+            204: None,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    )
+)
+class BaseTaskViewSet(viewsets.ModelViewSet):
+    """
+    基础任务视图集，提供任务的CRUD功能
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = BaseTaskSerializer
+    
+    def get_queryset(self):
+        """
+        获取查询集，只返回当前用户创建的项目的任务
+        """
+        return BaseTask.objects.filter(stage__project__creator=self.request.user)
+    
+    def perform_create(self, serializer):
+        """创建任务时进行额外验证"""
+        # 确保用户只能为自己的项目阶段创建任务
+        stage_id = self.request.data.get('stage')
+        try:
+            stage = ProjectStage.objects.get(id=stage_id)
+            if stage.project.creator != self.request.user:
+                raise PermissionError("您没有权限为此项目阶段创建任务")
+            serializer.save()
+        except ProjectStage.DoesNotExist:
+            raise NotFound("指定的项目阶段不存在")
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=['document-extraction-tasks'],
+        summary='获取文档提取任务列表',
+        description='获取指定项目阶段的所有文档提取任务列表',
+        responses={
+            200: DocxExtractionTaskSerializer(many=True),
+            401: OpenApiTypes.OBJECT
+        }
+    ),
+    create=extend_schema(
+        tags=['document-extraction-tasks'],
+        summary='创建新文档提取任务',
+        description='创建一个新的文档提取任务记录',
+        request=DocxExtractionTaskSerializer,
+        responses={
+            201: DocxExtractionTaskSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT
+        }
+    ),
+    retrieve=extend_schema(
+        tags=['document-extraction-tasks'],
+        summary='获取文档提取任务详情',
+        description='获取指定文档提取任务的详细信息',
+        responses={
+            200: DocxExtractionTaskSerializer,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
+    update=extend_schema(
+        tags=['document-extraction-tasks'],
+        summary='更新文档提取任务信息',
+        description='更新指定文档提取任务的全部信息',
+        request=DocxExtractionTaskSerializer,
+        responses={
+            200: DocxExtractionTaskSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
+    partial_update=extend_schema(
+        tags=['document-extraction-tasks'],
+        summary='部分更新文档提取任务',
+        description='部分更新指定文档提取任务的信息',
+        request=DocxExtractionTaskSerializer,
+        responses={
+            200: DocxExtractionTaskSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
+    destroy=extend_schema(
+        tags=['document-extraction-tasks'],
+        summary='删除文档提取任务',
+        description='删除指定的文档提取任务',
+        responses={
+            204: None,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    )
+)
+class DocxExtractionTaskViewSet(viewsets.ModelViewSet):
+    """
+    文档提取任务视图集，提供文档提取任务的CRUD功能
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = DocxExtractionTaskSerializer
+    
+    def get_queryset(self):
+        """
+        获取查询集，只返回当前用户创建的项目的文档提取任务
+        """
+        return DocxExtractionTask.objects.filter(stage__project__creator=self.request.user)
+    
+    def perform_create(self, serializer):
+        """创建文档提取任务时进行额外验证"""
+        # 确保用户只能为自己的项目阶段创建任务
+        stage_id = self.request.data.get('stage')
+        try:
+            stage = ProjectStage.objects.get(id=stage_id)
+            if stage.project.creator != self.request.user:
+                raise PermissionError("您没有权限为此项目阶段创建文档提取任务")
+            serializer.save()
+        except ProjectStage.DoesNotExist:
+            raise NotFound("指定的项目阶段不存在")
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=['document-tree-tasks'],
+        summary='获取文档树构建任务列表',
+        description='获取指定项目阶段的所有文档树构建任务列表',
+        responses={
+            200: DocxTreeBuildTaskSerializer(many=True),
+            401: OpenApiTypes.OBJECT
+        }
+    ),
+    create=extend_schema(
+        tags=['document-tree-tasks'],
+        summary='创建新文档树构建任务',
+        description='创建一个新的文档树构建任务记录',
+        request=DocxTreeBuildTaskSerializer,
+        responses={
+            201: DocxTreeBuildTaskSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT
+        }
+    ),
+    retrieve=extend_schema(
+        tags=['document-tree-tasks'],
+        summary='获取文档树构建任务详情',
+        description='获取指定文档树构建任务的详细信息',
+        responses={
+            200: DocxTreeBuildTaskSerializer,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
+    update=extend_schema(
+        tags=['document-tree-tasks'],
+        summary='更新文档树构建任务信息',
+        description='更新指定文档树构建任务的全部信息',
+        request=DocxTreeBuildTaskSerializer,
+        responses={
+            200: DocxTreeBuildTaskSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
+    partial_update=extend_schema(
+        tags=['document-tree-tasks'],
+        summary='部分更新文档树构建任务',
+        description='部分更新指定文档树构建任务的信息',
+        request=DocxTreeBuildTaskSerializer,
+        responses={
+            200: DocxTreeBuildTaskSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
+    destroy=extend_schema(
+        tags=['document-tree-tasks'],
+        summary='删除文档树构建任务',
+        description='删除指定的文档树构建任务',
+        responses={
+            204: None,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    )
+)
+class DocxTreeBuildTaskViewSet(viewsets.ModelViewSet):
+    """
+    文档树构建任务视图集，提供文档树构建任务的CRUD功能
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = DocxTreeBuildTaskSerializer
+    
+    def get_queryset(self):
+        """
+        获取查询集，只返回当前用户创建的项目的文档树构建任务
+        """
+        return DocxTreeBuildTask.objects.filter(stage__project__creator=self.request.user)
+    
+    def perform_create(self, serializer):
+        """创建文档树构建任务时进行额外验证"""
+        # 确保用户只能为自己的项目阶段创建任务
+        stage_id = self.request.data.get('stage')
+        try:
+            stage = ProjectStage.objects.get(id=stage_id)
+            if stage.project.creator != self.request.user:
+                raise PermissionError("您没有权限为此项目阶段创建文档树构建任务")
+            serializer.save()
+        except ProjectStage.DoesNotExist:
+            raise NotFound("指定的项目阶段不存在")
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=['project-histories'],
+        summary='获取项目历史记录列表',
+        description='获取指定项目的所有历史记录列表',
+        responses={
+            200: ProjectHistorySerializer(many=True),
+            401: OpenApiTypes.OBJECT
+        }
+    ),
+    retrieve=extend_schema(
+        tags=['project-histories'],
+        summary='获取项目历史记录详情',
+        description='获取指定项目历史记录的详细信息',
+        responses={
+            200: ProjectHistorySerializer,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    )
+)
+class ProjectHistoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    项目历史记录视图集，只提供只读功能
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProjectHistorySerializer
+    
+    def get_queryset(self):
+        """
+        获取查询集，只返回当前用户创建的项目的历史记录
+        """
+        return ProjectHistory.objects.filter(project__creator=self.request.user)
 
 
 

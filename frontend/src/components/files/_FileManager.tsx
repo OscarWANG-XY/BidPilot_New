@@ -17,7 +17,7 @@ interface FileManagerProps {
   // 添加可选的项目ID参数，用于关联文件到特定项目
   projectId?: string;
   // 添加标题参数，可以根据不同场景显示不同标题
-  title?: string;
+  //title?: string;
   // 添加接受的文件类型
   acceptedFileTypes?: string;
   // 添加是否允许多文件上传
@@ -35,7 +35,7 @@ export function FileManager({
   onFileUpload, 
   onUploadSuccess,
   projectId, 
-  title = "文件管理", 
+  //title = "文件管理", 
   acceptedFileTypes,
   allowMultiple = true 
 }: FileManagerProps) {
@@ -205,7 +205,7 @@ export function FileManager({
   // 返回文件管理器的组件渲染
   return (
     <div className="space-y-4 p-4">
-      <h2 className="text-xl font-semibold mb-4">{title}</h2>
+      {/*<h2 className="text-xl font-semibold mb-4">{title}</h2>*/}
       <div className="flex items-center justify-between">
         <FileUploadButton 
           onFileSelect={handleUpload} // 回调FileManager.tsx里的handleUpload逻辑函数
