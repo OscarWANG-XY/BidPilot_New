@@ -128,6 +128,10 @@ export interface BaseTask {
   updatedAt: Date;               // 更新时间
 }
 
+// 招标文件上传任务接口 - 对齐后端模型
+export interface TenderFileUploadTask extends BaseTask {
+}
+
 // 文档提取任务接口 - 对齐后端模型
 export interface DocxExtractionTask extends BaseTask {
   extractedElements?: any;        // 提取的文档元素（JSON）

@@ -7,7 +7,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from .models import (
     Project, ProjectHistory, ProjectStage, 
-    BaseTask, DocxExtractionTask, DocxTreeBuildTask,
+    BaseTask,TenderFileUploadTask,DocxExtractionTask, DocxTreeBuildTask, 
     ProjectStatus
 )
 from .serializers import (
@@ -246,6 +246,43 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
 
 @extend_schema_view(
+    list=extend_schema(
+        tags=['project-histories'],
+        summary='获取项目历史记录列表',
+        description='获取指定项目的所有历史记录列表',
+        responses={
+            200: ProjectHistorySerializer(many=True),
+            401: OpenApiTypes.OBJECT
+        }
+    ),
+    retrieve=extend_schema(
+        tags=['project-histories'],
+        summary='获取项目历史记录详情',
+        description='获取指定项目历史记录的详细信息',
+        responses={
+            200: ProjectHistorySerializer,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    )
+)
+class ProjectHistoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    项目历史记录视图集，只提供只读功能
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProjectHistorySerializer
+    
+    def get_queryset(self):
+        """
+        获取查询集，只返回当前用户创建的项目的历史记录
+        """
+        return ProjectHistory.objects.filter(project__creator=self.request.user)
+
+
+
+
+@extend_schema_view(
     retrieve=extend_schema(
         tags=['project-stages'],
         summary='获取项目阶段详情',
@@ -255,10 +292,61 @@ class ProjectViewSet(viewsets.ModelViewSet):
             401: OpenApiTypes.OBJECT,
             404: OpenApiTypes.OBJECT
         }
+    ),
+    upload_task=extend_schema(
+        tags=['project-stages'],
+        summary='获取指定项目阶段的招标文件上传任务',
+        description='获取指定项目阶段的招标文件上传任务',
+        request={
+            'GET': None,  # GET 请求不需要请求体
+            'PUT': TenderFileUploadTaskUpdateSerializer,
+            'PATCH': TenderFileUploadTaskUpdateSerializer,
+        },
+        responses={
+            200: TenderFileUploadTaskDetailSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        },
+        methods=['GET', 'PUT', 'PATCH']
+    ),
+    extraction_task=extend_schema(
+        tags=['project-stages'],
+        summary='获取指定项目阶段的文档提取任务',
+        description='获取指定项目阶段的文档提取任务',
+        request={
+            'GET': None,  # GET 请求不需要请求体
+            'PUT': DocxExtractionTaskUpdateSerializer,
+            'PATCH': DocxExtractionTaskUpdateSerializer,
+        },
+        responses={
+            200: DocxExtractionTaskDetailSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        },
+        methods=['GET', 'PUT', 'PATCH']
+    ),  
+    tree_build_task=extend_schema(
+        tags=['project-stages'],
+        summary='获取指定项目阶段的文档树构建任务',
+        description='获取指定项目阶段的文档树构建任务',
+        request={
+            'GET': None,  # GET 请求不需要请求体
+            'PUT': DocxTreeBuildTaskUpdateSerializer,
+            'PATCH': DocxTreeBuildTaskUpdateSerializer,
+        },
+        responses={
+            200: DocxTreeBuildTaskDetailSerializer,
+            400: OpenApiTypes.OBJECT,   
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        },
+        methods=['GET', 'PUT', 'PATCH']
     )
 )
 class ProjectStageViewSet(mixins.RetrieveModelMixin,
-                          # mixins.UpdateModelMixin,  # 目前还用不到update, 注意不存在partial_update mixin
+                          mixins.UpdateModelMixin,  # 目前还用不到update, 注意不存在partial_update mixin
                           viewsets.GenericViewSet):
     """
     项目阶段视图集，只提供了项目阶段的读取和更新功能
@@ -300,42 +388,72 @@ class ProjectStageViewSet(mixins.RetrieveModelMixin,
         return obj
 
 
+    # 自定义方法：获取项目阶段下的任务列表
+    @action(detail=True, methods=['get', 'put', 'patch'])
+    def upload_task(self, request, project_pk=None, pk=None):
+        """ 获取项目阶段下的任务列表 """
+        stage = self.get_object()
 
-@extend_schema_view(
-    list=extend_schema(
-        tags=['project-histories'],
-        summary='获取项目历史记录列表',
-        description='获取指定项目的所有历史记录列表',
-        responses={
-            200: ProjectHistorySerializer(many=True),
-            401: OpenApiTypes.OBJECT
-        }
-    ),
-    retrieve=extend_schema(
-        tags=['project-histories'],
-        summary='获取项目历史记录详情',
-        description='获取指定项目历史记录的详细信息',
-        responses={
-            200: ProjectHistorySerializer,
-            401: OpenApiTypes.OBJECT,
-            404: OpenApiTypes.OBJECT
-        }
-    )
-)
-class ProjectHistoryViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    项目历史记录视图集，只提供只读功能
-    """
-    permission_classes = [IsAuthenticated]
-    serializer_class = ProjectHistorySerializer
-    
-    def get_queryset(self):
-        """
-        获取查询集，只返回当前用户创建的项目的历史记录
-        """
-        return ProjectHistory.objects.filter(project__creator=self.request.user)
+        # 获取该阶段的 招标文件上传 任务
+        try:
+            task = TenderFileUploadTask.objects.get(stage=stage)
+        except TenderFileUploadTask.DoesNotExist:
+            return Response({"detail": "招标文件上传任务不存在"}, status=status.HTTP_404_NOT_FOUND)
+        if request.method == 'GET':
+            serializer = TenderFileUploadTaskDetailSerializer(task)
+            return Response(serializer.data)
+        
+        serializer = TenderFileUploadTaskUpdateSerializer(task, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(TenderFileUploadTaskDetailSerializer(task).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 
+    @action(detail=True, methods=['get', 'put', 'patch'])
+    def extraction_task(self, request, project_pk=None, pk=None):
+        """获取或更新阶段的文档提取任务"""
+        stage = self.get_object()
+        
+        # 获取该阶段的文档提取任务
+        try:
+            task = DocxExtractionTask.objects.get(stage=stage)
+        except DocxExtractionTask.DoesNotExist:
+            # 如果任务不存在，可以选择创建一个或返回404
+            return Response({"detail": "此阶段没有文档提取任务"}, status=status.HTTP_404_NOT_FOUND)
+        
+        if request.method == 'GET':
+            serializer = DocxExtractionTaskDetailSerializer(task)
+            return Response(serializer.data)
+        
+        # 处理更新请求
+        serializer = DocxExtractionTaskUpdateSerializer(task, data=request.data, partial=request.method == 'PATCH')
+        if serializer.is_valid():
+            serializer.save()
+            return Response(DocxExtractionTaskDetailSerializer(task).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    
+
+    @action(detail=True, methods=['get', 'put', 'patch'])
+    def tree_build_task(self, request, project_pk=None, pk=None):
+        """获取或更新阶段的文档树构建任务"""
+        stage = self.get_object()
+        
+        # 获取该阶段的文档提取任务
+        try:
+            task = DocxTreeBuildTask.objects.get(stage=stage)
+        except DocxTreeBuildTask.DoesNotExist:
+            # 如果任务不存在，可以选择创建一个或返回404
+            return Response({"detail": "此阶段没有文档树构建任务"}, status=status.HTTP_404_NOT_FOUND)
+        
+        if request.method == 'GET':
+            serializer = DocxTreeBuildTaskDetailSerializer(task)
+            return Response(serializer.data)
+        
+        # 处理更新请求
+        serializer = DocxTreeBuildTaskUpdateSerializer(task, data=request.data, partial=request.method == 'PATCH')
+        if serializer.is_valid():
+            serializer.save()
+            return Response(DocxTreeBuildTaskDetailSerializer(task).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

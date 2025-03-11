@@ -39,12 +39,8 @@ export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectI
   // 当任务状态数据加载完成时更新本地状态
   useEffect(() => {
     if (taskStatuses && taskStatuses.length > 0) {
-      // 将API返回的任务状态映射到本地状态
-      const newTaskState: AllTaskState = {
-        tenderFileUpload: TaskStatus.PENDING,
-        docxExtractionTask: TaskStatus.PENDING,
-        docxTreeBuildTask: TaskStatus.PENDING,
-      }
+      // 创建一个基于当前状态的新状态对象，而不是总是重置为PENDING
+      const newTaskState: AllTaskState = { ...allTaskState }
       
       // 遍历API返回的任务状态，根据任务类型更新对应的状态
       taskStatuses.forEach(task => {
@@ -59,7 +55,7 @@ export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectI
       
       setAllTaskState(newTaskState)
     }
-  }, [taskStatuses])
+  }, [taskStatuses, allTaskState])
 
   // 处理任务A状态变化，这里只更新taskA的状态，其他任务状态不变。
   const handleTaskAStatusChange = useCallback((status: TaskStatus) => {
