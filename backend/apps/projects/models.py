@@ -8,11 +8,9 @@ logger = logging.getLogger(__name__)
 
 # 所有枚举定义移到类外部
 class StageType(models.TextChoices):
-    #INITIALIZATION = 'INITIALIZATION','项目初始化'
     TENDER_ANALYSIS = 'TENDER_ANALYSIS', '招标文件分析'
     BID_WRITING = 'BID_WRITING', '投标文件编写'
-    #BID_REVISION = 'BID_REVISION', '投标文件修订'
-    #BID_PRODUCTION = 'BID_PRODUCTION', '生产投标文件'
+
 
 class ProjectType(models.TextChoices):
     WELFARE = 'WELFARE', '企业福利'  # 值为'WELFARE', 显示为'企业福利' 
@@ -31,19 +29,20 @@ class StageStatus(models.TextChoices):
     BLOCKED = 'BLOCKED', '阻塞中'
 
 class TaskType(models.TextChoices):
-    DOCUMENT_EXTRACTION = 'DOCUMENT_EXTRACTION', '提取文档信息'
-    DOCUMENT_TREE_BUILDING = 'DOCUMENT_TREE_BUILDING', '构建文档树'
-    AI_STRUCTURE_ANALYSIS = 'AI_STRUCTURE_ANALYSIS', 'AI分析层级结构'
-    BIDDER_INSTRUCTION_ANALYSIS = 'BIDDER_INSTRUCTION_ANALYSIS', '分析投标人须知'
-    SCORING_CRITERIA_ANALYSIS = 'SCORING_CRITERIA_ANALYSIS', '分析评分标准'
-    BID_DOCUMENT_COMPOSITION = 'BID_DOCUMENT_COMPOSITION', '分析投标文件组成'
-    CHAPTER_WRITING = 'CHAPTER_WRITING', '章节撰写'
-    TECHNICAL_SOLUTION = 'TECHNICAL_SOLUTION', '技术方案'
-    PRICE_PROPOSAL = 'PRICE_PROPOSAL', '价格方案'
-    QUALIFICATION_DOCUMENTS = 'QUALIFICATION_DOCUMENTS', '资质文件'
-    DOCUMENT_REVIEW = 'DOCUMENT_REVIEW', '文档审核'
-    DOCUMENT_REVISION = 'DOCUMENT_REVISION', '文档修订'
-    DOCUMENT_PRODUCTION = 'DOCUMENT_PRODUCTION', '文档生产'
+    UPLOAD_TENDER_FILE = 'UPLOAD_TENDER_FILE', '上传招标文件'
+    DOCX_EXTRACTION_TASK = 'DOCX_EXTRACTION_TASK', '提取文档信息'
+    DOCX_TREE_BUILD_TASK = 'DOCX_TREE_BUILD_TASK', '构建文档树'
+    #AI_STRUCTURE_ANALYSIS = 'AI_STRUCTURE_ANALYSIS', 'AI分析层级结构'
+    #BIDDER_INSTRUCTION_ANALYSIS = 'BIDDER_INSTRUCTION_ANALYSIS', '分析投标人须知'
+    # SCORING_CRITERIA_ANALYSIS = 'SCORING_CRITERIA_ANALYSIS', '分析评分标准'
+    # BID_DOCUMENT_COMPOSITION = 'BID_DOCUMENT_COMPOSITION', '分析投标文件组成'
+    # CHAPTER_WRITING = 'CHAPTER_WRITING', '章节撰写'
+    # TECHNICAL_SOLUTION = 'TECHNICAL_SOLUTION', '技术方案'
+    # PRICE_PROPOSAL = 'PRICE_PROPOSAL', '价格方案'
+    # QUALIFICATION_DOCUMENTS = 'QUALIFICATION_DOCUMENTS', '资质文件'
+    # DOCUMENT_REVIEW = 'DOCUMENT_REVIEW', '文档审核'
+    # DOCUMENT_REVISION = 'DOCUMENT_REVISION', '文档修订'
+    # DOCUMENT_PRODUCTION = 'DOCUMENT_PRODUCTION', '文档生产'
     OTHER = 'OTHER', '其他'
 
 class TaskStatus(models.TextChoices):
@@ -249,13 +248,17 @@ class BaseTask(models.Model):
     )
     created_at = models.DateTimeField('创建时间', auto_now_add=True)
     updated_at = models.DateTimeField('更新时间', auto_now=True)
-    
+
+
     class Meta:
         verbose_name = '基础任务'
         verbose_name_plural = '基础任务'
     
     def __str__(self):
         return f"{self.name} - {self.get_status_display()}"
+
+class TenderFileUploadTask(BaseTask):
+    pass
 
 class DocxExtractionTask(BaseTask):
     extracted_elements = models.JSONField(

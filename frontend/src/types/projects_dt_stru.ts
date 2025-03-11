@@ -1,221 +1,213 @@
 // ============================== 基础模型 ==============================
 
-import { FileRecord } from "./files_dt_stru";
 
-// 项目类型枚举
+// 项目类型枚举 - 与后端对齐
 export enum ProjectType {
-    WELFARE = 'WELFARE',    // 企业福利
-    FSD = 'FSD',           // 食材配送
-    OTHER = 'OTHER'        // 其他
-  }
-  
-  // 项目状态枚举
-  export enum ProjectStatus {
-    IN_PROGRESS = 'IN_PROGRESS', // 进行中
-    COMPLETED = 'COMPLETED',     // 已完成
-    CANCELLED = 'CANCELLED'      // 已取消
-  }
-  
-  // 项目阶段枚举 (仅包含业务阶段)
-  export enum StageType {
-    INITIALIZATION = 'INITIALIZATION',   // 项目初始化
-    TENDER_ANALYSIS = 'TENDER_ANALYSIS', // 招标文件解读
-    BID_WRITING = 'BID_WRITING',         // 投标文件撰写
-    BID_REVISION = 'BID_REVISION',       // 投标文件集成和整体修订
-    BID_PRODUCTION = 'BID_PRODUCTION'    // 生产投标文件
-  }
-  
-  // 项目基本信息接口
-  export interface Project {
-    id: string;                    // 项目ID (后端自增主键)
-    projectCode: string;           // 项目编号 (自动生成的唯一编号)
-    projectName: string;           // 项目名称
-    projectType: ProjectType;      // 项目类型
-    tenderee: string;             // 招标单位
-    bidder: string;               // 投标单位
-    bidDeadline: Date;            // 投标截止时间
-    status: ProjectStatus;        // 项目状态
-    isUrgent: boolean;            // 是否紧急
-    creator: {                    // 创建者信息
-      id: string;
-      username: string;
-    };
-    createTime: Date;             // 创建时间
-    lastUpdateTime: Date;         // 最后更新时间
+  WELFARE = 'WELFARE',    // 企业福利
+  FSD = 'FSD',           // 食材配送
+  OTHER = 'OTHER'        // 其他
+}
 
-    // 文件相关
-    files?: FileRecord[];
+// 项目状态枚举 - 与后端对齐
+export enum ProjectStatus {
+  IN_PROGRESS = 'IN_PROGRESS', // 进行中
+  COMPLETED = 'COMPLETED',     // 已完成
+  CANCELLED = 'CANCELLED'      // 已取消
+}
 
-    // 阶段相关
-    stages?: ProjectStage[];  // 阶段列表
-    currentActiveStage?: StageType; // 当前活动阶段
-    stageHistories?: ProjectHistory[]; // 阶段历史记录
-  }
-    
-    // 使用示例：获取当前活跃阶段
-    //const currentStage = project.stages.find(stage => stage.id === project.currentActiveStageId);
-  
-  // 项目阶段历史记录接口
-  export interface ProjectHistory {
-    historyId: string;
-    projectId: string;
-    fromStage: StageType;
-    toStage: StageType;
-    operationTime: Date;
-    remarks?: string;
-  }
-  
+// 项目阶段枚举 - 与后端对齐，仅包含后端定义的阶段
+export enum StageType {
+  TENDER_ANALYSIS = 'TENDER_ANALYSIS', // 招标文件分析
+  BID_WRITING = 'BID_WRITING'          // 投标文件编写
+  // 注意：后端注释掉了INITIALIZATION, BID_REVISION, BID_PRODUCTION
+}
 
-
-
-  // ============================== Project的请求模型 ==============================
-  /**
- * 项目创建请求
- * 对应后端 serializers.CreateProjectSerializer
- */
-export type CreateProjectRequest = 
-    Pick<Project, 'projectName' | 'projectType' | 'tenderee'> // 继承必填字段
-    // Pick<Project, > // 继承可选字段
-    & Partial<Pick<Project, 'bidder' | 'bidDeadline' | 'isUrgent'>> // 继承必填字段，但改为可选
-    // & { isUrgent?: boolean;} // 添加必填/可选字段    
-
-
-/**
-* 项目查询请求
-* 对应后端 serializers.ProjectListSerializer
-*/
-export type ProjectQueryParams =
-    Partial<Pick<Project, 'currentActiveStage' | 'projectType' | 'isUrgent'>>
-    & {
-        search?: string;
-        ordering?: string;
-    }
-
-export type UpdateProjectStageRequest = 
-    Pick<Project, 'id'>
-    & {
-        stage: StageType;
-        remarks?: string;
-    }
-// 更新项目状态请求
-export type UpdateProjectStatusRequest = 
-    Pick<Project, 'id'|'status'>
-    & {
-        remarks?: string;
-    }
-
-
-// ============================== 阶段模型 ==============================
-
-// 阶段状态枚举
+// 阶段状态枚举 - 与后端对齐
 export enum StageStatus {
   NOT_STARTED = 'NOT_STARTED',   // 未开始
   IN_PROGRESS = 'IN_PROGRESS',   // 进行中
   COMPLETED = 'COMPLETED',       // 已完成
-  BLOCKED = 'BLOCKED'            // 阻塞中（例如等待外部反馈）
+  BLOCKED = 'BLOCKED'            // 阻塞中
 }
 
-// 统一的阶段模型
-export interface ProjectStage {
-    id: string;
-    projectId: string;
-    stage: StageType;         // 阶段类型，作为区分不同阶段的标识
-    name: string;
-    status: StageStatus;
-    description: string;
-    progress: number;
-    remarks?: string;
-    
-    // 可选字段，根据不同阶段类型可能存在
-    fileId?: string;             // 用于初始化阶段的文件ID
-    file?: FileRecord;
-    tasks?: Task[];  // 阶段相关任务，可以是多种任务类型的组合
-    
-    // 其他可能的阶段特定字段
-    metadata?: Record<string, any>;
-}
-
-export type Task = BaseTask | DocumentExtractionTask | DocumentTreeBuildingTask;
-
-// 项目阶段概览响应接口 - 用于前端展示
-
-
-
-
-// 项目概览响应接口 - 包含项目基本信息和所有阶段概览
-export interface ProjectOverviewResponse {
-  project: Project;
-  stages: ProjectStage[];
-}
-
-
-export type ProjectStageOverview = 
-  Pick<ProjectStage, 'id' | 'name'| 'stage' |  'status' | 'description'  | 'progress' | 'tasks' | 'remarks'>
-
-export type ProjectStageViewResponse 
-  = Pick<ProjectStage, 'id' | 'stage' | 'name' | 'description' | 'status' | 'progress'|'fileId'|'tasks'|'remarks'>
-
-// ============================== 任务模型 ==============================
-
-// 任务类型枚举 - 根据业务场景添加
+// 任务类型枚举 - 与后端对齐
 export enum TaskType {
-  // 项目初始化阶段任务类型
-  PROJECT_BASIC_INFO_INPUT = 'PROJECT_BASIC_INFO_INPUT', // 项目基本信息输入
-  RENDER_DOCUMENT_UPLOAD = 'RENDER_DOCUMENT_UPLOAD', // 渲染文档上传
-
-  // 招标文件分析阶段任务类型
-  DOCUMENT_EXTRACTION = 'DOCUMENT_EXTRACTION',       // 提取文档信息
-  DOCUMENT_TREE_BUILDING = 'DOCUMENT_TREE_BUILDING', // 构建文档树
-  AI_STRUCTURE_ANALYSIS = 'AI_STRUCTURE_ANALYSIS',   // AI分析层级结构
-  BIDDER_INSTRUCTION_ANALYSIS = 'BIDDER_INSTRUCTION_ANALYSIS', // 分析投标人须知
-  SCORING_CRITERIA_ANALYSIS = 'SCORING_CRITERIA_ANALYSIS',     // 分析评分标准
-  BID_DOCUMENT_COMPOSITION = 'BID_DOCUMENT_COMPOSITION',       // 分析投标文件组成
-  
-  // 投标文件撰写阶段任务类型
-  CHAPTER_WRITING = 'CHAPTER_WRITING',               // 章节撰写
-  TECHNICAL_SOLUTION = 'TECHNICAL_SOLUTION',         // 技术方案
-  PRICE_PROPOSAL = 'PRICE_PROPOSAL',                 // 价格方案
-  QUALIFICATION_DOCUMENTS = 'QUALIFICATION_DOCUMENTS', // 资质文件
-  
-  // 通用任务类型
-  DOCUMENT_REVIEW = 'DOCUMENT_REVIEW',               // 文档审核
-  DOCUMENT_REVISION = 'DOCUMENT_REVISION',           // 文档修订
-  DOCUMENT_PRODUCTION = 'DOCUMENT_PRODUCTION',       // 文档生产
-  OTHER = 'OTHER'                                    // 其他
+  UPLOAD_TENDER_FILE = 'UPLOAD_TENDER_FILE',     //'上传招标文件'
+  DOCX_EXTRACTION_TASK = 'DOCX_EXTRACTION_TASK', //'提取文档信息'
+  DOCX_TREE_BUILD_TASK = 'DOCX_TREE_BUILD_TASK',  //'构建文档树'
+  // AI_STRUCTURE_ANALYSIS = 'AI_STRUCTURE_ANALYSIS',        // AI分析层级结构
+  // BIDDER_INSTRUCTION_ANALYSIS = 'BIDDER_INSTRUCTION_ANALYSIS', // 分析投标人须知
+  // SCORING_CRITERIA_ANALYSIS = 'SCORING_CRITERIA_ANALYSIS',     // 分析评分标准
+  // BID_DOCUMENT_COMPOSITION = 'BID_DOCUMENT_COMPOSITION',       // 分析投标文件组成
+  // CHAPTER_WRITING = 'CHAPTER_WRITING',                    // 章节撰写
+  // TECHNICAL_SOLUTION = 'TECHNICAL_SOLUTION',              // 技术方案
+  // PRICE_PROPOSAL = 'PRICE_PROPOSAL',                      // 价格方案
+  // QUALIFICATION_DOCUMENTS = 'QUALIFICATION_DOCUMENTS',    // 资质文件
+  // DOCUMENT_REVIEW = 'DOCUMENT_REVIEW',                    // 文档审核
+  // DOCUMENT_REVISION = 'DOCUMENT_REVISION',                // 文档修订
+  // DOCUMENT_PRODUCTION = 'DOCUMENT_PRODUCTION',            // 文档生产
+  OTHER = 'OTHER'                                         // 其他
 }
 
-// 任务状态枚举
+// 任务状态枚举 - 与后端对齐
 export enum TaskStatus {
   PENDING = 'PENDING',           // 待处理
   PROCESSING = 'PROCESSING',     // 处理中
   COMPLETED = 'COMPLETED',       // 已完成
   FAILED = 'FAILED',             // 失败
   CONFIRMED = 'CONFIRMED',       // 已确认
-  BLOCKED = 'BLOCKED'            // 阻塞中（例如等待依赖任务）
+  BLOCKED = 'BLOCKED'            // 阻塞中
 }
 
-// 基础任务接口
-export interface BaseTask {
+// 项目基本信息接口 - 对齐后端模型
+export interface Project {
+  id: string;                      // 项目ID (UUID)
+  projectName: string;             // 项目名称
+  tenderee: string;                // 招标单位
+  bidder: string;                  // 投标单位
+  projectType: ProjectType;        // 项目类型
+  bidDeadline?: Date;              // 投标截止时间（可选）
+  status: ProjectStatus;           // 项目状态
+  isUrgent: boolean;               // 是否紧急
+  currentActiveStage: StageType;   // 当前活动阶段
+  creator: {                       // 创建者信息
     id: string;
-    stageId: string;
-    name: string;
-    description: string;
-    progress: number;
-    type: TaskType;
-    status: TaskStatus;
-    createdAt: Date;
-    updatedAt: Date;
+    phone: string;
+    role: string;
+  };
+  createTime: Date;                // 创建时间
+  lastUpdateTime: Date;            // 最后更新时间
+
+  // 关联数据
+  stages?: ProjectStage[];         // 项目阶段
+  stageHistories?: ProjectHistory[]; // 项目历史记录
 }
 
-// 特定任务类型接口 - 可以根据需要扩展
-export interface DocumentExtractionTask extends BaseTask {
-    type: TaskType.DOCUMENT_EXTRACTION;
-    fileId: string;
-    //documentElements: DocumentElement[];
+// 项目阶段历史记录接口 - 对齐后端模型
+export interface ProjectHistory {
+  id: string;
+  project: string;               // 项目ID
+  fromStage: StageType;          // 原阶段
+  toStage: StageType;            // 新阶段
+  fromStatus?: ProjectStatus;    // 原状态（可选）
+  toStatus?: ProjectStatus;      // 新状态（可选）
+  operationTime: Date;           // 操作时间
+  remarks?: string;              // 备注
 }
 
-export interface DocumentTreeBuildingTask extends BaseTask {
-    type: TaskType.DOCUMENT_TREE_BUILDING;
+// ============================== 项目阶段模型 ==============================
+
+// 项目阶段接口 - 对齐后端模型
+export interface ProjectStage {
+  id: string;
+  project: string;                // 项目ID
+  stageType: StageType;           // 阶段类型
+  name: string;                   // 阶段名称
+  stageStatus: StageStatus;       // 阶段状态
+  description: string;            // 描述
+  fileId?: string;                // 文件ID（可选）
+  progress: number;               // 进度
+  remarks?: string;               // 备注（可选）
+  createdAt: Date;                // 创建时间
+  updatedAt: Date;                // 更新时间
+  metadata: Record<string, any>;  // 元数据
+  tasks?: AllTask[];                 // 关联任务
 }
 
+// ============================== 任务模型 ==============================
+
+// 基础任务接口 - 对齐后端模型
+export interface BaseTask {
+  id: string;
+  stage: string;                 // 所属阶段ID
+  name: string;                  // 任务名称
+  description: string;           // 描述
+  type: TaskType;                // 任务类型
+  status: TaskStatus;            // 状态
+  createdAt: Date;               // 创建时间
+  updatedAt: Date;               // 更新时间
+}
+
+// 文档提取任务接口 - 对齐后端模型
+export interface DocxExtractionTask extends BaseTask {
+  extractedElements?: any;        // 提取的文档元素（JSON）
+  outlineAnalysisResult?: any;    // 大纲分析结果（JSON）
+  improvedDocxElements?: any;     // 初步大纲优化后的文档元素（JSON）
+}
+
+// 文档树构建任务接口 - 对齐后端模型
+export interface DocxTreeBuildTask extends BaseTask {
+  docxtree?: any;                 // 文档树（JSON）
+  moreSubtitles?: any;            // 更多子标题（JSON）
+}
+
+// 任务联合类型 - 所有特定任务类型的联合
+export type AllTask = BaseTask | DocxExtractionTask | DocxTreeBuildTask;
+
+export type AllTaskState = {
+  tenderFileUpload: TaskStatus
+  docxExtractionTask: TaskStatus
+  docxTreeBuildTask: TaskStatus
+}
+
+
+
+// ============================== 请求/响应模型 ==============================
+
+/**
+ * 项目创建请求 - 对齐后端 ProjectCreateSerializer
+ */
+export type CreateProjectRequest = 
+  Pick<Project, 'projectName' | 'tenderee'> &
+  Partial<Pick<Project, 'bidder' | 'projectType' | 'bidDeadline' | 'isUrgent' | 'status'>>;
+
+/**
+ * 项目查询参数 - 对齐后端过滤机制
+ */
+export interface ProjectQueryParams {
+  currentActiveStage?: StageType;
+  projectType?: ProjectType;
+  isUrgent?: boolean;
+  search?: string;
+  ordering?: string;
+}
+
+/**
+ * 项目阶段更新请求 - 对齐后端 ProjectStageTypeUpdateSerializer
+ */
+export interface UpdateProjectActiveStageRequest {
+  id: string;
+  currentActiveStage: StageType;
+  remarks?: string;
+}
+
+/**
+ * 项目状态更新请求 - 对齐后端 ProjectStatusUpdateSerializer
+ */
+export interface UpdateProjectStatusRequest {
+  id: string;
+  status: ProjectStatus;
+  remarks?: string;
+}
+
+
+/**
+ * 任务更新请求 - 基于任务类型
+ */
+export interface BaseTaskUpdateRequest {
+  name?: string;
+  description?: string;
+  status?: TaskStatus;
+}
+
+export interface DocxExtractionTaskUpdateRequest extends BaseTaskUpdateRequest {
+  extractedElements?: any;
+  outlineAnalysisResult?: any;
+  improvedDocxElements?: any;
+}
+
+export interface DocxTreeBuildTaskUpdateRequest extends BaseTaskUpdateRequest {
+  docxtree?: any;
+  moreSubtitles?: any;
+}
 

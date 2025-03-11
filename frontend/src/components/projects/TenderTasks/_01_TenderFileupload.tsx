@@ -6,7 +6,7 @@ import { ArrowRight } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { FileManager } from '@/components/files/_FileManager'
 import { useFiles } from '@/hooks/useFiles'
-import { TaskStatus } from '@/components/projects/TenderTasks/TaskA'
+import { TaskStatus } from '@/types/projects_dt_stru'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 
@@ -23,19 +23,16 @@ interface TenderFileUploadProps {
 export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({ 
   projectId, 
   onStatusChange, 
-  initialStatus = 'not_started',
+  initialStatus = TaskStatus.PENDING,
   isEnabled = true, // 默认为true，因为文件上传通常是第一个任务
   onNavigateToNextTask
 }) => {
-
 
 
   // --------  Part2: 任务的状态管理
   // 添加了任务A的status状态管理, 用于向父组件传递状态，与后面的
   const [status, setStatus] = useState<TaskStatus>(initialStatus)
   // 不用像TaskA那样添加的loading状态管理，因为在FileManager组件中已经有了
-
-
 
 
   // 依赖项是status和onStatusChange。 
@@ -92,7 +89,7 @@ export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({
   const handleUploadSuccess = () => {
     console.log('File uploaded successfully, refreshing file list');
     refreshFiles();
-    setStatus('completed') // 更新的状态会通过之前的useEffect传递给父组件;
+    setStatus(TaskStatus.COMPLETED) // 更新的状态会通过之前的useEffect传递给父组件;
   }
 
 

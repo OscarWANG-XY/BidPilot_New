@@ -5,8 +5,9 @@ import type {
   StageType,
   Project, 
   CreateProjectRequest, 
-  UpdateProjectStageRequest,
-  UpdateProjectStatusRequest
+  UpdateProjectStatusRequest,
+  UpdateProjectActiveStageRequest,
+  AllTask
 } from '@/types/projects_dt_stru';
 
 
@@ -28,6 +29,9 @@ export const useProjects = () => {
   // 缓存数据是 queryClient.data
   const queryClient = useQueryClient();
 
+
+
+//====================== Projects 相关的 查询 和 操作  =====================
 
   // --------------- 查询所有项目 （支持过滤、搜索和排序）--------------- 
   const projectsQuery = (params?: ProjectQueryParams) => useQuery({
@@ -107,10 +111,10 @@ export const useProjects = () => {
 
 
   // 更新项目阶段
-  const updateProjectStage = useMutation({
-    mutationFn: async (request: UpdateProjectStageRequest) => {
+  const updateProjectActiveStage = useMutation({
+    mutationFn: async (request: UpdateProjectActiveStageRequest) => {
       console.log('📤 [useProjects] 更新项目阶段:', request);
-      const result = await projectsApi.updateProjectStage(request);
+      const result = await projectsApi.updateProjectActiveStage(request);
       console.log('✅ [useProjects] 更新项目阶段成功:', result);
       return result;
     },
@@ -119,17 +123,6 @@ export const useProjects = () => {
       queryClient.invalidateQueries({ queryKey: ['projectsKey'] });
       queryClient.invalidateQueries({ queryKey: ['SingleProjectKey', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['projectHistory', variables.id] });
-    }
-  });
-
-  // 添加项目阶段概览查询
-  const projectOverviewQuery = (projectId: string) => useQuery({
-    queryKey: ['projectOverview', projectId],
-    queryFn: async () => {
-      console.log('🔍 [useProjects] 查询项目阶段概览, id:', projectId);
-      const result = await projectsApi.getProjectOverview(projectId);
-      console.log('📥 [useProjects] 查询项目阶段概览:', result);
-      return result;
     }
   });
 
@@ -164,11 +157,62 @@ export const useProjects = () => {
     }
   });
 
+
+
+//====================== ProjectStage 相关的 查询 和 操作  =====================
+
+    // --------------- 查询项目阶段详情 (包含任务) --------------- 
+    const projectStageQuery = (projectId: string, stageType: StageType) => useQuery({
+      queryKey: ['projectStage', projectId, stageType],
+      queryFn: async () => {
+        console.log('🔍 [useProjects] 查询项目阶段详情:', { projectId, stageType });
+        const result = await projectsApi.getProjectStage(projectId, stageType);
+        console.log('📥 [useProjects] 查询项目阶段详情成功:', result);
+        return result;
+      },
+      refetchOnWindowFocus: false,  // 窗口获得焦点时不重新获取
+      staleTime: 30 * 1000,         // 30秒后数据变为陈旧
+      gcTime: 5 * 60 * 1000,        // 5分钟后清除缓存
+    });
+
+    // --------------- 查询项目阶段任务状态 --------------- 
+    const projectStageTaskStatusesQuery = (projectId: string, stageType: StageType) => useQuery({
+      queryKey: ['projectStageTaskStatuses', projectId, stageType],
+      queryFn: async () => {
+        console.log('🔍 [useProjects] 查询项目阶段任务状态:', { projectId, stageType });
+        const stageData = await projectsApi.getProjectStage(projectId, stageType);
+        
+        // 提取所有任务的状态信息，对齐BaseTask接口
+        const taskStatuses = stageData.tasks?.map((task: AllTask) => ({
+          id: task.id,
+          name: task.name,
+          description: task.description,
+          type: task.type,
+          status: task.status,
+        })) || [];
+        console.log('📥 [useProjects] 查询项目阶段任务状态成功:', taskStatuses);
+        return taskStatuses;
+      },
+      refetchOnWindowFocus: false,
+      staleTime: 30 * 1000,
+      gcTime: 5 * 60 * 1000,
+      // 只有当projectId和stageType都存在时才启用查询
+      enabled: Boolean(projectId) && Boolean(stageType),
+    });
+
+
+    
+
+
+
+  
   return {
     // 查询相关 分别是基于projectQuery变量 和 singleProjectQuery()的函数 的使用。
     projectsQuery,  // 现在是一个函数，接受查询参数
     singleProjectQuery,
     projectHistoryQuery,
+    projectStageQuery,  // 添加项目阶段查询
+    projectStageTaskStatusesQuery,  // 添加项目阶段任务状态查询
 
     // 操作相关
     // .mutate() 本身不返回promise对象, 如果需要返回promise对象，则需要使用.mutateAsync()
@@ -176,9 +220,8 @@ export const useProjects = () => {
     // 这样的好处是：调用者可以选择是否等待操作完成，可再调用处使用try/catch来处理错误; 可获取到操作返回的数据
     createProject: createProject.mutateAsync,  // 需要等待返回的项目ID来进行导航
     updateProject: updateProject.mutateAsync,  // 可能需要等待更新完成后执行其他操作
-    updateProjectStage: updateProjectStage.mutateAsync,
+    updateProjectActiveStage: updateProjectActiveStage.mutateAsync,
     updateProjectStatus: updateProjectStatus.mutateAsync,  // 添加项目状态更新函数
     deleteProject: deleteProject.mutateAsync,
-    projectOverviewQuery, // 添加项目阶段概览查询
   };
 };

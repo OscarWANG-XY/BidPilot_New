@@ -8,6 +8,8 @@ django-extensions==3.2.3
 django-phonenumber-field==8.0.0
 django-filter==24.3 # 支持项目复杂的查询
 drf-nested-routers==0.94.1
+drf-polymorphic==1.0.0  # 支持多态序列化器
+django-polymorphic==3.1.0 # 支持多态模型
 
 # Database
 psycopg[binary,pool]==3.2.4  #支持异步

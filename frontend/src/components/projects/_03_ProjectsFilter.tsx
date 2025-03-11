@@ -20,11 +20,9 @@ export function ProjectFilter({ queryParams, onQueryChange }: ProjectFilterProps
         <option value="">所有状态</option>
         {Object.values(StageType).map(stage => (
           <option key={stage} value={stage}>
-            {stage === 'INITIALIZATION' ? '项目初始化' :
+            {
              stage === 'TENDER_ANALYSIS' ? '招标文件解读' :
-             stage === 'BID_WRITING' ? '投标文件撰写' :
-             stage === 'BID_REVISION' ? '投标文件集成和整体修订' :
-             stage === 'BID_PRODUCTION' ? '生产投标文件' : stage}
+             stage === 'BID_WRITING' ? '投标文件撰写' :stage}
           </option>
         ))}
       </select>

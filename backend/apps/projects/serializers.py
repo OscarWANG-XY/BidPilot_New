@@ -1,6 +1,10 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Project, ProjectHistory, ProjectStage, BaseTask, DocxExtractionTask, DocxTreeBuildTask
+from .models import (
+    Project, ProjectHistory, ProjectStage, BaseTask, 
+    DocxExtractionTask, DocxTreeBuildTask, TenderFileUploadTask, TaskStatus
+)
+
 
 User = get_user_model()
 
@@ -8,26 +12,33 @@ User = get_user_model()
 # ============ 基础模型序列化器 (Basic Model Serializers) ============
 
 class UserBriefSerializer(serializers.ModelSerializer):
-    """用户简要信息序列化器"""
+    """
+    用户简要信息序列化器
+    在项目相关API中展示用户的基本信息，只包含id, phone, role的必要信息。
+    """
+
+    # 核心信息
+    id = serializers.UUIDField(
+        read_only=True,   # 必须字段，但不需用户填写
+        help_text="用户唯一标识符"
+    )
+    phone = serializers.CharField(
+        read_only=True,   # 必须字段，但不需用户填写
+        help_text="用户手机号，作为主要联系方式"
+    )
+    role = serializers.CharField(
+        read_only=True,   # 必须字段，但不需用户填写
+        help_text="用户角色，如'user'、'admin'等"
+    )
+    
     class Meta:
         model = User
-        fields = ['id', 'phone', 'email', 'role']
+        fields = ['id', 'phone', 'role']
+        read_only_fields = ['id', 'phone', 'role']
 
 
-# ------------ Project 项目序列化器 ------------
-class ProjectSerializer(serializers.ModelSerializer):
-    """项目基础序列化器"""
-    class Meta:
-        model = Project
-        fields = '__all__'
+# ============= Project 项目序列化器 =============
 
-
-
-# 前端组件： _01_CreateProject.tsx 组件
-# 前端API： api/projects_api.ts 文件的 CreateProject 方法 
-# 前端HOOK： hooks/useProjects.ts 文件的 createProject 方法 
-# 后端视图： views.py 文件的 ProjectViewSet 类中的 create 方法 
-# 后端序列化器： serializers.py 文件的 ProjectCreateSerializer 类
 class ProjectCreateSerializer(serializers.ModelSerializer):
     """项目创建序列化器"""
     class Meta:
@@ -40,16 +51,7 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
         project = Project(**validated_data)
         project.save()  # 这里会触发 model 的 save 方法，自动生成 project_code
         return project
-
-# ------------ 项目列表 序列化器 （后端->前端）------------
-# 注意 ProjectListSerializer 的名字可能有点误导性， 它也是模型序列化器。
-# 实际上，它并不是"返回项目列表"的序列化器，而是"用于项目列表中显示单个项目"的序列化器。
-# 它定义了在列表中显示一个项目时需要的字段。
-# 前端组件： _02_ProjectList.tsx 组件
-# 前端API： api/projects_api.ts 文件的 getAllProjects 方法 
-# 前端HOOK： hooks/useProjects.ts 文件的 projecsQuery 方法 
-# 后端视图： views.py 文件的 ProjectViewSet 类中的 get_queryset 方法 
-# 后端序列化器： serializers.py 文件的 ProjectListSerializer 类
+    
 class ProjectListSerializer(serializers.ModelSerializer):
     """项目列表序列化器"""
     creator = UserBriefSerializer(read_only=True)
@@ -65,7 +67,6 @@ class ProjectListSerializer(serializers.ModelSerializer):
                            'current_active_stage', 'get_current_active_stage_display', 
                            'get_project_type_display', 'get_status_display']
 
-
 class ProjectDetailSerializer(ProjectListSerializer):
     """项目详情序列化器"""
     stage_histories = serializers.SerializerMethodField()
@@ -77,7 +78,6 @@ class ProjectDetailSerializer(ProjectListSerializer):
         histories = obj.project_histories.all()
         return ProjectHistorySerializer(histories, many=True).data
 
-
 class ProjectUpdateSerializer(serializers.ModelSerializer):
     """项目更新序列化器"""
     class Meta:
@@ -85,92 +85,7 @@ class ProjectUpdateSerializer(serializers.ModelSerializer):
         fields = ['project_name', 'tenderee', 'bidder', 'project_type',
                  'bid_deadline', 'is_urgent', 'status']
 
-
-# ------------ ProjectStage 项目阶段序列化器 ------------
-class ProjectStageSerializer(serializers.ModelSerializer):
-    """项目阶段序列化器"""
-    tasks = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = ProjectStage
-        fields = [
-            'id', 'project', 'stage_type', 'name', 'stage_status', 
-            'description', 'file_id', 'progress', 'remarks', 
-            'created_at', 'updated_at', 'metadata'
-        ]
-        read_only_fields = ['project', 'stage_type', 'created_at', 'updated_at']
-    
-    def get_tasks(self, obj):
-        tasks = obj.tasks.all()
-        return BaseTaskSerializer(tasks, many=True).data
-
-
-class ProjectStageCreateSerializer(serializers.ModelSerializer):
-    """项目阶段创建序列化器"""
-    class Meta:
-        model = ProjectStage
-        fields = ['project', 'stage_type', 'name', 'stage_status', 'description', 
-                 'file_id', 'progress', 'remarks']
-
-
-class ProjectStageUpdateSerializer(serializers.ModelSerializer):
-    """项目阶段更新序列化器"""
-    class Meta:
-        model = ProjectStage
-        fields = ['name', 'stage_status', 'description', 'file_id', 
-                 'progress', 'remarks']
-
-
-# ------------ BaseTask 任务序列化器 ------------
-class BaseTaskSerializer(serializers.ModelSerializer):
-    """基础任务序列化器"""
-    class Meta:
-        model = BaseTask
-        fields = [
-            'id', 'stage', 'name', 'description', 'type', 
-            'status', 'created_at', 'updated_at'
-        ]
-        read_only_fields = ['created_at', 'updated_at']
-
-
-class BaseTaskCreateSerializer(serializers.ModelSerializer):
-    """基础任务创建序列化器"""
-    class Meta:
-        model = BaseTask
-        fields = ['stage', 'name', 'description', 'type', 'status']
-
-
-class BaseTaskUpdateSerializer(serializers.ModelSerializer):
-    """基础任务更新序列化器"""
-    class Meta:
-        model = BaseTask
-        fields = ['name', 'description', 'progress', 'type', 'status']
-
-
-# ------------ ProjectHistory 项目状态历史序列化器 ------------
-class ProjectHistorySerializer(serializers.ModelSerializer):
-    """项目状态历史序列化器"""
-    class Meta:
-        model = ProjectHistory
-        fields = ['id', 'project', 'from_stage', 'to_stage',
-                 'get_from_stage_display', 'get_to_stage_display',
-                 'from_status', 'to_status',
-                 'get_from_status_display', 'get_to_status_display',
-                 'operation_time', 'remarks']
-        read_only_fields = ['operation_time']
-
-
-class ProjectHistoryCreateSerializer(serializers.ModelSerializer):
-    """项目状态历史创建序列化器"""
-    class Meta:
-        model = ProjectHistory
-        fields = ['project', 'from_stage', 'to_stage', 'from_status', 
-                 'to_status', 'remarks']
-
-
-# ============ 特定场景序列化器 (Specific Scenario Serializers) ============
-
-# ------------ 项目状态更新序列化器 ------------
+# 专用于前端项目取消，和删除的场景
 class ProjectStatusUpdateSerializer(serializers.ModelSerializer):
     """项目状态更新序列化器"""
     remarks = serializers.CharField(required=False, write_only=True)
@@ -197,87 +112,193 @@ class ProjectStatusUpdateSerializer(serializers.ModelSerializer):
 
         return super().update(instance, validated_data)
 
-
-# ------------ 项目阶段更新序列化器 ------------
-class ProjectStageTypeUpdateSerializer(serializers.ModelSerializer):
-    """项目阶段类型更新序列化器"""
-    remarks = serializers.CharField(required=False, write_only=True)
-
+class ProjectActiveStageUpdateSerializer(serializers.ModelSerializer):
+    """项目当前活动阶段更新序列化器"""
     class Meta:
         model = Project
-        fields = ['current_active_stage', 'remarks']
-
-    def update(self, instance, validated_data):
-        remarks = validated_data.pop('remarks', '')
-        old_stage = instance.current_active_stage
-        new_stage = validated_data['current_active_stage']
-
-        if old_stage != new_stage:
-            # 创建项目历史记录
-            ProjectHistory.objects.create(
-                project=instance,
-                from_stage=old_stage,
-                to_stage=new_stage,
-                from_status=instance.status,  # 保持当前状态不变
-                to_status=instance.status,    # 保持当前状态不变
-                remarks=remarks
-            )
-
-        return super().update(instance, validated_data)
+        fields = ['current_active_stage']
 
 
-# ------------ 项目阶段概览序列化器 ------------
-class ProjectOverviewSerializer(serializers.ModelSerializer):
-    """项目阶段概览序列化器"""
-    project = serializers.SerializerMethodField()
-    stages = serializers.SerializerMethodField()
+# ============= ProjectStage 项目阶段序列化器 =============
+# ProjectStage初始化创建，不需要CreateSerializer 
+
+class ProjectStageDetailSerializer(serializers.ModelSerializer):
+    """项目阶段读取专用序列化器"""
+
+    # 额外定义序列化字段
+    tasks = serializers.SerializerMethodField()  # 自定义序列化逻辑
+    stage_type_display = serializers.CharField(source='get_stage_type_display', read_only=True)
+    stage_status_display = serializers.CharField(source='get_stage_status_display', read_only=True)
     
     class Meta:
-        model = Project
-        fields = ['project', 'stages']
+        model = ProjectStage
+        fields = [
+            'id', 'project', 'stage_type', 'stage_type_display', 'name', 
+            'stage_status', 'stage_status_display', 'description', 
+            'file_id', 'progress', 'remarks', 'created_at', 
+            'updated_at', 'metadata', 'tasks'
+        ]
+        read_only_fields = fields  # 所有字段都是只读的
     
-    def get_project(self, obj):
-        """获取项目基本信息"""
-        return ProjectListSerializer(obj).data
-    
-    def get_stages(self, obj):
-        """获取项目所有阶段信息"""
-        stages = obj.stages.all().order_by('stage_type')
-        return ProjectStageSerializer(stages, many=True).data
+    def get_tasks(self, obj):
+        """获取该阶段的所有任务"""
+
+        # 使用ProjectStage的反向关联查询到所有的tasks，包括BaseTask 和它的子类Task. 
+        tasks = obj.tasks.all()  
+        
+        # 根据任务类型使用不同的序列化器
+        serialized_tasks = []
+        for task in tasks:
+            if isinstance(task, TenderFileUploadTask):
+                serialized_tasks.append(TenderFileUploadTaskListSerializer(task).data)
+            elif isinstance(task, DocxExtractionTask):
+                serialized_tasks.append(DocxExtractionTaskListSerializer(task).data)
+            elif isinstance(task, DocxTreeBuildTask):
+                serialized_tasks.append(DocxTreeBuildTaskListSerializer(task).data)
+            else:
+                # 默认使用基础任务序列化器
+                serialized_tasks.append(BaseTaskListSerializer(task).data)
+        return serialized_tasks
 
 
-class DocxExtractionTaskSerializer(serializers.ModelSerializer):
-    """文档提取任务序列化器"""
+
+# ============= BaseTask 任务序列化器 =============
+# List serializers 
+
+class BaseTaskListSerializer(serializers.ModelSerializer):
+    """基础任务列表序列化器 - 只包含列表视图需要的字段"""
+    type_display = serializers.CharField(source='get_type_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    
+    class Meta:
+        model = BaseTask
+        fields = [
+            'id', 'name', 'type', 'type_display',
+            'status', 'status_display', 'updated_at'
+        ]
+        read_only_fields = fields
+
+class TenderFileUploadTaskListSerializer(BaseTaskListSerializer):
+    """招标文件上传任务列表序列化器"""
+    class Meta(BaseTaskListSerializer.Meta):
+        model = TenderFileUploadTask
+        fields = BaseTaskListSerializer.Meta.fields
+        read_only_fields = fields
+
+class DocxExtractionTaskListSerializer(BaseTaskListSerializer):
+    """文档提取任务列表序列化器"""
+    # 只包含列表视图需要的基本信息，不添加额外字段
+    class Meta(BaseTaskListSerializer.Meta):
+        model = DocxExtractionTask
+        # 使用与基类相同的字段
+        fields = BaseTaskListSerializer.Meta.fields
+        read_only_fields = fields
+
+class DocxTreeBuildTaskListSerializer(BaseTaskListSerializer):
+    """文档树构建任务列表序列化器"""
+    # 只包含列表视图需要的基本信息，不添加额外字段
+    class Meta(BaseTaskListSerializer.Meta):
+        model = DocxTreeBuildTask
+        # 使用与基类相同的字段
+        fields = BaseTaskListSerializer.Meta.fields
+        read_only_fields = fields
+
+# detail serializers 
+
+class BaseTaskDetailSerializer(serializers.ModelSerializer):
+    """基础任务读取专用序列化器"""
+    type_display = serializers.CharField(source='get_type_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    
+    class Meta:
+        model = BaseTask
+        fields = [
+            'id', 'stage', 'name', 'description', 'type', 'type_display',
+            'status', 'status_display', 'created_at', 'updated_at'
+        ]
+        read_only_fields = fields  # 所有字段都是只读的
+
+class TenderFileUploadTaskDetailSerializer(BaseTaskDetailSerializer):
+    """招标文件上传任务读取专用序列化器"""
+    class Meta(BaseTaskDetailSerializer.Meta):
+        model = TenderFileUploadTask
+        fields = BaseTaskDetailSerializer.Meta.fields
+        read_only_fields = fields
+
+class DocxExtractionTaskDetailSerializer(BaseTaskDetailSerializer):
+    """文档提取任务读取专用序列化器"""
+    class Meta(BaseTaskDetailSerializer.Meta):
+        model = DocxExtractionTask
+        fields = BaseTaskDetailSerializer.Meta.fields + [
+            'extracted_elements', 'outline_analysis_result', 'improved_docx_elements'
+        ]
+        read_only_fields = fields  # 所有字段都是只读的
+
+class DocxTreeBuildTaskDetailSerializer(BaseTaskDetailSerializer):
+    """文档树构建任务读取专用序列化器"""
+    class Meta(BaseTaskDetailSerializer.Meta):
+        model = DocxTreeBuildTask
+        fields = BaseTaskDetailSerializer.Meta.fields + [
+            'docxtree', 'more_subtitles'
+        ]
+        read_only_fields = fields  # 所有字段都是只读的
+
+# update serializers 
+# 针对 更新操作， 不需要多态。 
+class BaseTaskUpdateSerializer(serializers.ModelSerializer):
+    """基础任务更新专用序列化器"""
+    class Meta:
+        model = BaseTask
+        fields = ['name', 'description', 'status']
+
+class TenderFileUploadTaskUpdateSerializer(serializers.ModelSerializer):
+    """招标文件上传任务更新专用序列化器"""
+    class Meta(BaseTaskUpdateSerializer.Meta):
+        model = TenderFileUploadTask
+        fields = BaseTaskUpdateSerializer.Meta.fields
+
+class DocxExtractionTaskUpdateSerializer(serializers.ModelSerializer):
+    """文档提取任务更新专用序列化器"""
     class Meta:
         model = DocxExtractionTask
         fields = [
-            'id', 'stage', 'name', 'description', 'type', 
-            'status', 'created_at', 'updated_at', 'file_id'
+            'name', 'description', 'status', 
+            'extracted_elements', 'outline_analysis_result', 'improved_docx_elements'
         ]
-        read_only_fields = ['created_at', 'updated_at']
 
-class DocxExtractionTaskCreateSerializer(BaseTaskCreateSerializer):
-    """文档提取任务创建序列化器"""
-    class Meta(BaseTaskCreateSerializer.Meta):
-        model = DocxExtractionTask
-        fields = BaseTaskCreateSerializer.Meta.fields + ['file_id']
-
-class DocxExtractionTaskUpdateSerializer(BaseTaskUpdateSerializer):
-    """文档提取任务更新序列化器"""
-    class Meta(BaseTaskUpdateSerializer.Meta):
-        model = DocxExtractionTask
-        fields = BaseTaskUpdateSerializer.Meta.fields + ['file_id']
-
-
-class DocxTreeBuildTaskSerializer(serializers.ModelSerializer):
-    """文档树构建任务序列化器"""
+class DocxTreeBuildTaskUpdateSerializer(serializers.ModelSerializer):
+    """文档树构建任务更新专用序列化器"""
     class Meta:
         model = DocxTreeBuildTask
         fields = [
-            'id', 'stage', 'name', 'description', 'type', 
-            'status', 'created_at', 'updated_at'
+            'name', 'description', 'status',
+            'docxtree', 'more_subtitles'
         ]
-        read_only_fields = ['created_at', 'updated_at']
+
+
+
+
+# ===============    ProjectHistory 项目状态历史序列化器  ===============
+class ProjectHistorySerializer(serializers.ModelSerializer):
+    """项目状态历史序列化器"""
+    class Meta:
+        model = ProjectHistory
+        fields = ['id', 'project', 'from_stage', 'to_stage',
+                 'get_from_stage_display', 'get_to_stage_display',
+                 'from_status', 'to_status',
+                 'get_from_status_display', 'get_to_status_display',
+                 'operation_time', 'remarks']
+        read_only_fields = ['operation_time']
+
+class ProjectHistoryCreateSerializer(serializers.ModelSerializer):
+    """项目状态历史创建序列化器"""
+    class Meta:
+        model = ProjectHistory
+        fields = ['project', 'from_stage', 'to_stage', 'from_status', 
+                 'to_status', 'remarks']
+
+
+
 
 
 
