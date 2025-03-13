@@ -30,6 +30,7 @@ interface FileTableProps {
   onSelectFiles: (fileIds: string[]) => void;
 
   showProjectInfo?: boolean; // 新增属性，控制是否显示项目信息
+  readOnly?: boolean; // 新增属性，控制是否只读
 }
 
 
@@ -42,7 +43,8 @@ export const FileTable = memo(function FileTable({
   isDeleting,
   selectedFiles,
   onSelectFiles,
-  showProjectInfo = false
+  showProjectInfo = false,
+  readOnly = false //默认非只读模式
 }: FileTableProps) {
 
   console.log("🔄 [FileTable.tsx] 渲染");
@@ -82,24 +84,25 @@ export const FileTable = memo(function FileTable({
       <Table>
         <TableHeader className="bg-gray-50/50">
           <TableRow>
-            <TableHead className="w-[40px] px-4">
-              <Checkbox
-                ref={selectAllCheckboxRef}
-                checked={isAllSelected}
-                onCheckedChange={(checked) => handleSelectAll(checked === true)}
-                aria-label="Select all files"
-              />
-            </TableHead>
+            {!readOnly &&(
+              <TableHead className="w-[40px] px-4">
+                <Checkbox
+                  ref={selectAllCheckboxRef}
+                  checked={isAllSelected}
+                  onCheckedChange={(checked) => handleSelectAll(checked === true)}
+                  aria-label="Select all files"
+                />
+              </TableHead>
+            )}
             <TableHead>文件名</TableHead>
             <TableHead>文件类型</TableHead>
             <TableHead>大小</TableHead>
             <TableHead>上传时间</TableHead>
             {showProjectInfo && <TableHead>项目</TableHead>}
             <TableHead>查看</TableHead>
-            <TableHead>操作</TableHead>
+            {!readOnly && <TableHead>操作</TableHead>}
           </TableRow>
         </TableHeader>
-
         <TableBody>
           {files.map((file) => {
             const isSelected = selectedFiles.includes(file.id);
@@ -110,15 +113,18 @@ export const FileTable = memo(function FileTable({
                 data-state={isSelected ? "selected" : undefined}
                 className={isSelected ? "bg-primary-50 hover:bg-primary-100" : "hover:bg-gray-50"}
               >
-                <TableCell className="px-4">
-                  <Checkbox
-                    checked={isSelected}
-                    onCheckedChange={(checked) => 
-                      handleSelectFile(file.id, checked === true)
-                    }
-                    aria-label={`Select ${file.name}`}
-                  />
-                </TableCell>
+                {!readOnly &&(
+                  <TableCell className="px-4">
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={(checked) => 
+                        handleSelectFile(file.id, checked === true)
+                      }
+                      aria-label={`Select ${file.name}`}
+                    />
+                  </TableCell>
+                )}  
+
                 <TableCell className="flex items-center">
                   <File className="mr-2 h-4 w-4 text-muted-foreground" />
                   <span className="font-medium truncate max-w-[200px]" title={file.name}>
@@ -147,18 +153,21 @@ export const FileTable = memo(function FileTable({
                     <span className="sr-only">预览文件</span>
                   </Button>
                 </TableCell>
-                <TableCell>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => onDelete(file.id)}
-                    disabled={isDeleting}
-                    className="text-destructive hover:bg-destructive/10 hover:text-destructive/90"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span className="sr-only">删除文件</span>
-                  </Button>
-                </TableCell>
+
+                {!readOnly && (
+                  <TableCell>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => onDelete(file.id)}
+                      disabled={isDeleting}
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive/90"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">删除文件</span>
+                    </Button>
+                  </TableCell>
+                )}
               </TableRow>
             );
           })}

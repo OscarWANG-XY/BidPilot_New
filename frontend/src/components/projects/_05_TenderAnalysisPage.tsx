@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { InfoIcon, CheckCircleIcon } from 'lucide-react'
+import { InfoIcon, Loader2 } from 'lucide-react'
 import { TenderFileUpload } from '@/components/projects/TenderTasks/_01_TenderFileupload'
 import { DocxExtractionTask } from '@/components/projects/TenderTasks/_02_DocxExtractionTask'
 import { DocxTreeBuildTask } from '@/components/projects/TenderTasks/_03_DocxTreeBuildTask'
 import { useProjects } from '@/hooks/useProjects'
-import { StageType, TaskStatus, TaskType, AllTaskState } from '@/types/projects_dt_stru'
-
+import { StageType, TaskStatus, TaskType, AllTaskState, TaskLockStatus } from '@/types/projects_dt_stru'
+import { Skeleton } from '@/components/ui/skeleton'
+import { TaskStatusItem, getProgressPercentage } from '@/components/projects/TenderTasks/_00_helper'
 
 // 定义页面props
 interface TenderAnalysisPageProps {
@@ -18,68 +19,154 @@ interface TenderAnalysisPageProps {
 export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectId }) => {
   
   
-// 设置所有任务的初始状态是not_started，用于之后跟踪
-  const [allTaskState, setAllTaskState] = useState<AllTaskState>({
-    tenderFileUpload: TaskStatus.PENDING,
-    docxExtractionTask: TaskStatus.PENDING,
-    docxTreeBuildTask: TaskStatus.PENDING,
-  })
+// 设置所有任务的初始状态
+    const [allTaskState, setAllTaskState] = useState<AllTaskState>({
+        fileUploadStatus: TaskStatus.PENDING,
+        docxExtractionStatus: TaskStatus.PENDING,
+        docxTreeBuildStatus: TaskStatus.PENDING,
+        fileUploadLock: TaskLockStatus.UNLOCKED,
+        docxExtractionLock: TaskLockStatus.UNLOCKED,
+        docxTreeBuildLock: TaskLockStatus.UNLOCKED,
+    })
 
-  // 用于管理 当前选中的tab，初始值设为 'overview'的tab, 值需要和tab的value值一致
-  const [activeTab, setActiveTab] = useState('overview') 
+    // 使用useProjects的钩子获取和更新数据
+    const { projectStageTaskMetaDataQuery, updateStageTaskStatus } = useProjects()
 
-// 检查任务B是否启用（取决于任务A是否完成），与后面的TaskStatusItem组件的disabled 和 onClick 属性配套使用。
-  const isTaskAEnabled = allTaskState.tenderFileUpload === TaskStatus.COMPLETED
-  const isTaskBEnabled = allTaskState.docxExtractionTask === TaskStatus.COMPLETED
 
-  // 使用projectStageTaskStatusesQuery获取任务状态
-  const { projectStageTaskStatusesQuery } = useProjects()
-  const { data: taskStatuses, isLoading } = projectStageTaskStatusesQuery(projectId, StageType.TENDER_ANALYSIS)
+    // （1）加载数据到本地， 调用projectStageTaskMetaDataQuery, 只要taskMetaData有新的值，就会触发useEffect对allTaskState更新
+    const { data: taskMetaData, isLoading } = projectStageTaskMetaDataQuery(projectId, StageType.TENDER_ANALYSIS)
+    useEffect(() => {
+      if (taskMetaData && taskMetaData.length > 0) {  // 确保存在且不空
 
-  // 当任务状态数据加载完成时更新本地状态
-  useEffect(() => {
-    if (taskStatuses && taskStatuses.length > 0) {
-      // 创建一个基于当前状态的新状态对象，而不是总是重置为PENDING
-      const newTaskState: AllTaskState = { ...allTaskState }
+        const newTaskState: AllTaskState = { ...allTaskState }   //创建新变量，并浅拷贝
       
-      // 遍历API返回的任务状态，根据任务类型更新对应的状态
-      taskStatuses.forEach(task => {
-        if (task.type === TaskType.UPLOAD_TENDER_FILE) {
-          newTaskState.tenderFileUpload = task.status as TaskStatus
-        } else if (task.type === TaskType.DOCX_EXTRACTION_TASK) {
-          newTaskState.docxExtractionTask = task.status as TaskStatus
-        } else if (task.type === TaskType.DOCX_TREE_BUILD_TASK) {
-          newTaskState.docxTreeBuildTask = task.status as TaskStatus
+        taskMetaData.forEach(task => {
+            if (task.type === TaskType.UPLOAD_TENDER_FILE) {
+            newTaskState.fileUploadStatus = task.status as TaskStatus    // 变量赋值
+            newTaskState.fileUploadLock = task.lockStatus as TaskLockStatus
+            } else if (task.type === TaskType.DOCX_EXTRACTION_TASK) {
+            newTaskState.docxExtractionStatus = task.status as TaskStatus
+            newTaskState.docxExtractionLock = task.lockStatus as TaskLockStatus
+            } else if (task.type === TaskType.DOCX_TREE_BUILD_TASK) {
+            newTaskState.docxTreeBuildStatus = task.status as TaskStatus
+            newTaskState.docxTreeBuildLock = task.lockStatus as TaskLockStatus
+            }
+        })
+        setAllTaskState(newTaskState)  // 通过新变量更新状态
+      }
+    }, [taskMetaData])
+
+
+    //（2）更新状态到服务器， 回调函数，调用useProjects的updateStageTaskStatus
+    const handleTaskStateChange = useCallback(async (
+        taskType: TaskType, 
+        newStatus: TaskStatus,
+        taskStateKey: keyof AllTaskState,
+        newLockStatus: TaskLockStatus,
+        lockStateKey: keyof AllTaskState
+
+    ) => {
+        try {
+        // 先更新本地状态以获得即时反馈
+        setAllTaskState(prev => ({
+            ...prev,
+            [taskStateKey]: newStatus,
+            [lockStateKey]: newLockStatus
+        }));
+        
+        // 调用mutation更新后端状态
+        await updateStageTaskStatus({
+            projectId,
+            stageType: StageType.TENDER_ANALYSIS,
+            taskType,
+            newStatus,
+            newLockStatus
+        });
+        
+        // 因为我们在mutation中已经设置了onSuccess中的invalidateQueries
+        // 所以这里不需要手动刷新数据
+        } catch (error) {
+        console.error(`更新${taskType}任务状态失败:`, error);
+        // 处理错误，可能需要回滚本地状态
         }
-      })
-      
-      setAllTaskState(newTaskState)
-    }
-  }, [taskStatuses, allTaskState])
+        // 下面我们添加了两个依赖项，projectId为了确保当用户切换到不同项目时，projectId也更新。
+        // 没有添加stageType，或stageid, 因为在这个组件的语境下，stageType和stageid是常量。 
+        // 每当useProjects的updateStageTaskStatus被调用，我们也会做一次状态更新，确保是同步的。
+    }, [projectId, updateStageTaskStatus]);
 
-  // 处理任务A状态变化，这里只更新taskA的状态，其他任务状态不变。
-  const handleTaskAStatusChange = useCallback((status: TaskStatus) => {
-    setAllTaskState(prev => ({
-      ...prev,
-      docxExtractionTask: status  // 只更新单任务的状态
-    }))
-  }, [])
+    const handleFileUploadStateChange = useCallback((status: TaskStatus, lockStatus: TaskLockStatus) => {
+        handleTaskStateChange(   // 这里是调用，调用本身不会影响handleTaskStateChange的变化
+        TaskType.UPLOAD_TENDER_FILE, 
+        status, 
+        'fileUploadStatus',
+        lockStatus || TaskLockStatus.UNLOCKED,
+        'fileUploadLock'
+        );
+    }, [handleTaskStateChange]); // 依赖项的变化是在组件重新渲染时，handleTaskStateChange被重新创建。 
+    
+    const handleDocxExtractionStateChange = useCallback((status: TaskStatus, lockStatus: TaskLockStatus) => {
+        handleTaskStateChange(
+        TaskType.DOCX_EXTRACTION_TASK, 
+        status, 
+        'docxExtractionStatus',
+        lockStatus || TaskLockStatus.UNLOCKED,
+        'docxExtractionLock'
+        );
+    }, [handleTaskStateChange]);
+    
+    const handleDocxTreeBuildStateChange = useCallback((status: TaskStatus, lockStatus: TaskLockStatus) => {
+        handleTaskStateChange(
+        TaskType.DOCX_TREE_BUILD_TASK, 
+        status, 
+        'docxTreeBuildStatus',
+        lockStatus || TaskLockStatus.UNLOCKED,
+        'docxTreeBuildLock'
+        );
+    }, [handleTaskStateChange]);
 
-  // 处理任务B状态变化，这里只更新taskB的状态，其他任务状态不变。
-  const handleTaskBStatusChange = useCallback((status: TaskStatus) => {
-    setAllTaskState(prev => ({
-      ...prev,
-      docxTreeBuildTask: status  // 只更新单任务的状态
-    }))
-  }, [])
 
-  // 处理文件上传状态变化
-  const handleFileUploadStatusChange = useCallback((status: TaskStatus) => {
-    setAllTaskState(prev => ({
-      ...prev,
-      tenderFileUpload: status  // 只更新文件上传任务的状态
-    }))
-  }, [])
+
+
+    // activeTab 与 isTaskEnabled的搭配来实现Tab切换的逻辑。
+    const [activeTab, setActiveTab] = useState('overview') 
+    const isTaskAEnabled = allTaskState.fileUploadStatus === TaskStatus.COMPLETED
+    const isTaskBEnabled = allTaskState.docxExtractionStatus === TaskStatus.COMPLETED
+
+
+      // 如果数据正在加载，显示加载状态
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h3 className="text-2xl font-bold">招标文件分析</h3>
+          <div className="flex items-center space-x-2">
+            <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+            <span>加载任务状态中...</span>
+          </div>
+        </div>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>任务概览</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* 任务骨架屏 */}
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center justify-between p-3 border rounded-md">
+                  <div className="flex items-center space-x-2">
+                    <Skeleton className="h-3 w-3 rounded-full" />
+                    <Skeleton className="h-4 w-40" />
+                  </div>
+                  <Skeleton className="h-4 w-20" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // 页面渲染
   return (
@@ -97,9 +184,9 @@ export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectI
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger value="overview">概览</TabsTrigger>
-          <TabsTrigger value="upload">上传文件</TabsTrigger>
-          <TabsTrigger value="taskA">招标文件解析</TabsTrigger>
-          <TabsTrigger value="taskB">评分标准分析</TabsTrigger>
+          <TabsTrigger value="upload_file">上传文件</TabsTrigger>
+          <TabsTrigger value="tender_file_analysis">招标文件解析</TabsTrigger>
+          <TabsTrigger value="scoring_standard_analysis">评分标准分析</TabsTrigger>
         </TabsList>
 
         {/* Tab内容 - 概览 */}
@@ -112,20 +199,20 @@ export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectI
               <div className="space-y-4">
               <TaskStatusItem 
                   title="招标文件上传" 
-                  status={allTaskState.tenderFileUpload} 
-                  onClick={() => setActiveTab('upload')}
+                  status={allTaskState.fileUploadStatus} 
+                  onClick={() => setActiveTab('upload_file')}
                 />
                 <TaskStatusItem 
                   title="招标文件解析" 
-                  status={allTaskState.docxExtractionTask} 
+                  status={allTaskState.docxExtractionStatus} 
                   disabled={!isTaskAEnabled}
-                  onClick={() => isTaskAEnabled && setActiveTab('taskA')}
+                  onClick={() => isTaskAEnabled && setActiveTab('tender_file_analysis')}
                 />
                 <TaskStatusItem 
                   title="评分标准分析" 
-                  status={allTaskState.docxTreeBuildTask} 
+                  status={allTaskState.docxTreeBuildStatus} 
                   disabled={!isTaskBEnabled}
-                  onClick={() => isTaskBEnabled && setActiveTab('taskB')}
+                  onClick={() => isTaskBEnabled && setActiveTab('scoring_standard_analysis')}
                 />
               </div>
             </CardContent>
@@ -133,94 +220,47 @@ export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectI
         </TabsContent>
 
         {/* Tab内容 - 上传文件 */}
-        <TabsContent value="upload" className="mt-4">
+        <TabsContent value="upload_file" className="mt-4">
           <TenderFileUpload 
-            projectId={projectId} 
-            onStatusChange={handleFileUploadStatusChange}
-            initialStatus={allTaskState.tenderFileUpload}
-            onNavigateToNextTask={() => setActiveTab('taskA')}
+            // 传入参数
+            projectId={projectId}                           // 传入项目id
+            initialStatus={allTaskState.fileUploadStatus}   // 传入初始状态
+            initialLockStatus={allTaskState.fileUploadLock} // 传入初始锁状态
+            // 回调函数
+            onStateChange={handleFileUploadStateChange}                                                             
+            onNavigateToNextTask={() => setActiveTab('tender_file_analysis')}                                       
+            onStartNextTask={() => handleDocxExtractionStateChange(TaskStatus.PROCESSING, TaskLockStatus.UNLOCKED)} 
           />
         </TabsContent>
 
         {/* Tab内容 - 招标文件解析 */}
-        <TabsContent value="taskA" className="mt-4">
+        <TabsContent value="tender_file_analysis" className="mt-4">
           <DocxExtractionTask 
+            // 传入参数
             projectId={projectId} 
+            initialStatus={allTaskState.docxExtractionStatus}
+            initialLockStatus={allTaskState.docxExtractionLock}
             isEnabled={isTaskAEnabled}
-            // 从上面的handleTaskAStatusChange的处理函数中，status作为参数传入，这个参数来自子组件。 
-            onStatusChange={handleTaskAStatusChange}
-            initialStatus={allTaskState.docxExtractionTask}
+            // 回调函数
+            onStateChange={handleDocxExtractionStateChange}
+
           />
         </TabsContent>
 
         {/* Tab内容 - 评分标准分析 */}  
-        <TabsContent value="taskB" className="mt-4">
+        <TabsContent value="scoring_standard_analysis" className="mt-4">
           <DocxTreeBuildTask 
+            // 传入参数
             projectId={projectId} 
+            initialStatus={allTaskState.docxTreeBuildStatus}
+            initialLockStatus={allTaskState.docxTreeBuildLock}
             isEnabled={isTaskBEnabled}
-            // 从上面的handleTaskBStatusChange的处理函数中，status作为参数传入，这个参数来自子组件。 
-            onStatusChange={handleTaskBStatusChange}
-            initialStatus={allTaskState.docxTreeBuildTask}
+            // 回调函数
+            onStateChange={handleDocxTreeBuildStateChange}
+
           />
         </TabsContent>
       </Tabs>
     </div>
   )
-}
-
-// Helper function, 在任务Overview的Tabcontent中使用，用于显示各个任务状态 
-const TaskStatusItem = ({ 
-  title, 
-  status, 
-  disabled = false,
-  onClick 
-}: { 
-  title: string
-  status: TaskStatus
-  disabled?: boolean
-  onClick?: () => void  
-  //回调函数有调用的组件进行实现，以上有几种定义： 
-  // onClick={() => setActiveTab('taskA')}
-  // onClick={() => isTaskBEnabled && setActiveTab('taskB')}
-}) => {
-  return (
-    <div 
-      className={`flex items-center justify-between p-3 border rounded-md ${
-        disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-50'
-      }`}
-      // 针对这个div添加了点击事件
-      onClick={disabled ? undefined : onClick}
-    >
-      {/* 左侧内容 */}
-      <div className="flex items-center space-x-2">
-        {status === TaskStatus.COMPLETED ? (
-          <CheckCircleIcon className="h-5 w-5 text-green-500" />
-        ) : (
-          <div className={`h-3 w-3 rounded-full ${
-            status === TaskStatus.PROCESSING ? 'bg-blue-500' : 'bg-gray-300'
-          }`} />
-        )}
-        <span>{title}</span>
-      </div>
-
-      {/* 右侧内容 */}
-      <div>
-        {status === TaskStatus.PENDING && '未开始'}
-        {status === TaskStatus.PROCESSING && '进行中'}
-        {status === TaskStatus.COMPLETED && '已完成'}
-      </div>
-    </div>
-  )
-}
-
-
-// Helper function to calculate progress percentage
-// number定义了函数的返回类型为数值。 
-const getProgressPercentage = (taskState: AllTaskState): number => {
-  // Object.keys 获取taskState对象的所有建，返回一个数组。
-  const totalTasks = Object.keys(taskState).length
-  // Object.values 获取taskState对象的所有值，返回一个数组，然后筛选completed的数组片段，再计算长度
-  const completedTasks = Object.values(taskState).filter(status => status === TaskStatus.COMPLETED).length
-  
-  return Math.round((completedTasks / totalTasks) * 100)
 }

@@ -12,7 +12,7 @@ from .models import (
 )
 from .serializers import (
     ProjectListSerializer, ProjectDetailSerializer, ProjectCreateSerializer, ProjectUpdateSerializer, ProjectStatusUpdateSerializer, ProjectActiveStageUpdateSerializer,
-    ProjectStageDetailSerializer,
+    ProjectStageDetailSerializer, ProjectStageUpdateSerializer,
     BaseTaskListSerializer, BaseTaskDetailSerializer, BaseTaskUpdateSerializer,
     TenderFileUploadTaskListSerializer, TenderFileUploadTaskDetailSerializer, TenderFileUploadTaskUpdateSerializer,
     DocxExtractionTaskListSerializer, DocxExtractionTaskDetailSerializer, DocxExtractionTaskUpdateSerializer,
@@ -293,6 +293,18 @@ class ProjectHistoryViewSet(viewsets.ReadOnlyModelViewSet):
             404: OpenApiTypes.OBJECT
         }
     ),
+    partial_update=extend_schema(
+        tags=['project-stages'],
+        summary='更新项目阶段,包括其任务状态',
+        description='更新指定项目阶段的详细信息,包括其任务状态',
+        request=ProjectStageUpdateSerializer,
+        responses={
+            200: ProjectStageDetailSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
     upload_task=extend_schema(
         tags=['project-stages'],
         summary='获取指定项目阶段的招标文件上传任务',
@@ -353,8 +365,16 @@ class ProjectStageViewSet(mixins.RetrieveModelMixin,
     """
     permission_classes = [IsAuthenticated]
 
-    # 由于目前只有get的需求，我们没有选择使用get_serializer_class 
-    serializer_class = ProjectStageDetailSerializer
+    def get_serializer_class(self):
+        """
+        根据请求方法返回不同的序列化器
+        - GET 请求使用 ProjectStageDetailSerializer 展示详细信息
+        - PUT/PATCH 请求使用 ProjectStageUpdateSerializer 处理更新
+        """
+        if self.request.method in ['PUT', 'PATCH']:
+            return ProjectStageUpdateSerializer
+        return ProjectStageDetailSerializer
+
     
     def get_queryset(self):
         """
@@ -386,6 +406,20 @@ class ProjectStageViewSet(mixins.RetrieveModelMixin,
             stage_type=stage_type
         )
         return obj
+
+    def partial_update(self, request, *args, **kwargs):
+        """
+        更新项目阶段，包括其任务状态
+        """
+        stage = self.get_object()
+        serializer = self.get_serializer(stage, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            # Return the updated stage with full details
+            return Response(ProjectStageDetailSerializer(stage).data)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
     # 自定义方法：获取项目阶段下的任务列表

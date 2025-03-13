@@ -59,6 +59,11 @@ export enum TaskStatus {
   BLOCKED = 'BLOCKED'            // 阻塞中
 }
 
+export enum TaskLockStatus {
+  LOCKED = 'LOCKED',             // 锁定
+  UNLOCKED = 'UNLOCKED'           // 解锁
+}
+
 // 项目基本信息接口 - 对齐后端模型
 export interface Project {
   id: string;                      // 项目ID (UUID)
@@ -126,6 +131,7 @@ export interface BaseTask {
   status: TaskStatus;            // 状态
   createdAt: Date;               // 创建时间
   updatedAt: Date;               // 更新时间
+  lockStatus: TaskLockStatus;    // 锁定状态
 }
 
 // 招标文件上传任务接口 - 对齐后端模型
@@ -149,11 +155,24 @@ export interface DocxTreeBuildTask extends BaseTask {
 export type AllTask = BaseTask | DocxExtractionTask | DocxTreeBuildTask;
 
 export type AllTaskState = {
-  tenderFileUpload: TaskStatus
-  docxExtractionTask: TaskStatus
-  docxTreeBuildTask: TaskStatus
+  fileUploadStatus: TaskStatus;
+  docxExtractionStatus: TaskStatus;
+  docxTreeBuildStatus: TaskStatus;
+  fileUploadLock: TaskLockStatus;
+  docxExtractionLock: TaskLockStatus;
+  docxTreeBuildLock: TaskLockStatus
 }
 
+
+// 定义任务元数据接口，包含状态和锁定状态
+export interface TaskMetaData {
+  id: string;
+  name: string;
+  description: string;
+  type: TaskType;
+  status: TaskStatus;
+  lockStatus: TaskLockStatus; // 添加锁定状态
+}
 
 
 // ============================== 请求/响应模型 ==============================
@@ -214,4 +233,8 @@ export interface DocxTreeBuildTaskUpdateRequest extends BaseTaskUpdateRequest {
   docxtree?: any;
   moreSubtitles?: any;
 }
+
+
+
+
 

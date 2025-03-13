@@ -3,7 +3,6 @@ import type {
   Project,
   ProjectHistory,
   CreateProjectRequest,
-  ProjectType,
   ProjectStage,
   StageType,
   UpdateProjectStatusRequest,
@@ -11,16 +10,9 @@ import type {
   TenderFileUploadTask,
   DocxExtractionTask,
   DocxTreeBuildTask,
+  ProjectQueryParams,
 } from '@/types/projects_dt_stru';
 
-// 查询参数接口（使用驼峰命名）
-interface ProjectQueryParams {
-  currentStage?: StageType;
-  projectType?: ProjectType;
-  isUrgent?: boolean;
-  search?: string;
-  ordering?: string;
-}
 
 // ================================ projectsAPI 模块 =================================== 
 export const projectsApi = {
@@ -109,6 +101,19 @@ export const projectsApi = {
     console.log('📥 获取项目阶段成功:', response.data);
     return response.data;
   },
+
+  // 更新项目阶段 (包括任务状态更新)
+  updateProjectStage: async (projectId: string, stageType: StageType, stageData: any): Promise<ProjectStage> => {
+    console.log('📤 更新项目阶段:', { projectId, stageType, stageData });
+    const response = await axiosInstance.patch(
+      `/projects/${projectId}/stages/${stageType}/`,
+      stageData
+    );
+    console.log('📥 更新项目阶段成功:', response.data);
+    return response.data;
+  },
+
+
 
 //------------- 针对TASK的处理 -------------
   

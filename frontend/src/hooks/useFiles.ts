@@ -239,7 +239,7 @@ export function useFiles(projectId?: string) {
     useFileDetail,
 
     // 在组件里添加刷新按钮,调用refecth() 可实现强制刷新数据
-    refecth: filesQuery.refetch,  
+    refetch: filesQuery.refetch,  
 
   };
 } 

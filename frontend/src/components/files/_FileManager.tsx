@@ -1,4 +1,4 @@
-import { useState } from "react";  // 状态管理
+import { useState, useEffect } from "react";  // 状态管理
 import { useFiles } from "@/hooks/useFiles";   // 文件管理HOOKS
 import { useToast } from "@/hooks/use-toast";  // 消息提示HOOKS
 import { FileRecord } from "@/types/files_dt_stru";  // 数据接口类型
@@ -22,6 +22,13 @@ interface FileManagerProps {
   acceptedFileTypes?: string;
   // 添加是否允许多文件上传
   allowMultiple?: boolean;
+  // 添加删除检查回调函数，如果返回false则阻止删除
+  onDeleteCheck?: () => boolean;
+  // 添加只读模式，为true时禁用上传和删除
+  readOnly?: boolean;
+  // 新增：加载状态变化回调
+  onLoadingChange?: (isLoading: boolean) => void;
+
 }
 
 
@@ -37,9 +44,13 @@ export function FileManager({
   projectId, 
   //title = "文件管理", 
   acceptedFileTypes,
-  allowMultiple = true 
+  allowMultiple = true,
+  onDeleteCheck,
+  readOnly = false,
+  onLoadingChange // 新增：接收加载状态变化回调
 }: FileManagerProps) {
-  console.log("🔄 [_FileManager.tsx] 渲染", projectId ? `项目ID: ${projectId}` : "全局模式");
+
+  console.log("🔄 渲染", projectId ? `项目ID: ${projectId}` : "全局模式");
 
   // Hooks的功能引用： useToast() 和 useFiles()
   const { toast } = useToast();
@@ -52,6 +63,14 @@ export function FileManager({
     isDeleting,
     useFileDetail,
   } = useFiles(projectId); // 传入项目ID，用于过滤文件
+
+  // 新增：使用useEffect监听isLoading状态变化并通知父组件
+  useEffect(() => {
+    if (onLoadingChange) {
+      onLoadingChange(isLoading);
+    }
+  }, [isLoading, onLoadingChange]);
+
 
   // 文件的状态管理： 文件的选择和更新， 预览组件的启用和关闭
   const [selectedFile, setSelectedFile] = useState<FileRecord | null>(null);
@@ -66,7 +85,19 @@ export function FileManager({
   // File类型(这是一个对象)，这个类型是浏览器自带，通过 <input type="file" /> 元素选择文件时自动创建
   // File文件对象包含.name、.type、.size、.lastModified （时间戳），lastModifiedDate （日期），.webkitRelativePath （文件路径）
   const handleUpload = async (inputfile: File) => {
-    console.log('🚀 [_FileManager.tsx] 开始处理文件上传:', {
+
+    // 如果处于只读模式，直接返回
+    if (readOnly) {
+      toast({
+        title: "操作被禁止",
+        description: "当前处于只读模式，无法上传文件",
+        variant: "destructive",
+      });
+      return;
+    }
+
+
+    console.log('🚀 开始处理文件上传:', {
       fileName: inputfile.name,
       fileSize: inputfile.size,
       fileType: inputfile.type,
@@ -77,7 +108,7 @@ export function FileManager({
       // 调用父组件的验证函数，如果返回false则中止上传
       const shouldProceed = onFileUpload(inputfile);
       if (shouldProceed === false) {
-        console.log('⛔ [_FileManager.tsx] 上传被父组件阻止');
+        console.log('⛔ 上传被父组件阻止');
         return;
       }
 
@@ -122,12 +153,28 @@ export function FileManager({
 
   // ------------------ 文件删除的处理逻辑（函数）done check! ------------------ 
   const handleDelete = (fileId: string) => {
-    console.log('🗑️ [_FileManager.tsx] 开始删除文件:', fileId);
+
+    // 如果处于只读模式，直接返回
+    if (readOnly) {
+      toast({
+        title: "操作被禁止",
+        description: "当前处于只读模式，无法删除文件",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // 如果提供了删除检查回调，则执行检查
+    if (onDeleteCheck && !onDeleteCheck()) {
+      return;
+    }
+
+    console.log('🗑️ 开始删除文件:', fileId);
 
     // 引用useFiles.ts里的deleteFile函数来实现文件删除， 输入文件的id
     deleteFile(fileId, {
       onSuccess: () => {
-        console.log('✅ [_FileManager.tsx] 文件删除成功:', fileId);
+        console.log('✅ 文件删除成功:', fileId);
         toast({
           title: "文件已删除",
         });
@@ -165,7 +212,22 @@ export function FileManager({
 
   // ------------------ 批量删除的处理逻辑 ------------------ 
   const handleBatchDelete = async () => {
-    console.log('🗑️ [_FileManager.tsx] 开始批量删除文件:', selectedFiles);
+    // 如果处于只读模式，直接返回
+    if (readOnly) {
+      toast({
+        title: "操作被禁止",
+        description: "当前处于只读模式，无法删除文件",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // 如果提供了删除检查回调，则执行检查
+    if (onDeleteCheck && !onDeleteCheck()) {
+      return;
+    }
+
+    console.log('🗑️ 开始批量删除文件:', selectedFiles);
 
     try {
       // 使用 Promise.all 并行删除所有选中的文件
@@ -204,16 +266,18 @@ export function FileManager({
 
   // 返回文件管理器的组件渲染
   return (
-    <div className="space-y-4 p-4">
+    <div className={`space-y-4 p-4 ${readOnly ? 'opacity-80' : ''}`}>
       {/*<h2 className="text-xl font-semibold mb-4">{title}</h2>*/}
       <div className="flex items-center justify-between">
+        {!readOnly && (
         <FileUploadButton 
           onFileSelect={handleUpload} // 回调FileManager.tsx里的handleUpload逻辑函数
           isUploading={isUploading} // 引用useFiles.ts里的isUploading
           acceptedFileTypes={acceptedFileTypes}
           allowMultiple={allowMultiple}
         />
-        {selectedFiles.length > 0 && (
+        )}
+        {!readOnly && selectedFiles.length > 0 && (
           <button
             onClick={handleBatchDelete}
             disabled={isDeleting}
@@ -232,6 +296,7 @@ export function FileManager({
         selectedFiles={selectedFiles}
         onSelectFiles={setSelectedFiles}
         showProjectInfo={!projectId} // 如果不是在项目内，则显示项目信息
+        readOnly={readOnly}  // 传递只读模式给文件表格
       />
       
       <FilePreviewDialog 

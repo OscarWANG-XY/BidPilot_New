@@ -53,6 +53,10 @@ class TaskStatus(models.TextChoices):
     CONFIRMED = 'CONFIRMED', '已确认'
     BLOCKED = 'BLOCKED', '阻塞中'
 
+class TaskLockStatus(models.TextChoices):
+    LOCKED = 'LOCKED', '锁定'
+    UNLOCKED = 'UNLOCKED', '解锁'
+
 class Project(models.Model):
     # related_name: 
     # files (在files.models.py中使用), 
@@ -147,12 +151,21 @@ class Project(models.Model):
             
             # 为招标文件分析阶段创建相关任务
             if stage_type == StageType.TENDER_ANALYSIS:
+
+                # 创建招标文件上传任务
+                TenderFileUploadTask.objects.create(
+                    stage=stage,
+                    name='招标文件上传',
+                    description='上传招标文件',
+                    type=TaskType.UPLOAD_TENDER_FILE,
+                    status=TaskStatus.PENDING
+                )
                 # 创建文档提取任务
                 DocxExtractionTask.objects.create(
                     stage=stage,
                     name='招标文件信息提取',
                     description='从招标文件中提取结构化信息',
-                    type=TaskType.DOCUMENT_EXTRACTION,
+                    type=TaskType.DOCX_EXTRACTION_TASK,
                     status=TaskStatus.PENDING
                 )
                 
@@ -161,7 +174,7 @@ class Project(models.Model):
                     stage=stage,
                     name='招标文件树构建',
                     description='构建招标文件的层级结构树',
-                    type=TaskType.DOCUMENT_TREE_BUILDING,
+                    type=TaskType.DOCX_TREE_BUILD_TASK,
                     status=TaskStatus.PENDING
                 )
                 
@@ -248,6 +261,12 @@ class BaseTask(models.Model):
     )
     created_at = models.DateTimeField('创建时间', auto_now_add=True)
     updated_at = models.DateTimeField('更新时间', auto_now=True)
+    lock_status = models.CharField(
+        '锁定状态',
+        max_length=20,
+        choices=TaskLockStatus.choices,
+        default=TaskLockStatus.UNLOCKED
+    )
 
 
     class Meta:
