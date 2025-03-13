@@ -6,8 +6,9 @@ from rest_framework.exceptions import NotFound
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from .models import (
-    Project, ProjectHistory, ProjectStage, 
+    Project, ProjectStage, 
     BaseTask,TenderFileUploadTask,DocxExtractionTask, DocxTreeBuildTask, 
+    ProjectChangeHistory, StageChangeHistory, TaskChangeHistory,
     ProjectStatus
 )
 from .serializers import (
@@ -17,7 +18,7 @@ from .serializers import (
     TenderFileUploadTaskListSerializer, TenderFileUploadTaskDetailSerializer, TenderFileUploadTaskUpdateSerializer,
     DocxExtractionTaskListSerializer, DocxExtractionTaskDetailSerializer, DocxExtractionTaskUpdateSerializer,
     DocxTreeBuildTaskListSerializer, DocxTreeBuildTaskDetailSerializer, DocxTreeBuildTaskUpdateSerializer,
-    ProjectHistorySerializer, ProjectHistoryCreateSerializer
+    ProjectChangeHistorySerializer, StageChangeHistorySerializer, TaskChangeHistorySerializer
     
 )
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiTypes
@@ -99,16 +100,6 @@ logger = logging.getLogger(__name__)
         responses={
             200: ProjectDetailSerializer,
             400: OpenApiTypes.OBJECT,
-            401: OpenApiTypes.OBJECT,
-            404: OpenApiTypes.OBJECT
-        }
-    ),
-    histories=extend_schema(
-        tags=['projects'],
-        summary='获取项目历史记录',
-        description='获取指定项目的所有状态变更历史记录',
-        responses={
-            200: ProjectHistorySerializer(many=True),
             401: OpenApiTypes.OBJECT,
             404: OpenApiTypes.OBJECT
         }
@@ -234,52 +225,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
             serializer.save()
             return Response(ProjectDetailSerializer(project).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    # 自定义方法：获取项目的状态历史记录
-    @action(detail=True)
-    def histories(self, request, pk=None):
-        """ 获取项目的状态历史记录 """
-        project = self.get_object()
-        histories = ProjectHistory.objects.filter(project=project)
-        serializer = ProjectHistorySerializer(histories, many=True)
-        return Response(serializer.data)
-
-
-@extend_schema_view(
-    list=extend_schema(
-        tags=['project-histories'],
-        summary='获取项目历史记录列表',
-        description='获取指定项目的所有历史记录列表',
-        responses={
-            200: ProjectHistorySerializer(many=True),
-            401: OpenApiTypes.OBJECT
-        }
-    ),
-    retrieve=extend_schema(
-        tags=['project-histories'],
-        summary='获取项目历史记录详情',
-        description='获取指定项目历史记录的详细信息',
-        responses={
-            200: ProjectHistorySerializer,
-            401: OpenApiTypes.OBJECT,
-            404: OpenApiTypes.OBJECT
-        }
-    )
-)
-class ProjectHistoryViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    项目历史记录视图集，只提供只读功能
-    """
-    permission_classes = [IsAuthenticated]
-    serializer_class = ProjectHistorySerializer
-    
-    def get_queryset(self):
-        """
-        获取查询集，只返回当前用户创建的项目的历史记录
-        """
-        return ProjectHistory.objects.filter(project__creator=self.request.user)
-
-
 
 
 @extend_schema_view(
@@ -491,3 +436,124 @@ class ProjectStageViewSet(mixins.RetrieveModelMixin,
             serializer.save()
             return Response(DocxTreeBuildTaskDetailSerializer(task).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=['project-change-history'],
+        summary='获取项目变更历史列表',
+        description='获取项目的所有变更历史记录列表',
+        responses={
+            200: ProjectChangeHistorySerializer(many=True),
+            401: OpenApiTypes.OBJECT
+        }
+    ),
+    retrieve=extend_schema(
+        tags=['project-change-history'],
+        summary='获取项目变更历史详情',
+        description='获取特定的项目变更历史记录详情',
+        responses={
+            200: ProjectChangeHistorySerializer,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    )
+)
+class ProjectChangeHistoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    项目变更历史视图集，只提供只读功能
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProjectChangeHistorySerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['project', 'field_name', 'operation_id']
+    search_fields = ['field_name', 'old_value', 'new_value', 'remarks']
+    ordering_fields = ['changed_at', 'field_name']
+    ordering = ['-changed_at']
+    
+    def get_queryset(self):
+        """
+        获取查询集，只返回当前用户可访问的项目的变更历史
+        """
+        return ProjectChangeHistory.objects.filter(project__creator=self.request.user)
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=['stage-change-history'],
+        summary='获取阶段变更历史列表',
+        description='获取项目阶段的所有变更历史记录列表',
+        responses={
+            200: StageChangeHistorySerializer(many=True),
+            401: OpenApiTypes.OBJECT
+        }
+    ),
+    retrieve=extend_schema(
+        tags=['stage-change-history'],
+        summary='获取阶段变更历史详情',
+        description='获取特定的阶段变更历史记录详情',
+        responses={
+            200: StageChangeHistorySerializer,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    )
+)
+class StageChangeHistoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    阶段变更历史视图集，只提供只读功能
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = StageChangeHistorySerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['project', 'stage', 'field_name', 'operation_id']
+    search_fields = ['field_name', 'old_value', 'new_value', 'remarks']
+    ordering_fields = ['changed_at', 'field_name']
+    ordering = ['-changed_at']
+    
+    def get_queryset(self):
+        """
+        获取查询集，只返回当前用户可访问的项目的阶段变更历史
+        """
+        return StageChangeHistory.objects.filter(project__creator=self.request.user)
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=['task-change-history'],
+        summary='获取任务变更历史列表',
+        description='获取项目任务的所有变更历史记录列表',
+        responses={
+            200: TaskChangeHistorySerializer(many=True),
+            401: OpenApiTypes.OBJECT
+        }
+    ),
+    retrieve=extend_schema(
+        tags=['task-change-history'],
+        summary='获取任务变更历史详情',
+        description='获取特定的任务变更历史记录详情',
+        responses={
+            200: TaskChangeHistorySerializer,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    )
+)
+class TaskChangeHistoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    任务变更历史视图集，只提供只读功能
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = TaskChangeHistorySerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['project', 'stage', 'task', 'task_type', 'field_name', 'operation_id', 'is_complex_field']
+    search_fields = ['field_name', 'old_value', 'new_value', 'change_summary', 'remarks']
+    ordering_fields = ['changed_at', 'field_name', 'task_type']
+    ordering = ['-changed_at']
+    
+    def get_queryset(self):
+        """
+        获取查询集，只返回当前用户可访问的项目的任务变更历史
+        """
+        return TaskChangeHistory.objects.filter(project__creator=self.request.user)

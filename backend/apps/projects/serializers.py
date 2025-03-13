@@ -2,8 +2,10 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from .models import (
-    Project, ProjectHistory, ProjectStage, BaseTask, 
-    DocxExtractionTask, DocxTreeBuildTask, TenderFileUploadTask, TaskStatus
+    Project, ProjectStage, BaseTask, 
+    DocxExtractionTask, DocxTreeBuildTask, TenderFileUploadTask, 
+    ProjectChangeHistory, StageChangeHistory, TaskChangeHistory,
+    TaskStatus
 )
 import logging
 
@@ -71,14 +73,8 @@ class ProjectListSerializer(serializers.ModelSerializer):
 
 class ProjectDetailSerializer(ProjectListSerializer):
     """项目详情序列化器"""
-    stage_histories = serializers.SerializerMethodField()
-
     class Meta(ProjectListSerializer.Meta):
-        fields = ProjectListSerializer.Meta.fields + ['stage_histories']
-    
-    def get_stage_histories(self, obj):
-        histories = obj.project_histories.all()
-        return ProjectHistorySerializer(histories, many=True).data
+        fields = ProjectListSerializer.Meta.fields
 
 class ProjectUpdateSerializer(serializers.ModelSerializer):
     """项目更新序列化器"""
@@ -97,21 +93,10 @@ class ProjectStatusUpdateSerializer(serializers.ModelSerializer):
         fields = ['status', 'remarks']
 
     def update(self, instance, validated_data):
-        remarks = validated_data.pop('remarks', '')
-        old_status = instance.status
-        new_status = validated_data['status']
-
-        if old_status != new_status:
-            # 创建项目历史记录
-            ProjectHistory.objects.create(
-                project=instance,
-                from_stage=instance.current_active_stage,  # 保持当前阶段不变
-                to_stage=instance.current_active_stage,    # 保持当前阶段不变
-                from_status=old_status,                    # 记录状态变更
-                to_status=new_status,
-                remarks=remarks
-            )
-
+        # 移除remarks字段，不需要存储到Project模型中
+        validated_data.pop('remarks', '')
+        
+        # 直接调用父类的update方法，变更历史将通过signal处理
         return super().update(instance, validated_data)
 
 class ProjectActiveStageUpdateSerializer(serializers.ModelSerializer):
@@ -137,7 +122,7 @@ class ProjectStageDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'project', 'stage_type', 'stage_type_display', 'name', 
             'stage_status', 'stage_status_display', 'description', 
-            'file_id', 'progress', 'remarks', 'created_at', 
+            'progress', 'remarks', 'created_at', 
             'updated_at', 'metadata', 'tasks'
         ]
         read_only_fields = fields  # 所有字段都是只读的
@@ -204,9 +189,16 @@ class ProjectStageUpdateSerializer(serializers.ModelSerializer):
         
         # 如果提供了任务类型和状态，则更新该任务
         if task_type and task_status:
-            # 查找并更新特定类型的任务
+            # 查找特定类型的任务
             tasks_to_update = instance.tasks.filter(type=task_type)
-            tasks_to_update.update(status=task_status, lock_status=lock_status)
+            
+            # 逐个更新任务以触发信号
+            for task in tasks_to_update:
+                task.status = task_status
+                task.lock_status = lock_status
+                task.save()  # 这将触发 post_save 信号
+                logger.info(f"更新任务状态: task_id={task.id}, status={task_status}, lock_status={lock_status}")
+
 
         # 检查是否所有任务都已完成的逻辑保持不变
         if instance.tasks.exists() and not instance.tasks.exclude(status=TaskStatus.COMPLETED).exists():
@@ -333,27 +325,52 @@ class DocxTreeBuildTaskUpdateSerializer(serializers.ModelSerializer):
 
 
 # ===============    ProjectHistory 项目状态历史序列化器  ===============
-class ProjectHistorySerializer(serializers.ModelSerializer):
-    """项目状态历史序列化器"""
+
+class ProjectChangeHistorySerializer(serializers.ModelSerializer):
+    """
+    项目变更历史记录序列化器
+    """
+    changed_by = UserBriefSerializer(read_only=True)
+    
     class Meta:
-        model = ProjectHistory
-        fields = ['id', 'project', 'from_stage', 'to_stage',
-                 'get_from_stage_display', 'get_to_stage_display',
-                 'from_status', 'to_status',
-                 'get_from_status_display', 'get_to_status_display',
-                 'operation_time', 'remarks']
-        read_only_fields = ['operation_time']
+        model = ProjectChangeHistory
+        fields = [
+            'id', 'operation_id', 'project', 'field_name', 
+            'old_value', 'new_value', 'changed_at', 
+            'changed_by', 'remarks'
+        ]
+        read_only_fields = fields
 
-class ProjectHistoryCreateSerializer(serializers.ModelSerializer):
-    """项目状态历史创建序列化器"""
+
+class StageChangeHistorySerializer(serializers.ModelSerializer):
+    """
+    阶段变更历史记录序列化器
+    """
+    changed_by = UserBriefSerializer(read_only=True)
+    
     class Meta:
-        model = ProjectHistory
-        fields = ['project', 'from_stage', 'to_stage', 'from_status', 
-                 'to_status', 'remarks']
+        model = StageChangeHistory
+        fields = [
+            'id', 'operation_id', 'stage', 'project', 
+            'field_name', 'old_value', 'new_value', 
+            'changed_at', 'changed_by', 'remarks'
+        ]
+        read_only_fields = fields
 
 
-
-
-
-
+class TaskChangeHistorySerializer(serializers.ModelSerializer):
+    """
+    任务变更历史记录序列化器
+    """
+    changed_by = UserBriefSerializer(read_only=True)
+    
+    class Meta:
+        model = TaskChangeHistory
+        fields = [
+            'id', 'operation_id', 'task', 'stage', 
+            'project', 'task_type', 'field_name', 
+            'old_value', 'new_value', 'is_complex_field',
+            'change_summary', 'changed_at', 'changed_by', 'remarks'
+        ]
+        read_only_fields = fields
 

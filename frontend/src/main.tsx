@@ -5,6 +5,8 @@ import { RouterProvider, createRouter } from '@tanstack/react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from '@/components/ui/toaster'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+//import { ConnectionProvider } from '@/contexts/ConnectionContext'
+
 //通过在main.tsx中引入Toaster，可以在全局范围内使用toast
 
 
@@ -46,6 +48,9 @@ if (!rootElement.innerHTML) {
   root.render(
     <StrictMode>
       <QueryClientProvider client={queryClient}>
+        {/* <ConnectionProvider>
+          <RouterProvider router={router} />
+        </ConnectionProvider> */}
         <RouterProvider router={router} />
         <Toaster />
         <ReactQueryDevtools initialIsOpen={false} />
@@ -53,3 +58,9 @@ if (!rootElement.innerHTML) {
     </StrictMode>
   )
 }
+
+
+// 注意事项和说明：
+// ConnectionProvider 应该包裹 RouterProvider，这样所有路由组件都能访问连接状态。
+// ConnectionProvider 放在 QueryClientProvider 内部，这样连接上下文可以访问 React Query 的功能，如果需要的话。
+// Toaster 保持在外部，这样连接状态变化的通知也能正常显示。

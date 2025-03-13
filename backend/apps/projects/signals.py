@@ -72,3 +72,55 @@ def log_project_before_delete(sender, instance, **kwargs):
 def log_project_after_delete(sender, instance, **kwargs):
     """记录项目删除后的操作"""
     logger.info(f"删除项目成功，ID: {instance.pk}, 名称: {instance.project_name}")
+
+
+
+
+
+
+# from django.db.models.signals import post_save
+# from django.dispatch import receiver
+
+
+# @receiver(post_save, sender=DocxExtractionTask)
+# def handle_docx_extraction_task_update(sender, instance, created, **kwargs):
+#     """
+#     当 DocxExtractionTask 被更新为 PROCESSING 状态时，
+#     自动触发文档处理流程
+#     """
+
+#     logger.info(f"DocxExtractionTask进入PROCESSING状态，自动启动文档提取")
+
+#     # 只在以下条件下处理:
+#     # 1. 任务被更新（不是新创建）
+#     # 2. 状态为 PROCESSING
+#     # 3. 确保任务未被锁定，防止循环处理
+#     if not created and instance.status == TaskStatus.PROCESSING: #and instance.lock_status == TaskLockStatus.UNLOCKED:
+#         try:
+#             # 锁定任务，防止重复处理
+#             DocxExtractionTask.objects.filter(pk=instance.pk).update(
+#                 lock_status=TaskLockStatus.LOCKED
+#             )
+            
+#             # 获取相关联的阶段和项目
+#             stage = instance.stage
+#             project = stage.project
+
+#             from apps.projects.services.types import ModelData
+#             from apps.projects.services._01_extract_docx_elements import DocxExtractorStep
+#             docx_extractor = DocxExtractorStep()
+#             docx_extractor.process(ModelData(model=Project, instance=project))
+#             logger.info(f"DocxExtractionTask完成文档提取")
+            
+#             # 处理完成后，更新状态为COMPLETED，但不触发信号
+#             DocxExtractionTask.objects.filter(pk=instance.pk).update(
+#                 status=TaskStatus.COMPLETED,
+#                 lock_status=TaskLockStatus.UNLOCKED
+#             )
+#         except Exception as e:
+#             logger.error(f"DocxExtractionTask处理失败: {str(e)}")
+#             # 发生错误时，解锁任务并标记为失败
+#             DocxExtractionTask.objects.filter(pk=instance.pk).update(
+#                 status=TaskStatus.FAILED,
+#                 lock_status=TaskLockStatus.UNLOCKED
+#             )

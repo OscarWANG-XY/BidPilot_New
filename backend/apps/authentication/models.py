@@ -85,6 +85,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 # 用于存储验证码的模型类
 class VerificationCode(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # 定义验证码类型的选择项
     TYPE_CHOICES = (
         ('login', '登录'),

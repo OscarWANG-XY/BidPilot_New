@@ -1,7 +1,8 @@
 from django.contrib import admin
 from .models import (
     Project, ProjectStage, BaseTask, DocxExtractionTask, 
-    DocxTreeBuildTask, ProjectHistory
+    DocxTreeBuildTask, TenderFileUploadTask, ProjectChangeHistory,
+    StageChangeHistory, TaskChangeHistory
 )
 
 class ProjectStageInline(admin.TabularInline):
@@ -29,12 +30,16 @@ class DocxTreeBuildTaskInline(admin.TabularInline):
     model = DocxTreeBuildTask
     extra = 0
 
+class TenderFileUploadTaskInline(admin.TabularInline):
+    model = TenderFileUploadTask
+    extra = 0
+
 @admin.register(ProjectStage)
 class ProjectStageAdmin(admin.ModelAdmin):
     list_display = ('id', 'project', 'stage_type', 'name', 'stage_status', 'created_at', 'updated_at')
     list_filter = ('stage_type', 'stage_status')
     search_fields = ('name', 'description')
-    inlines = [BaseTaskInline, DocxExtractionTaskInline, DocxTreeBuildTaskInline]
+    inlines = [BaseTaskInline, DocxExtractionTaskInline, DocxTreeBuildTaskInline, TenderFileUploadTaskInline]
 
 @admin.register(BaseTask)
 class BaseTaskAdmin(admin.ModelAdmin):
@@ -54,9 +59,29 @@ class DocxTreeBuildTaskAdmin(admin.ModelAdmin):
     list_filter = ('type', 'status')
     search_fields = ('name', 'description')
 
-@admin.register(ProjectHistory)
-class ProjectHistoryAdmin(admin.ModelAdmin):
-    list_display = ('id', 'project', 'from_stage', 'to_stage', 'from_status', 'to_status', 'operation_time')
-    list_filter = ('from_stage', 'to_stage', 'from_status', 'to_status')
-    search_fields = ('project__project_name', 'remarks')
-    date_hierarchy = 'operation_time'
+@admin.register(TenderFileUploadTask)
+class TenderFileUploadTaskAdmin(admin.ModelAdmin):
+    list_display = ('id', 'stage', 'name', 'type', 'status', 'created_at', 'updated_at')
+    list_filter = ('type', 'status')
+    search_fields = ('name', 'description')
+
+@admin.register(ProjectChangeHistory)
+class ProjectChangeHistoryAdmin(admin.ModelAdmin):
+    list_display = ('id', 'project', 'field_name', 'old_value', 'new_value', 'changed_at', 'changed_by')
+    list_filter = ('field_name', 'changed_by')
+    search_fields = ('project__project_name', 'field_name', 'remarks')
+    date_hierarchy = 'changed_at'
+
+@admin.register(StageChangeHistory)
+class StageChangeHistoryAdmin(admin.ModelAdmin):
+    list_display = ('id', 'stage', 'project', 'field_name', 'old_value', 'new_value', 'changed_at', 'changed_by')
+    list_filter = ('field_name', 'changed_by')
+    search_fields = ('stage__name', 'project__project_name', 'field_name', 'remarks')
+    date_hierarchy = 'changed_at'
+
+@admin.register(TaskChangeHistory)
+class TaskChangeHistoryAdmin(admin.ModelAdmin):
+    list_display = ('id', 'task', 'stage', 'project', 'task_type', 'field_name', 'changed_at', 'changed_by')
+    list_filter = ('task_type', 'field_name', 'changed_by', 'is_complex_field')
+    search_fields = ('task__name', 'stage__name', 'project__project_name', 'field_name', 'remarks')
+    date_hierarchy = 'changed_at'

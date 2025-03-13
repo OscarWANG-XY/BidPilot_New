@@ -36,6 +36,12 @@ export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({
   onStartNextTask
 }) => {
 
+  console.log("TenderFileUpload组件的初始化参数", {
+    projectId,
+    initialStatus,
+    initialLockStatus,
+    isEnabled,
+  })
 
   // --------  Part2: 任务的状态管理
   const [status, setStatus] = useState<TaskStatus>(initialStatus || TaskStatus.PENDING)
@@ -59,6 +65,12 @@ export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({
       file.mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   )
 
+  console.log("TenderFileUpload组件的文件加载状态", {
+    isFilesLoading,
+    files,
+    hasDocxFile,
+  })
+  
   useEffect(() => {
     if (!isFilesLoading) {  // 只有在文件加载完成后才执行状态检查
       if (status === TaskStatus.COMPLETED && !hasDocxFile) {
@@ -75,7 +87,7 @@ export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({
   const [isNavigating, setIsNavigating] = useState(false)
 
   
-  
+
   // 处理文件上传的函数 - 返回一个布尔值表示是否应该继续上传
   const handleFileUpload = (file: File): boolean => {
 

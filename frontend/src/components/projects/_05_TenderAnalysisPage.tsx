@@ -55,6 +55,7 @@ export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectI
         setAllTaskState(newTaskState)  // 通过新变量更新状态
       }
     }, [taskMetaData])
+    console.log("后端传入的taskMetaData", taskMetaData)
 
 
     //（2）更新状态到服务器， 回调函数，调用useProjects的updateStageTaskStatus
@@ -74,6 +75,8 @@ export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectI
             [lockStateKey]: newLockStatus
         }));
         
+        console.log("更新后的allTaskState", allTaskState)
+
         // 调用mutation更新后端状态
         await updateStageTaskStatus({
             projectId,

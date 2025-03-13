@@ -19,8 +19,8 @@ CORS_ALLOWED_ORIGINS = [
 AUTH_USER_MODEL = 'authentication.User'
 
 # 调试输出
-print("Development settings loaded")
-print("INSTALLED_APPS:", INSTALLED_APPS)
+#print("Development settings loaded")
+#print("INSTALLED_APPS:", INSTALLED_APPS)
 
 
 
@@ -68,6 +68,18 @@ LOGGING = {
         'apps.chat': {  # 您的应用logger
             'handlers': ['console'],
             'level': 'ERROR',
+            'propagate': False,
+        },
+        'apps._tools.docx_parser': {  # 添加docx_parser的logger配置
+            'handlers': ['console'],
+            'level': 'ERROR',  # 设置为INFO、DEBUG、WARNING或ERROR
+            'propagate': False,
+        },
+        
+        # 添加以下配置来隐藏中间件的日志
+        'apps.projects.middlewares': {
+            'handlers': ['console'],
+            'level': 'WARNING',  # 将级别提高到WARNING，这样INFO级别的日志就不会显示
             'propagate': False,
         },
     },

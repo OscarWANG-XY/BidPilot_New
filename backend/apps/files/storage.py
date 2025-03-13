@@ -49,13 +49,13 @@ def initialize_storage():
             storage = S3Boto3Storage()
             default_storage._wrapped = storage
             #logger.info("✅ 成功初始化 S3Boto3Storage")
-            logger.info(f"default_storage 的类型: {default_storage.__class__.__name__}")
+            #logger.info(f"default_storage 的类型: {default_storage.__class__.__name__}")
         elif settings.DEFAULT_FILE_STORAGE == "apps.files.storage.COSStorage":
             #logger.info("使用 COSStorage 初始化存储")
             storage = COSStorage()
             default_storage._wrapped = storage
             #logger.info("✅ 成功初始化 COSStorage")
-            logger.info(f"default_storage 的类型: {default_storage.__class__.__name__}")
+            #logger.info(f"default_storage 的类型: {default_storage.__class__.__name__}")
         else:
             logger.warning(f"未知的存储后端: {settings.DEFAULT_FILE_STORAGE}")
             return False
