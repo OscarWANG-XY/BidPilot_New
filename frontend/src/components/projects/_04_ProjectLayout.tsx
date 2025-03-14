@@ -82,7 +82,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, childre
                 className="px-6 py-2 data-[state=active]:border-b-2 data-[state=active]:border-primary" 
                 asChild
               >
-                <Link to={tab.to} params={{ id: projectId }}>
+                <Link to={tab.to} params={{ projectId: projectId }}>
                   {tab.label}
                 </Link>
               </TabsTrigger>

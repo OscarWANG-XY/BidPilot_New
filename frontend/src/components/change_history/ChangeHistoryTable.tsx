@@ -69,7 +69,7 @@ export const ChangeHistoryTable: React.FC<ChangeHistoryTableProps> = ({
   // 处理字段筛选
   const handleFieldFilter = (value: string) => {
     if (onFilterField) {
-      onFilterField(value);
+      onFilterField(value==='all-fields' ? '' : value);
     }
   };
 
@@ -98,8 +98,20 @@ export const ChangeHistoryTable: React.FC<ChangeHistoryTableProps> = ({
   };
 
   // 提取所有唯一的字段名用于筛选
+
+  console.log('历史记录项目:', items);
+  console.log('所有记录的字段名:', items.map(item => ({fieldName: item.fieldName, type: typeof item.fieldName})));
   const uniqueFieldNames = Array.from(new Set(items.map(item => item.fieldName)));
 
+  // 提取所有唯一的字段名用于筛选console.log('所有字段名:', uniqueFieldNames);
+  console.log('是否有空字段名:', uniqueFieldNames.some(field => !field || field === ''));
+  //console.log('是否有null字段名:', uniqueFieldNames.includes(null));
+  //console.log('是否有undefined字段名:', uniqueFieldNames.includes(undefined));
+
+  // 尝试过滤空值
+  const filteredFieldNames = uniqueFieldNames.filter(field => field && field.trim() !== '');
+  console.log('过滤后的字段名:', filteredFieldNames); 
+  
   return (
     <Card>
       <CardHeader>
@@ -129,9 +141,11 @@ export const ChangeHistoryTable: React.FC<ChangeHistoryTableProps> = ({
                 <SelectValue placeholder="筛选字段" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">所有字段</SelectItem>
+                <SelectItem value="all-fields">所有字段</SelectItem>
                 {uniqueFieldNames.map(field => (
-                  <SelectItem key={field} value={field}>{field}</SelectItem>
+                    <SelectItem key={`field-${field}`} value={field}>
+                      {field}
+                    </SelectItem>
                 ))}
               </SelectContent>
             </Select>

@@ -26,6 +26,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+logger.info(f"运行views.py")
+
 @extend_schema_view(
     list=extend_schema(
         tags=['projects'],
@@ -506,8 +508,15 @@ class ProjectChangeHistoryViewSet(viewsets.ReadOnlyModelViewSet):
         """
         获取查询集，只返回当前用户可访问的项目的变更历史
         """
-        return ProjectChangeHistory.objects.filter(project__creator=self.request.user)
-
+        queryset = ProjectChangeHistory.objects.filter(project__creator=self.request.user)
+        logger.info(f"ProjectChangeHistory queryset count: {queryset.count()}")
+        logger.info(f"Current user: {self.request.user}")
+        
+        # 检查是否有任何记录
+        all_records = ProjectChangeHistory.objects.all()
+        logger.info(f"Total ProjectChangeHistory records: {all_records.count()}")
+        #return ProjectChangeHistory.objects.filter(project__creator=self.request.user)
+        return queryset
 
 @extend_schema_view(
     list=extend_schema(

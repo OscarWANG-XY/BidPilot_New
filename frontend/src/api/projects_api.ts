@@ -176,8 +176,8 @@ export const projectsApi = {
 export const changeHistoryApi = {
   // 获取项目变更历史列表
   getProjectChangeHistory: async (params?: ChangeHistoryQueryParams): Promise<ProjectChangeHistory[]> => {
-    console.log('📤 获取项目变更历史:', params);
-    const response = await axiosInstance.get('/projects/change-history/', { params });
+    console.log('📤 获取项目变更历史', params);
+    const response = await axiosInstance.get('/projects/projects/change-history/', { params });
     console.log('📥 获取项目变更历史成功:', response.data);
     return response.data;
   },
@@ -185,7 +185,7 @@ export const changeHistoryApi = {
   // 获取单个项目变更历史详情
   getProjectChangeHistoryById: async (historyId: string): Promise<ProjectChangeHistory> => {
     console.log('📤 获取单个项目变更历史:', historyId);
-    const response = await axiosInstance.get(`/projects/change-history/${historyId}/`);
+    const response = await axiosInstance.get(`/projects/projects/change-history/${historyId}/`);
     console.log('📥 获取单个项目变更历史成功:', response.data);
     return response.data;
   },

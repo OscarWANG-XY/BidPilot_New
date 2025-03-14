@@ -14,9 +14,10 @@ router = DefaultRouter()
 router.register('', ProjectViewSet, basename='project') 
 
 # 添加非嵌套路由器 - 历史记录
-router.register('change-history', ProjectChangeHistoryViewSet, basename='project-change-history')
+router.register('projects/change-history', ProjectChangeHistoryViewSet, basename='project-change-history')
 router.register('stages/change-history', StageChangeHistoryViewSet, basename='stage-change-history')
 router.register('tasks/change-history', TaskChangeHistoryViewSet, basename='task-change-history')
+
 
 # 添加嵌套路由器
 stage_router = routers.NestedDefaultRouter(router, '', lookup='project')

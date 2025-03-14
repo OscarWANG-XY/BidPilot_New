@@ -188,7 +188,7 @@ class ProjectStageUpdateSerializer(ChangeTrackingModelSerializer):
 
     class Meta:
         model = ProjectStage
-        fields = ['stage_status', 'progress', 'metadata', 'task_type', 'task_status', 'lock_status']
+        fields = ['stage_status', 'progress', 'metadata', 'task_type', 'task_status', 'lock_status', 'remarks']
     
     def update(self, instance, validated_data):
         # with transaction.atomic(): 

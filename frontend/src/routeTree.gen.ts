@@ -16,6 +16,7 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as ChatImport } from './routes/chat'
 import { Route as ProjectsIndexImport } from './routes/projects/index'
 import { Route as PlaygroundIndexImport } from './routes/playground/index'
+import { Route as ProjectsProjectIdImport } from './routes/projects/$projectId'
 import { Route as PlaygroundTree1Import } from './routes/playground/tree1'
 import { Route as PlaygroundLayoutImport } from './routes/playground/_layout'
 import { Route as PlaygroundAIAnalysisDashboardImport } from './routes/playground/AIAnalysisDashboard'
@@ -101,6 +102,12 @@ const PlaygroundIndexRoute = PlaygroundIndexImport.update({
   getParentRoute: () => PlaygroundRoute,
 } as any)
 
+const ProjectsProjectIdRoute = ProjectsProjectIdImport.update({
+  id: '/projects/$projectId',
+  path: '/projects/$projectId',
+  getParentRoute: () => rootRoute,
+} as any)
+
 const PlaygroundTree1Route = PlaygroundTree1Import.update({
   id: '/tree1',
   path: '/tree1',
@@ -156,58 +163,58 @@ const AuthForgotPasswordRoute = AuthForgotPasswordImport.update({
 } as any)
 
 const ProjectsProjectIdIndexRoute = ProjectsProjectIdIndexImport.update({
-  id: '/projects/$projectId/',
-  path: '/projects/$projectId/',
-  getParentRoute: () => rootRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => ProjectsProjectIdRoute,
 } as any)
 
 const ProjectsProjectIdTenderAnalysisRoute =
   ProjectsProjectIdTenderAnalysisImport.update({
-    id: '/projects/$projectId/tender-analysis',
-    path: '/projects/$projectId/tender-analysis',
-    getParentRoute: () => rootRoute,
+    id: '/tender-analysis',
+    path: '/tender-analysis',
+    getParentRoute: () => ProjectsProjectIdRoute,
   } as any)
 
 const ProjectsProjectIdBidWritingRoute =
   ProjectsProjectIdBidWritingImport.update({
-    id: '/projects/$projectId/bid-writing',
-    path: '/projects/$projectId/bid-writing',
-    getParentRoute: () => rootRoute,
+    id: '/bid-writing',
+    path: '/bid-writing',
+    getParentRoute: () => ProjectsProjectIdRoute,
   } as any)
 
 const ProjectsProjectIdHistoryIndexRoute =
   ProjectsProjectIdHistoryIndexImport.update({
-    id: '/projects/$projectId/history/',
-    path: '/projects/$projectId/history/',
-    getParentRoute: () => rootRoute,
+    id: '/history/',
+    path: '/history/',
+    getParentRoute: () => ProjectsProjectIdRoute,
   } as any)
 
 const ProjectsProjectIdHistoryHistoryIdRoute =
   ProjectsProjectIdHistoryHistoryIdImport.update({
-    id: '/projects/$projectId/history/$historyId',
-    path: '/projects/$projectId/history/$historyId',
-    getParentRoute: () => rootRoute,
+    id: '/history/$historyId',
+    path: '/history/$historyId',
+    getParentRoute: () => ProjectsProjectIdRoute,
   } as any)
 
 const ProjectsProjectIdHistoryTaskHistoryIdRoute =
   ProjectsProjectIdHistoryTaskHistoryIdImport.update({
-    id: '/projects/$projectId/history/task/$historyId',
-    path: '/projects/$projectId/history/task/$historyId',
-    getParentRoute: () => rootRoute,
+    id: '/history/task/$historyId',
+    path: '/history/task/$historyId',
+    getParentRoute: () => ProjectsProjectIdRoute,
   } as any)
 
 const ProjectsProjectIdHistoryStageHistoryIdRoute =
   ProjectsProjectIdHistoryStageHistoryIdImport.update({
-    id: '/projects/$projectId/history/stage/$historyId',
-    path: '/projects/$projectId/history/stage/$historyId',
-    getParentRoute: () => rootRoute,
+    id: '/history/stage/$historyId',
+    path: '/history/stage/$historyId',
+    getParentRoute: () => ProjectsProjectIdRoute,
   } as any)
 
 const ProjectsProjectIdHistoryProjectHistoryIdRoute =
   ProjectsProjectIdHistoryProjectHistoryIdImport.update({
-    id: '/projects/$projectId/history/project/$historyId',
-    path: '/projects/$projectId/history/project/$historyId',
-    getParentRoute: () => rootRoute,
+    id: '/history/project/$historyId',
+    path: '/history/project/$historyId',
+    getParentRoute: () => ProjectsProjectIdRoute,
   } as any)
 
 // Populate the FileRoutesByPath interface
@@ -326,6 +333,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlaygroundTree1Import
       parentRoute: typeof PlaygroundImport
     }
+    '/projects/$projectId': {
+      id: '/projects/$projectId'
+      path: '/projects/$projectId'
+      fullPath: '/projects/$projectId'
+      preLoaderRoute: typeof ProjectsProjectIdImport
+      parentRoute: typeof rootRoute
+    }
     '/playground/': {
       id: '/playground/'
       path: '/'
@@ -342,59 +356,59 @@ declare module '@tanstack/react-router' {
     }
     '/projects/$projectId/bid-writing': {
       id: '/projects/$projectId/bid-writing'
-      path: '/projects/$projectId/bid-writing'
+      path: '/bid-writing'
       fullPath: '/projects/$projectId/bid-writing'
       preLoaderRoute: typeof ProjectsProjectIdBidWritingImport
-      parentRoute: typeof rootRoute
+      parentRoute: typeof ProjectsProjectIdImport
     }
     '/projects/$projectId/tender-analysis': {
       id: '/projects/$projectId/tender-analysis'
-      path: '/projects/$projectId/tender-analysis'
+      path: '/tender-analysis'
       fullPath: '/projects/$projectId/tender-analysis'
       preLoaderRoute: typeof ProjectsProjectIdTenderAnalysisImport
-      parentRoute: typeof rootRoute
+      parentRoute: typeof ProjectsProjectIdImport
     }
     '/projects/$projectId/': {
       id: '/projects/$projectId/'
-      path: '/projects/$projectId'
-      fullPath: '/projects/$projectId'
+      path: '/'
+      fullPath: '/projects/$projectId/'
       preLoaderRoute: typeof ProjectsProjectIdIndexImport
-      parentRoute: typeof rootRoute
+      parentRoute: typeof ProjectsProjectIdImport
     }
     '/projects/$projectId/history/$historyId': {
       id: '/projects/$projectId/history/$historyId'
-      path: '/projects/$projectId/history/$historyId'
+      path: '/history/$historyId'
       fullPath: '/projects/$projectId/history/$historyId'
       preLoaderRoute: typeof ProjectsProjectIdHistoryHistoryIdImport
-      parentRoute: typeof rootRoute
+      parentRoute: typeof ProjectsProjectIdImport
     }
     '/projects/$projectId/history/': {
       id: '/projects/$projectId/history/'
-      path: '/projects/$projectId/history'
+      path: '/history'
       fullPath: '/projects/$projectId/history'
       preLoaderRoute: typeof ProjectsProjectIdHistoryIndexImport
-      parentRoute: typeof rootRoute
+      parentRoute: typeof ProjectsProjectIdImport
     }
     '/projects/$projectId/history/project/$historyId': {
       id: '/projects/$projectId/history/project/$historyId'
-      path: '/projects/$projectId/history/project/$historyId'
+      path: '/history/project/$historyId'
       fullPath: '/projects/$projectId/history/project/$historyId'
       preLoaderRoute: typeof ProjectsProjectIdHistoryProjectHistoryIdImport
-      parentRoute: typeof rootRoute
+      parentRoute: typeof ProjectsProjectIdImport
     }
     '/projects/$projectId/history/stage/$historyId': {
       id: '/projects/$projectId/history/stage/$historyId'
-      path: '/projects/$projectId/history/stage/$historyId'
+      path: '/history/stage/$historyId'
       fullPath: '/projects/$projectId/history/stage/$historyId'
       preLoaderRoute: typeof ProjectsProjectIdHistoryStageHistoryIdImport
-      parentRoute: typeof rootRoute
+      parentRoute: typeof ProjectsProjectIdImport
     }
     '/projects/$projectId/history/task/$historyId': {
       id: '/projects/$projectId/history/task/$historyId'
-      path: '/projects/$projectId/history/task/$historyId'
+      path: '/history/task/$historyId'
       fullPath: '/projects/$projectId/history/task/$historyId'
       preLoaderRoute: typeof ProjectsProjectIdHistoryTaskHistoryIdImport
-      parentRoute: typeof rootRoute
+      parentRoute: typeof ProjectsProjectIdImport
     }
   }
 }
@@ -427,6 +441,35 @@ const PlaygroundRouteWithChildren = PlaygroundRoute._addFileChildren(
   PlaygroundRouteChildren,
 )
 
+interface ProjectsProjectIdRouteChildren {
+  ProjectsProjectIdBidWritingRoute: typeof ProjectsProjectIdBidWritingRoute
+  ProjectsProjectIdTenderAnalysisRoute: typeof ProjectsProjectIdTenderAnalysisRoute
+  ProjectsProjectIdIndexRoute: typeof ProjectsProjectIdIndexRoute
+  ProjectsProjectIdHistoryHistoryIdRoute: typeof ProjectsProjectIdHistoryHistoryIdRoute
+  ProjectsProjectIdHistoryIndexRoute: typeof ProjectsProjectIdHistoryIndexRoute
+  ProjectsProjectIdHistoryProjectHistoryIdRoute: typeof ProjectsProjectIdHistoryProjectHistoryIdRoute
+  ProjectsProjectIdHistoryStageHistoryIdRoute: typeof ProjectsProjectIdHistoryStageHistoryIdRoute
+  ProjectsProjectIdHistoryTaskHistoryIdRoute: typeof ProjectsProjectIdHistoryTaskHistoryIdRoute
+}
+
+const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
+  ProjectsProjectIdBidWritingRoute: ProjectsProjectIdBidWritingRoute,
+  ProjectsProjectIdTenderAnalysisRoute: ProjectsProjectIdTenderAnalysisRoute,
+  ProjectsProjectIdIndexRoute: ProjectsProjectIdIndexRoute,
+  ProjectsProjectIdHistoryHistoryIdRoute:
+    ProjectsProjectIdHistoryHistoryIdRoute,
+  ProjectsProjectIdHistoryIndexRoute: ProjectsProjectIdHistoryIndexRoute,
+  ProjectsProjectIdHistoryProjectHistoryIdRoute:
+    ProjectsProjectIdHistoryProjectHistoryIdRoute,
+  ProjectsProjectIdHistoryStageHistoryIdRoute:
+    ProjectsProjectIdHistoryStageHistoryIdRoute,
+  ProjectsProjectIdHistoryTaskHistoryIdRoute:
+    ProjectsProjectIdHistoryTaskHistoryIdRoute,
+}
+
+const ProjectsProjectIdRouteWithChildren =
+  ProjectsProjectIdRoute._addFileChildren(ProjectsProjectIdRouteChildren)
+
 export interface FileRoutesByFullPath {
   '/': typeof IndexLazyRoute
   '/chat': typeof ChatRouteWithChildren
@@ -443,11 +486,12 @@ export interface FileRoutesByFullPath {
   '/playground/AIAnalysisDashboard': typeof PlaygroundAIAnalysisDashboardRoute
   '/playground': typeof PlaygroundLayoutRoute
   '/playground/tree1': typeof PlaygroundTree1Route
+  '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
   '/playground/': typeof PlaygroundIndexRoute
   '/projects': typeof ProjectsIndexRoute
   '/projects/$projectId/bid-writing': typeof ProjectsProjectIdBidWritingRoute
   '/projects/$projectId/tender-analysis': typeof ProjectsProjectIdTenderAnalysisRoute
-  '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
+  '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
   '/projects/$projectId/history/$historyId': typeof ProjectsProjectIdHistoryHistoryIdRoute
   '/projects/$projectId/history': typeof ProjectsProjectIdHistoryIndexRoute
   '/projects/$projectId/history/project/$historyId': typeof ProjectsProjectIdHistoryProjectHistoryIdRoute
@@ -500,6 +544,7 @@ export interface FileRoutesById {
   '/playground': typeof PlaygroundRouteWithChildren
   '/playground/_layout': typeof PlaygroundLayoutRoute
   '/playground/tree1': typeof PlaygroundTree1Route
+  '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
   '/playground/': typeof PlaygroundIndexRoute
   '/projects/': typeof ProjectsIndexRoute
   '/projects/$projectId/bid-writing': typeof ProjectsProjectIdBidWritingRoute
@@ -530,11 +575,12 @@ export interface FileRouteTypes {
     | '/playground/AIAnalysisDashboard'
     | '/playground'
     | '/playground/tree1'
+    | '/projects/$projectId'
     | '/playground/'
     | '/projects'
     | '/projects/$projectId/bid-writing'
     | '/projects/$projectId/tender-analysis'
-    | '/projects/$projectId'
+    | '/projects/$projectId/'
     | '/projects/$projectId/history/$historyId'
     | '/projects/$projectId/history'
     | '/projects/$projectId/history/project/$historyId'
@@ -584,6 +630,7 @@ export interface FileRouteTypes {
     | '/playground'
     | '/playground/_layout'
     | '/playground/tree1'
+    | '/projects/$projectId'
     | '/playground/'
     | '/projects/'
     | '/projects/$projectId/bid-writing'
@@ -611,15 +658,8 @@ export interface RootRouteChildren {
   AuthServiceTermRoute: typeof AuthServiceTermRoute
   PlaygroundAIAnalysisDashboardRoute: typeof PlaygroundAIAnalysisDashboardRoute
   PlaygroundRoute: typeof PlaygroundRouteWithChildren
+  ProjectsProjectIdRoute: typeof ProjectsProjectIdRouteWithChildren
   ProjectsIndexRoute: typeof ProjectsIndexRoute
-  ProjectsProjectIdBidWritingRoute: typeof ProjectsProjectIdBidWritingRoute
-  ProjectsProjectIdTenderAnalysisRoute: typeof ProjectsProjectIdTenderAnalysisRoute
-  ProjectsProjectIdIndexRoute: typeof ProjectsProjectIdIndexRoute
-  ProjectsProjectIdHistoryHistoryIdRoute: typeof ProjectsProjectIdHistoryHistoryIdRoute
-  ProjectsProjectIdHistoryIndexRoute: typeof ProjectsProjectIdHistoryIndexRoute
-  ProjectsProjectIdHistoryProjectHistoryIdRoute: typeof ProjectsProjectIdHistoryProjectHistoryIdRoute
-  ProjectsProjectIdHistoryStageHistoryIdRoute: typeof ProjectsProjectIdHistoryStageHistoryIdRoute
-  ProjectsProjectIdHistoryTaskHistoryIdRoute: typeof ProjectsProjectIdHistoryTaskHistoryIdRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
@@ -636,19 +676,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthServiceTermRoute: AuthServiceTermRoute,
   PlaygroundAIAnalysisDashboardRoute: PlaygroundAIAnalysisDashboardRoute,
   PlaygroundRoute: PlaygroundRouteWithChildren,
+  ProjectsProjectIdRoute: ProjectsProjectIdRouteWithChildren,
   ProjectsIndexRoute: ProjectsIndexRoute,
-  ProjectsProjectIdBidWritingRoute: ProjectsProjectIdBidWritingRoute,
-  ProjectsProjectIdTenderAnalysisRoute: ProjectsProjectIdTenderAnalysisRoute,
-  ProjectsProjectIdIndexRoute: ProjectsProjectIdIndexRoute,
-  ProjectsProjectIdHistoryHistoryIdRoute:
-    ProjectsProjectIdHistoryHistoryIdRoute,
-  ProjectsProjectIdHistoryIndexRoute: ProjectsProjectIdHistoryIndexRoute,
-  ProjectsProjectIdHistoryProjectHistoryIdRoute:
-    ProjectsProjectIdHistoryProjectHistoryIdRoute,
-  ProjectsProjectIdHistoryStageHistoryIdRoute:
-    ProjectsProjectIdHistoryStageHistoryIdRoute,
-  ProjectsProjectIdHistoryTaskHistoryIdRoute:
-    ProjectsProjectIdHistoryTaskHistoryIdRoute,
 }
 
 export const routeTree = rootRoute
@@ -674,15 +703,8 @@ export const routeTree = rootRoute
         "/auth/service-term",
         "/playground/AIAnalysisDashboard",
         "/playground",
-        "/projects/",
-        "/projects/$projectId/bid-writing",
-        "/projects/$projectId/tender-analysis",
-        "/projects/$projectId/",
-        "/projects/$projectId/history/$historyId",
-        "/projects/$projectId/history/",
-        "/projects/$projectId/history/project/$historyId",
-        "/projects/$projectId/history/stage/$historyId",
-        "/projects/$projectId/history/task/$historyId"
+        "/projects/$projectId",
+        "/projects/"
       ]
     },
     "/": {
@@ -744,6 +766,19 @@ export const routeTree = rootRoute
       "filePath": "playground/tree1.tsx",
       "parent": "/playground"
     },
+    "/projects/$projectId": {
+      "filePath": "projects/$projectId.tsx",
+      "children": [
+        "/projects/$projectId/bid-writing",
+        "/projects/$projectId/tender-analysis",
+        "/projects/$projectId/",
+        "/projects/$projectId/history/$historyId",
+        "/projects/$projectId/history/",
+        "/projects/$projectId/history/project/$historyId",
+        "/projects/$projectId/history/stage/$historyId",
+        "/projects/$projectId/history/task/$historyId"
+      ]
+    },
     "/playground/": {
       "filePath": "playground/index.tsx",
       "parent": "/playground"
@@ -752,28 +787,36 @@ export const routeTree = rootRoute
       "filePath": "projects/index.tsx"
     },
     "/projects/$projectId/bid-writing": {
-      "filePath": "projects/$projectId/bid-writing.tsx"
+      "filePath": "projects/$projectId/bid-writing.tsx",
+      "parent": "/projects/$projectId"
     },
     "/projects/$projectId/tender-analysis": {
-      "filePath": "projects/$projectId/tender-analysis.tsx"
+      "filePath": "projects/$projectId/tender-analysis.tsx",
+      "parent": "/projects/$projectId"
     },
     "/projects/$projectId/": {
-      "filePath": "projects/$projectId/index.tsx"
+      "filePath": "projects/$projectId/index.tsx",
+      "parent": "/projects/$projectId"
     },
     "/projects/$projectId/history/$historyId": {
-      "filePath": "projects/$projectId/history/$historyId.tsx"
+      "filePath": "projects/$projectId/history/$historyId.tsx",
+      "parent": "/projects/$projectId"
     },
     "/projects/$projectId/history/": {
-      "filePath": "projects/$projectId/history/index.tsx"
+      "filePath": "projects/$projectId/history/index.tsx",
+      "parent": "/projects/$projectId"
     },
     "/projects/$projectId/history/project/$historyId": {
-      "filePath": "projects/$projectId/history/project/$historyId.tsx"
+      "filePath": "projects/$projectId/history/project/$historyId.tsx",
+      "parent": "/projects/$projectId"
     },
     "/projects/$projectId/history/stage/$historyId": {
-      "filePath": "projects/$projectId/history/stage/$historyId.tsx"
+      "filePath": "projects/$projectId/history/stage/$historyId.tsx",
+      "parent": "/projects/$projectId"
     },
     "/projects/$projectId/history/task/$historyId": {
-      "filePath": "projects/$projectId/history/task/$historyId.tsx"
+      "filePath": "projects/$projectId/history/task/$historyId.tsx",
+      "parent": "/projects/$projectId"
     }
   }
 }
