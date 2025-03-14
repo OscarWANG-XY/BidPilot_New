@@ -1,14 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { TenderAnalysisPage } from '@/components/projects/_05_TenderAnalysisPage'
 
-export const Route = createFileRoute('/projects/$id/tender-analysis')({
+export const Route = createFileRoute('/projects/$projectId/tender-analysis')({
   component: TenderAnalysisComponent,
 })
 
 function TenderAnalysisComponent() {
-  const { id } = Route.useParams()
+  const { projectId } = Route.useParams()
   
   return (
-    <TenderAnalysisPage projectId={id} />
+    <TenderAnalysisPage projectId={projectId} />
   )
-} 
+}

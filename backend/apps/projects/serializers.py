@@ -1,16 +1,37 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from django.db import transaction
 from .models import (
     Project, ProjectStage, BaseTask, 
     DocxExtractionTask, DocxTreeBuildTask, TenderFileUploadTask, 
     ProjectChangeHistory, StageChangeHistory, TaskChangeHistory,
     TaskStatus
 )
+from .signals import set_change_metadata
 import logging
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
+
+
+# ============ 创建包含变更跟踪功能的基础序列化器 ============
+
+class ChangeTrackingModelSerializer(serializers.ModelSerializer):
+    """包含变更跟踪功能的基础序列化器，自动记录用户和备注信息"""
+    
+    def update(self, instance, validated_data):
+        # 提取备注（如果有）
+        remarks = validated_data.pop('remarks', '') if 'remarks' in validated_data else ''
+        
+        # 获取当前用户
+        request = self.context.get('request') # 从上下文获取request对象, 在views中设置   
+        user = request.user if request else None
+        
+        # 设置变更元数据
+        set_change_metadata(instance, user, remarks)
+        
+        # 调用父类方法
+        return super().update(instance, validated_data)
+
 
 
 # ============ 基础模型序列化器 (Basic Model Serializers) ============
@@ -76,7 +97,7 @@ class ProjectDetailSerializer(ProjectListSerializer):
     class Meta(ProjectListSerializer.Meta):
         fields = ProjectListSerializer.Meta.fields
 
-class ProjectUpdateSerializer(serializers.ModelSerializer):
+class ProjectUpdateSerializer(ChangeTrackingModelSerializer):
     """项目更新序列化器"""
     class Meta:
         model = Project
@@ -84,7 +105,7 @@ class ProjectUpdateSerializer(serializers.ModelSerializer):
                  'bid_deadline', 'is_urgent', 'status']
 
 # 专用于前端项目取消，和删除的场景
-class ProjectStatusUpdateSerializer(serializers.ModelSerializer):
+class ProjectStatusUpdateSerializer(ChangeTrackingModelSerializer):
     """项目状态更新序列化器"""
     remarks = serializers.CharField(required=False, write_only=True)
 
@@ -92,18 +113,13 @@ class ProjectStatusUpdateSerializer(serializers.ModelSerializer):
         model = Project
         fields = ['status', 'remarks']
 
-    def update(self, instance, validated_data):
-        # 移除remarks字段，不需要存储到Project模型中
-        validated_data.pop('remarks', '')
-        
-        # 直接调用父类的update方法，变更历史将通过signal处理
-        return super().update(instance, validated_data)
-
 class ProjectActiveStageUpdateSerializer(serializers.ModelSerializer):
     """项目当前活动阶段更新序列化器"""
+    remarks = serializers.CharField(required=False, write_only=True)
+
     class Meta:
         model = Project
-        fields = ['current_active_stage']
+        fields = ['current_active_stage', 'remarks']
 
 
 # ============= ProjectStage 项目阶段序列化器 =============
@@ -122,7 +138,7 @@ class ProjectStageDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'project', 'stage_type', 'stage_type_display', 'name', 
             'stage_status', 'stage_status_display', 'description', 
-            'progress', 'remarks', 'created_at', 
+            'progress', 'created_at', 
             'updated_at', 'metadata', 'tasks'
         ]
         read_only_fields = fields  # 所有字段都是只读的
@@ -147,7 +163,7 @@ class ProjectStageDetailSerializer(serializers.ModelSerializer):
                 serialized_tasks.append(BaseTaskListSerializer(task).data)
         return serialized_tasks
 
-class ProjectStageUpdateSerializer(serializers.ModelSerializer):
+class ProjectStageUpdateSerializer(ChangeTrackingModelSerializer):
     """项目阶段更新序列化器，主要用于更新阶段状态和相关信息，以及关联任务的状态"""
 
     # 前端每个项目阶段的任务作为子组件和用户交互，用户一次只会操作一个组件
@@ -168,11 +184,11 @@ class ProjectStageUpdateSerializer(serializers.ModelSerializer):
         write_only=True,
         help_text="任务的锁定状态"
     )
-
+    remarks = serializers.CharField(required=False, write_only=True)
 
     class Meta:
         model = ProjectStage
-        fields = ['stage_status', 'progress', 'remarks', 'metadata', 'task_type', 'task_status', 'lock_status']
+        fields = ['stage_status', 'progress', 'metadata', 'task_type', 'task_status', 'lock_status']
     
     def update(self, instance, validated_data):
         # with transaction.atomic(): 
@@ -194,6 +210,7 @@ class ProjectStageUpdateSerializer(serializers.ModelSerializer):
             
             # 逐个更新任务以触发信号
             for task in tasks_to_update:
+
                 task.status = task_status
                 task.lock_status = lock_status
                 task.save()  # 这将触发 post_save 信号
@@ -293,32 +310,38 @@ class DocxTreeBuildTaskDetailSerializer(BaseTaskDetailSerializer):
 
 # update serializers 
 # 针对 更新操作， 不需要多态。 
-class BaseTaskUpdateSerializer(serializers.ModelSerializer):
+class BaseTaskUpdateSerializer(ChangeTrackingModelSerializer):
     """基础任务更新专用序列化器"""
+    remarks = serializers.CharField(required=False, write_only=True)
+
     class Meta:
         model = BaseTask
-        fields = ['name', 'description', 'status', 'lock_status']
+        fields = ['name', 'description', 'status', 'lock_status', 'remarks']
 
-class TenderFileUploadTaskUpdateSerializer(serializers.ModelSerializer):
+class TenderFileUploadTaskUpdateSerializer(ChangeTrackingModelSerializer):
     """招标文件上传任务更新专用序列化器"""
-    class Meta(BaseTaskUpdateSerializer.Meta):
+    remarks = serializers.CharField(required=False, write_only=True)
+    
+    class Meta:
         model = TenderFileUploadTask
-        fields = BaseTaskUpdateSerializer.Meta.fields
+        fields = BaseTaskUpdateSerializer.Meta.fields + ['remarks']
 
-class DocxExtractionTaskUpdateSerializer(serializers.ModelSerializer):
+class DocxExtractionTaskUpdateSerializer(ChangeTrackingModelSerializer):
     """文档提取任务更新专用序列化器"""
-    class Meta(BaseTaskUpdateSerializer.Meta):
+    remarks = serializers.CharField(required=False, write_only=True)
+    class Meta:
         model = DocxExtractionTask
         fields = BaseTaskUpdateSerializer.Meta.fields + [
-            'extracted_elements', 'outline_analysis_result', 'improved_docx_elements'
+            'extracted_elements', 'outline_analysis_result', 'improved_docx_elements', 'remarks'
         ]
 
-class DocxTreeBuildTaskUpdateSerializer(serializers.ModelSerializer):
+class DocxTreeBuildTaskUpdateSerializer(ChangeTrackingModelSerializer):
     """文档树构建任务更新专用序列化器"""
-    class Meta(BaseTaskUpdateSerializer.Meta):
+    remarks = serializers.CharField(required=False, write_only=True)
+    class Meta:
         model = DocxTreeBuildTask
         fields = BaseTaskUpdateSerializer.Meta.fields + [
-            'docxtree', 'more_subtitles'
+            'docxtree', 'more_subtitles', 'remarks'
         ]
 
 

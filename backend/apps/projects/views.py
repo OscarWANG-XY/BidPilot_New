@@ -210,7 +210,12 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def update_status(self, request, pk=None):
         """ 更新项目状态的自定义动作 """
         project = self.get_object()
-        serializer = self.get_serializer(project, data=request.data, partial=True)
+        serializer = self.get_serializer(
+            project, 
+            data=request.data, 
+            partial=True,
+            context={'request': request}
+            )
         if serializer.is_valid():
             serializer.save()
             return Response(ProjectDetailSerializer(project).data)
@@ -220,7 +225,12 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def update_active_stage(self, request, pk=None):
         """ 更新项目当前活动阶段 """
         project = self.get_object()
-        serializer = self.get_serializer(project, data=request.data, partial=True)
+        serializer = self.get_serializer(
+            project, 
+            data=request.data, 
+            partial=True,
+            context={'request': request}
+            )
         if serializer.is_valid():
             serializer.save()
             return Response(ProjectDetailSerializer(project).data)
@@ -357,7 +367,12 @@ class ProjectStageViewSet(mixins.RetrieveModelMixin,
         更新项目阶段，包括其任务状态
         """
         stage = self.get_object()
-        serializer = self.get_serializer(stage, data=request.data, partial=True)
+        serializer = self.get_serializer(
+            stage, 
+            data=request.data, 
+            partial=True,
+            context={'request': request}
+            )
 
         if serializer.is_valid():
             serializer.save()
@@ -382,7 +397,12 @@ class ProjectStageViewSet(mixins.RetrieveModelMixin,
             serializer = TenderFileUploadTaskDetailSerializer(task)
             return Response(serializer.data)
         
-        serializer = TenderFileUploadTaskUpdateSerializer(task, data=request.data, partial=True)
+        serializer = TenderFileUploadTaskUpdateSerializer(
+            task, 
+            data=request.data, 
+            partial=True,
+            context={'request': request}
+            )
         if serializer.is_valid():
             serializer.save()
             return Response(TenderFileUploadTaskDetailSerializer(task).data)
@@ -407,7 +427,12 @@ class ProjectStageViewSet(mixins.RetrieveModelMixin,
             return Response(serializer.data)
         
         # 处理更新请求
-        serializer = DocxExtractionTaskUpdateSerializer(task, data=request.data, partial=request.method == 'PATCH')
+        serializer = DocxExtractionTaskUpdateSerializer(
+            task, 
+            data=request.data, 
+            partial=request.method == 'PATCH',
+            context={'request': request}
+            )
         if serializer.is_valid():
             serializer.save()
             return Response(DocxExtractionTaskDetailSerializer(task).data)
@@ -431,7 +456,12 @@ class ProjectStageViewSet(mixins.RetrieveModelMixin,
             return Response(serializer.data)
         
         # 处理更新请求
-        serializer = DocxTreeBuildTaskUpdateSerializer(task, data=request.data, partial=request.method == 'PATCH')
+        serializer = DocxTreeBuildTaskUpdateSerializer(
+            task, 
+            data=request.data, 
+            partial=request.method == 'PATCH',
+            context={'request': request}
+            )
         if serializer.is_valid():
             serializer.save()
             return Response(DocxTreeBuildTaskDetailSerializer(task).data)

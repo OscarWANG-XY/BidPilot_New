@@ -133,7 +133,6 @@ class ProjectStage(models.Model):
 
     # 可选字段，根据不同阶段类型可能存在
     progress = models.IntegerField('进度', default=0)
-    remarks = models.TextField('备注', blank=True)
     created_at = models.DateTimeField('创建时间', auto_now_add=True)
     updated_at = models.DateTimeField('更新时间', auto_now=True)
     
