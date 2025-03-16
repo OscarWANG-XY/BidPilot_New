@@ -82,6 +82,11 @@ LOGGING = {
             'level': 'WARNING',  # 将级别提高到WARNING，这样INFO级别的日志就不会显示
             'propagate': False,
         },
+        'apps.projects.signals': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }
 

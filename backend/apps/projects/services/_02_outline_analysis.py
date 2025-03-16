@@ -1,15 +1,19 @@
-import asyncio, os
-import nest_asyncio
+import asyncio, os, nest_asyncio
 from typing import List, Dict, Tuple
-from ..pipeline.base import PipelineStep
-from apps.doc_analysis.pipeline.types import DocxElements, ModelData, OutlineAnalysisResult
-from apps.doc_analysis.models import DocumentAnalysis
-from apps.doc_analysis.LLM_services._llm_data_types import BatchResult, LLMConfig
-from apps.doc_analysis.LLM_services.llm_service import LLMService
-from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
-
 import logging
 logger = logging.getLogger(__name__)
+
+from apps.projects.models import Project
+from apps.projects.services.base import PipelineStep
+from apps.projects.services.types.type_DocxElements import DocxElements
+from apps.projects.services.types.base_TypesAndHelpers import ModelData
+from apps.projects.services.types.type_OutlineAnalysisResult import OutlineAnalysisResult
+
+from apps._tools.LLM_services._llm_data_types import BatchResult, LLMConfig
+from apps._tools.LLM_services.llm_service import LLMService
+from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
+
+
 
 
 class DocxOutlineAnalyzerStep(PipelineStep[DocxElements, OutlineAnalysisResult]):
@@ -37,7 +41,7 @@ class DocxOutlineAnalyzerStep(PipelineStep[DocxElements, OutlineAnalysisResult])
         """
         验证输出数据是否有效
         """
-        return isinstance(data, OutlineAnalysisResult) and data.document_analysis is not None
+        return isinstance(data, OutlineAnalysisResult) and data.project is not None
 
 
 
@@ -51,7 +55,7 @@ class DocxOutlineAnalyzerStep(PipelineStep[DocxElements, OutlineAnalysisResult])
         
         
         # 提取当前分析的document_analysis, 注意：data.document_analysis 是ModelData类型
-        current_document_analysis = data.document_analysis.instance
+        current_project = data.project.instance
 
         data_inputs = self.prepare_requests_data(data)
 
@@ -67,7 +71,7 @@ class DocxOutlineAnalyzerStep(PipelineStep[DocxElements, OutlineAnalysisResult])
 
         # 创建 OutlineAnalysisResult 实例
         analysis_result = OutlineAnalysisResult(
-            document_analysis= ModelData(model=DocumentAnalysis, instance=current_document_analysis),  #需要经过ModelData包装
+            project= ModelData(model=Project, instance=current_project),  #需要经过ModelData包装
             analysis_result= final_results,
             user_confirm=False
         )
@@ -76,8 +80,8 @@ class DocxOutlineAnalyzerStep(PipelineStep[DocxElements, OutlineAnalysisResult])
             raise ValueError("大模型输出数据无效")
         
         # 保存分析结果
-        current_document_analysis.outline_analysis_result = analysis_result.to_model()
-        current_document_analysis.save()
+        current_project.outline_analysis_result = analysis_result.to_model()
+        current_project.save()
         
         return analysis_result
 

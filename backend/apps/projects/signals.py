@@ -1,16 +1,30 @@
 import uuid
 import json
-from django.db.models.signals import pre_save
+from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 import logging
 from .models import (
     Project, ProjectStage, BaseTask,
-    ProjectChangeHistory, StageChangeHistory, TaskChangeHistory
+    ProjectChangeHistory, StageChangeHistory, TaskChangeHistory,
+    TenderFileUploadTask, DocxExtractionTask, DocxTreeBuildTask,
+    StageType, StageStatus, TaskType, TaskStatus, TaskLockStatus
 )
+from django.contrib.contenttypes.models import ContentType
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
+
+
+
+
+# Helper function to set user and remarks before saving a model
+def set_change_metadata(instance, user, remarks=''):
+    """在保存之前设置实例上的用户和备注。"""
+    instance._change_user = user
+    if remarks:
+        instance._change_remarks = remarks
+    return instance
 
 # Helper functions to compare values and determine changes
 def compare_values(old_value, new_value, field_name):
@@ -55,13 +69,15 @@ def get_change_summary(old_value, new_value, field_name):
         # 默认摘要
         return "内容已更新"
 
+
+# ============================== 项目变更历史记录 ==============================
 # Project model signal
 @receiver(pre_save, sender=Project)
 def track_project_changes(sender, instance, **kwargs):
     """跟踪Project模型字段的变更。"""
     try:
-        # 仅跟踪现有实例的变更
-        if not instance.pk:
+        # 仅跟踪现有实例的变更, 不能使用instance.pk, 因为创建时，可能提前分配了pk. 
+        if instance._state.adding:
             logger.info(f"新项目创建，不触发变更历史记录: {instance.project_name}")
             return
         
@@ -106,15 +122,15 @@ def track_project_changes(sender, instance, **kwargs):
                     remarks=remarks
                 )
     except Exception as e:
-        logger.error(f"项目变更历史记录失败: {str(e)}", exc_info=True)
+        logger.error(f"PROJECT变更 历史记录失败: {str(e)}", exc_info=True)
 
 # ProjectStage model signal
 @receiver(pre_save, sender=ProjectStage)
 def track_stage_changes(sender, instance, **kwargs):
     """跟踪ProjectStage模型字段的变更。"""
     try:
-        # 仅跟踪现有实例的变更
-        if not instance.pk:
+        # 仅跟踪现有实例的变更,不能使用instance.pk, 因为创建时，可能提前分配了pk. 
+        if instance._state.adding:
             logger.info(f"新阶段创建，不触发变更历史记录: {instance.name}")
             return
         
@@ -135,7 +151,7 @@ def track_stage_changes(sender, instance, **kwargs):
         
         # 跟踪每个字段的变更
         fields_to_track = [
-            'name', 'stage_status', 'description', 'progress', 'remarks', 'metadata'
+            'name', 'stage_status', 'description', 'progress', 'metadata'
         ]
         
         for field in fields_to_track:
@@ -159,15 +175,17 @@ def track_stage_changes(sender, instance, **kwargs):
                     remarks=remarks
                 )
     except Exception as e:
-        logger.error(f"阶段变更历史记录失败: {str(e)}", exc_info=True)
+        logger.error(f"Stage变更 历史记录失败: {str(e)}", exc_info=True)
 
 # BaseTask model signal - 使用动态字段检测，支持所有子类
-@receiver(pre_save, sender=BaseTask)
+@receiver(pre_save, sender=TenderFileUploadTask)
+@receiver(pre_save, sender=DocxExtractionTask)
+@receiver(pre_save, sender=DocxTreeBuildTask)
 def track_task_changes(sender, instance, **kwargs):
     """跟踪BaseTask及其所有子类的变更。"""
     try:
-        # 仅跟踪现有实例的变更
-        if not instance.pk:
+        # 仅跟踪现有实例的变更,不能使用instance.pk, 因为创建时，可能提前分配了pk. 
+        if instance._state.adding:
             logger.info(f"新任务创建，不触发变更历史记录: {instance.name}")
             return
         
@@ -216,12 +234,224 @@ def track_task_changes(sender, instance, **kwargs):
                     remarks=remarks
                 )
     except Exception as e:
-        logger.error(f"任务变更历史记录失败: {str(e)}", exc_info=True)
+        logger.error(f"TASK变更 历史记录失败: {str(e)}", exc_info=True)
 
-# Helper function to set user and remarks before saving a model
-def set_change_metadata(instance, user, remarks=''):
-    """在保存之前设置实例上的用户和备注。"""
-    instance._change_user = user
-    if remarks:
-        instance._change_remarks = remarks
-    return instance
+
+# ============================== 项目阶段初始化 ==============================
+@receiver(post_save, sender=Project)
+def initialize_project_stages(sender, instance, created, **kwargs):
+    """当项目创建后，初始化所有项目阶段"""
+    if created:
+        logger.info(f"检测到新项目创建: {instance.id}，开始初始化项目阶段")
+        
+        # 直接使用StageType中的所有未注释的选项
+        for stage_type in StageType:
+            # 当前活动阶段设为"进行中"，其他阶段设为"未开始"
+            status = StageStatus.IN_PROGRESS if stage_type == instance.current_active_stage else StageStatus.NOT_STARTED
+            
+            # 获取阶段的显示名称
+            stage_name = stage_type.label
+            
+            logger.info(f"开始创建阶段: {stage_name}, 状态: {status}")
+            # 创建阶段
+            stage = ProjectStage.objects.create(
+                project=instance,
+                stage_type=stage_type,
+                name=stage_name,
+                stage_status=status,
+                description=f'{stage_name}阶段'
+            )
+            logger.info(f"阶段创建成功: {stage_name}，状态: {status}，关联项目: {instance.id}")
+            
+            # 为招标文件分析阶段创建相关任务
+            if stage_type == StageType.TENDER_ANALYSIS:
+                # 创建招标文件上传任务
+                TenderFileUploadTask.objects.create(
+                    stage=stage,
+                    name='招标文件上传',
+                    description='上传招标文件',
+                    type=TaskType.UPLOAD_TENDER_FILE,
+                    status=TaskStatus.PENDING
+                )
+                # 创建文档提取任务
+                DocxExtractionTask.objects.create(
+                    stage=stage,
+                    name='招标文件信息提取',
+                    description='从招标文件中提取结构化信息',
+                    type=TaskType.DOCX_EXTRACTION_TASK,
+                    status=TaskStatus.PENDING
+                )
+                
+                # 创建文档树构建任务
+                DocxTreeBuildTask.objects.create(
+                    stage=stage,
+                    name='招标文件树构建',
+                    description='构建招标文件的层级结构树',
+                    type=TaskType.DOCX_TREE_BUILD_TASK,
+                    status=TaskStatus.PENDING
+                )
+                
+                logger.info(f"为阶段 {stage_name} 创建了文档提取和文档树构建任务")
+
+
+
+
+@receiver(post_save, sender=TenderFileUploadTask)
+def handle_tender_file_upload_locked(sender, instance, created, **kwargs):
+    """处理TenderFileUploadTask的保存"""
+
+    logger.info(f"Handle_tender_file_upload_locked 被触发")
+
+    if not created and instance.lock_status == TaskLockStatus.LOCKED and instance.status == TaskStatus.COMPLETED:
+        logger.info(f"探测到 TenderFileUploadTask状态为: COMPLETED + LOCKED")
+        try:
+            # 获取相关联的阶段和项目
+            stage = instance.stage
+            project = stage.project
+
+            # 检查状态是否从UNLOCKED转为LOCKED
+            from apps.projects.models import TaskChangeHistory
+            
+            # 获取实例的ContentType
+            content_type = ContentType.objects.get_for_model(instance.__class__)
+            
+            lock_status_change = TaskChangeHistory.objects.filter(
+                content_type=content_type,
+                object_id=instance.id,
+                field_name='lock_status',
+                old_value=TaskLockStatus.UNLOCKED,
+                new_value=TaskLockStatus.LOCKED
+            ).order_by('-changed_at').first()
+
+            if not lock_status_change:
+                logger.warning(f"TenderFileUploadTask状态不是从UNLOCKED转为LOCKED，跳过处理")
+                return
+
+            logger.info(f"检查到 TenderFileUploadTask 从非锁定到锁定")
+
+            # 检查项目是否有关联文件
+            if not hasattr(project, 'files') or not project.files.exists():
+                logger.warning(f"项目 {project.id} 没有关联文件，无法执行文档提取")
+                return
+            logger.info(f"检查到 项目有关联的文件！")
+
+
+            # 检查DocxExtractionTask是否是PENDING状态
+            docx_extraction_task = DocxExtractionTask.objects.filter(
+                stage=stage,
+                type=TaskType.DOCX_EXTRACTION_TASK,
+                status=TaskStatus.PENDING
+            ).first()
+
+            if not docx_extraction_task:
+                logger.warning(f"DocxExtractionTask任务不在PENDING状态，无法启动")
+                return
+
+            logger.info(f"检查到 DocxExtractionTask为PENDING状态")
+
+            docx_extraction_task.status = TaskStatus.PROCESSING
+            docx_extraction_task.save()
+            logger.info(f"DocxExtractionTask状态更新为PROCESSING 并 save()")
+
+        except Exception as e:
+            logger.error(f"TenderFileUploadTask处理失败: {str(e)}")
+
+
+
+
+# ============================== 文档提取任务处理 ==============================
+@receiver(post_save, sender=DocxExtractionTask)
+def handle_auto_docx_extraction(sender, instance, created, **kwargs):
+    """
+    当 DocxExtractionTask 被更新为 PROCESSING 状态时，
+    自动触发文档处理流程，需满足以下条件：
+    1. TenderFileUpload任务已完成且被锁定
+    2. 当前实例是DocxExtractionTask
+    3. DocxExtraction状态从PENDING转为PROCESSING
+    4. 项目关联文件存在
+    """
+
+    logger.info(f"DocxExtractionTask状态更新，检查是否需要启动文档提取")
+
+    # 只在以下条件下处理:
+    # 1. 任务被更新（不是新创建）
+    # 2. 状态为 PROCESSING
+    # 3. 确保任务未被锁定，防止循环处理
+    if not created and instance.status == TaskStatus.PROCESSING and instance.lock_status == TaskLockStatus.UNLOCKED:
+
+        logger.info(f"探测到 DocxExtractionTask状态为: PROCESSING + UNLOCKED")
+
+        try:
+            # 获取相关联的阶段和项目
+            stage = instance.stage
+            project = stage.project
+            
+            # 检查项目是否有关联文件
+            if not hasattr(project, 'files') or not project.files.exists():
+                logger.warning(f"项目 {project.id} 没有关联文件，无法执行文档提取")
+                return
+            logger.info(f"检查到 项目有关联的文件！")
+
+
+            # # 检查TenderFileUpload任务是否已完成且被锁定
+            # tender_file_upload_task = stage.tasks.filter(
+            #     type=TaskType.UPLOAD_TENDER_FILE,
+            #     status=TaskStatus.COMPLETED,
+            #     lock_status=TaskLockStatus.LOCKED
+            # ).first()
+            
+            # if not tender_file_upload_task:
+            #     logger.warning(f"TenderFileUpload任务未完成或未锁定，无法执行文档提取")
+            #     return
+            
+            # logger.info(f"检查到 TenderFileUpload任务已完成且被锁定")
+            
+            # 检查状态是否从PENDING转为PROCESSING
+            # 通过查询任务的变更历史来确认
+            content_type = ContentType.objects.get_for_model(instance.__class__)
+            
+            status_change = TaskChangeHistory.objects.filter(
+                content_type=content_type,
+                object_id=instance.id,
+                field_name='status',
+                old_value=TaskStatus.PENDING,
+                new_value=TaskStatus.PROCESSING
+            ).order_by('-changed_at').first()
+            
+            if not status_change:
+                logger.warning(f"DocxExtractionTask状态不是从PENDING转为PROCESSING，跳过处理")
+                return
+            
+            logger.info(f"检查到 DocxExtractionTask状态从PENDING转为PROCESSING")
+
+
+                        # 立即锁定任务，防止循环处理
+            # 使用update直接更新数据库，避免触发post_save信号
+            DocxExtractionTask.objects.filter(pk=instance.pk).update(
+                lock_status=TaskLockStatus.LOCKED
+            )
+            # 更新内存中的实例状态，确保一致性
+            instance.lock_status = TaskLockStatus.LOCKED
+            logger.info(f"已锁定DocxExtractionTask，防止循环处理")
+
+            
+            logger.info(f"开始执行文档提取")
+            # 执行文档提取
+            from apps.projects.services.types import ModelData
+            from apps.projects.services._01_extract_docx_elements import DocxExtractorStep
+            docx_extractor = DocxExtractorStep()
+            docx_extractor.process(ModelData(model=Project, instance=project))
+            
+            logger.info(f"DocxExtractionTask完成文档提取")
+            
+            # # 处理完成后，更新状态为COMPLETED
+            # DocxExtractionTask.objects.filter(pk=instance.pk).update(
+            #     status=TaskStatus.COMPLETED
+            # )
+
+        except Exception as e:
+            logger.error(f"DocxExtractionTask处理失败: {str(e)}")
+            # 发生错误时，标记为失败
+            DocxExtractionTask.objects.filter(pk=instance.pk).update(
+                status=TaskStatus.FAILED
+            )

@@ -5,7 +5,7 @@ from django.utils import timezone
 import logging
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
+from django.contrib.contenttypes.fields import GenericForeignKey
 logger = logging.getLogger(__name__)
 
 # 所有枚举定义移到类外部
@@ -149,6 +149,32 @@ class ProjectStage(models.Model):
     
     def __str__(self):
         return f"{self.project.id} - {self.name}"
+    
+    # 根据任务类型获取任务
+    def get_tasks_by_type(self, task_type):
+        """根据任务类型获取任务"""
+        if task_type == TaskType.UPLOAD_TENDER_FILE:
+            return TenderFileUploadTask.objects.filter(stage=self, type=task_type)
+        elif task_type == TaskType.DOCX_EXTRACTION_TASK:
+            return DocxExtractionTask.objects.filter(stage=self, type=task_type)
+        elif task_type == TaskType.DOCX_TREE_BUILD_TASK:
+            return DocxTreeBuildTask.objects.filter(stage=self, type=task_type)
+        else:
+            return []
+
+    @property
+    def all_tasks(self):
+        """获取该阶段的所有任务"""
+        # 分别查询各类任务
+        upload_tasks = list(TenderFileUploadTask.objects.filter(stage=self))
+        extraction_tasks = list(DocxExtractionTask.objects.filter(stage=self))
+        tree_build_tasks = list(DocxTreeBuildTask.objects.filter(stage=self))
+        
+        # 在Python中合并结果 （这里不能用union，因为union要求所有表的字段数是一样的。）
+        return upload_tasks + extraction_tasks + tree_build_tasks
+    
+
+
 
 class BaseTask(models.Model):
     # 直接关联到统一的阶段模型
@@ -156,7 +182,7 @@ class BaseTask(models.Model):
     stage = models.ForeignKey(
         ProjectStage,
         on_delete=models.CASCADE,
-        related_name='tasks',
+        related_name='task_%(class)s',
         verbose_name='所属阶段'
     )
     
@@ -185,6 +211,7 @@ class BaseTask(models.Model):
 
 
     class Meta:
+        abstract = True # 抽象基类，不创建BaseTask数据表
         verbose_name = '基础任务'
         verbose_name_plural = '基础任务'
     
@@ -343,12 +370,16 @@ class TaskChangeHistory(models.Model):
         db_index=True,
         help_text='同一操作中的多个字段变更共享相同的操作ID'
     )
-    task = models.ForeignKey(
-        BaseTask,
+    
+    # 不能直接引用抽象基类，改为使用通用外键
+    content_type = models.ForeignKey(
+        'contenttypes.ContentType',
         on_delete=models.CASCADE,
-        related_name='change_histories',
-        verbose_name='任务'
+        verbose_name='任务类型'
     )
+    object_id = models.UUIDField('任务ID')
+    task = GenericForeignKey('content_type', 'object_id')
+
     stage = models.ForeignKey(
         ProjectStage,
         on_delete=models.CASCADE,
@@ -394,7 +425,7 @@ class TaskChangeHistory(models.Model):
         verbose_name_plural = '任务变更历史'
         ordering = ['-changed_at']
         indexes = [
-            models.Index(fields=['task', 'changed_at']),
+            models.Index(fields=['content_type', 'object_id', 'changed_at']),
             models.Index(fields=['stage', 'changed_at']),
             models.Index(fields=['project', 'changed_at']),
             models.Index(fields=['task_type']),
@@ -410,57 +441,3 @@ class TaskChangeHistory(models.Model):
 
 
 
-@receiver(post_save, sender=Project)
-def initialize_project_stages(sender, instance, created, **kwargs):
-    """当项目创建后，初始化所有项目阶段"""
-    if created:
-        logger.info(f"检测到新项目创建: {instance.id}，开始初始化项目阶段")
-        
-        # 直接使用StageType中的所有未注释的选项
-        for stage_type in StageType:
-            # 当前活动阶段设为"进行中"，其他阶段设为"未开始"
-            status = StageStatus.IN_PROGRESS if stage_type == instance.current_active_stage else StageStatus.NOT_STARTED
-            
-            # 获取阶段的显示名称
-            stage_name = stage_type.label
-            
-            logger.info(f"开始创建阶段: {stage_name}, 状态: {status}")
-            # 创建阶段
-            stage = ProjectStage.objects.create(
-                project=instance,
-                stage_type=stage_type,
-                name=stage_name,
-                stage_status=status,
-                description=f'{stage_name}阶段'
-            )
-            logger.info(f"阶段创建成功: {stage_name}，状态: {status}，关联项目: {instance.id}")
-            
-            # 为招标文件分析阶段创建相关任务
-            if stage_type == StageType.TENDER_ANALYSIS:
-                # 创建招标文件上传任务
-                TenderFileUploadTask.objects.create(
-                    stage=stage,
-                    name='招标文件上传',
-                    description='上传招标文件',
-                    type=TaskType.UPLOAD_TENDER_FILE,
-                    status=TaskStatus.PENDING
-                )
-                # 创建文档提取任务
-                DocxExtractionTask.objects.create(
-                    stage=stage,
-                    name='招标文件信息提取',
-                    description='从招标文件中提取结构化信息',
-                    type=TaskType.DOCX_EXTRACTION_TASK,
-                    status=TaskStatus.PENDING
-                )
-                
-                # 创建文档树构建任务
-                DocxTreeBuildTask.objects.create(
-                    stage=stage,
-                    name='招标文件树构建',
-                    description='构建招标文件的层级结构树',
-                    type=TaskType.DOCX_TREE_BUILD_TASK,
-                    status=TaskStatus.PENDING
-                )
-                
-                logger.info(f"为阶段 {stage_name} 创建了文档提取和文档树构建任务")

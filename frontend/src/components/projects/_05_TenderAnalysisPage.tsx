@@ -232,7 +232,13 @@ export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectI
             // 回调函数
             onStateChange={handleFileUploadStateChange}                                                             
             onNavigateToNextTask={() => setActiveTab('tender_file_analysis')}                                       
-            onStartNextTask={() => handleDocxExtractionStateChange(TaskStatus.PROCESSING, TaskLockStatus.UNLOCKED)} 
+            //onStartNextTask={() => {
+              //console.log("onStartNextTask回调被触发")
+              //console.log("先锁定FileUpload组件")
+              //handleFileUploadStateChange(TaskStatus.COMPLETED, TaskLockStatus.LOCKED)
+              //console.log("然后启动DocxExtraction组件")
+              //handleDocxExtractionStateChange(TaskStatus.PROCESSING, TaskLockStatus.UNLOCKED)
+            //}}
           />
         </TabsContent>
 

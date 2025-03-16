@@ -18,9 +18,6 @@ class ProjectAdmin(admin.ModelAdmin):
     date_hierarchy = 'create_time'
     inlines = [ProjectStageInline]
 
-class BaseTaskInline(admin.TabularInline):
-    model = BaseTask
-    extra = 0
 
 class DocxExtractionTaskInline(admin.TabularInline):
     model = DocxExtractionTask
@@ -39,13 +36,8 @@ class ProjectStageAdmin(admin.ModelAdmin):
     list_display = ('id', 'project', 'stage_type', 'name', 'stage_status', 'created_at', 'updated_at')
     list_filter = ('stage_type', 'stage_status')
     search_fields = ('name', 'description')
-    inlines = [BaseTaskInline, DocxExtractionTaskInline, DocxTreeBuildTaskInline, TenderFileUploadTaskInline]
+    inlines = [DocxExtractionTaskInline, DocxTreeBuildTaskInline, TenderFileUploadTaskInline]
 
-@admin.register(BaseTask)
-class BaseTaskAdmin(admin.ModelAdmin):
-    list_display = ('id', 'stage', 'name', 'type', 'status', 'created_at', 'updated_at')
-    list_filter = ('type', 'status')
-    search_fields = ('name', 'description')
 
 @admin.register(DocxExtractionTask)
 class DocxExtractionTaskAdmin(admin.ModelAdmin):

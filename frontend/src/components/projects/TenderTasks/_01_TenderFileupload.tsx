@@ -21,7 +21,7 @@ interface TenderFileUploadProps {
   // 回调函数
   onStateChange?: (status: TaskStatus, lockStatus: TaskLockStatus) => void  // 状态数据回传
   onNavigateToNextTask?: () => void                                         // 回调进入下个任务的Tab
-  onStartNextTask?: (status: TaskStatus) => void                            // 回调启动下个任务
+  //onStartNextTask?: () => void                            // 回调启动下个任务
 }
 
 export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({ 
@@ -33,7 +33,7 @@ export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({
   // 回调函数
   onStateChange, 
   onNavigateToNextTask,
-  onStartNextTask
+  //onStartNextTask
 }) => {
 
   console.log("TenderFileUpload组件的初始化参数", {
@@ -161,6 +161,9 @@ export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({
   };
   // 处理"下一步"按钮点击
   const handleNextTask = () => {
+
+    console.log("'下一步'按钮被点击")
+
     if (!hasDocxFile) {
       toast({
         title: "请先上传文件",
@@ -174,13 +177,17 @@ export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({
     
     try {
 
-      // 锁定组件，防止文件被删除或重新上传
+      
+
+      // 锁定组件，防止文件被删除或重新上传 (通过setLockStatus来实现,要比下面慢一步)
       setLockStatus(TaskLockStatus.LOCKED);
+      console.log("组件被锁定, 锁定后的状态为", lockStatus)
 
       // 通知父组件启动下一个任务
-      if (onStartNextTask) {
-        onStartNextTask(TaskStatus.PROCESSING);
-      }
+      // if (onStartNextTask && lockStatus === TaskLockStatus.UNLOCKED && status === TaskStatus.COMPLETED) {
+      //   onStartNextTask();
+      //   console.log("触发onStartNextTask回调")
+      // }
       
       toast({
         title: "任务已开始",
@@ -257,9 +264,9 @@ return (
             <div className="mt-6 flex justify-end">
               <Button 
                 onClick={handleNextTask}
-                disabled={isNavigating || !hasDocxFile}
-              >       
-                {isNavigating ? '处理中...' : '下一步：招标文件解析'}
+                disabled={isNavigating || status !== TaskStatus.COMPLETED}
+              > 
+                {lockStatus === TaskLockStatus.UNLOCKED? '启动招标文件分析' : '查看招标文件分析'}      
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>

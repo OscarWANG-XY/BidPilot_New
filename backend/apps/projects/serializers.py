@@ -146,8 +146,8 @@ class ProjectStageDetailSerializer(serializers.ModelSerializer):
     def get_tasks(self, obj):
         """获取该阶段的所有任务"""
 
-        # 使用ProjectStage的反向关联查询到所有的tasks，包括BaseTask 和它的子类Task. 
-        tasks = obj.tasks.all()  
+        # 使用ProjectStage定义了查询所有任务alltasks的方法
+        tasks = obj.all_tasks
         
         # 根据任务类型使用不同的序列化器
         serialized_tasks = []
@@ -158,9 +158,6 @@ class ProjectStageDetailSerializer(serializers.ModelSerializer):
                 serialized_tasks.append(DocxExtractionTaskListSerializer(task).data)
             elif isinstance(task, DocxTreeBuildTask):
                 serialized_tasks.append(DocxTreeBuildTaskListSerializer(task).data)
-            else:
-                # 默认使用基础任务序列化器
-                serialized_tasks.append(BaseTaskListSerializer(task).data)
         return serialized_tasks
 
 class ProjectStageUpdateSerializer(ChangeTrackingModelSerializer):
@@ -206,7 +203,7 @@ class ProjectStageUpdateSerializer(ChangeTrackingModelSerializer):
         # 如果提供了任务类型和状态，则更新该任务
         if task_type and task_status:
             # 查找特定类型的任务
-            tasks_to_update = instance.tasks.filter(type=task_type)
+            tasks_to_update = instance.get_tasks_by_type(task_type)
             
             # 逐个更新任务以触发信号
             for task in tasks_to_update:
@@ -214,14 +211,7 @@ class ProjectStageUpdateSerializer(ChangeTrackingModelSerializer):
                 task.status = task_status
                 task.lock_status = lock_status
                 task.save()  # 这将触发 post_save 信号
-                logger.info(f"更新任务状态: task_id={task.id}, status={task_status}, lock_status={lock_status}")
-
-
-        # 检查是否所有任务都已完成的逻辑保持不变
-        if instance.tasks.exists() and not instance.tasks.exclude(status=TaskStatus.COMPLETED).exists():
-            if instance.stage_status != ProjectStage.StageStatus.COMPLETED:
-                instance.stage_status = ProjectStage.StageStatus.COMPLETED
-                instance.save(update_fields=['stage_status'])
+                logger.info(f"更新任务状态: task_type={task_type}, status={task_status}, lock_status={lock_status}")
         
         return instance
 
@@ -231,12 +221,12 @@ class ProjectStageUpdateSerializer(ChangeTrackingModelSerializer):
 # List serializers 
 
 class BaseTaskListSerializer(serializers.ModelSerializer):
-    """基础任务列表序列化器 - 只包含列表视图需要的字段"""
+    """基础任务列表序列化器 - 只用于定义字段"""
     type_display = serializers.CharField(source='get_type_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     
     class Meta:
-        model = BaseTask
+        # model = BaseTask  #因为BaseTask是抽象基类，不能直接实例化，所以不能直接使用
         fields = [
             'id', 'name', 'type', 'type_display',
             'status', 'status_display', 'updated_at', 'lock_status'
@@ -271,12 +261,12 @@ class DocxTreeBuildTaskListSerializer(BaseTaskListSerializer):
 # detail serializers 
 
 class BaseTaskDetailSerializer(serializers.ModelSerializer):
-    """基础任务读取专用序列化器"""
+    """基础任务读取专用序列化器， 只用于定义字段"""
     type_display = serializers.CharField(source='get_type_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     
     class Meta:
-        model = BaseTask
+        # model = BaseTask  #因为BaseTask是抽象基类，不能直接实例化，所以不能直接使用
         fields = [
             'id', 'stage', 'name', 'description', 'type', 'type_display',
             'status', 'status_display', 'created_at', 'updated_at', 'lock_status'
@@ -311,11 +301,11 @@ class DocxTreeBuildTaskDetailSerializer(BaseTaskDetailSerializer):
 # update serializers 
 # 针对 更新操作， 不需要多态。 
 class BaseTaskUpdateSerializer(ChangeTrackingModelSerializer):
-    """基础任务更新专用序列化器"""
+    """基础任务更新专用序列化器， 只用于定义字段"""
     remarks = serializers.CharField(required=False, write_only=True)
 
     class Meta:
-        model = BaseTask
+        # model = BaseTask  #因为BaseTask是抽象基类，不能直接实例化，所以不能直接使用
         fields = ['name', 'description', 'status', 'lock_status', 'remarks']
 
 class TenderFileUploadTaskUpdateSerializer(ChangeTrackingModelSerializer):

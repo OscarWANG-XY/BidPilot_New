@@ -7,7 +7,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from .models import (
     Project, ProjectStage, 
-    BaseTask,TenderFileUploadTask,DocxExtractionTask, DocxTreeBuildTask, 
+    TenderFileUploadTask,DocxExtractionTask, DocxTreeBuildTask, 
     ProjectChangeHistory, StageChangeHistory, TaskChangeHistory,
     ProjectStatus
 )

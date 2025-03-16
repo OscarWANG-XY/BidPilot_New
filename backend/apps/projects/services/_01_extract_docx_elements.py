@@ -1,13 +1,13 @@
 import os, uuid, tempfile, requests
 from django.core.exceptions import ValidationError
-from apps._tools.docx_parser.pipeline import DocxParserPipeline
-from apps.projects.models import Project, DocxExtractionTask
-from apps.projects.services.types import ModelData, DocxElements
-from apps.projects.services.base import PipelineStep
-from apps.files.models import FileRecord
-
 import logging
 logger = logging.getLogger(__name__)
+
+from apps.projects.models import Project, DocxExtractionTask
+from apps.projects.services.types.base_TypesAndHelpers import ModelData
+from apps.projects.services.types.type_DocxElements import DocxElements
+from apps.projects.services.base import PipelineStep
+from apps._tools.docx_parser.pipeline import DocxParserPipeline
 
 
 class DocxExtractorStep(PipelineStep[ModelData[Project], DocxElements]):
