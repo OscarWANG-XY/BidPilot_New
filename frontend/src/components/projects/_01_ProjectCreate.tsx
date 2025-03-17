@@ -81,8 +81,8 @@ export function CreateProjectDialog() {
       // 然后格式就是如下方式。
       if (result?.id) {
         navigate({ 
-          to: '/projects/$id/tender-analysis', 
-          params: { id: result.id.toString() } })
+          to: '/projects/$projectId/tender-analysis', 
+          params: { projectId: result.id.toString() } })
       }
     } catch (error) {
       console.error('创建项目失败:', error)
