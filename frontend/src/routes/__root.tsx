@@ -23,6 +23,7 @@ function AuthenticatedLayout() {
   // 在当前应用里，以 /auth 开头的路径，有登录（/auth/login）、注册（/auth/register），以及忘记密码（/auth/forgot-password）。 
   const location = useLocation()
   const isAuthPage = location.pathname.startsWith('/auth')
+  const isTestPage = location.pathname.startsWith('/testground')
 
 
   // 场景1：正在加载... 如, 用户正在登录中...
@@ -31,8 +32,9 @@ function AuthenticatedLayout() {
   }
 
   // 场景2：(一般是加载前，或加载失败后)
-  // 处在auth相关的页面（登录，注册，忘记密码），则直接渲染子路由，不带布局。 
-  if (isAuthPage) {
+  // 处在auth相关的页面（登录，注册，忘记密码），则直接渲染子路由，不带布局。
+  // 以下添加了 测试页面分支，用于测试，无需登录。
+  if (isAuthPage || isTestPage) {
     return <Outlet />
   }
 
@@ -85,7 +87,8 @@ export const Route = createRootRoute({
     // 业务逻辑：如果是认证页面，直接进入根路由，在认证页面，根路由渲染的是 登录前的页面。 
     // location是经过路由库封装过的对象，不完全等同于window.location, 虽然是全局但作为参数输入是一种依赖注入的实践
     // 认证页面包括：登录（/auth/login）、注册（/auth/register），以及忘记密码（/auth/forgot-password）。 
-    if (location.pathname.startsWith('/auth')) {
+    // 添加了 测试页面分支，运行其和认证页面一样，无需登录。
+    if (location.pathname.startsWith('/auth') || location.pathname.startsWith('/testground')) {
       return
     }
 

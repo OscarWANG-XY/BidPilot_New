@@ -13,6 +13,7 @@ import { createFileRoute } from '@tanstack/react-router'
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
+import { Route as TestgroundImport } from './routes/testground'
 import { Route as ChatImport } from './routes/chat'
 import { Route as ProjectsIndexImport } from './routes/projects/index'
 import { Route as PlaygroundIndexImport } from './routes/playground/index'
@@ -77,6 +78,12 @@ const AboutLazyRoute = AboutLazyImport.update({
   path: '/about',
   getParentRoute: () => rootRoute,
 } as any).lazy(() => import('./routes/about.lazy').then((d) => d.Route))
+
+const TestgroundRoute = TestgroundImport.update({
+  id: '/testground',
+  path: '/testground',
+  getParentRoute: () => rootRoute,
+} as any)
 
 const ChatRoute = ChatImport.update({
   id: '/chat',
@@ -233,6 +240,13 @@ declare module '@tanstack/react-router' {
       path: '/chat'
       fullPath: '/chat'
       preLoaderRoute: typeof ChatImport
+      parentRoute: typeof rootRoute
+    }
+    '/testground': {
+      id: '/testground'
+      path: '/testground'
+      fullPath: '/testground'
+      preLoaderRoute: typeof TestgroundImport
       parentRoute: typeof rootRoute
     }
     '/about': {
@@ -473,6 +487,7 @@ const ProjectsProjectIdRouteWithChildren =
 export interface FileRoutesByFullPath {
   '/': typeof IndexLazyRoute
   '/chat': typeof ChatRouteWithChildren
+  '/testground': typeof TestgroundRoute
   '/about': typeof AboutLazyRoute
   '/company': typeof CompanyLazyRoute
   '/files_manager': typeof FilesmanagerLazyRoute
@@ -502,6 +517,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexLazyRoute
   '/chat': typeof ChatRouteWithChildren
+  '/testground': typeof TestgroundRoute
   '/about': typeof AboutLazyRoute
   '/company': typeof CompanyLazyRoute
   '/files_manager': typeof FilesmanagerLazyRoute
@@ -530,6 +546,7 @@ export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexLazyRoute
   '/chat': typeof ChatRouteWithChildren
+  '/testground': typeof TestgroundRoute
   '/about': typeof AboutLazyRoute
   '/company': typeof CompanyLazyRoute
   '/files_manager': typeof FilesmanagerLazyRoute
@@ -562,6 +579,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/chat'
+    | '/testground'
     | '/about'
     | '/company'
     | '/files_manager'
@@ -590,6 +608,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/chat'
+    | '/testground'
     | '/about'
     | '/company'
     | '/files_manager'
@@ -616,6 +635,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/chat'
+    | '/testground'
     | '/about'
     | '/company'
     | '/files_manager'
@@ -647,6 +667,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexLazyRoute: typeof IndexLazyRoute
   ChatRoute: typeof ChatRouteWithChildren
+  TestgroundRoute: typeof TestgroundRoute
   AboutLazyRoute: typeof AboutLazyRoute
   CompanyLazyRoute: typeof CompanyLazyRoute
   FilesmanagerLazyRoute: typeof FilesmanagerLazyRoute
@@ -665,6 +686,7 @@ export interface RootRouteChildren {
 const rootRouteChildren: RootRouteChildren = {
   IndexLazyRoute: IndexLazyRoute,
   ChatRoute: ChatRouteWithChildren,
+  TestgroundRoute: TestgroundRoute,
   AboutLazyRoute: AboutLazyRoute,
   CompanyLazyRoute: CompanyLazyRoute,
   FilesmanagerLazyRoute: FilesmanagerLazyRoute,
@@ -692,6 +714,7 @@ export const routeTree = rootRoute
       "children": [
         "/",
         "/chat",
+        "/testground",
         "/about",
         "/company",
         "/files_manager",
@@ -715,6 +738,9 @@ export const routeTree = rootRoute
       "children": [
         "/chat/$sessionId"
       ]
+    },
+    "/testground": {
+      "filePath": "testground.tsx"
     },
     "/about": {
       "filePath": "about.lazy.tsx"

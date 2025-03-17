@@ -1,0 +1,102 @@
+/* 添加到全局样式文件中 - 为Tiptap内容提供样式 */
+@layer components {
+    .tiptap-content {
+      @apply text-gray-800 leading-relaxed;
+    }
+  
+    .tiptap-content :first-child {
+      @apply mt-0;
+    }
+  
+    /* 标题样式 */
+    .tiptap-content h1,
+    .tiptap-content h2,
+    .tiptap-content h3,
+    .tiptap-content h4,
+    .tiptap-content h5,
+    .tiptap-content h6 {
+      @apply leading-tight mb-4;
+    }
+  
+    .tiptap-content h1 {
+      @apply text-2xl font-bold mt-8;
+    }
+  
+    .tiptap-content h2 {
+      @apply text-xl font-bold mt-7;
+    }
+  
+    .tiptap-content h3 {
+      @apply text-lg font-semibold mt-6;
+    }
+  
+    .tiptap-content h4,
+    .tiptap-content h5,
+    .tiptap-content h6 {
+      @apply text-base font-semibold mt-5;
+    }
+  
+    /* 段落和文本内容样式 */
+    .tiptap-content p {
+      @apply my-4;
+    }
+  
+    /* 列表样式 */
+    .tiptap-content ul,
+    .tiptap-content ol {
+      @apply pl-6 my-5;
+    }
+  
+    .tiptap-content li {
+      @apply my-1;
+    }
+  
+    .tiptap-content li p {
+      @apply my-1;
+    }
+  
+    /* 代码样式 */
+    .tiptap-content code {
+      @apply bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded text-sm font-mono;
+    }
+  
+    .tiptap-content pre {
+      @apply bg-gray-800 text-white p-4 rounded-md my-6 overflow-x-auto;
+    }
+  
+    .tiptap-content pre code {
+      @apply bg-transparent text-white p-0 text-sm;
+    }
+  
+    /* 引用和分割线样式 */
+    .tiptap-content blockquote {
+      @apply border-l-4 border-gray-300 pl-4 italic my-6 text-gray-700;
+    }
+  
+    .tiptap-content hr {
+      @apply border-gray-200 my-8;
+    }
+  
+    /* 表格样式 */
+    .tiptap-content table {
+      @apply border-collapse w-full my-6;
+    }
+  
+    .tiptap-content th {
+      @apply border border-gray-300 bg-gray-100 px-4 py-2 font-semibold text-left;
+    }
+  
+    .tiptap-content td {
+      @apply border border-gray-300 px-4 py-2;
+    }
+  
+    /* ProseMirror特定样式 */
+    .tiptap-content .ProseMirror:focus {
+      @apply outline-none;
+    }
+  
+    .tiptap-content .ProseMirror p.is-editor-empty:first-child::before {
+      @apply text-gray-400 float-left h-0 pointer-events-none;
+      content: attr(data-placeholder);
+    }
+  }

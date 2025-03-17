@@ -12,6 +12,9 @@ from ._03_element_extractor import (
     TableElement,
     FigureElement,
 )
+# 导入部分，添加:
+from ._04_tiptap_converter import TiptapConverter
+
 
 logger = setup_logger(__name__)
 
@@ -100,3 +103,22 @@ class DocxParserPipeline:
     def get_toc_entries(self) -> List[ParagraphElement]:
         """获取所有目录项"""
         return [elem for elem in self.get_paragraphs() if elem.is_toc]
+    
+
+    def to_tiptap_json(self) -> dict:
+        """
+        将文档转换为TIPTAP兼容的JSON格式
+        :return: Tiptap JSON 文档
+        """
+        if not self.parser:
+            raise DocxParserError("文档未解析. 请先调用parse()方法。")
+            
+        try:
+            converter = TiptapConverter(self.parser)
+            result = converter.convert()
+            import json
+            result = json.dumps(result, ensure_ascii=False, indent=2)
+            logger.info(f"成功将文档转换为TIPTAP JSON格式")
+            return result
+        except Exception as e:
+            raise DocxParserError(f"转换TIPTAP JSON格式失败: {e}")
