@@ -222,27 +222,13 @@ class TenderFileUploadTask(BaseTask):
     pass
 
 class DocxExtractionTask(BaseTask):
-    extracted_elements = models.JSONField(
+    tiptap_content = models.JSONField(
         null=True,
         blank=True,
-        verbose_name='提取的文档元素',
-        help_text='存储从文档中提取的结构化元素'
+        verbose_name='tiptap内容',
+        help_text='存储tiptap内容'
     )
-    # 初步大纲分析结果
-    outline_analysis_result = models.JSONField(
-        null=True,
-        blank=True,
-        verbose_name='大纲分析结果',
-        help_text='存储大纲分析的结果'
-    )
-    
-    # 初步大纲优化后的文档元素
-    improved_docx_elements = models.JSONField(
-        null=True,
-        blank=True,
-        verbose_name='初步大纲优化后的文档元素',
-        help_text='存储从经过初步大纲优化的结构化元素'
-    )
+
 
 class DocxTreeBuildTask(BaseTask):
     docxtree = models.JSONField(

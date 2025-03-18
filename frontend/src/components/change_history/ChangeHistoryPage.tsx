@@ -8,7 +8,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChangeHistoryTable } from '@/components/change_history/ChangeHistoryTable';
-import { useChangeHistory } from '@/hooks/useChangeHistory';
+import { useChangeHistory } from '@/hooks/useProjectsHistory';
 import { useProjects } from '@/hooks/useProjects';
 import { 
   ArrowLeft, 

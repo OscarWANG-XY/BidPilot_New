@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';  // 引用react-query的钩子函数
-import { projectsApi } from '@/api/projects_api';   // 引用项目API模块
+import { projectsApi, projectStageApi } from '@/api/projects_api';   // 引用项目API模块
 import type { 
   StageType,
   Project, 
@@ -58,19 +58,6 @@ export const useProjects = () => {
       return result;
     }
   });
-
-
-  // --------------- 添加项目历史记录查询 （这是一个函数）--------------- 
-  const projectHistoryQuery = (projectId: string) => useQuery({
-    queryKey: ['projectHistory', projectId],
-    queryFn: async () => {
-      console.log('🔍 [useProjects] 查询项目历史, id:', projectId);
-      const result = await projectsApi.getProjectHistory(projectId);
-      console.log('📥 [useProjects] 查询项目历史:', result);
-      return result;
-    }
-  });
-
 
   // --------------- 创建项目 done check--------------- 
   const createProject = useMutation({
@@ -163,7 +150,7 @@ export const useProjects = () => {
       queryKey: ['projectStage', projectId, stageType],
       queryFn: async () => {
         console.log('🔍 [useProjects] 查询项目阶段详情:', { projectId, stageType });
-        const result = await projectsApi.getProjectStage(projectId, stageType);
+        const result = await projectStageApi.getProjectStage(projectId, stageType);
         console.log('📥 [useProjects] 查询项目阶段详情成功:', result);
         return result;
       },
@@ -177,7 +164,7 @@ export const useProjects = () => {
       queryKey: ['projectStageTaskMetaData', projectId, stageType],
       queryFn: async () => {
         console.log('🔍 [useProjects] 查询项目阶段任务状态:', { projectId, stageType });
-        const stageData = await projectsApi.getProjectStage(projectId, stageType);
+        const stageData = await projectStageApi.getProjectStage(projectId, stageType);
         
         // 提取所有任务的状态信息，对齐BaseTask接口
         const taskMetaData: TaskMetaData[] = stageData.tasks?.map((task: AllTask) => ({
@@ -216,7 +203,7 @@ export const useProjects = () => {
         console.log('📤 [useProjects] 更新任务状态:', { projectId, stageType, taskType, newStatus });
         
       // 修改为更简洁的请求格式，只发送单个任务类型
-      const result = await projectsApi.updateProjectStage(projectId, stageType, {
+      const result = await projectStageApi.updateProjectStage(projectId, stageType, {
         task_type: taskType,
         task_status: newStatus,
         lock_status: newLockStatus
@@ -241,22 +228,25 @@ export const useProjects = () => {
 
   
   return {
-    // 查询相关 分别是基于projectQuery变量 和 singleProjectQuery()的函数 的使用。
-    projectsQuery,  // 现在是一个函数，接受查询参数
-    singleProjectQuery,
-    projectHistoryQuery,
-    projectStageQuery,  // 添加项目阶段查询
-    projectStageTaskMetaDataQuery,  // 添加项目阶段任务状态查询
-    updateStageTaskStatus: updateStageTaskStatus.mutateAsync,
-
-    // 操作相关
     // .mutate() 本身不返回promise对象, 如果需要返回promise对象，则需要使用.mutateAsync()
     // 这里建议使用.mutateAsync() 更符合现代JavaScript的异步编程风格。 
     // 这样的好处是：调用者可以选择是否等待操作完成，可再调用处使用try/catch来处理错误; 可获取到操作返回的数据
-    createProject: createProject.mutateAsync,  // 需要等待返回的项目ID来进行导航
-    updateProject: updateProject.mutateAsync,  // 可能需要等待更新完成后执行其他操作
+
+    // 关于项目的CURD
+    projectsQuery,  
+    singleProjectQuery,
+    createProject: createProject.mutateAsync,  
+    updateProject: updateProject.mutateAsync, 
     updateProjectActiveStage: updateProjectActiveStage.mutateAsync,
-    updateProjectStatus: updateProjectStatus.mutateAsync,  // 添加项目状态更新函数
+    updateProjectStatus: updateProjectStatus.mutateAsync,  
     deleteProject: deleteProject.mutateAsync,
+
+    // 关于项目阶段的UR，没有CD
+    projectStageQuery,  
+    projectStageTaskMetaDataQuery,  
+    updateStageTaskStatus: updateStageTaskStatus.mutateAsync,
+
+    
+
   };
 };

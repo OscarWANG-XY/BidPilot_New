@@ -95,9 +95,10 @@ export const projectsApi = {
     await axiosInstance.delete(`/projects/${projectId}/`);
     console.log('✅ 删除项目成功:', projectId);
   },
-
+}
 
 // ================================ ProjectStage API 模块 =================================== 
+export const projectStageApi = {
   // 获取项目阶段详情 (通过项目ID和阶段类型)
   getProjectStage: async (projectId: string, stageType: StageType): Promise<ProjectStage> => {
     console.log('📤 获取项目阶段:', { projectId, stageType });
@@ -117,9 +118,11 @@ export const projectsApi = {
     return response.data;
   },
 
-
+}
 
 //------------- 针对TASK的处理 -------------
+
+export const TaskApi = {
   
  // 获取项目阶段下的文档提取任务
  getUploadTask: async (projectId: string, stageType: StageType): Promise<TenderFileUploadTask> => {

@@ -1,6 +1,6 @@
 import os
 from celery import Celery
-from django.conf import settings
+
 
 # 设置默认Django设置模块
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.development')  # 开发环境使用 development
@@ -12,7 +12,7 @@ app = Celery('config')
 app.config_from_object('django.conf:settings', namespace='CELERY')
 
 # 明确指定要搜索任务的应用列表
-app.autodiscover_tasks(['apps.chat'])
+app.autodiscover_tasks(['apps.projects'])
 
 @app.task(bind=True, ignore_result=True)
 def debug_task(self):

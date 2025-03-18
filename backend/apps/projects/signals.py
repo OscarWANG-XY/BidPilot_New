@@ -298,10 +298,18 @@ def initialize_project_stages(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=TenderFileUploadTask)
 def handle_tender_file_upload_locked(sender, instance, created, **kwargs):
-    """处理TenderFileUploadTask的保存"""
+    """
+    当TenderFileUploadTask被更新为COMPLETED状态且被locked时触发改任务，本任务目的：
+    1. 检查file_upload任务的状态是否为completed+locked
+    2. 检查是否刚从UNLOCKED转为LOCKED
+    3. 检查项目是否有关联文件
+    4. 检查DocxExtractionTask是否是PENDING状态
+    5. 如果以上条件都满足，则将DocxExtractionTask的状态更新为PROCESSING - > 触发handle_auto_docx_extraction信号
+    """
 
     logger.info(f"Handle_tender_file_upload_locked 被触发")
-
+    
+    # 1. 外围条件：FileUploadTask 为 COMPLETED + locked 状态
     if not created and instance.lock_status == TaskLockStatus.LOCKED and instance.status == TaskStatus.COMPLETED:
         logger.info(f"探测到 TenderFileUploadTask状态为: COMPLETED + LOCKED")
         try:
@@ -309,7 +317,7 @@ def handle_tender_file_upload_locked(sender, instance, created, **kwargs):
             stage = instance.stage
             project = stage.project
 
-            # 检查状态是否从UNLOCKED转为LOCKED
+            # 2. 检查是否从UNLOCKED转为LOCKED？
             from apps.projects.models import TaskChangeHistory
             
             # 获取实例的ContentType
@@ -329,14 +337,14 @@ def handle_tender_file_upload_locked(sender, instance, created, **kwargs):
 
             logger.info(f"检查到 TenderFileUploadTask 从非锁定到锁定")
 
-            # 检查项目是否有关联文件
+            # 3. 检查项目是否有关联文件
             if not hasattr(project, 'files') or not project.files.exists():
                 logger.warning(f"项目 {project.id} 没有关联文件，无法执行文档提取")
                 return
             logger.info(f"检查到 项目有关联的文件！")
 
 
-            # 检查DocxExtractionTask是否是PENDING状态
+            # 4. 检查DocxExtractionTask是否是PENDING状态
             docx_extraction_task = DocxExtractionTask.objects.filter(
                 stage=stage,
                 type=TaskType.DOCX_EXTRACTION_TASK,
@@ -349,6 +357,7 @@ def handle_tender_file_upload_locked(sender, instance, created, **kwargs):
 
             logger.info(f"检查到 DocxExtractionTask为PENDING状态")
 
+            # 5. 更新DocxExtractionTask状态为PROCESSING -> 用来触发handle_auto_docx_extraction信号
             docx_extraction_task.status = TaskStatus.PROCESSING
             docx_extraction_task.save()
             logger.info(f"DocxExtractionTask状态更新为PROCESSING 并 save()")
@@ -363,51 +372,30 @@ def handle_tender_file_upload_locked(sender, instance, created, **kwargs):
 @receiver(post_save, sender=DocxExtractionTask)
 def handle_auto_docx_extraction(sender, instance, created, **kwargs):
     """
-    当 DocxExtractionTask 被更新为 PROCESSING 状态时，
-    自动触发文档处理流程，需满足以下条件：
-    1. TenderFileUpload任务已完成且被锁定
-    2. 当前实例是DocxExtractionTask
-    3. DocxExtraction状态从PENDING转为PROCESSING
+    自动触发文档内容提取，需进一步满足以下条件：
+    1. DocxExtractionTask 满足 PROCESSING + UNLOCKED 状态
+    2. DocxExtractionTask 状态刚从PENDING转为PROCESSING 
+    3. TenderFileUploadTask 满足 COMPLETED + LOCKED 状态 （上一个任务的完成情况）
     4. 项目关联文件存在
+    执行：
+    a. DocxExtractionTask 状态更新为COMPLETED, 使用update()方法，避免触发post_save信号
+    b. 使用Celery任务异步处理文档提取
     """
 
     logger.info(f"DocxExtractionTask状态更新，检查是否需要启动文档提取")
 
-    # 只在以下条件下处理:
-    # 1. 任务被更新（不是新创建）
-    # 2. 状态为 PROCESSING
-    # 3. 确保任务未被锁定，防止循环处理
+    # 1. 外围条件：DocxExtractionTask 满足 PROCESSING + UNLOCKED 状态
     if not created and instance.status == TaskStatus.PROCESSING and instance.lock_status == TaskLockStatus.UNLOCKED:
 
         logger.info(f"探测到 DocxExtractionTask状态为: PROCESSING + UNLOCKED")
 
         try:
-            # 获取相关联的阶段和项目
+            # 获取相关联的阶段和项目 
             stage = instance.stage
             project = stage.project
-            
-            # 检查项目是否有关联文件
-            if not hasattr(project, 'files') or not project.files.exists():
-                logger.warning(f"项目 {project.id} 没有关联文件，无法执行文档提取")
-                return
-            logger.info(f"检查到 项目有关联的文件！")
 
 
-            # # 检查TenderFileUpload任务是否已完成且被锁定
-            # tender_file_upload_task = stage.tasks.filter(
-            #     type=TaskType.UPLOAD_TENDER_FILE,
-            #     status=TaskStatus.COMPLETED,
-            #     lock_status=TaskLockStatus.LOCKED
-            # ).first()
-            
-            # if not tender_file_upload_task:
-            #     logger.warning(f"TenderFileUpload任务未完成或未锁定，无法执行文档提取")
-            #     return
-            
-            # logger.info(f"检查到 TenderFileUpload任务已完成且被锁定")
-            
-            # 检查状态是否从PENDING转为PROCESSING
-            # 通过查询任务的变更历史来确认
+            # 2. 检查状态是否从PENDING转为PROCESSING
             content_type = ContentType.objects.get_for_model(instance.__class__)
             
             status_change = TaskChangeHistory.objects.filter(
@@ -422,32 +410,44 @@ def handle_auto_docx_extraction(sender, instance, created, **kwargs):
                 logger.warning(f"DocxExtractionTask状态不是从PENDING转为PROCESSING，跳过处理")
                 return
             
-            logger.info(f"检查到 DocxExtractionTask状态从PENDING转为PROCESSING")
+            logger.info(f"检查到 DocxExtractionTask状态从PENDING转为PROCESSING")            
 
-
-                        # 立即锁定任务，防止循环处理
-            # 使用update直接更新数据库，避免触发post_save信号
-            DocxExtractionTask.objects.filter(pk=instance.pk).update(
+            # 3. 检查TenderFileUpload任务是否已完成且被锁定 （上一个任务的完成情况）
+            tender_file_upload_task = TenderFileUploadTask.objects.filter(
+                stage=stage,
+                type=TaskType.UPLOAD_TENDER_FILE,
+                status=TaskStatus.COMPLETED,
                 lock_status=TaskLockStatus.LOCKED
+            ).first()
+            
+            if not tender_file_upload_task:
+                logger.warning(f"TenderFileUpload任务未完成或未锁定，无法执行文档提取")
+                return
+            
+            logger.info(f"检查到 TenderFileUpload任务已完成且被锁定")
+
+
+            # 4. 检查项目是否有关联文件
+            if not hasattr(project, 'files') or not project.files.exists():
+                logger.warning(f"项目 {project.id} 没有关联文件，无法执行文档提取")
+                return
+            logger.info(f"检查到 项目有关联的文件！")
+
+        
+            # a. 使用update直接更新数据库，避免触发post_save信号
+            DocxExtractionTask.objects.filter(pk=instance.pk).update(
+                status=TaskStatus.COMPLETED
             )
             # 更新内存中的实例状态，确保一致性
-            instance.lock_status = TaskLockStatus.LOCKED
-            logger.info(f"已锁定DocxExtractionTask，防止循环处理")
+            instance.status = TaskStatus.COMPLETED
+            logger.info(f"DocxExtractionTask状态更新为COMPLETED, 这样处理避免触发post_save信号后，重复执行文档提取")
 
             
-            logger.info(f"开始执行文档提取")
-            # 执行文档提取
-            from apps.projects.services.types import ModelData
-            from apps.projects.services._01_extract_docx_elements import DocxExtractorStep
-            docx_extractor = DocxExtractorStep()
-            docx_extractor.process(ModelData(model=Project, instance=project))
+            # b. 使用Celery任务异步处理文档提取
+            from .tasks import process_docx_extraction
+            process_docx_extraction.delay(project.id)
             
-            logger.info(f"DocxExtractionTask完成文档提取")
-            
-            # # 处理完成后，更新状态为COMPLETED
-            # DocxExtractionTask.objects.filter(pk=instance.pk).update(
-            #     status=TaskStatus.COMPLETED
-            # )
+            logger.info(f"已启动异步文档提取任务，project_id={project.id}")
 
         except Exception as e:
             logger.error(f"DocxExtractionTask处理失败: {str(e)}")

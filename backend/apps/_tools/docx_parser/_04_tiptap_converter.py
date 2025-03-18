@@ -145,6 +145,7 @@ class TiptapConverter:
         获取标题级别
         :param element: 标题段落XML元素
         :return: 标题级别(1-6)
+        优先级顺序是：样式标题 > 大纲标题 > 默认值(1)
         """
         # 从段落样式获取级别
         style_id = self.parser.xpath("string(.//w:pStyle/@w:val)", element)

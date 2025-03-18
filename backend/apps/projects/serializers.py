@@ -13,27 +13,6 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
-# ============ 创建包含变更跟踪功能的基础序列化器 ============
-
-class ChangeTrackingModelSerializer(serializers.ModelSerializer):
-    """包含变更跟踪功能的基础序列化器，自动记录用户和备注信息"""
-    
-    def update(self, instance, validated_data):
-        # 提取备注（如果有）
-        remarks = validated_data.pop('remarks', '') if 'remarks' in validated_data else ''
-        
-        # 获取当前用户
-        request = self.context.get('request') # 从上下文获取request对象, 在views中设置   
-        user = request.user if request else None
-        
-        # 设置变更元数据
-        set_change_metadata(instance, user, remarks)
-        
-        # 调用父类方法
-        return super().update(instance, validated_data)
-
-
-
 # ============ 基础模型序列化器 (Basic Model Serializers) ============
 
 class UserBriefSerializer(serializers.ModelSerializer):
@@ -61,22 +40,78 @@ class UserBriefSerializer(serializers.ModelSerializer):
         fields = ['id', 'phone', 'role']
         read_only_fields = ['id', 'phone', 'role']
 
+# ===============    ProjectHistory 项目状态历史序列化器  ===============
+
+class ChangeTrackingModelSerializer(serializers.ModelSerializer):
+    """包含变更跟踪功能的基础序列化器，自动记录用户和备注信息"""
+    
+    def update(self, instance, validated_data):
+        # 提取备注（如果有）
+        remarks = validated_data.pop('remarks', '') if 'remarks' in validated_data else ''
+        
+        # 获取当前用户
+        request = self.context.get('request') # 从上下文获取request对象, 在views中设置   
+        user = request.user if request else None
+        
+        # 设置变更元数据
+        set_change_metadata(instance, user, remarks)
+        
+        # 调用父类方法
+        return super().update(instance, validated_data)
+
+
+class ProjectChangeHistorySerializer(serializers.ModelSerializer):
+    """
+    项目变更历史记录序列化器
+    """
+    changed_by = UserBriefSerializer(read_only=True)
+    
+    class Meta:
+        model = ProjectChangeHistory
+        fields = [
+            'id', 'operation_id', 'project', 'field_name', 
+            'old_value', 'new_value', 'changed_at', 
+            'changed_by', 'remarks'
+        ]
+        read_only_fields = fields
+
+
+class StageChangeHistorySerializer(serializers.ModelSerializer):
+    """
+    阶段变更历史记录序列化器
+    """
+    changed_by = UserBriefSerializer(read_only=True)
+    
+    class Meta:
+        model = StageChangeHistory
+        fields = [
+            'id', 'operation_id', 'stage', 'project', 
+            'field_name', 'old_value', 'new_value', 
+            'changed_at', 'changed_by', 'remarks'
+        ]
+        read_only_fields = fields
+
+
+class TaskChangeHistorySerializer(serializers.ModelSerializer):
+    """
+    任务变更历史记录序列化器
+    """
+    changed_by = UserBriefSerializer(read_only=True)
+    
+    class Meta:
+        model = TaskChangeHistory
+        fields = [
+            'id', 'operation_id', 'task', 'stage', 
+            'project', 'task_type', 'field_name', 
+            'old_value', 'new_value', 'is_complex_field',
+            'change_summary', 'changed_at', 'changed_by', 'remarks'
+        ]
+        read_only_fields = fields
+
+
+
 
 # ============= Project 项目序列化器 =============
-
-class ProjectCreateSerializer(serializers.ModelSerializer):
-    """项目创建序列化器"""
-    class Meta:
-        model = Project
-        fields = ['id', 'project_name', 'tenderee', 'bidder',
-                 'project_type', 'bid_deadline', 'is_urgent', 'status']
-        read_only_fields = ['id']
-
-    def create(self, validated_data):
-        project = Project(**validated_data)
-        project.save()  # 这里会触发 model 的 save 方法，自动生成 project_code
-        return project
-    
 class ProjectListSerializer(serializers.ModelSerializer):
     """项目列表序列化器"""
     creator = UserBriefSerializer(read_only=True)
@@ -96,6 +131,21 @@ class ProjectDetailSerializer(ProjectListSerializer):
     """项目详情序列化器"""
     class Meta(ProjectListSerializer.Meta):
         fields = ProjectListSerializer.Meta.fields
+
+
+class ProjectCreateSerializer(serializers.ModelSerializer):
+    """项目创建序列化器"""
+    class Meta:
+        model = Project
+        fields = ['id', 'project_name', 'tenderee', 'bidder',
+                 'project_type', 'bid_deadline', 'is_urgent', 'status']
+        read_only_fields = ['id']
+
+    def create(self, validated_data):
+        project = Project(**validated_data)
+        project.save()  # 这里会触发 model 的 save 方法，自动生成 project_code
+        return project
+    
 
 class ProjectUpdateSerializer(ChangeTrackingModelSerializer):
     """项目更新序列化器"""
@@ -120,6 +170,9 @@ class ProjectActiveStageUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = ['current_active_stage', 'remarks']
+
+
+
 
 
 # ============= ProjectStage 项目阶段序列化器 =============
@@ -258,7 +311,9 @@ class DocxTreeBuildTaskListSerializer(BaseTaskListSerializer):
         fields = BaseTaskListSerializer.Meta.fields
         read_only_fields = fields
 
+
 # detail serializers 
+
 
 class BaseTaskDetailSerializer(serializers.ModelSerializer):
     """基础任务读取专用序列化器， 只用于定义字段"""
@@ -335,55 +390,4 @@ class DocxTreeBuildTaskUpdateSerializer(ChangeTrackingModelSerializer):
         ]
 
 
-
-
-# ===============    ProjectHistory 项目状态历史序列化器  ===============
-
-class ProjectChangeHistorySerializer(serializers.ModelSerializer):
-    """
-    项目变更历史记录序列化器
-    """
-    changed_by = UserBriefSerializer(read_only=True)
-    
-    class Meta:
-        model = ProjectChangeHistory
-        fields = [
-            'id', 'operation_id', 'project', 'field_name', 
-            'old_value', 'new_value', 'changed_at', 
-            'changed_by', 'remarks'
-        ]
-        read_only_fields = fields
-
-
-class StageChangeHistorySerializer(serializers.ModelSerializer):
-    """
-    阶段变更历史记录序列化器
-    """
-    changed_by = UserBriefSerializer(read_only=True)
-    
-    class Meta:
-        model = StageChangeHistory
-        fields = [
-            'id', 'operation_id', 'stage', 'project', 
-            'field_name', 'old_value', 'new_value', 
-            'changed_at', 'changed_by', 'remarks'
-        ]
-        read_only_fields = fields
-
-
-class TaskChangeHistorySerializer(serializers.ModelSerializer):
-    """
-    任务变更历史记录序列化器
-    """
-    changed_by = UserBriefSerializer(read_only=True)
-    
-    class Meta:
-        model = TaskChangeHistory
-        fields = [
-            'id', 'operation_id', 'task', 'stage', 
-            'project', 'task_type', 'field_name', 
-            'old_value', 'new_value', 'is_complex_field',
-            'change_summary', 'changed_at', 'changed_by', 'remarks'
-        ]
-        read_only_fields = fields
 

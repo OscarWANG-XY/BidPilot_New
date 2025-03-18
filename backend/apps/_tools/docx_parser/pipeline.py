@@ -116,9 +116,8 @@ class DocxParserPipeline:
         try:
             converter = TiptapConverter(self.parser)
             result = converter.convert()
-            import json
-            result = json.dumps(result, ensure_ascii=False, indent=2)
             logger.info(f"成功将文档转换为TIPTAP JSON格式")
             return result
         except Exception as e:
             raise DocxParserError(f"转换TIPTAP JSON格式失败: {e}")
+
