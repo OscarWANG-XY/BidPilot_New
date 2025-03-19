@@ -5,9 +5,9 @@ from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 import logging
 from .models import (
-    Project, ProjectStage, BaseTask,
+    Project, ProjectStage,
     ProjectChangeHistory, StageChangeHistory, TaskChangeHistory,
-    TenderFileUploadTask, DocxExtractionTask, DocxTreeBuildTask,
+    TenderFileUploadTask, DocxExtractionTask,
     StageType, StageStatus, TaskType, TaskStatus, TaskLockStatus
 )
 from django.contrib.contenttypes.models import ContentType
@@ -29,12 +29,27 @@ def set_change_metadata(instance, user, remarks=''):
 # Helper functions to compare values and determine changes
 def compare_values(old_value, new_value, field_name):
     """比较旧值和新值，确定它们是否已更改。"""
+    # Add logging for JSONField comparison
+    if field_name == 'tiptap_content':
+        logger.info(f"compare_values for tiptap_content:")
+        logger.info(f"Old value type: {type(old_value)}")
+        logger.info(f"New value type: {type(new_value)}")
+    
     # 检查字段是否是JSON字段
     if isinstance(old_value, dict) or isinstance(new_value, dict):
         # 对于JSON字段，转换为字符串进行比较
         old_str = json.dumps(old_value, sort_keys=True) if old_value else None
         new_str = json.dumps(new_value, sort_keys=True) if new_value else None
+        
+        # Add logging for JSON string comparison
+        if field_name == 'tiptap_content':
+            logger.info(f"JSON comparison:")
+            logger.info(f"Old JSON string: {old_str}")
+            logger.info(f"New JSON string: {new_str}")
+            logger.info(f"Are they different? {old_str != new_str}")
+        
         return old_str != new_str, old_str, new_str, True
+    
     # 检查值是否不同
     has_changed = old_value != new_value
     return has_changed, str(old_value) if old_value is not None else None, str(new_value) if new_value is not None else None, False
@@ -180,7 +195,6 @@ def track_stage_changes(sender, instance, **kwargs):
 # BaseTask model signal - 使用动态字段检测，支持所有子类
 @receiver(pre_save, sender=TenderFileUploadTask)
 @receiver(pre_save, sender=DocxExtractionTask)
-@receiver(pre_save, sender=DocxTreeBuildTask)
 def track_task_changes(sender, instance, **kwargs):
     """跟踪BaseTask及其所有子类的变更。"""
     try:
@@ -203,14 +217,34 @@ def track_task_changes(sender, instance, **kwargs):
         operation_id = uuid.uuid4()
         
         # 动态获取实际模型类（可能是子类）的所有字段
-        fields_to_track = [f.name for f in model_class._meta.fields 
-                         if not f.primary_key and f.name not in ('created_at', 'updated_at')]
+        fields_to_track = [f.name for f in model_class._meta.get_fields() 
+                         if not f.primary_key and f.name not in ('created_at', 'updated_at') 
+                         and not f.is_relation]
+        
+        # Special handling: Ensure DocxExtractionTask's tiptap_content field is tracked
+        if isinstance(instance, DocxExtractionTask) and 'tiptap_content' not in fields_to_track:
+            fields_to_track.append('tiptap_content')
+            logger.info(f"Added tiptap_content to tracked fields for DocxExtractionTask: {instance.id}")
+
+        logger.debug(f"跟踪的字段列表: {fields_to_track}")
         
         for field in fields_to_track:
             old_value = getattr(old_instance, field)
             new_value = getattr(instance, field)
             
+            # Add detailed logging for tiptap_content
+            if field == 'tiptap_content' and isinstance(instance, DocxExtractionTask):
+                logger.info(f"Comparing tiptap_content for task {instance.id}:")
+                logger.info(f"Old value type: {type(old_value)}, value: {old_value}")
+                logger.info(f"New value type: {type(new_value)}, value: {new_value}")
+            
             changed, old_str, new_str, is_complex = compare_values(old_value, new_value, field)
+            
+            # Add more logging for tiptap_content comparison result
+            if field == 'tiptap_content' and isinstance(instance, DocxExtractionTask):
+                logger.info(f"Comparison result: changed={changed}, is_complex={is_complex}")
+                logger.info(f"Old string: {old_str}")
+                logger.info(f"New string: {new_str}")
             
             if changed:
                 logger.info(f"任务变更: {instance.name} - {field}")
@@ -218,10 +252,14 @@ def track_task_changes(sender, instance, **kwargs):
                 # 为复杂字段获取变更摘要
                 change_summary = get_change_summary(old_value, new_value, field) if is_complex else None
                 
+                # 获取ContentType
+                content_type = ContentType.objects.get_for_model(instance)
+                
                 # 创建历史记录
                 TaskChangeHistory.objects.create(
                     operation_id=operation_id,
-                    task=instance,
+                    content_type=content_type,
+                    object_id=instance.pk,
                     stage=instance.stage,
                     project=instance.stage.project,
                     task_type=instance.type,
@@ -279,15 +317,6 @@ def initialize_project_stages(sender, instance, created, **kwargs):
                     name='招标文件信息提取',
                     description='从招标文件中提取结构化信息',
                     type=TaskType.DOCX_EXTRACTION_TASK,
-                    status=TaskStatus.PENDING
-                )
-                
-                # 创建文档树构建任务
-                DocxTreeBuildTask.objects.create(
-                    stage=stage,
-                    name='招标文件树构建',
-                    description='构建招标文件的层级结构树',
-                    type=TaskType.DOCX_TREE_BUILD_TASK,
                     status=TaskStatus.PENDING
                 )
                 

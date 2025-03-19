@@ -157,8 +157,6 @@ class ProjectStage(models.Model):
             return TenderFileUploadTask.objects.filter(stage=self, type=task_type)
         elif task_type == TaskType.DOCX_EXTRACTION_TASK:
             return DocxExtractionTask.objects.filter(stage=self, type=task_type)
-        elif task_type == TaskType.DOCX_TREE_BUILD_TASK:
-            return DocxTreeBuildTask.objects.filter(stage=self, type=task_type)
         else:
             return []
 
@@ -168,10 +166,9 @@ class ProjectStage(models.Model):
         # 分别查询各类任务
         upload_tasks = list(TenderFileUploadTask.objects.filter(stage=self))
         extraction_tasks = list(DocxExtractionTask.objects.filter(stage=self))
-        tree_build_tasks = list(DocxTreeBuildTask.objects.filter(stage=self))
         
         # 在Python中合并结果 （这里不能用union，因为union要求所有表的字段数是一样的。）
-        return upload_tasks + extraction_tasks + tree_build_tasks
+        return upload_tasks + extraction_tasks
     
 
 
@@ -228,26 +225,6 @@ class DocxExtractionTask(BaseTask):
         verbose_name='tiptap内容',
         help_text='存储tiptap内容'
     )
-
-
-class DocxTreeBuildTask(BaseTask):
-    docxtree = models.JSONField(
-        null=True,
-        blank=True,
-        verbose_name='初步大纲优化后的文档元素',
-        help_text='存储从经过初步大纲优化的结构化元素'
-    )
-
-    more_subtitles = models.JSONField(
-        null=True,
-        blank=True,
-        verbose_name='更多子标题',
-        help_text='存储从经过初步大纲优化的结构化元素'
-    )
-    class Meta:
-        verbose_name = '文档树构建任务'
-        verbose_name_plural = '文档树构建任务'
-
 
 
 

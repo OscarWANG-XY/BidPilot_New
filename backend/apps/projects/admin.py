@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
-    Project, ProjectStage, BaseTask, DocxExtractionTask, 
-    DocxTreeBuildTask, TenderFileUploadTask, ProjectChangeHistory,
+    Project, ProjectStage, DocxExtractionTask, 
+    TenderFileUploadTask, ProjectChangeHistory,
     StageChangeHistory, TaskChangeHistory
 )
 
@@ -23,9 +23,6 @@ class DocxExtractionTaskInline(admin.TabularInline):
     model = DocxExtractionTask
     extra = 0
 
-class DocxTreeBuildTaskInline(admin.TabularInline):
-    model = DocxTreeBuildTask
-    extra = 0
 
 class TenderFileUploadTaskInline(admin.TabularInline):
     model = TenderFileUploadTask
@@ -36,7 +33,7 @@ class ProjectStageAdmin(admin.ModelAdmin):
     list_display = ('id', 'project', 'stage_type', 'name', 'stage_status', 'created_at', 'updated_at')
     list_filter = ('stage_type', 'stage_status')
     search_fields = ('name', 'description')
-    inlines = [DocxExtractionTaskInline, DocxTreeBuildTaskInline, TenderFileUploadTaskInline]
+    inlines = [DocxExtractionTaskInline, TenderFileUploadTaskInline]
 
 
 @admin.register(DocxExtractionTask)
@@ -45,11 +42,6 @@ class DocxExtractionTaskAdmin(admin.ModelAdmin):
     list_filter = ('type', 'status')
     search_fields = ('name', 'description')
 
-@admin.register(DocxTreeBuildTask)
-class DocxTreeBuildTaskAdmin(admin.ModelAdmin):
-    list_display = ('id', 'stage', 'name', 'type', 'status', 'created_at', 'updated_at')
-    list_filter = ('type', 'status')
-    search_fields = ('name', 'description')
 
 @admin.register(TenderFileUploadTask)
 class TenderFileUploadTaskAdmin(admin.ModelAdmin):

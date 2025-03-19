@@ -7,17 +7,15 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from .models import (
     Project, ProjectStage, 
-    TenderFileUploadTask,DocxExtractionTask, DocxTreeBuildTask, 
+    TenderFileUploadTask,DocxExtractionTask,
     ProjectChangeHistory, StageChangeHistory, TaskChangeHistory,
     ProjectStatus
 )
 from .serializers import (
     ProjectListSerializer, ProjectDetailSerializer, ProjectCreateSerializer, ProjectUpdateSerializer, ProjectStatusUpdateSerializer, ProjectActiveStageUpdateSerializer,
     ProjectStageDetailSerializer, ProjectStageUpdateSerializer,
-    BaseTaskListSerializer, BaseTaskDetailSerializer, BaseTaskUpdateSerializer,
     TenderFileUploadTaskListSerializer, TenderFileUploadTaskDetailSerializer, TenderFileUploadTaskUpdateSerializer,
     DocxExtractionTaskListSerializer, DocxExtractionTaskDetailSerializer, DocxExtractionTaskUpdateSerializer,
-    DocxTreeBuildTaskListSerializer, DocxTreeBuildTaskDetailSerializer, DocxTreeBuildTaskUpdateSerializer,
     ProjectChangeHistorySerializer, StageChangeHistorySerializer, TaskChangeHistorySerializer
     
 )
@@ -144,7 +142,7 @@ class TaskChangeHistoryViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = TaskChangeHistorySerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['project', 'stage', 'task', 'task_type', 'field_name', 'operation_id', 'is_complex_field']
+    filterset_fields = ['project', 'stage', 'content_type', 'object_id', 'task_type', 'field_name', 'operation_id', 'is_complex_field']
     search_fields = ['field_name', 'old_value', 'new_value', 'change_summary', 'remarks']
     ordering_fields = ['changed_at', 'field_name', 'task_type']
     ordering = ['-changed_at']
@@ -424,23 +422,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
         },
         methods=['GET', 'PUT', 'PATCH']
     ),  
-    tree_build_task=extend_schema(
-        tags=['project-stages'],
-        summary='获取指定项目阶段的文档树构建任务',
-        description='获取指定项目阶段的文档树构建任务',
-        request={
-            'GET': None,  # GET 请求不需要请求体
-            'PUT': DocxTreeBuildTaskUpdateSerializer,
-            'PATCH': DocxTreeBuildTaskUpdateSerializer,
-        },
-        responses={
-            200: DocxTreeBuildTaskDetailSerializer,
-            400: OpenApiTypes.OBJECT,   
-            401: OpenApiTypes.OBJECT,
-            404: OpenApiTypes.OBJECT
-        },
-        methods=['GET', 'PUT', 'PATCH']
-    )
 )
 class ProjectStageViewSet(mixins.RetrieveModelMixin,
                           mixins.UpdateModelMixin,  # 目前还用不到update, 注意不存在partial_update mixin
@@ -569,33 +550,6 @@ class ProjectStageViewSet(mixins.RetrieveModelMixin,
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-    @action(detail=True, methods=['get', 'put', 'patch'])
-    def tree_build_task(self, request, project_pk=None, pk=None):
-        """获取或更新阶段的文档树构建任务"""
-        stage = self.get_object()
-        
-        # 获取该阶段的文档提取任务
-        try:
-            task = DocxTreeBuildTask.objects.get(stage=stage)
-        except DocxTreeBuildTask.DoesNotExist:
-            # 如果任务不存在，可以选择创建一个或返回404
-            return Response({"detail": "此阶段没有文档树构建任务"}, status=status.HTTP_404_NOT_FOUND)
-        
-        if request.method == 'GET':
-            serializer = DocxTreeBuildTaskDetailSerializer(task)
-            return Response(serializer.data)
-        
-        # 处理更新请求
-        serializer = DocxTreeBuildTaskUpdateSerializer(
-            task, 
-            data=request.data, 
-            partial=request.method == 'PATCH',
-            context={'request': request}
-            )
-        if serializer.is_valid():
-            serializer.save()
-            return Response(DocxTreeBuildTaskDetailSerializer(task).data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 

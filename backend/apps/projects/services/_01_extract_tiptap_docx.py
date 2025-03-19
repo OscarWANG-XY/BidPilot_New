@@ -65,9 +65,17 @@ class DocxExtractorStep(PipelineStep[Project, Dict[str, Any]]):
 
 
             # # 保存结果到模型
+            # docx_extraction_task = DocxExtractionTask.objects.get(stage__project=current_project)
+            # docx_extraction_task.tiptap_content = tiptap_content
+            # docx_extraction_task.save()
+
+
             DocxExtractionTask.objects.filter(stage__project=current_project).update(
                 tiptap_content= TiptapUtils.to_string(tiptap_content)
             )
+
+
+
             
             logger.info(f"成功从文件提取内容: project_id={current_project.id}")
             return tiptap_content
