@@ -1,8 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import (
-    Project, ProjectStage, 
-    DocxExtractionTask, TenderFileUploadTask, 
+    Project, ProjectStage, Task,
     ProjectChangeHistory, StageChangeHistory, TaskChangeHistory,
     TaskStatus
 )
@@ -97,31 +96,16 @@ class TaskChangeHistorySerializer(serializers.ModelSerializer):
     任务变更历史记录序列化器
     """
     changed_by = UserBriefSerializer(read_only=True)
-    # 移除直接序列化 task 字段，改为提供任务的基本信息
-    task_id = serializers.SerializerMethodField()
-    task_name = serializers.SerializerMethodField()
     
     class Meta:
         model = TaskChangeHistory
         fields = [
-            'id', 'operation_id','content_type', 'object_id', 'task_id', 'task_name', 'stage', 
+            'id', 'operation_id', 'task', 'stage', 
             'project', 'task_type', 'field_name', 
             'old_value', 'new_value', 'is_complex_field',
             'change_summary', 'changed_at', 'changed_by', 'remarks'
         ]
         read_only_fields = fields
-
-    def get_task_id(self, obj):
-        """获取任务ID"""
-        if obj.task:
-            return str(obj.task.id)
-        return None
-    
-    def get_task_name(self, obj):
-        """获取任务名称"""
-        if obj.task:
-            return obj.task.name
-        return None
 
 
 
@@ -198,11 +182,31 @@ class ProjectActiveStageUpdateSerializer(serializers.ModelSerializer):
 # ============= ProjectStage 项目阶段序列化器 =============
 # ProjectStage初始化创建，不需要CreateSerializer 
 
+# 任务列表序列化器
+class TaskListSerializer(serializers.ModelSerializer):
+    """任务列表序列化器"""
+    type_display = serializers.CharField(source='get_type_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    lock_status_display = serializers.CharField(source='get_lock_status_display', read_only=True)
+    
+    class Meta:
+        model = Task
+        fields = [
+            'id', 'name', 
+            'type', 'type_display',
+            'status', 'status_display', 
+            'updated_at', 
+            'lock_status', 'lock_status_display'
+        ]
+        read_only_fields = fields
+
+
 class ProjectStageDetailSerializer(serializers.ModelSerializer):
     """项目阶段读取专用序列化器"""
 
     # 额外定义序列化字段
-    tasks = serializers.SerializerMethodField()  # 自定义序列化逻辑
+    tasks = TaskListSerializer(many=True, read_only=True)
+
     stage_type_display = serializers.CharField(source='get_stage_type_display', read_only=True)
     stage_status_display = serializers.CharField(source='get_stage_status_display', read_only=True)
     
@@ -212,35 +216,20 @@ class ProjectStageDetailSerializer(serializers.ModelSerializer):
             'id', 'project', 'stage_type', 'stage_type_display', 'name', 
             'stage_status', 'stage_status_display', 'description', 
             'progress', 'created_at', 
-            'updated_at', 'metadata', 'tasks'
+            'updated_at', 'metadata', 
+            'tasks'  # 任务列表，定义使用TaskListSerializer(many=True, read_only=True)
         ]
         read_only_fields = fields  # 所有字段都是只读的
-    
-    def get_tasks(self, obj):
-        """获取该阶段的所有任务"""
-
-        # 使用ProjectStage定义了查询所有任务alltasks的方法
-        tasks = obj.all_tasks
-        
-        # 根据任务类型使用不同的序列化器
-        serialized_tasks = []
-        for task in tasks:
-            if isinstance(task, TenderFileUploadTask):
-                serialized_tasks.append(TenderFileUploadTaskListSerializer(task).data)
-            elif isinstance(task, DocxExtractionTask):
-                serialized_tasks.append(DocxExtractionTaskListSerializer(task).data)
-        return serialized_tasks
 
 class ProjectStageUpdateSerializer(ChangeTrackingModelSerializer):
     """项目阶段更新序列化器，主要用于更新阶段状态和相关信息，以及关联任务的状态"""
 
-    # 前端每个项目阶段的任务作为子组件和用户交互，用户一次只会操作一个组件
-    # 因此，我们只需要接收一个任务类型和目标状态 
+     # 前端每个项目阶段的任务作为子组件和用户交互，用户一次只会操作一个组件
     # 简化为单个任务更新
-    task_type = serializers.CharField(
+    task_id = serializers.UUIDField(
         required=False, 
         write_only=True,
-        help_text="要更新状态的任务类型"
+        help_text="要更新的任务ID"
     )
     task_status = serializers.CharField(
         required=False, 
@@ -256,15 +245,18 @@ class ProjectStageUpdateSerializer(ChangeTrackingModelSerializer):
 
     class Meta:
         model = ProjectStage
-        fields = ['stage_status', 'progress', 'metadata', 'task_type', 'task_status', 'lock_status', 'remarks']
+        fields = ['stage_status', 'progress', 'metadata', 'task_id', 'task_status', 'lock_status', 'remarks']
     
+
+
+    ### TODO 当我们用bottomup的方式管理前端组件的状态，我们将不再通过ProjectStage提取和处理任务信息。
     def update(self, instance, validated_data):
         # with transaction.atomic(): 
         # 在这里不添加，因为每个任务的更新是独立的，不会影响其他任务
         # with transaction.atomic():本身有性能开销，所以在这种简单的场景下不使用。 
 
         # 提取并移除任务状态更新字段
-        task_type = validated_data.pop('task_type', None)
+        task_id = validated_data.pop('task_id', None)
         task_status = validated_data.pop('task_status', None)
         lock_status = validated_data.pop('lock_status', None)
         
@@ -272,62 +264,69 @@ class ProjectStageUpdateSerializer(ChangeTrackingModelSerializer):
         instance = super().update(instance, validated_data)
         
         # 如果提供了任务类型和状态，则更新该任务
-        if task_type and task_status:
-            # 查找特定类型的任务
-            tasks_to_update = instance.get_tasks_by_type(task_type)
-            
-            # 逐个更新任务以触发信号
-            for task in tasks_to_update:
-
+        # 如果提供了任务ID和状态，则更新该任务
+        if task_id and task_status:
+            try:
+                task = Task.objects.get(id=task_id, stage=instance)
                 task.status = task_status
-                task.lock_status = lock_status
-                task.save()  # 这将触发 post_save 信号
-                logger.info(f"更新任务状态: task_type={task_type}, status={task_status}, lock_status={lock_status}")
+                if lock_status:
+                    task.lock_status = lock_status
+                # 设置变更用户和备注
+                set_change_metadata(task, getattr(instance, '_change_user', None), getattr(instance, '_change_remarks', ''))
+                task.save()
+                logger.info(f"更新任务状态: task_id={task_id}, status={task_status}, lock_status={lock_status}")
+            except Task.DoesNotExist:
+                logger.warning(f"任务不存在: task_id={task_id}")
         
         return instance
 
-class BaseTaskListSerializer(serializers.ModelSerializer):
-    """基础任务列表序列化器 - 只用于定义字段"""
+
+
+
+
+# ============= 任务序列化器 =============
+
+class TaskDetailSerializer(serializers.ModelSerializer):
+    """任务详情序列化器"""
     type_display = serializers.CharField(source='get_type_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     lock_status_display = serializers.CharField(source='get_lock_status_display', read_only=True)
     
     class Meta:
-        # model = BaseTask  #因为BaseTask是抽象基类，不能直接实例化，所以不能直接使用
+        model = Task
         fields = [
-            'id', 'name', 
+            'id', 'stage', 'name', 'description',
             'type', 'type_display',
             'status', 'status_display', 
-            'updated_at', 
-            'lock_status', 'lock_status_display'
+            'created_at', 'updated_at', 
+            'lock_status', 'lock_status_display',
+            'tiptap_content'
         ]
-        read_only_fields = fields
-
-class TenderFileUploadTaskListSerializer(BaseTaskListSerializer):
-    """招标文件上传任务列表序列化器"""
-    class Meta(BaseTaskListSerializer.Meta):
-        model = TenderFileUploadTask
-        fields = BaseTaskListSerializer.Meta.fields
-        read_only_fields = fields
-
-class DocxExtractionTaskListSerializer(BaseTaskListSerializer):
-    """文档提取任务列表序列化器"""
-    # 只包含列表视图需要的基本信息，不添加额外字段
-    class Meta(BaseTaskListSerializer.Meta):
-        model = DocxExtractionTask
-        # 使用与基类相同的字段
-        fields = BaseTaskListSerializer.Meta.fields
-        read_only_fields = fields
+        read_only_fields = [
+            'id', 'stage', 'type', 'type_display', 
+            'created_at', 'updated_at',
+            'status_display', 'lock_status_display'
+        ]
 
 
-# ============= 特定任务序列化器 =============
+class TaskUpdateSerializer(ChangeTrackingModelSerializer):
+    """任务更新序列化器"""
+    remarks = serializers.CharField(required=False, write_only=True)
+    
+    class Meta:
+        model = Task
+        fields = ['status', 'lock_status', 'tiptap_content', 'remarks']                  
+        
+        ######TODO 待将tiptap_content改为 docx_content, 移到ProjectStage里。 
+
+
+# ============= 特定场景的专用任务序列化器 =============
 
 # DocxExtractionTask 
-
-class DocxExtractionTaskDetailSerializer(serializers.ModelSerializer):
+class DocxExtractionTaskSerializer(serializers.ModelSerializer):
     """文档提取任务读取专用序列化器"""
     class Meta:
-        model = DocxExtractionTask
+        model = Task
         fields = ['id','name','type','tiptap_content']
         read_only_fields = fields  # 所有字段都是只读的
 
@@ -335,7 +334,7 @@ class DocxExtractionTaskUpdateSerializer(ChangeTrackingModelSerializer):
     """文档提取任务更新专用序列化器"""
     remarks = serializers.CharField(required=False, write_only=True)
     class Meta:
-        model = DocxExtractionTask
+        model = Task
         fields = ['tiptap_content','remarks']
 
 

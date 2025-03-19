@@ -4,10 +4,10 @@ from rest_framework_nested import routers  # 嵌套路由
 from .views import (
     ProjectViewSet, 
     ProjectStageViewSet, 
+    TaskViewSet,
     ProjectChangeHistoryViewSet, 
     StageChangeHistoryViewSet, 
     TaskChangeHistoryViewSet,
-    #DocxExtractionTaskViewSet
 )
 
 router = DefaultRouter()
@@ -19,8 +19,8 @@ router.register('projects/change-history', ProjectChangeHistoryViewSet, basename
 router.register('stages/change-history', StageChangeHistoryViewSet, basename='stage-change-history')
 router.register('tasks/change-history', TaskChangeHistoryViewSet, basename='task-change-history')
 
-# 添加文档提取任务路由
-#router.register('docx-extraction-tasks', DocxExtractionTaskViewSet, basename='docx-extraction-task')
+# 添加任务路由
+router.register('tasks', TaskViewSet, basename='task')
 
 # 添加嵌套路由器
 stage_router = routers.NestedDefaultRouter(router, '', lookup='project')

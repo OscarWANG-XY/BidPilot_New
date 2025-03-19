@@ -1,6 +1,6 @@
 import logging
 from celery import shared_task
-from apps.projects.models import Project, DocxExtractionTask, TaskStatus
+from apps.projects.models import Project, Task, TaskType, TaskStatus
 from apps.projects.services._01_extract_tiptap_docx import DocxExtractorStep
 
 
@@ -12,13 +12,15 @@ def process_docx_extraction(project_id: int):
     
     try: 
         project = Project.objects.get(id=project_id)
-
         # 使用DocxExtractorStep处理文档
         docx_extractor = DocxExtractorStep()
         docx_extractor.process(project)
         
         # 更新任务状态为完成
-        docx_extraction_task = DocxExtractionTask.objects.get(stage__project=project)
+        docx_extraction_task = Task.objects.get(
+            stage__project_id=project_id,
+            type=TaskType.DOCX_EXTRACTION
+            )
         docx_extraction_task.status = TaskStatus.COMPLETED
         docx_extraction_task.save()
     
@@ -27,7 +29,10 @@ def process_docx_extraction(project_id: int):
     
             # 更新任务状态为失败
         try:
-            docx_extraction_task = DocxExtractionTask.objects.get(stage__project_id=project_id)
+            docx_extraction_task = Task.objects.get(
+                stage__project_id=project_id,
+                type=TaskType.DOCX_EXTRACTION
+            )
             docx_extraction_task.status = TaskStatus.FAILED
             docx_extraction_task.save()
         except Exception as inner_e:

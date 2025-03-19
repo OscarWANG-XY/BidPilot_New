@@ -6,16 +6,15 @@ from rest_framework.exceptions import NotFound
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from .models import (
-    Project, ProjectStage, 
-    TenderFileUploadTask,DocxExtractionTask,
+    Project, ProjectStage, Task,
     ProjectChangeHistory, StageChangeHistory, TaskChangeHistory,
-    ProjectStatus
+    ProjectStatus, TaskType
 )
 from .serializers import (
     ProjectListSerializer, ProjectDetailSerializer, ProjectCreateSerializer, ProjectUpdateSerializer, ProjectStatusUpdateSerializer, ProjectActiveStageUpdateSerializer,
     ProjectStageDetailSerializer, ProjectStageUpdateSerializer,
-    TenderFileUploadTaskListSerializer, 
-    DocxExtractionTaskListSerializer, DocxExtractionTaskDetailSerializer, DocxExtractionTaskUpdateSerializer,
+    TaskListSerializer, TaskDetailSerializer, TaskUpdateSerializer,
+    DocxExtractionTaskSerializer, DocxExtractionTaskUpdateSerializer,
     ProjectChangeHistorySerializer, StageChangeHistorySerializer, TaskChangeHistorySerializer
     
 )
@@ -72,7 +71,6 @@ class ProjectChangeHistoryViewSet(viewsets.ReadOnlyModelViewSet):
         # 检查是否有任何记录
         all_records = ProjectChangeHistory.objects.all()
         logger.info(f"Total ProjectChangeHistory records: {all_records.count()}")
-        #return ProjectChangeHistory.objects.filter(project__creator=self.request.user)
         return queryset
 
 @extend_schema_view(
@@ -142,7 +140,7 @@ class TaskChangeHistoryViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = TaskChangeHistorySerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['project', 'stage', 'content_type', 'object_id', 'task_type', 'field_name', 'operation_id', 'is_complex_field']
+    filterset_fields = ['project', 'stage', 'task', 'task_type', 'field_name', 'operation_id', 'is_complex_field']
     search_fields = ['field_name', 'old_value', 'new_value', 'change_summary', 'remarks']
     ordering_fields = ['changed_at', 'field_name', 'task_type']
     ordering = ['-changed_at']
@@ -388,23 +386,16 @@ class ProjectViewSet(viewsets.ModelViewSet):
             404: OpenApiTypes.OBJECT
         }
     ),
-    # upload_task=extend_schema(
-    #     tags=['project-stages'],
-    #     summary='获取指定项目阶段的招标文件上传任务',
-    #     description='获取指定项目阶段的招标文件上传任务',
-    #     request={
-    #         'GET': None,  # GET 请求不需要请求体
-    #         'PUT': TenderFileUploadTaskUpdateSerializer,
-    #         'PATCH': TenderFileUploadTaskUpdateSerializer,
-    #     },
-    #     responses={
-    #         200: TenderFileUploadTaskDetailSerializer,
-    #         400: OpenApiTypes.OBJECT,
-    #         401: OpenApiTypes.OBJECT,
-    #         404: OpenApiTypes.OBJECT
-    #     },
-    #     methods=['GET', 'PUT', 'PATCH']
-    # ),
+    tasks=extend_schema(
+        tags=['project-stages'],
+        summary='获取指定项目阶段的所有任务',
+        description='获取指定项目阶段的所有任务',
+        responses={
+            200: TaskListSerializer(many=True),
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
     extraction_task=extend_schema(
         tags=['project-stages'],
         summary='获取指定项目阶段的文档提取任务',
@@ -414,7 +405,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             'PATCH': DocxExtractionTaskUpdateSerializer,
         },
         responses={
-            200: DocxExtractionTaskDetailSerializer,
+            200: DocxExtractionTaskSerializer,
             400: OpenApiTypes.OBJECT,
             401: OpenApiTypes.OBJECT,
             404: OpenApiTypes.OBJECT
@@ -492,32 +483,13 @@ class ProjectStageViewSet(mixins.RetrieveModelMixin,
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-    # 自定义方法：获取项目阶段下的任务列表
-    # @action(detail=True, methods=['get', 'put', 'patch'])
-    # def upload_task(self, request, project_pk=None, pk=None):
-    #     """ 获取项目阶段下的任务列表 """
-    #     stage = self.get_object()
-
-    #     # 获取该阶段的 招标文件上传 任务
-    #     try:
-    #         task = TenderFileUploadTask.objects.get(stage=stage)
-    #     except TenderFileUploadTask.DoesNotExist:
-    #         return Response({"detail": "招标文件上传任务不存在"}, status=status.HTTP_404_NOT_FOUND)
-    #     if request.method == 'GET':
-    #         serializer = TenderFileUploadTaskDetailSerializer(task)
-    #         return Response(serializer.data)
-        
-    #     serializer = TenderFileUploadTaskUpdateSerializer(
-    #         task, 
-    #         data=request.data, 
-    #         partial=True,
-    #         context={'request': request}
-    #         )
-    #     if serializer.is_valid():
-    #         serializer.save()
-    #         return Response(TenderFileUploadTaskDetailSerializer(task).data)
-    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    @action(detail=True, methods=['get'])
+    def tasks(self, request, project_pk=None, pk=None):
+        """获取项目阶段下的所有任务"""
+        stage = self.get_object()
+        tasks = stage.tasks.all()
+        serializer = TaskListSerializer(tasks, many=True)
+        return Response(serializer.data)
 
 
     @action(detail=True, methods=['get', 'patch'])
@@ -527,13 +499,12 @@ class ProjectStageViewSet(mixins.RetrieveModelMixin,
         
         # 获取该阶段的文档提取任务
         try:
-            task = DocxExtractionTask.objects.get(stage=stage)
-        except DocxExtractionTask.DoesNotExist:
-            # 如果任务不存在，可以选择创建一个或返回404
+            task = Task.objects.get(stage=stage, type=TaskType.DOCX_EXTRACTION_TASK)
+        except Task.DoesNotExist:
             return Response({"detail": "此阶段没有文档提取任务"}, status=status.HTTP_404_NOT_FOUND)
         
         if request.method == 'GET':
-            serializer = DocxExtractionTaskDetailSerializer(task)
+            serializer = DocxExtractionTaskSerializer(task)
             return Response(serializer.data)
         
         # 处理更新请求
@@ -545,73 +516,67 @@ class ProjectStageViewSet(mixins.RetrieveModelMixin,
             )
         if serializer.is_valid():
             serializer.save()
-            return Response(DocxExtractionTaskDetailSerializer(task).data)
+            return Response(DocxExtractionTaskSerializer(task).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
-# @extend_schema_view(
-#     retrieve=extend_schema(
-#         tags=['docx-extraction-tasks'],
-#         summary='获取文档提取内容',
-#         description='获取特定的文档提取任务的tiptap_content内容',
-#         responses={
-#             200: DocxExtractionTaskDetailSerializer,
-#             401: OpenApiTypes.OBJECT,
-#             404: OpenApiTypes.OBJECT
-#         }
-#     ),
-#     update=extend_schema(
-#         tags=['docx-extraction-tasks'],
-#         summary='更新文档提取内容',
-#         description='更新指定文档提取任务的tiptap_content内容',
-#         request=DocxExtractionTaskUpdateSerializer,
-#         responses={
-#             200: DocxExtractionTaskDetailSerializer,
-#             400: OpenApiTypes.OBJECT,
-#             401: OpenApiTypes.OBJECT,
-#             404: OpenApiTypes.OBJECT
-#         }
-#     ),
-#     partial_update=extend_schema(
-#         tags=['docx-extraction-tasks'],
-#         summary='部分更新文档提取内容',
-#         description='部分更新指定文档提取任务的tiptap_content内容',
-#         request=DocxExtractionTaskUpdateSerializer,
-#         responses={
-#             200: DocxExtractionTaskDetailSerializer,
-#             400: OpenApiTypes.OBJECT,
-#             401: OpenApiTypes.OBJECT,
-#             404: OpenApiTypes.OBJECT
-#         }
-#     )
-# )
-# class DocxExtractionTaskViewSet(mixins.RetrieveModelMixin,
-#                                 mixins.UpdateModelMixin,
-#                                 viewsets.GenericViewSet):
-#     """
-#     文档提取任务视图集，提供文档提取任务的读取和更新功能
-#     """
-#     permission_classes = [IsAuthenticated]
-#     queryset = DocxExtractionTask.objects.all()
+@extend_schema_view(
+    list=extend_schema(
+        tags=['tasks'],
+        summary='获取任务列表',
+        description='获取任务列表',
+        responses={
+            200: TaskListSerializer(many=True),
+            401: OpenApiTypes.OBJECT
+        }
+    ),
+    retrieve=extend_schema(
+        tags=['tasks'],
+        summary='获取任务详情',
+        description='获取特定任务的详细信息',
+        responses={
+            200: TaskDetailSerializer,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
+    partial_update=extend_schema(
+        tags=['tasks'],
+        summary='更新任务',
+        description='更新特定任务的信息',
+        request=TaskUpdateSerializer,
+        responses={
+            200: TaskDetailSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    )
+)
+class TaskViewSet(mixins.ListModelMixin,
+                  mixins.RetrieveModelMixin,
+                  mixins.UpdateModelMixin,
+                  viewsets.GenericViewSet):
+    """
+    任务视图集，提供任务的列表、读取和更新功能
+    """
+    permission_classes = [IsAuthenticated]
     
-#     def get_serializer_class(self):
-#         """
-#         根据不同的操作返回不同的序列化器
-#         """
-#         if self.action in ['update', 'partial_update']:
-#             return DocxExtractionTaskUpdateSerializer
-#         return DocxExtractionTaskDetailSerializer
+    def get_serializer_class(self):
+        """
+        根据不同的操作返回不同的序列化器
+        """
+        if self.action in ['update', 'partial_update']:
+            return TaskUpdateSerializer
+        elif self.action == 'list':
+            return TaskListSerializer
+        return TaskDetailSerializer
     
-#     def get_queryset(self):
-#         """
-#         获取查询集，只返回当前用户可访问的文档提取任务
-#         """
-#         return DocxExtractionTask.objects.filter(stage__project__creator=self.request.user)
-
-
-
-
+    def get_queryset(self):
+        """
+        获取查询集，只返回当前用户可访问的任务
+        """
+        return Task.objects.filter(stage__project__creator=self.request.user)
 
 
 

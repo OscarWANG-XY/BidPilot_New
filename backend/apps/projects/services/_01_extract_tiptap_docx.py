@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 import logging
 logger = logging.getLogger(__name__)
 
-from apps.projects.models import Project, DocxExtractionTask
+from apps.projects.models import Project, Task, TaskType
 from apps.projects.services.base import PipelineStep
 from apps._tools.docx_parser.pipeline import DocxParserPipeline
 from apps.projects.services.helpers.tiptap_helpers import TiptapUtils
@@ -70,7 +70,10 @@ class DocxExtractorStep(PipelineStep[Project, Dict[str, Any]]):
             # docx_extraction_task.save()
 
 
-            DocxExtractionTask.objects.filter(stage__project=current_project).update(
+            Task.objects.filter(
+                stage__project=current_project,
+                type=TaskType.DOCX_EXTRACTION
+            ).update(
                 tiptap_content= TiptapUtils.to_string(tiptap_content)
             )
 

@@ -1,8 +1,7 @@
 from django.contrib import admin
 from .models import (
-    Project, ProjectStage, DocxExtractionTask, 
-    TenderFileUploadTask, ProjectChangeHistory,
-    StageChangeHistory, TaskChangeHistory
+    Project, ProjectStage, Task,
+    ProjectChangeHistory, StageChangeHistory, TaskChangeHistory
 )
 
 class ProjectStageInline(admin.TabularInline):
@@ -19,35 +18,43 @@ class ProjectAdmin(admin.ModelAdmin):
     inlines = [ProjectStageInline]
 
 
-class DocxExtractionTaskInline(admin.TabularInline):
-    model = DocxExtractionTask
+class TaskInline(admin.TabularInline):
+    model = Task
     extra = 0
-
-
-class TenderFileUploadTaskInline(admin.TabularInline):
-    model = TenderFileUploadTask
-    extra = 0
+    fields = ('name', 'type', 'status', 'lock_status', 'created_at', 'updated_at')
+    readonly_fields = ('created_at', 'updated_at')
 
 @admin.register(ProjectStage)
 class ProjectStageAdmin(admin.ModelAdmin):
     list_display = ('id', 'project', 'stage_type', 'name', 'stage_status', 'created_at', 'updated_at')
     list_filter = ('stage_type', 'stage_status')
     search_fields = ('name', 'description')
-    inlines = [DocxExtractionTaskInline, TenderFileUploadTaskInline]
+    inlines = [TaskInline]
 
 
-@admin.register(DocxExtractionTask)
-class DocxExtractionTaskAdmin(admin.ModelAdmin):
-    list_display = ('id', 'stage', 'name', 'type', 'status', 'created_at', 'updated_at')
-    list_filter = ('type', 'status')
+@admin.register(Task)
+class TaskAdmin(admin.ModelAdmin):
+    list_display = ('id', 'stage', 'name', 'type', 'status', 'lock_status', 'created_at', 'updated_at')
+    list_filter = ('type', 'status', 'lock_status')
     search_fields = ('name', 'description')
+    readonly_fields = ('created_at', 'updated_at')
+    fieldsets = (
+        (None, {
+            'fields': ('stage', 'name', 'description', 'type')
+        }),
+        ('状态信息', {
+            'fields': ('status', 'lock_status')
+        }),
+        ('时间信息', {
+            'fields': ('created_at', 'updated_at')
+        }),
+        ('文档内容', {
+            'fields': ('tiptap_content',),
+            'classes': ('collapse',),
+            'description': '仅对文档提取任务有意义的内容字段'
+        })
+    )
 
-
-@admin.register(TenderFileUploadTask)
-class TenderFileUploadTaskAdmin(admin.ModelAdmin):
-    list_display = ('id', 'stage', 'name', 'type', 'status', 'created_at', 'updated_at')
-    list_filter = ('type', 'status')
-    search_fields = ('name', 'description')
 
 @admin.register(ProjectChangeHistory)
 class ProjectChangeHistoryAdmin(admin.ModelAdmin):
