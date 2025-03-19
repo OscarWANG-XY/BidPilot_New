@@ -5,7 +5,7 @@ import { InfoIcon, Loader2 } from 'lucide-react'
 import { TenderFileUpload } from '@/components/projects/TenderTasks/_01_TenderFileupload'
 import { DocxExtractionTask } from '@/components/projects/TenderTasks/_02_DocxExtractionTask'
 import { DocxTreeBuildTask } from '@/components/projects/TenderTasks/_03_DocxTreeBuildTask'
-import { useProjects } from '@/hooks/useProjects'
+import { useProjectStages } from '@/hooks/useProjects/useProjectStages'
 import { StageType, TaskStatus, TaskType, AllTaskState, TaskLockStatus } from '@/types/projects_dt_stru'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TaskStatusItem, getProgressPercentage } from '@/components/projects/TenderTasks/_00_helper'
@@ -30,7 +30,7 @@ export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectI
     })
 
     // 使用useProjects的钩子获取和更新数据
-    const { projectStageTaskMetaDataQuery, updateStageTaskStatus } = useProjects()
+    const { projectStageTaskMetaDataQuery, updateStageTaskStatus } = useProjectStages()
 
 
     // （1）加载数据到本地， 调用projectStageTaskMetaDataQuery, 只要taskMetaData有新的值，就会触发useEffect对allTaskState更新
@@ -62,17 +62,17 @@ export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectI
     const handleTaskStateChange = useCallback(async (
         taskType: TaskType, 
         newStatus: TaskStatus,
-        taskStateKey: keyof AllTaskState,
+        statusKey: keyof AllTaskState,
         newLockStatus: TaskLockStatus,
-        lockStateKey: keyof AllTaskState
+        lockStatusKey: keyof AllTaskState
 
     ) => {
         try {
         // 先更新本地状态以获得即时反馈
         setAllTaskState(prev => ({
             ...prev,
-            [taskStateKey]: newStatus,
-            [lockStateKey]: newLockStatus
+            [statusKey]: newStatus,
+            [lockStatusKey]: newLockStatus
         }));
         
         console.log("更新后的allTaskState", allTaskState)
@@ -97,6 +97,8 @@ export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectI
         // 每当useProjects的updateStageTaskStatus被调用，我们也会做一次状态更新，确保是同步的。
     }, [projectId, updateStageTaskStatus]);
 
+
+
     const handleFileUploadStateChange = useCallback((status: TaskStatus, lockStatus: TaskLockStatus) => {
         handleTaskStateChange(   // 这里是调用，调用本身不会影响handleTaskStateChange的变化
         TaskType.UPLOAD_TENDER_FILE, 
@@ -107,6 +109,9 @@ export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectI
         );
     }, [handleTaskStateChange]); // 依赖项的变化是在组件重新渲染时，handleTaskStateChange被重新创建。 
     
+
+
+
     const handleDocxExtractionStateChange = useCallback((status: TaskStatus, lockStatus: TaskLockStatus) => {
         handleTaskStateChange(
         TaskType.DOCX_EXTRACTION_TASK, 
@@ -117,6 +122,9 @@ export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectI
         );
     }, [handleTaskStateChange]);
     
+
+
+
     const handleDocxTreeBuildStateChange = useCallback((status: TaskStatus, lockStatus: TaskLockStatus) => {
         handleTaskStateChange(
         TaskType.DOCX_TREE_BUILD_TASK, 

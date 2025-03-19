@@ -1,17 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';  // 引用react-query的钩子函数
-import { projectsApi, projectStageApi } from '@/api/projects_api';   // 引用项目API模块
+import { projectsApi} from '@/api/projects_api/projects_api';   // 引用项目API模块
 import type { 
-  StageType,
   Project, 
   CreateProjectRequest, 
   UpdateProjectStatusRequest,
   UpdateProjectActiveStageRequest,
-  AllTask,
-  TaskType,
-  TaskStatus,
-  TaskLockStatus,
   ProjectQueryParams,
-  TaskMetaData,
 } from '@/types/projects_dt_stru';
 
 
@@ -141,97 +135,11 @@ export const useProjects = () => {
     }
   });
 
-
-
-//====================== ProjectStage 相关的 查询 和 操作  =====================
-
-    // --------------- 查询项目阶段详情 (包含任务) --------------- 
-    const projectStageQuery = (projectId: string, stageType: StageType) => useQuery({
-      queryKey: ['projectStage', projectId, stageType],
-      queryFn: async () => {
-        console.log('🔍 [useProjects] 查询项目阶段详情:', { projectId, stageType });
-        const result = await projectStageApi.getProjectStage(projectId, stageType);
-        console.log('📥 [useProjects] 查询项目阶段详情成功:', result);
-        return result;
-      },
-      refetchOnWindowFocus: false,  // 窗口获得焦点时不重新获取
-      staleTime: 30 * 1000,         // 30秒后数据变为陈旧
-      gcTime: 5 * 60 * 1000,        // 5分钟后清除缓存
-    });
-
-    // --------------- 查询项目阶段任务状态 --------------- 
-    const projectStageTaskMetaDataQuery = (projectId: string, stageType: StageType) => useQuery({
-      queryKey: ['projectStageTaskMetaData', projectId, stageType],
-      queryFn: async () => {
-        console.log('🔍 [useProjects] 查询项目阶段任务状态:', { projectId, stageType });
-        const stageData = await projectStageApi.getProjectStage(projectId, stageType);
-        
-        // 提取所有任务的状态信息，对齐BaseTask接口
-        const taskMetaData: TaskMetaData[] = stageData.tasks?.map((task: AllTask) => ({
-          id: task.id,
-          name: task.name,
-          description: task.description,
-          type: task.type,
-          status: task.status,
-          lockStatus: task.lockStatus,
-        })) || [];
-        console.log('📥 [useProjects] 查询项目阶段任务状态成功:', taskMetaData);
-        return taskMetaData;
-      },
-      refetchOnWindowFocus: false,
-      staleTime: 30 * 1000,
-      gcTime: 5 * 60 * 1000,
-      // 只有当projectId和stageType都存在时才启用查询
-      enabled: Boolean(projectId) && Boolean(stageType),
-    });
-
-    // --------------更新任务状态
-    const updateStageTaskStatus = useMutation({
-      mutationFn: async ({ 
-        projectId, 
-        stageType, 
-        taskType, 
-        newStatus,
-        newLockStatus
-      }: { 
-        projectId: string; 
-        stageType: StageType; 
-        taskType: TaskType;
-        newStatus: TaskStatus;
-        newLockStatus: TaskLockStatus
-      }) => {
-        console.log('📤 [useProjects] 更新任务状态:', { projectId, stageType, taskType, newStatus });
-        
-      // 修改为更简洁的请求格式，只发送单个任务类型
-      const result = await projectStageApi.updateProjectStage(projectId, stageType, {
-        task_type: taskType,
-        task_status: newStatus,
-        lock_status: newLockStatus
-      });
-        
-        console.log('✅ [useProjects] 更新任务状态成功:', result);
-        return result;
-      },
-      onSuccess: (_, variables) => {
-        console.log('🔄 [useProjects] 更新任务状态后，更新缓存数据');
-        
-        // 使无效相关查询，触发重新获取数据
-        queryClient.invalidateQueries({ 
-          queryKey: ['projectStageTaskStatuses', variables.projectId, variables.stageType] 
-        });
-        queryClient.invalidateQueries({ 
-          queryKey: ['projectStage', variables.projectId, variables.stageType] 
-        });
-      }
-    });
-    
-
   
   return {
     // .mutate() 本身不返回promise对象, 如果需要返回promise对象，则需要使用.mutateAsync()
     // 这里建议使用.mutateAsync() 更符合现代JavaScript的异步编程风格。 
     // 这样的好处是：调用者可以选择是否等待操作完成，可再调用处使用try/catch来处理错误; 可获取到操作返回的数据
-
     // 关于项目的CURD
     projectsQuery,  
     singleProjectQuery,
@@ -241,12 +149,6 @@ export const useProjects = () => {
     updateProjectStatus: updateProjectStatus.mutateAsync,  
     deleteProject: deleteProject.mutateAsync,
 
-    // 关于项目阶段的UR，没有CD
-    projectStageQuery,  
-    projectStageTaskMetaDataQuery,  
-    updateStageTaskStatus: updateStageTaskStatus.mutateAsync,
-
-    
 
   };
 };

@@ -286,11 +286,6 @@ class ProjectStageUpdateSerializer(ChangeTrackingModelSerializer):
         
         return instance
 
-
-
-# ============= BaseTask 任务序列化器 =============
-# List serializers 
-
 class BaseTaskListSerializer(serializers.ModelSerializer):
     """基础任务列表序列化器 - 只用于定义字段"""
     type_display = serializers.CharField(source='get_type_display', read_only=True)
@@ -325,43 +320,23 @@ class DocxExtractionTaskListSerializer(BaseTaskListSerializer):
         read_only_fields = fields
 
 
+# ============= 特定任务序列化器 =============
 
-# detail serializers 
-
-
-class TenderFileUploadTaskDetailSerializer(serializers.ModelSerializer):
-    """招标文件上传任务读取专用序列化器"""
-    class Meta:
-        model = TenderFileUploadTask
-        fields = BaseTaskListSerializer.Meta.fields
-        read_only_fields = fields
+# DocxExtractionTask 
 
 class DocxExtractionTaskDetailSerializer(serializers.ModelSerializer):
     """文档提取任务读取专用序列化器"""
     class Meta:
         model = DocxExtractionTask
-        fields = BaseTaskListSerializer.Meta.fields + ['tiptap_content']
+        fields = ['id','name','type','tiptap_content']
         read_only_fields = fields  # 所有字段都是只读的
-
-
-
-# update serializers 
-# 针对 更新操作， 不需要多态。 
-
-class TenderFileUploadTaskUpdateSerializer(ChangeTrackingModelSerializer):
-    """招标文件上传任务更新专用序列化器"""
-    remarks = serializers.CharField(required=False, write_only=True)
-    
-    class Meta:
-        model = TenderFileUploadTask
-        fields =  ['status', 'lock_status', 'remarks']
 
 class DocxExtractionTaskUpdateSerializer(ChangeTrackingModelSerializer):
     """文档提取任务更新专用序列化器"""
     remarks = serializers.CharField(required=False, write_only=True)
     class Meta:
         model = DocxExtractionTask
-        fields = ['status', 'lock_status', 'tiptap_content','remarks']
+        fields = ['tiptap_content','remarks']
 
 
 

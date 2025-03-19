@@ -6,7 +6,8 @@ from .views import (
     ProjectStageViewSet, 
     ProjectChangeHistoryViewSet, 
     StageChangeHistoryViewSet, 
-    TaskChangeHistoryViewSet
+    TaskChangeHistoryViewSet,
+    #DocxExtractionTaskViewSet
 )
 
 router = DefaultRouter()
@@ -18,6 +19,8 @@ router.register('projects/change-history', ProjectChangeHistoryViewSet, basename
 router.register('stages/change-history', StageChangeHistoryViewSet, basename='stage-change-history')
 router.register('tasks/change-history', TaskChangeHistoryViewSet, basename='task-change-history')
 
+# 添加文档提取任务路由
+#router.register('docx-extraction-tasks', DocxExtractionTaskViewSet, basename='docx-extraction-task')
 
 # 添加嵌套路由器
 stage_router = routers.NestedDefaultRouter(router, '', lookup='project')
@@ -27,3 +30,5 @@ urlpatterns = [
     path('', include(router.urls)),
     path('', include(stage_router.urls)),  # 添加嵌套路由URLs
 ]
+
+

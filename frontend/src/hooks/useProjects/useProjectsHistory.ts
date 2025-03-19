@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { changeHistoryApi } from '@/api/projects_api';
+import { changeHistoryApi } from '@/api/projects_api/projectHistory_api';
 import { 
   ChangeHistoryQueryParams
 } from '@/types/projects_dt_stru';
