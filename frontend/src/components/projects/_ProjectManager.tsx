@@ -5,7 +5,7 @@ import { CreateProjectDialog } from './_01_ProjectCreate'   // 自定义"创建�
 import { ProjectFilter } from './_03_ProjectsFilter'  //自定义 项目查询 组件
 import { ProjectList } from './_02_ProjectsList'      //自定义 项目列表 组件
 //import { ProjectDetail } from './ProjectDetail'  //自定义 项目详情 组件
-import { ProjectQueryParams } from '@/types/projects_dt_stru' 
+import { ProjectQueryParams } from '@/types/projects_dt_stru/projects_interface' 
 import { useNavigate } from '@tanstack/react-router'  // 修改为 TanStack Router 的导入
 
 // ===================================== 项目管理器 ==================================== 
@@ -99,8 +99,8 @@ export function ProjectManager() {
   // ProjectList的回调函数，用来设置selectedProjectId， 给项目详情弹窗使用。
   const handleViewDetail = (id: string) => {
     navigate({
-      to: '/projects/$id',
-      params: { id: id }
+      to: '/projects/$projectId',
+      params: { projectId: id }
     });
   }
 

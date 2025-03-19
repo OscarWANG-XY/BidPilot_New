@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { changeHistoryApi } from '@/api/projects_api/projectHistory_api';
 import { 
   ChangeHistoryQueryParams
-} from '@/types/projects_dt_stru';
+} from '@/types/projects_dt_stru/projectHistory_interface';
 
 export const useChangeHistory = () => {
   // 获取项目变更历史

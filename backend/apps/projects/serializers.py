@@ -1,9 +1,10 @@
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 from .models import (
     Project, ProjectStage, Task,
     ProjectChangeHistory, StageChangeHistory, TaskChangeHistory,
-    TaskStatus
+    TaskStatus, TaskType
 )
 from .signals import set_change_metadata
 import logging
@@ -195,8 +196,8 @@ class TaskListSerializer(serializers.ModelSerializer):
             'id', 'name', 
             'type', 'type_display',
             'status', 'status_display', 
+            'lock_status', 'lock_status_display',
             'updated_at', 
-            'lock_status', 'lock_status_display'
         ]
         read_only_fields = fields
 
@@ -286,56 +287,108 @@ class ProjectStageUpdateSerializer(ChangeTrackingModelSerializer):
 
 # ============= 任务序列化器 =============
 
-class TaskDetailSerializer(serializers.ModelSerializer):
-    """任务详情序列化器"""
-    type_display = serializers.CharField(source='get_type_display', read_only=True)
-    status_display = serializers.CharField(source='get_status_display', read_only=True)
-    lock_status_display = serializers.CharField(source='get_lock_status_display', read_only=True)
+
+# class TaskDetailSerializer(serializers.ModelSerializer):
+#     """任务详情序列化器"""
+#     type_display = serializers.CharField(source='get_type_display', read_only=True)
+#     status_display = serializers.CharField(source='get_status_display', read_only=True)
+#     lock_status_display = serializers.CharField(source='get_lock_status_display', read_only=True)
     
-    class Meta:
-        model = Task
-        fields = [
-            'id', 'stage', 'name', 'description',
-            'type', 'type_display',
-            'status', 'status_display', 
-            'created_at', 'updated_at', 
-            'lock_status', 'lock_status_display',
-            'tiptap_content'
-        ]
-        read_only_fields = [
-            'id', 'stage', 'type', 'type_display', 
-            'created_at', 'updated_at',
-            'status_display', 'lock_status_display'
-        ]
+#     class Meta:
+#         model = Task
+#         fields = [
+#             'id', 'stage', 'name', 'description',
+#             'type', 'type_display',
+#             'status', 'status_display', 
+#             'created_at', 'updated_at', 
+#             'lock_status', 'lock_status_display',
+#             'tiptap_content'
+#         ]
+#         read_only_fields = [
+#             'id', 'stage', 'type', 'type_display', 
+#             'created_at', 'updated_at',
+#             'status_display', 'lock_status_display'
+#         ]
 
 
-class TaskUpdateSerializer(ChangeTrackingModelSerializer):
-    """任务更新序列化器"""
-    remarks = serializers.CharField(required=False, write_only=True)
+# class TaskUpdateSerializer(ChangeTrackingModelSerializer):
+#     """任务更新序列化器"""
+#     remarks = serializers.CharField(required=False, write_only=True)
     
-    class Meta:
-        model = Task
-        fields = ['status', 'lock_status', 'tiptap_content', 'remarks']                  
+#     class Meta:
+#         model = Task
+#         fields = ['status', 'lock_status', 'tiptap_content', 'remarks']                  
         
-        ######TODO 待将tiptap_content改为 docx_content, 移到ProjectStage里。 
+#         ######TODO 待将tiptap_content改为 docx_content, 移到ProjectStage里。 
+
 
 
 # ============= 特定场景的专用任务序列化器 =============
 
-# DocxExtractionTask 
-class DocxExtractionTaskSerializer(serializers.ModelSerializer):
+
+
+# ---- 文件上传任务 专用序列化器
+class FileUploadTaskDetailSerializer(serializers.ModelSerializer):
+    """文件上传任务读取专用序列化器"""
+    class Meta:
+        model = Task
+        fields = ['id','name','type',
+                  'status', 'lock_status',
+                  # 'tiptap_content'
+                  ]  
+        read_only_fields = fields  # 所有字段都是只读的
+    
+    def to_representation(self, instance):
+        if instance.type != TaskType.UPLOAD_TENDER_FILE:
+            raise ValidationError(f"此序列化器只能用于 文件上传任务 的读取")
+        return super().to_representation(instance)
+
+class FileUploadTaskUpdateSerializer(ChangeTrackingModelSerializer):
+    """文件上传任务更新专用序列化器"""
+    class Meta:
+        model = Task
+        fields = [
+            #'id', 'name', 'type',
+            'status', 'lock_status',
+            #'tiptap_content'
+        ]
+    
+    def validate(self, data):
+        if self.instance.type != TaskType.UPLOAD_TENDER_FILE:
+            raise ValidationError(f"此序列化器只能用于 文件上传任务 的更新")
+        return super().validate(data)
+
+# --- 文档提取专用序列化器  
+class DocxExtractionTaskDetailSerializer(serializers.ModelSerializer):
     """文档提取任务读取专用序列化器"""
     class Meta:
         model = Task
-        fields = ['id','name','type','tiptap_content']
+        fields = ['id','name','type',
+                  'status', 'lock_status',
+                  'tiptap_content'
+                  ]  
         read_only_fields = fields  # 所有字段都是只读的
+    
+    def to_representation(self, instance):
+        if instance.type != TaskType.DOCX_EXTRACTION_TASK:
+            raise ValidationError(f"此序列化器只能用于 文档提取任务 的读取")
+        return super().to_representation(instance)
 
 class DocxExtractionTaskUpdateSerializer(ChangeTrackingModelSerializer):
     """文档提取任务更新专用序列化器"""
-    remarks = serializers.CharField(required=False, write_only=True)
+
     class Meta:
         model = Task
-        fields = ['tiptap_content','remarks']
+        fields = [
+            #'id', 'name', 'type',
+            'status', 'lock_status',
+            'tiptap_content',
+        ]
+    
+    def validate(self, data):
+        if self.instance.type != TaskType.DOCX_EXTRACTION_TASK:
+            raise ValidationError(f"此序列化器只能用于 文档提取任务 的更新")
+        return super().validate(data)
 
 
 

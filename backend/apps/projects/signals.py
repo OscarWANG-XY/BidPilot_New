@@ -296,7 +296,9 @@ def initialize_project_stages(sender, instance, created, **kwargs):
                     name='招标文件上传',
                     description='上传招标文件',
                     type=TaskType.UPLOAD_TENDER_FILE,
-                    status=TaskStatus.PENDING
+                    status=TaskStatus.PENDING,
+                    lock_status=TaskLockStatus.UNLOCKED,
+                    tiptap_content=None
                 )
                 # 创建文档提取任务
                 Task.objects.create(
@@ -304,13 +306,14 @@ def initialize_project_stages(sender, instance, created, **kwargs):
                     name='招标文件信息提取',
                     description='从招标文件中提取结构化信息',
                     type=TaskType.DOCX_EXTRACTION_TASK,
-                    status=TaskStatus.PENDING
+                    status=TaskStatus.PENDING,
+                    lock_status=TaskLockStatus.UNLOCKED
                 )
                 
                 logger.info(f"为阶段 {stage_name} 创建了文档提取和文档树构建任务")
 
 
-@receiver(post_save, sender=Task)
+#@receiver(post_save, sender=Task)
 def handle_task_status_change(sender, instance, created, **kwargs):
     """
     处理任务状态变更的通用处理器

@@ -1,4 +1,4 @@
-import { Project } from '@/types/projects_dt_stru'
+import { Project } from '@/types/projects_dt_stru/projects_interface'
 import {
   Table,
   TableBody,

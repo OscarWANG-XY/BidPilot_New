@@ -243,52 +243,6 @@ class ProjectChangeHistory(models.Model):
         return f"{self.project.project_name} - {self.field_name} 变更于 {self.changed_at}"
 
 
-
-
-class ProjectChangeHistory(models.Model):
-    """项目变更历史记录"""
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    operation_id = models.UUIDField(
-        '操作ID', 
-        default=uuid.uuid4,
-        db_index=True,
-        help_text='同一操作中的多个字段变更共享相同的操作ID'
-    )
-    project = models.ForeignKey(
-        Project,
-        on_delete=models.CASCADE,
-        related_name='change_histories',
-        verbose_name='项目'
-    )
-    
-    # 基本字段变更
-    field_name = models.CharField('变更字段', max_length=100)
-    old_value = models.TextField('旧值', blank=True, null=True)
-    new_value = models.TextField('新值', blank=True, null=True)
-    
-    # 元数据
-    changed_at = models.DateTimeField('变更时间', auto_now_add=True)
-    changed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
-        related_name='project_changes',
-        verbose_name='操作人'
-    )
-    remarks = models.TextField('备注', blank=True)
-    
-    class Meta:
-        verbose_name = '项目变更历史'
-        verbose_name_plural = '项目变更历史'
-        ordering = ['-changed_at']
-        indexes = [
-            models.Index(fields=['project', 'changed_at']),
-            models.Index(fields=['field_name']),
-        ]
-    
-    def __str__(self):
-        return f"{self.project.project_name} - {self.field_name} 变更于 {self.changed_at}"
-
-
 class StageChangeHistory(models.Model):
     """阶段变更历史记录"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

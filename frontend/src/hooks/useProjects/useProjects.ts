@@ -6,7 +6,7 @@ import type {
   UpdateProjectStatusRequest,
   UpdateProjectActiveStageRequest,
   ProjectQueryParams,
-} from '@/types/projects_dt_stru';
+} from '@/types/projects_dt_stru/projects_interface';
 
 
 // ================================ Projects的Query HOOKs函数  ============================================ 

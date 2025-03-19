@@ -1,8 +1,6 @@
 import axiosInstance from '../axios_instance';
-import type { 
-  StageType,
-  DocxExtractionTask,
-} from '@/types/projects_dt_stru';
+import type { StageType } from '@/types/projects_dt_stru/projectStage_interface';
+import type { DocxExtractionTask } from '@/types/projects_dt_stru/projectTasks_interface';
 
 
 

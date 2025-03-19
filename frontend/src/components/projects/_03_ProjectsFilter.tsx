@@ -1,5 +1,5 @@
-import { ProjectQueryParams } from '@/types/projects_dt_stru';
-import {StageType, ProjectType } from '@/types/projects_dt_stru';
+import { ProjectQueryParams, ProjectType } from '@/types/projects_dt_stru/projects_interface';
+import {StageType } from '@/types/projects_dt_stru/projectStage_interface';
 
 interface ProjectFilterProps {
   queryParams: ProjectQueryParams;

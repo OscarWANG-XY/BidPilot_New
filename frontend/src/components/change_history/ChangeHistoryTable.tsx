@@ -21,7 +21,7 @@ import {
   ProjectChangeHistory, 
   StageChangeHistory, 
   TaskChangeHistory 
-} from '@/types/projects_dt_stru';
+} from '@/types/projects_dt_stru/projectHistory_interface';
 import { ArrowUpDown, Search, History, ExternalLink } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import { useParams } from '@tanstack/react-router';

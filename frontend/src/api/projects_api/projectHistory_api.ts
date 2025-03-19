@@ -4,7 +4,7 @@ import type {
   ProjectChangeHistory,
   StageChangeHistory,
   TaskChangeHistory
-} from '@/types/projects_dt_stru';
+} from '@/types/projects_dt_stru/projectHistory_interface';
 
 
 

@@ -1,12 +1,11 @@
 import axiosInstance from '../axios_instance';
 import type { 
   Project,
-  ProjectHistory,
   CreateProjectRequest,
   UpdateProjectStatusRequest,
   UpdateProjectActiveStageRequest,
   ProjectQueryParams,
-} from '@/types/projects_dt_stru';
+} from '@/types/projects_dt_stru/projects_interface';
 
 
 // ================================ projectsAPI 模块 =================================== 
@@ -71,14 +70,6 @@ export const projectsApi = {
       console.log('📥 更新项目状态成功:', response.data);
       return response.data;
     },
-  
-  // 获取项目历史记录
-  getProjectHistory: async (projectId: string): Promise<ProjectHistory[]> => {
-    console.log('📤 获取项目历史:', projectId);
-    const response = await axiosInstance.get(`/projects/${projectId}/histories/`);
-    console.log('📥 获取项目历史成功:', response.data);
-    return response.data;
-  },
 
   // 删除项目
   deleteProject: async (projectId: string): Promise<void> => {

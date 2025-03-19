@@ -1,13 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';  // 引用react-query的钩子函数
 import { projectStageApi } from '@/api/projects_api/projectStages_api';
-import type { 
-  StageType,
-  AllTask,
-  TaskType,
-  TaskStatus,
-  TaskLockStatus,
-  TaskMetaData,
-} from '@/types/projects_dt_stru';
+import type { StageType } from '@/types/projects_dt_stru/projectStage_interface';
+import { TaskType, TaskStatus, TaskLockStatus, AnyTask,TaskMetaData, } from '@/types/projects_dt_stru/projectTasks_interface';
 
 
 // ================================ Projects的Query HOOKs函数  ============================================ 
@@ -45,7 +39,7 @@ export const useProjectStages = () => {
         const stageData = await projectStageApi.getProjectStage(projectId, stageType);
         
         // 提取所有任务的状态信息，对齐BaseTask接口
-        const taskMetaData: TaskMetaData[] = stageData.tasks?.map((task: AllTask) => ({
+        const taskMetaData: TaskMetaData[] = stageData.tasks?.map((task: AnyTask) => ({
           id: task.id,
           name: task.name,
           description: task.description,

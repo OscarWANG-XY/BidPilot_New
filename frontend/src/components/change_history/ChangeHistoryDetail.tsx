@@ -7,7 +7,7 @@ import { useChangeHistory } from '@/hooks/useProjects/useProjectsHistory';
 import { ArrowLeft, Clock, User, FileText, Tag } from 'lucide-react';
 import { 
   TaskChangeHistory 
-} from '@/types/projects_dt_stru';
+} from '@/types/projects_dt_stru/projectHistory_interface';
 
 type HistoryType = 'project' | 'stage' | 'task';
 
