@@ -11,8 +11,8 @@ class ProjectStageInline(admin.TabularInline):
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
     list_display = ('id', 'project_name', 'tenderee', 'bidder', 'project_type', 
-                   'bid_deadline', 'status', 'is_urgent', 'current_active_stage', 'creator')
-    list_filter = ('project_type', 'status', 'is_urgent', 'current_active_stage')
+                   'bid_deadline', 'status', 'starred', 'current_active_stage', 'creator')
+    list_filter = ('project_type', 'status', 'starred', 'current_active_stage')
     search_fields = ('project_name', 'tenderee', 'bidder')
     date_hierarchy = 'create_time'
     inlines = [ProjectStageInline]

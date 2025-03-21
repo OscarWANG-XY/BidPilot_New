@@ -57,3 +57,6 @@ redis==5.2.1
 celery==5.4.0
 django_celery_beat==2.7.0
 django_celery_results==2.5.1
+
+# 文档处理
+mammoth==1.9.0

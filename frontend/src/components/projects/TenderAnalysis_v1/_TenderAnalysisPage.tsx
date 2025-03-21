@@ -2,14 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { InfoIcon, Loader2 } from 'lucide-react'
-import { TenderFileUpload } from '@/components/projects/TenderTasks/_01_TenderFileupload'
-import { DocxExtractionTask } from '@/components/projects/TenderTasks/_02_DocxExtractionTask'
-import { DocxTreeBuildTask } from '@/components/projects/TenderTasks/_03_DocxTreeBuildTask'
+import { TenderFileUpload } from '@/components/projects/TenderAnalysis_v1/_01_TenderFileupload'
+import { DocxExtractionTask } from '@/components/projects/TenderAnalysis_v1/_02_DocxExtractionTask'
+import { DocxTreeBuildTask } from '@/components/projects/TenderAnalysis_v1/_03_DocxTreeBuildTask'
 import { useProjectStages } from '@/hooks/useProjects/useProjectStages'
 import { StageType } from '@/types/projects_dt_stru/projectStage_interface'
 import { TaskStatus, TaskType, AllTaskState, TaskLockStatus } from '@/types/projects_dt_stru/projectTasks_interface'
 import { Skeleton } from '@/components/ui/skeleton'
-import { TaskStatusItem, getProgressPercentage } from '@/components/projects/TenderTasks/_00_helper'
+import { TaskStatusItem, getProgressPercentage } from '@/components/projects/TenderAnalysis_v1/_00_helper'
 
 // 定义页面props
 interface TenderAnalysisPageProps {
@@ -22,9 +22,9 @@ export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectI
   
 // 设置所有任务的初始状态
     const [allTaskState, setAllTaskState] = useState<AllTaskState>({
-        fileUploadStatus: TaskStatus.PENDING,
-        docxExtractionStatus: TaskStatus.PENDING,
-        docxTreeBuildStatus: TaskStatus.PENDING,
+        fileUploadStatus: TaskStatus.NOT_STARTED,
+        docxExtractionStatus: TaskStatus.NOT_STARTED,
+        docxTreeBuildStatus: TaskStatus.NOT_STARTED,
         fileUploadLock: TaskLockStatus.UNLOCKED,
         docxExtractionLock: TaskLockStatus.UNLOCKED,
         docxTreeBuildLock: TaskLockStatus.UNLOCKED,

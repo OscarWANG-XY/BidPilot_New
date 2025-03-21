@@ -34,7 +34,7 @@ export enum ProjectType {
     projectType: ProjectType;        // 项目类型
     bidDeadline?: Date;              // 投标截止时间（可选）
     status: ProjectStatus;           // 项目状态
-    isUrgent: boolean;               // 是否紧急
+    starred: boolean;               // 是否标星
     currentActiveStage: StageType;   // 当前活动阶段
     creator: {                       // 创建者信息
       id: string;
@@ -56,7 +56,7 @@ export enum ProjectType {
    */
   export type CreateProjectRequest = 
     Pick<Project, 'projectName' | 'tenderee'> &
-    Partial<Pick<Project, 'bidder' | 'projectType' | 'bidDeadline' | 'isUrgent' | 'status'>>;
+    Partial<Pick<Project, 'bidder' | 'projectType' | 'bidDeadline' | 'starred' | 'status'>>;
   
   /**
    * 项目查询参数 - 对齐后端过滤机制
@@ -64,7 +64,7 @@ export enum ProjectType {
   export interface ProjectQueryParams {
     currentActiveStage?: StageType;
     projectType?: ProjectType;
-    isUrgent?: boolean;
+    starred?: boolean;
     search?: string;
     ordering?: string;
   }
@@ -85,4 +85,13 @@ export enum ProjectType {
     id: string;
     status: ProjectStatus;
     remarks?: string;
+  }
+
+  // 项目侧边栏项 
+  export interface ProjectsSidebarItem {
+    name: string;
+    url: string;
+    status: string;
+    created: string;
+    starred: boolean;
   }

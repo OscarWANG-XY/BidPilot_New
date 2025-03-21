@@ -58,8 +58,8 @@ export function ProjectFilter({ queryParams, onQueryChange }: ProjectFilterProps
       <label className="flex h-9 items-center gap-2 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground">
         <input
           type="checkbox"
-          checked={queryParams.isUrgent || false}
-          onChange={(e) => onQueryChange({ isUrgent: e.target.checked || undefined })}
+          checked={queryParams.starred || false}
+          onChange={(e) => onQueryChange({ starred: e.target.checked || undefined })}
           className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
         />
         紧急项目

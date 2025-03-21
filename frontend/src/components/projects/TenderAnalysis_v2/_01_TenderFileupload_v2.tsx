@@ -6,93 +6,75 @@ import { ArrowRight } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { FileManager } from '@/components/files/_FileManager'
 import { useFiles } from '@/hooks/useFiles'
-import { TaskStatus, TaskLockStatus } from '@/types/projects_dt_stru/projectTasks_interface'
+import { StageType } from '@/types/projects_dt_stru/projectStage_interface'
+import { TaskStatus } from '@/types/projects_dt_stru/projectTasks_interface'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
+import { useProjectTasks } from '@/hooks/useProjects/useProjectTasks'
 
 
 // Part1: 组件的props定义
 interface TenderFileUploadProps {
   // 传入参数
   projectId: string
-  initialStatus?: TaskStatus
-  initialLockStatus?: TaskLockStatus
   isEnabled?: boolean                     // 添加isEnabled属性，与TaskA保持一致
   // 回调函数
-  onStateChange?: (status: TaskStatus, lockStatus: TaskLockStatus) => void  // 状态数据回传
-  onNavigateToNextTask?: () => void                                         // 回调进入下个任务的Tab
-  //onStartNextTask?: () => void                            // 回调启动下个任务
+  onStateChange?: (status: TaskStatus) => void  // 状态数据回传
+  onNavigateToNextTask?: () => void             // 回调进入下个任务的Tab
 }
 
 export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({ 
   // 传入参数
   projectId, 
-  initialStatus,
-  initialLockStatus,
-  isEnabled = true, // 作为第一个任务，默认是true （以后再考虑是否加入到数据库的模型里。）
+  isEnabled = true, 
   // 回调函数
   onStateChange, 
   onNavigateToNextTask,
-  //onStartNextTask
 }) => {
 
-  console.log("TenderFileUpload组件的初始化参数", {
-    projectId,
-    initialStatus,
-    initialLockStatus,
-    isEnabled,
-  })
+  // 使用useProjectTasks获取和更新任务状态
+  const { fileUploadTaskQuery, updateFileUploadTask } = useProjectTasks()
 
-  // --------  Part2: 任务的状态管理
-  const [status, setStatus] = useState<TaskStatus>(initialStatus || TaskStatus.PENDING)
-  const [lockStatus, setLockStatus] = useState<TaskLockStatus>(initialLockStatus || TaskLockStatus.UNLOCKED)
+  // 查询任务状态（从API获取）
+  const { data: taskData } = fileUploadTaskQuery(projectId, StageType.TENDER_ANALYSIS);
+
+  // 本地状态管理（从API同步）- 默认为激活状态
+  const [status, setStatus] = useState<TaskStatus>(TaskStatus.ACTIVE)
+
+  // 同步API数据到本地状态
   useEffect(() => {
-    // if(onStatusChange) 检查onStatusChange是否存在(是否是undefined或null)，如果存在则执行onStatusChange(status) 
-    if (onStateChange) {
-      onStateChange(status, lockStatus)
+    if (taskData) {
+      setStatus(taskData.status);
     }
-  }, [status, lockStatus, onStateChange])
+  }, [taskData]);
 
+  // 向父组件回传状态变化
+  useEffect(() => {
+    if (onStateChange) {
+      onStateChange(status)
+    }
+  }, [status, onStateChange])
 
+  // 文件加载状态
+  //const [isFilesLoading, setIsFilesLoading] = useState(true)
+  const { refetch: refreshFiles, files } = useFiles(projectId)
+  //const [fileManagerKey, setFileManagerKey] = useState(0);
 
-  // 新增：文件加载状态
-  const [isFilesLoading, setIsFilesLoading] = useState(true)    // 一开始默认文件在加载，等待FileManager加载结束触发回调，改变FilesLoading状态
-  const { refetch: refreshFiles, files } = useFiles(projectId)  // 获取文件列表 (注意，加载完以后才会有值)
-  const [fileManagerKey, setFileManagerKey] = useState(0);      //文件管理器的重置键
-
-  const hasDocxFile = files.some(file => 
+  // 检查是否有且只有一个docx文件
+  const docxFiles = files.filter(file => 
       file.name.toLowerCase().endsWith('.docx') || 
       file.mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   )
-
-  console.log("TenderFileUpload组件的文件加载状态", {
-    isFilesLoading,
-    files,
-    hasDocxFile,
-  })
+  const hasDocxFile = docxFiles.length > 0
+  const hasExactlyOneDocxFile = docxFiles.length === 1
   
-  useEffect(() => {
-    if (!isFilesLoading) {  // 只有在文件加载完成后才执行状态检查
-      if (status === TaskStatus.COMPLETED && !hasDocxFile) {
-        setStatus(TaskStatus.PENDING)
-        setFileManagerKey(prev => prev + 1)
-      }
-    }
-  }, [files, hasDocxFile, isFilesLoading]) 
-
-
-
-
   // 按钮加载状态
   const [isNavigating, setIsNavigating] = useState(false)
 
-  
-
   // 处理文件上传的函数 - 返回一个布尔值表示是否应该继续上传
   const handleFileUpload = (file: File): boolean => {
-
-    // 如果组件已锁定，阻止上传
-    if (lockStatus === TaskLockStatus.LOCKED) {
+    // 如果任务已完成，阻止上传
+    if (status === TaskStatus.COMPLETED) {
       toast({
         title: "操作被锁定",
         description: "任务已进入下一阶段，无法修改上传的文件",
@@ -125,31 +107,22 @@ export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({
     console.log('File validation passed, proceeding with upload:', file);
     return true; // 允许上传
   }
-  // 新增：处理文件加载状态变化
+  
+  // 处理文件加载状态变化
   const handleLoadingChange = (loading: boolean) => {
     console.log('Files loading state changed:', loading)
-    setIsFilesLoading(loading)
+    //setIsFilesLoading(loading)
   }
+  
   // 处理上传成功的回调
   const handleUploadSuccess = async () => {
     console.log('File uploaded successfully, refreshing file list');
-    try {
-      // 先刷新文件列表
-      await refreshFiles();
-      
-      // 添加一个短暂延迟，确保files数组已更新
-      setTimeout(() => {
-        console.log('Setting status to COMPLETED after file refresh');
-        setStatus(TaskStatus.COMPLETED);
-      }, 500);
-    } catch (error) {
-      console.error('Error refreshing files:', error);
-      setStatus(TaskStatus.COMPLETED);
-    }
+    await refreshFiles();
   }
-  // 重写文件删除处理函数，传递给FileManager
-  const handleDeleteCheck = () => {
-    if (lockStatus === TaskLockStatus.LOCKED) {
+  
+  // 文件删除处理函数
+  const handleDeleteCheck = ():boolean => {
+    if (status === TaskStatus.COMPLETED) {
       toast({
         title: "操作被锁定",
         description: "任务已进入下一阶段，无法删除上传的文件",
@@ -159,15 +132,15 @@ export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({
     }
     return true;
   };
-  // 处理"下一步"按钮点击
-  const handleNextTask = () => {
+  
+  // 处理"启动分析"按钮点击
+  const handleNextTask = async () => {
+    console.log("'启动分析'按钮被点击")
 
-    console.log("'下一步'按钮被点击")
-
-    if (!hasDocxFile) {
+    if (!hasExactlyOneDocxFile) {
       toast({
-        title: "请先上传文件",
-        description: "需要先上传招标文件才能进入下一步",
+        title: "文件要求",
+        description: "需要上传且只能上传一个招标文件才能进入下一步",
         variant: "destructive"
       });
       return;
@@ -176,21 +149,19 @@ export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({
     setIsNavigating(true);
     
     try {
+      // 更新状态为完成
+      setStatus(TaskStatus.COMPLETED);
+      console.log("任务状态更新为完成")
 
-      
-
-      // 锁定组件，防止文件被删除或重新上传 (通过setLockStatus来实现,要比下面慢一步)
-      setLockStatus(TaskLockStatus.LOCKED);
-      console.log("组件被锁定, 锁定后的状态为", lockStatus)
-
-      // 通知父组件启动下一个任务
-      // if (onStartNextTask && lockStatus === TaskLockStatus.UNLOCKED && status === TaskStatus.COMPLETED) {
-      //   onStartNextTask();
-      //   console.log("触发onStartNextTask回调")
-      // }
+      // 更新后端状态
+      await updateFileUploadTask({
+        projectId,
+        stageType: StageType.TENDER_ANALYSIS,
+        status: TaskStatus.COMPLETED
+      });
       
       toast({
-        title: "任务已开始",
+        title: "任务已完成",
         description: "文档解析任务已开始处理",
         variant: "default"
       });
@@ -207,24 +178,41 @@ export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({
         variant: "destructive"
       });
 
-      // 如果出错，解锁组件
-      setLockStatus(TaskLockStatus.UNLOCKED);
+      // 如果出错，恢复状态
+      setStatus(TaskStatus.ACTIVE);
 
     } finally {
       setIsNavigating(false);
     }
   };
 
+  // 根据任务状态获取卡片样式
+  const getCardStyleByStatus = () => {
+    switch(status) {
+      case TaskStatus.NOT_STARTED:
+        return "border-gray-200";
+      case TaskStatus.ACTIVE:
+        return "border-blue-400 border-2 bg-blue-50";
+      case TaskStatus.COMPLETED:
+        return "border-green-400 border-2 bg-green-50";
+      case TaskStatus.FAILED:
+        return "border-red-400 border-2 bg-red-50";
+      default:
+        return "border-gray-200";
+    }
+  }
 
+  // 判断是否文件操作被锁定
+  const isFilesLocked = status === TaskStatus.COMPLETED;
 
-  // --------  Part4: 组件的UI渲染， 不像TaskA, TaskB那样使用{isEnable ?() :()} 
+  // --------  Part4: 组件的UI渲染
 return (
-  <Card className="mb-6">
+  <Card className={`mb-6 ${getCardStyleByStatus()}`}>
     <CardHeader>
       <CardTitle className="text-lg flex items-center">
         <Upload className="h-5 w-5 mr-2" />
         上传招标文件
-        {lockStatus === TaskLockStatus.LOCKED && (
+        {isFilesLocked && (
           <span title="此任务已锁定">
             <Lock className="h-4 w-4 ml-2 text-gray-500" />
           </span>
@@ -236,37 +224,38 @@ return (
         <>
           <p className="text-sm text-gray-600 mb-4">
             请上传招标文件（仅支持.docx格式），系统将自动分析文件内容，为后续阶段提供支持。
-            {lockStatus === TaskLockStatus.LOCKED && <span className="text-amber-600 ml-1">任务已锁定，无法修改文件。</span>}
+            {isFilesLocked && <span className="text-amber-600 ml-1">任务已锁定，无法修改文件。</span>}
           </p>
           {hasDocxFile ? (
             <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg mb-4">
               <p className="text-sm text-amber-800">
-                {lockStatus === TaskLockStatus.LOCKED 
+                {isFilesLocked 
                     ? "文件已锁定。任务已进入下一阶段，无法修改文件。" 
                     : "已上传Word文档。如需更新，请先删除现有文档再上传新文档。"}
               </p>
             </div>
           ) : null}
+
           <FileManager 
-            key={`file-manager-${fileManagerKey}`} // 使用动态key强制重置组件
+            //key={`file-manager-${fileManagerKey}`} // 使用动态key强制重置组件
             // 属性配置（传入）
             projectId={projectId} 
             acceptedFileTypes=".docx"
             allowMultiple={false}
-            readOnly={lockStatus === TaskLockStatus.LOCKED}
+            readOnly={isFilesLocked}
             // 回调函数
             onFileUpload={handleFileUpload} 
             onUploadSuccess={handleUploadSuccess}
             onDeleteCheck={handleDeleteCheck}
             onLoadingChange={handleLoadingChange} // 新增：传递加载状态回调
           />
-          {hasDocxFile && (
+          {!isFilesLocked && hasExactlyOneDocxFile && (
             <div className="mt-6 flex justify-end">
               <Button 
                 onClick={handleNextTask}
-                disabled={isNavigating || status !== TaskStatus.COMPLETED}
+                disabled={isNavigating || isFilesLocked}
               > 
-                {lockStatus === TaskLockStatus.UNLOCKED? '启动招标文件分析' : '查看招标文件分析'}      
+                确认上传     
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>

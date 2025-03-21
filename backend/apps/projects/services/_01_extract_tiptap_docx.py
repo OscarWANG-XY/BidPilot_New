@@ -2,6 +2,7 @@ import os, uuid, tempfile, requests
 from typing import Dict, Any
 from django.core.exceptions import ValidationError
 import logging
+import json
 logger = logging.getLogger(__name__)
 
 from apps.projects.models import Project, Task, TaskType
@@ -70,17 +71,22 @@ class DocxExtractorStep(PipelineStep[Project, Dict[str, Any]]):
             # docx_extraction_task.save()
 
 
-            Task.objects.filter(
+            task = Task.objects.get(
                 stage__project=current_project,
-                type=TaskType.DOCX_EXTRACTION
-            ).update(
-                tiptap_content= TiptapUtils.to_string(tiptap_content)
+                type=TaskType.DOCX_EXTRACTION_TASK
             )
+            # 确保转换为字符串
+            task.tiptap_content = json.dumps(tiptap_content, indent=2, ensure_ascii=False)
+            task.save()
 
+            logger.info(f"成功保存tiptap内容: project_id={current_project.id}, content_length={len(task.tiptap_content) if task.tiptap_content else 0}")
 
+            # 在处理文档后添加日志
+            logger.info(f"文档内容提取成功: project_id={current_project.id}, content_size={len(str(tiptap_content))}")
 
-            
-            logger.info(f"成功从文件提取内容: project_id={current_project.id}")
+            # 在保存后添加验证日志
+            logger.info(f"保存后验证: project_id={current_project.id}, tiptap_content_saved={bool(task.tiptap_content)}, length={len(task.tiptap_content) if task.tiptap_content else 0}")
+
             return tiptap_content
 
         except requests.RequestException as e:

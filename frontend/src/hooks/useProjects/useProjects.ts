@@ -6,6 +6,7 @@ import type {
   UpdateProjectStatusRequest,
   UpdateProjectActiveStageRequest,
   ProjectQueryParams,
+  ProjectsSidebarItem,
 } from '@/types/projects_dt_stru/projects_interface';
 
 
@@ -41,6 +42,29 @@ export const useProjects = () => {
              window.location.pathname === '/projects',
   });
 
+  // --------------- 查询侧边栏项目列表 --------------- 
+  const sidebarProjectsQuery = () => useQuery({
+    queryKey: ['sidebarProjectsKey'],
+    queryFn: async () => {
+      console.log('🔍 [useProjects] 查询侧边栏项目列表');
+      const result = await projectsApi.getAllProjects();
+      
+      // 转换为侧边栏所需的数据格式
+      const sidebarItems: ProjectsSidebarItem[] = result.map(project => ({
+        name: project.projectName,
+        url: `/projects/${project.id}`,
+        status: project.status,
+        created: new Date(project.createTime).toLocaleDateString(),
+        starred: project.starred || false  // 确保starred始终有值，与nav-projects.tsx中的期望一致
+      }));
+      
+      console.log('📥 [useProjects] 侧边栏项目列表:', sidebarItems);
+      return sidebarItems;
+    },
+    refetchOnWindowFocus: false,
+    staleTime: 60 * 1000,  // 1分钟后数据变为陈旧
+    gcTime: 5 * 60 * 1000, // 5分钟后清除缓存
+  });
 
   // --------------- 查询单个项目 （这是一个函数）--------------- 
   const singleProjectQuery = (projectId: string) => useQuery({
@@ -142,6 +166,7 @@ export const useProjects = () => {
     // 这样的好处是：调用者可以选择是否等待操作完成，可再调用处使用try/catch来处理错误; 可获取到操作返回的数据
     // 关于项目的CURD
     projectsQuery,  
+    sidebarProjectsQuery,
     singleProjectQuery,
     createProject: createProject.mutateAsync,  
     updateProject: updateProject.mutateAsync, 

@@ -22,12 +22,10 @@
   
   // 任务状态枚举 - 与后端对齐
   export enum TaskStatus {
-    PENDING = 'PENDING',           // 待处理
-    PROCESSING = 'PROCESSING',     // 处理中
-    COMPLETED = 'COMPLETED',       // 已完成
-    FAILED = 'FAILED',             // 失败
-    CONFIRMED = 'CONFIRMED',       // 已确认
-    BLOCKED = 'BLOCKED'            // 阻塞中
+    NOT_STARTED = 'NOT_STARTED',   // 未开始
+    ACTIVE = 'ACTIVE',             // 激活中
+    COMPLETED = 'COMPLETED',       // 完成
+    FAILED = 'FAILED'              // 失败
   }
   
   export enum TaskLockStatus {
@@ -53,47 +51,37 @@
   
   // 特定任务类型接口 - 对应后端特定任务的序列化器
   
-  // 文件上传任务接口 - 对应 FileUploadTaskDetailSerializer
-  export interface FileUploadTask extends Task {
-    // 目前没有特殊字段，但保留接口以匹配后端特定视图
-  }
-  
-  // 文档提取任务接口 - 对应 DocxExtractionTaskDetailSerializer
-  export interface DocxExtractionTask extends Task {
-    // 可能通过tiptapContent存储提取的内容
-  }
-  
-  // 文档树构建任务接口 - 对应未来可能实现的序列化器
-  export interface DocxTreeBuildTask extends Task {
-    // 可能通过tiptapContent存储文档树结构
-  }
-  
-  // 任务联合类型 - 所有特定任务类型的联合
-  export type AnyTask = Task | DocxExtractionTask | DocxTreeBuildTask;
-  
-  // 定义任务元数据接口，包含状态和锁定状态
-  export interface TaskMetaData {
+  // 文件上传任务查询接口 - 对应 FileUploadTaskDetailSerializer
+  export interface FileUploadTaskDetail {
     id: string;
     name: string;
-    description: string;
     type: TaskType;
     status: TaskStatus;
-    lockStatus: TaskLockStatus; // 添加锁定状态
   }
   
-  export type AllTaskState = {
-    fileUploadStatus: TaskStatus;
-    docxExtractionStatus: TaskStatus;
-    docxTreeBuildStatus: TaskStatus;
-    fileUploadLock: TaskLockStatus;
-    docxExtractionLock: TaskLockStatus;
-    docxTreeBuildLock: TaskLockStatus
+  // 文件上传任务更新接口 - 对应 FileUploadTaskUpdateSerializer
+  export interface FileUploadTaskUpdate {
+    status: TaskStatus;
   }
   
   
+  // 文档提取任务查询接口 - 对应 DocxExtractionTaskDetailSerializer
+  export interface DocxExtractionTaskDetail {
+    id: string;
+    name: string;
+    type: TaskType;
+    status: TaskStatus;
+    lockStatus: TaskLockStatus;
+    tiptapContent: string;
+  }
   
-  // ============================== 请求/响应模型 ==============================
- 
+  // 文档提取任务更新接口 - 对应 DocxExtractionTaskUpdateSerializer
+  export interface DocxExtractionTaskUpdate {
+    status: TaskStatus;
+    lockStatus: TaskLockStatus;
+    tiptapContent: string;
+  }
+  
 
   
   

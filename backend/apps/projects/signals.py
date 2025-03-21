@@ -91,7 +91,7 @@ def track_project_changes(sender, instance, **kwargs):
     try:
         # 仅跟踪现有实例的变更, 不能使用instance.pk, 因为创建时，可能提前分配了pk. 
         if instance._state.adding:
-            logger.info(f"新项目创建，不触发变更历史记录: {instance.project_name}")
+            # logger.info(f"新项目创建，不触发变更历史记录: {instance.project_name}")
             return
         
         # 从数据库获取当前状态
@@ -112,7 +112,7 @@ def track_project_changes(sender, instance, **kwargs):
         # 跟踪每个字段的变更
         fields_to_track = [
             'project_name', 'tenderee', 'bidder', 'project_type', 
-            'bid_deadline', 'status', 'is_urgent', 'current_active_stage'
+            'bid_deadline', 'status', 'current_active_stage'
         ]
         
         for field in fields_to_track:
@@ -144,7 +144,7 @@ def track_stage_changes(sender, instance, **kwargs):
     try:
         # 仅跟踪现有实例的变更,不能使用instance.pk, 因为创建时，可能提前分配了pk. 
         if instance._state.adding:
-            logger.info(f"新阶段创建，不触发变更历史记录: {instance.name}")
+            # logger.info(f"新阶段创建，不触发变更历史记录: {instance.name}")
             return
         
         # 从数据库获取当前状态
@@ -197,7 +197,7 @@ def track_task_changes(sender, instance, **kwargs):
     try:
         # 仅跟踪现有实例的变更,不能使用instance.pk, 因为创建时，可能提前分配了pk. 
         if instance._state.adding:
-            logger.info(f"新任务创建，不触发变更历史记录: {instance.name}")
+            # logger.info(f"新任务创建，不触发变更历史记录: {instance.name}")
             return
         
         # 从数据库获取当前状态
@@ -223,21 +223,21 @@ def track_task_changes(sender, instance, **kwargs):
             new_value = getattr(instance, field)
             
             # Add detailed logging for tiptap_content
-            if field == 'tiptap_content':
-                logger.info(f"Comparing tiptap_content for task {instance.id}:")
-                logger.info(f"Old value type: {type(old_value)}, value: {old_value}")
-                logger.info(f"New value type: {type(new_value)}, value: {new_value}")
-            
+            # if field == 'tiptap_content':
+            #     logger.info(f"Comparing tiptap_content for task {instance.id}:")
+            #     logger.info(f"Old value type: {type(old_value)}, value: {old_value}")
+            #     logger.info(f"New value type: {type(new_value)}, value: {new_value}")
+
             changed, old_str, new_str, is_complex = compare_values(old_value, new_value, field)
             
             # Add more logging for tiptap_content comparison result
-            if field == 'tiptap_content':
-                logger.info(f"Comparison result: changed={changed}, is_complex={is_complex}")
-                logger.info(f"Old string: {old_str}")
-                logger.info(f"New string: {new_str}")
+            # if field == 'tiptap_content':
+            #     logger.info(f"Comparison result: changed={changed}, is_complex={is_complex}")
+            #     logger.info(f"Old string: {old_str}")
+            #     logger.info(f"New string: {new_str}")
             
             if changed:
-                logger.info(f"任务变更: {instance.name} - {field}")
+                # logger.info(f"任务变更: {instance.name} - {field}")
                 
                 # 为复杂字段获取变更摘要
                 change_summary = get_change_summary(old_value, new_value, field) if is_complex else None
@@ -267,7 +267,7 @@ def track_task_changes(sender, instance, **kwargs):
 def initialize_project_stages(sender, instance, created, **kwargs):
     """当项目创建后，初始化所有项目阶段"""
     if created:
-        logger.info(f"检测到新项目创建: {instance.id}，开始初始化项目阶段")
+        # logger.info(f"检测到新项目创建: {instance.id}，开始初始化项目阶段")
         
         # 直接使用StageType中的所有未注释的选项
         for stage_type in StageType:
@@ -277,7 +277,7 @@ def initialize_project_stages(sender, instance, created, **kwargs):
             # 获取阶段的显示名称
             stage_name = stage_type.label
             
-            logger.info(f"开始创建阶段: {stage_name}, 状态: {status}")
+            # logger.info(f"开始创建阶段: {stage_name}, 状态: {status}")
             # 创建阶段
             stage = ProjectStage.objects.create(
                 project=instance,
@@ -286,7 +286,7 @@ def initialize_project_stages(sender, instance, created, **kwargs):
                 stage_status=status,
                 description=f'{stage_name}阶段'
             )
-            logger.info(f"阶段创建成功: {stage_name}，状态: {status}，关联项目: {instance.id}")
+            # logger.info(f"阶段创建成功: {stage_name}，状态: {status}，关联项目: {instance.id}")
             
             # 为招标文件分析阶段创建相关任务
             if stage_type == StageType.TENDER_ANALYSIS:
@@ -296,7 +296,7 @@ def initialize_project_stages(sender, instance, created, **kwargs):
                     name='招标文件上传',
                     description='上传招标文件',
                     type=TaskType.UPLOAD_TENDER_FILE,
-                    status=TaskStatus.PENDING,
+                    status=TaskStatus.ACTIVE,
                     lock_status=TaskLockStatus.UNLOCKED,
                     tiptap_content=None
                 )
@@ -306,20 +306,21 @@ def initialize_project_stages(sender, instance, created, **kwargs):
                     name='招标文件信息提取',
                     description='从招标文件中提取结构化信息',
                     type=TaskType.DOCX_EXTRACTION_TASK,
-                    status=TaskStatus.PENDING,
-                    lock_status=TaskLockStatus.UNLOCKED
+                    status=TaskStatus.NOT_STARTED,
+                    lock_status=TaskLockStatus.UNLOCKED,
+                    tiptap_content=None,
                 )
                 
-                logger.info(f"为阶段 {stage_name} 创建了文档提取和文档树构建任务")
+                # logger.info(f"为阶段 {stage_name} 创建了文档提取和文档树构建任务")
 
 
-#@receiver(post_save, sender=Task)
+@receiver(post_save, sender=Task)
 def handle_task_status_change(sender, instance, created, **kwargs):
     """
     处理任务状态变更的通用处理器
     """
     if created:
-        logger.info(f"新建任务: {instance.name}, 类型: {instance.type}")
+        logger.info(f"新建任务: {instance.name}, 类型: {instance.type}, 状态: {instance.status}")
         return
         
     logger.info(f"任务状态更新: {instance.name}, 类型: {instance.type}, 状态: {instance.status}, 锁定状态: {instance.lock_status}")
@@ -331,76 +332,51 @@ def handle_task_status_change(sender, instance, created, **kwargs):
         handle_docx_extraction_auto_task(instance)
 
 
-
-def handle_file_upload_auto_task(sender, instance, created, **kwargs):
+def handle_file_upload_auto_task(instance):
     """
-    当TenderFileUploadTask被更新为COMPLETED状态且被locked时触发改任务，本任务目的：
-    1. 检查file_upload任务的状态是否为completed+locked
-    2. 检查是否刚从UNLOCKED转为LOCKED
-    3. 检查项目是否有关联文件
-    4. 检查DocxExtractionTask是否是PENDING状态
-    5. 如果以上条件都满足，则将DocxExtractionTask的状态更新为PROCESSING - > 触发handle_auto_docx_extraction信号
+    该函数目前没有特定作用
+    保留 用于日志记录 和 潜在的未来拓展
     """
-
-    logger.info(f"Handle_tender_file_upload_locked 被触发")
+    logger.info(f"处理文件上传任务状态变更")
     
-    # 1. 外围条件：FileUploadTask 为 COMPLETED + locked 状态
-    if not created and instance.lock_status == TaskLockStatus.LOCKED and instance.status == TaskStatus.COMPLETED:
-        logger.info(f"探测到 TenderFileUploadTask状态为: COMPLETED + LOCKED")
+    # 1. 检查文件上传任务是否完成
+    if instance.status == TaskStatus.COMPLETED:
         try:
-            # 获取相关联的阶段和项目
+            # 获取相关联的阶段
             stage = instance.stage
-            project = stage.project
-
-            # 2. 检查是否从UNLOCKED转为LOCKED？
+            
+            # 2. 检查状态是否从ACTIVE转为COMPLETED
             from apps.projects.models import TaskChangeHistory
             
-            lock_status_change = TaskChangeHistory.objects.filter(
+            status_change = TaskChangeHistory.objects.filter(
                 task=instance,
-                field_name='lock_status',
-                old_value=TaskLockStatus.UNLOCKED,
-                new_value=TaskLockStatus.LOCKED
+                field_name='status',
+                old_value=TaskStatus.ACTIVE,
+                new_value=TaskStatus.COMPLETED
             ).order_by('-changed_at').first()
-
-            if not lock_status_change:
-                logger.warning(f"文件上传任务状态不是从UNLOCKED转为LOCKED，跳过处理")
+            
+            if not status_change:
+                logger.warning(f"文件上传任务状态不是从ACTIVE转为COMPLETED，跳过处理")
                 return
-
-            logger.info(f"检查到 文件上传任务 从非锁定到锁定")
-
-            # 3. 检查项目是否有关联文件
-            if not hasattr(project, 'files') or not project.files.exists():
-                logger.warning(f"项目 {project.id} 没有关联文件，无法执行文档提取")
-                return
-            logger.info(f"检查到 项目有关联的文件！")
-
-
-            # 4. 检查DocxExtractionTask是否是PENDING状态
+                
+            logger.info(f"检测到文件上传任务从ACTIVE转为COMPLETED")
+            
+            # 3. 查找文档提取任务，但不自动激活
+            # 修改：不再自动将文档提取任务设为ACTIVE，而是让用户在前端手动触发
             docx_extraction_task = Task.objects.filter(
                 stage=stage,
-                type=TaskType.DOCX_EXTRACTION_TASK,
-                status=TaskStatus.PENDING
+                type=TaskType.DOCX_EXTRACTION_TASK
             ).first()
-
-            if not docx_extraction_task:
-                logger.warning(f"文档提取任务不在PENDING状态，无法启动")
-                return
-
-            logger.info(f"检查到 文档提取任务为PENDING状态")
-
-            # 5. 更新DocxExtractionTask状态为PROCESSING -> 用来触发handle_auto_docx_extraction信号
-            docx_extraction_task.status = TaskStatus.PROCESSING
-            docx_extraction_task.save()
-            logger.info(f"文档提取任务状态更新为PROCESSING 并 save()")
-
+            
+            # 确保任务存在但不自动激活
+            if docx_extraction_task:
+                logger.info(f"文件上传任务已完成，文档提取任务等待用户手动触发")
+            
         except Exception as e:
-            logger.error(f"文件上传任务处理失败: {str(e)}")
+            logger.error(f"处理文件上传任务失败: {str(e)}")
 
 
-
-
-# ============================== 文档提取任务处理 ==============================
-def handle_docx_extraction_auto_task(sender, instance, created, **kwargs):
+def handle_docx_extraction_auto_task(instance):
     """
     自动触发文档内容提取，需进一步满足以下条件：
     1. DocxExtractionTask 满足 PROCESSING + UNLOCKED 状态
@@ -414,10 +390,10 @@ def handle_docx_extraction_auto_task(sender, instance, created, **kwargs):
 
     logger.info(f"DocxExtractionTask状态更新，检查是否需要启动文档提取")
 
-    # 1. 外围条件：DocxExtractionTask 满足 PROCESSING + UNLOCKED 状态
-    if not created and instance.status == TaskStatus.PROCESSING and instance.lock_status == TaskLockStatus.UNLOCKED:
+    # 1. 外围条件：DocxExtractionTask 满足 PROCESSING + UNLOCKED + tiptap_content=None 状态
+    if instance.status == TaskStatus.ACTIVE and instance.lock_status == TaskLockStatus.UNLOCKED and instance.tiptap_content is None:
 
-        logger.info(f"探测到 DocxExtractionTask状态为: PROCESSING + UNLOCKED")
+        logger.info(f"探测到 DocxExtractionTask状态为: ACTIVE + UNLOCKED")
 
         try:
             # 获取相关联的阶段和项目 
@@ -425,51 +401,20 @@ def handle_docx_extraction_auto_task(sender, instance, created, **kwargs):
             project = stage.project
 
 
-            # 2. 检查状态是否从PENDING转为PROCESSING
-            
+            # 2. 检查状态是否从NOT_STARTED转为ACTIVE
             status_change = TaskChangeHistory.objects.filter(
                 task=instance,
                 field_name='status',
-                old_value=TaskStatus.PENDING,
-                new_value=TaskStatus.PROCESSING
+                #old_value=TaskStatus.NOT_STARTED, #这里不再强制指定之前的状态，意味着我们允许从任何状态转为ACTIVE，包括failed, completed, 等。
+                new_value=TaskStatus.ACTIVE
             ).order_by('-changed_at').first()
             
             if not status_change:
-                logger.warning(f"DocxExtractionTask状态不是从PENDING转为PROCESSING，跳过处理")
+                logger.warning(f"DocxExtractionTask状态未变为ACTIVE，跳过处理")
                 return
             
-            logger.info(f"检查到 DocxExtractionTask状态从PENDING转为PROCESSING")            
-
-            # 3. 检查TenderFileUpload任务是否已完成且被锁定 （上一个任务的完成情况）
-            upload_task = Task.objects.filter(
-                stage=stage,
-                type=TaskType.UPLOAD_TENDER_FILE,
-                status=TaskStatus.COMPLETED,
-                lock_status=TaskLockStatus.LOCKED
-            ).first()
-            
-            if not upload_task:
-                logger.warning(f"文件上传任务未完成或未锁定，无法执行文档提取")
-                return
-            
-            logger.info(f"检查到 文件上传任务已完成且被锁定")
-
-
-            # 4. 检查项目是否有关联文件
-            if not hasattr(project, 'files') or not project.files.exists():
-                logger.warning(f"项目 {project.id} 没有关联文件，无法执行文档提取")
-                return
-            logger.info(f"检查到 项目有关联的文件！")
-
-        
-            # a. 使用update直接更新数据库，避免触发post_save信号
-            Task.objects.filter(pk=instance.pk).update(
-                status=TaskStatus.COMPLETED
-            )
-            # 更新内存中的实例状态，确保一致性
-            instance.status = TaskStatus.COMPLETED
-            logger.info(f"DocxExtractionTask状态更新为COMPLETED, 这样处理避免触发post_save信号后，重复执行文档提取")
-
+            # 可以添加日志记录原始状态
+            logger.info(f"DocxExtractionTask状态从{status_change.old_value}变为ACTIVE")
             
             # b. 使用Celery任务异步处理文档提取
             from .tasks import process_docx_extraction

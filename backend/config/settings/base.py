@@ -209,10 +209,10 @@ SPECTACULAR_SETTINGS = {
 
 # -----------------------  CORS设置 （与前端连接的必要配置）--------------------------------------
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # React 开发服务器
+    #"http://localhost:3000",  # React 开发服务器
     "http://localhost:5173",  # Vite 开发服务器
     "http://115.159.6.83:5173",  # Vite 开发服务器 
-    "http://115.159.6.83:3000",  # React 开发服务器 
+    #"http://115.159.6.83:3000",  # React 开发服务器 
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True  # 允许所有来源 (生产环境不要开启)
@@ -256,3 +256,9 @@ INSTALLED_APPS += [
     'django_celery_results',
     'django_celery_beat',
 ]
+
+
+
+# ----------------------------- Tiptap Service Configuration -----------------------------
+TIPTAP_SERVICE_URL = 'http://localhost:3000'  # Update this to match your deployment
+TIPTAP_SERVICE_TIMEOUT = 30  # seconds

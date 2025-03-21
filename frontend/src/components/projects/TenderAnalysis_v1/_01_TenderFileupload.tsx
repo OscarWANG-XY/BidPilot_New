@@ -44,7 +44,7 @@ export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({
   })
 
   // --------  Part2: 任务的状态管理
-  const [status, setStatus] = useState<TaskStatus>(initialStatus || TaskStatus.PENDING)
+  const [status, setStatus] = useState<TaskStatus>(initialStatus || TaskStatus.NOT_STARTED)
   const [lockStatus, setLockStatus] = useState<TaskLockStatus>(initialLockStatus || TaskLockStatus.UNLOCKED)
   useEffect(() => {
     // if(onStatusChange) 检查onStatusChange是否存在(是否是undefined或null)，如果存在则执行onStatusChange(status) 
@@ -74,7 +74,7 @@ export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({
   useEffect(() => {
     if (!isFilesLoading) {  // 只有在文件加载完成后才执行状态检查
       if (status === TaskStatus.COMPLETED && !hasDocxFile) {
-        setStatus(TaskStatus.PENDING)
+        setStatus(TaskStatus.NOT_STARTED)
         setFileManagerKey(prev => prev + 1)
       }
     }

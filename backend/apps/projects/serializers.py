@@ -125,7 +125,8 @@ class ProjectListSerializer(serializers.ModelSerializer):
                  'status', 'status_display', 
                  'current_active_stage', 
                  'current_active_stage_display', 
-                 'bid_deadline', 'is_urgent',
+                 'starred',
+                 'bid_deadline',
                  'creator', 'create_time', 'last_update_time']
         read_only_fields = ['id', 'creator', 'create_time', 'last_update_time',
                            'current_active_stage', 'current_active_stage_display', 
@@ -143,7 +144,7 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = ['id', 'project_name', 'tenderee', 'bidder',
-                 'project_type', 'bid_deadline', 'is_urgent', 'status']
+                 'project_type', 'bid_deadline', 'starred', 'status']
         read_only_fields = ['id']
 
     def create(self, validated_data):
@@ -157,7 +158,7 @@ class ProjectUpdateSerializer(ChangeTrackingModelSerializer):
     class Meta:
         model = Project
         fields = ['project_name', 'tenderee', 'bidder', 'project_type',
-                 'bid_deadline', 'is_urgent', 'status']
+                 'bid_deadline', 'starred', 'status']
 
 # 专用于前端项目取消，和删除的场景
 class ProjectStatusUpdateSerializer(ChangeTrackingModelSerializer):
@@ -333,8 +334,8 @@ class FileUploadTaskDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = ['id','name','type',
-                  'status', 'lock_status',
-                  # 'tiptap_content'
+                  'status', 
+                  #'lock_status', 'tiptap_content', 'user_confirmed'
                   ]  
         read_only_fields = fields  # 所有字段都是只读的
     
@@ -349,8 +350,8 @@ class FileUploadTaskUpdateSerializer(ChangeTrackingModelSerializer):
         model = Task
         fields = [
             #'id', 'name', 'type',
-            'status', 'lock_status',
-            #'tiptap_content'
+            'status', 
+            #'lock_status', 'tiptap_content', 'user_confirmed'
         ]
     
     def validate(self, data):

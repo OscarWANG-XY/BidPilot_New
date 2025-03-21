@@ -16,7 +16,7 @@ export const DocxTreeBuildTask: React.FC<TaskBProps> = ({
   projectId, 
   isEnabled, // 是否启用任务A，再后面的组件渲染中使用
   onStatusChange, // 回调函数，在父组件有重新渲染时，无论状态是否真的有变化，onStatusChange都被认为变化了，在下面Effect里被监听。
-  initialStatus = TaskStatus.PENDING
+  initialStatus = TaskStatus.NOT_STARTED
 }) => {
 
   // 添加了任务A的status状态管理, 用于向父组件传递状态，与后面的

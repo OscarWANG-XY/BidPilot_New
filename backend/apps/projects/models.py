@@ -1,6 +1,10 @@
 import uuid
 from django.db import models
 from django.conf import settings
+from .tiptap.utils import (
+    task_get_content_as_html, task_get_content_as_markdown,
+    task_set_content_from_html, task_set_content_from_markdown
+)
 import logging
 logger = logging.getLogger(__name__)
 
@@ -44,12 +48,10 @@ class TaskType(models.TextChoices):
     OTHER = 'OTHER', '其他'
 
 class TaskStatus(models.TextChoices):
-    PENDING = 'PENDING', '待处理'
-    PROCESSING = 'PROCESSING', '处理中'
-    COMPLETED = 'COMPLETED', '已完成'
+    NOT_STARTED = 'NOT_STARTED', '未开始'
+    ACTIVE = 'ACTIVE', '激活中'
+    COMPLETED = 'COMPLETED', '完成'
     FAILED = 'FAILED', '失败'
-    CONFIRMED = 'CONFIRMED', '已确认'
-    BLOCKED = 'BLOCKED', '阻塞中'
 
 class TaskLockStatus(models.TextChoices):
     LOCKED = 'LOCKED', '锁定'
@@ -75,7 +77,7 @@ class Project(models.Model):
         choices=ProjectStatus.choices,
         default=ProjectStatus.IN_PROGRESS
     )
-    is_urgent = models.BooleanField('是否紧急', default=False)
+    starred = models.BooleanField('是否标星', default=False)
     current_active_stage = models.CharField(
         '当前活动阶段',
         max_length=20,
@@ -167,7 +169,7 @@ class Task(models.Model):
         '状态',
         max_length=20,
         choices=TaskStatus.choices,
-        default=TaskStatus.PENDING
+        default=TaskStatus.NOT_STARTED
     )
     created_at = models.DateTimeField('创建时间', auto_now_add=True)
     updated_at = models.DateTimeField('更新时间', auto_now=True)
@@ -197,6 +199,26 @@ class Task(models.Model):
     
     def __str__(self):
         return f"{self.name} - {self.get_status_display()}"
+
+    # 在 models.py 中的 Task 类中添加以下方法
+    # 在 Task 类内部添加这些方法
+    def get_content_as_html(self):
+        """将 tiptap_content 转换为 HTML"""
+        return task_get_content_as_html(self)
+
+    def get_content_as_markdown(self):
+        """将 tiptap_content 转换为 Markdown"""
+        return task_get_content_as_markdown(self)
+
+    def set_content_from_html(self, html):
+        """从 HTML 设置 tiptap_content"""
+        return task_set_content_from_html(self, html)
+
+    def set_content_from_markdown(self, markdown):
+        """从 Markdown 设置 tiptap_content"""
+        return task_set_content_from_markdown(self, markdown)
+
+
 
 
 class ProjectChangeHistory(models.Model):
@@ -366,6 +388,8 @@ class TaskChangeHistory(models.Model):
     
     def __str__(self):
         return f"{self.task.name} - {self.field_name} 变更于 {self.changed_at}"
+
+
 
 
 

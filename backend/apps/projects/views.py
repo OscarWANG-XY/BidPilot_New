@@ -1,5 +1,5 @@
 from rest_framework import viewsets, mixins, status, filters
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import NotFound
@@ -253,14 +253,14 @@ class ProjectViewSet(viewsets.ModelViewSet):
     # 过滤器： 使用Django_filters自带的过滤器， 搜索过滤器， 排序过滤器
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     # 过滤器字段，DjangoFilterBackend，自动处理字段名映射
-    filterset_fields = ['current_active_stage', 'project_type', 'is_urgent']
+    filterset_fields = ['current_active_stage', 'project_type', 'starred']
     # 搜索字段 - 使用统一的search参数，不存在命名转换
     search_fields = ['project_name', 'tenderee', 'bidder']
 
     # 移除 ordering_fields 映射，直接使用模型字段名
     ordering_fields = [
         'project_name','project_type','tenderee','bidder',
-        'current_active_stage','is_urgent','bid_deadline',
+        'current_active_stage','starred','bid_deadline',
         'create_time','last_update_time'
     ]
     ordering = ['-create_time']

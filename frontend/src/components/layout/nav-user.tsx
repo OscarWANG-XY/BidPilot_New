@@ -30,22 +30,24 @@ import {
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
-
+import { UserResponse } from "@/types/user_dt_stru"
 
 // ========================= 用户导航栏 =========================
 export function NavUser({
   user,
 }: {
-  user: {
-    name: string
-    email: string
-    avatar: string
-  }
+  user: UserResponse
 }) {
   const { isMobile } = useSidebar()
   const { logout } = useAuth()
   const { toast } = useToast()
 
+  // 创建一个安全的用户对象，当user为null时使用默认值
+  const safeUser = user || {
+    name: "王晖",
+    phone: "18501771516",
+    email: "example@email.com",
+  }
 
   // -------------------  定义注销方法  -------------------  
   const handleLogout = async () => {
@@ -64,6 +66,9 @@ export function NavUser({
     }
   }
 
+  // -------------------  定义用户头像  -------------------  
+  
+  const userAvatar = '/avatars/shadcn.jpg'
 
   // -------------------  组件渲染  -------------------  
   return (
@@ -76,12 +81,12 @@ export function NavUser({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarImage src={userAvatar} alt={safeUser.phone || ''} />
                 <AvatarFallback className="rounded-lg">CN</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">{user.name}</span>
-                <span className="truncate text-xs">{user.email}</span>
+                <span className="truncate font-semibold">{safeUser.phone || ''}</span>
+                <span className="truncate text-xs">{safeUser.email || ''}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -95,12 +100,12 @@ export function NavUser({
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarImage src={userAvatar} alt={safeUser.phone || ''} />
                   <AvatarFallback className="rounded-lg">CN</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{user.name}</span>
-                  <span className="truncate text-xs">{user.email}</span>
+                  <span className="truncate font-semibold">{safeUser.phone || ''}</span>
+                  <span className="truncate text-xs">{safeUser.email || ''}</span>
                 </div>
               </div>
             </DropdownMenuLabel>

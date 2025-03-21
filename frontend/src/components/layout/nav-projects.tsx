@@ -18,17 +18,12 @@ import {
 } from "@/components/ui/tooltip"
 
 import { CreateProjectDialog } from "@/components/projects/_01_ProjectCreate"
+import { ProjectsSidebarItem } from "@/types/projects_dt_stru/projects_interface"
 
 export function NavProjects({
 projects,
 }: {
-  projects: {
-    name: string
-    url: string
-    status: string
-    created: string
-    starred: boolean
-  }[]
+  projects: ProjectsSidebarItem[]
 }) {
   const location = useLocation()
   const pathname = location.pathname

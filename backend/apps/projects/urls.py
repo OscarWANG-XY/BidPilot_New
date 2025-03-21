@@ -29,3 +29,23 @@ urlpatterns = [
 ]
 
 
+
+
+# 添加面向tiptap微服务的导入
+from .tiptap.api import (
+    html_to_json, json_to_html, 
+    markdown_to_json, json_to_markdown,
+    tiptap_health
+)
+
+# 添加到 urlpatterns
+tiptap_urlpatterns = [
+    path('tiptap/html-to-json', html_to_json, name='html_to_json'),
+    path('tiptap/json-to-html', json_to_html, name='json_to_html'),
+    path('tiptap/markdown-to-json', markdown_to_json, name='markdown_to_json'),
+    path('tiptap/json-to-markdown', json_to_markdown, name='json_to_markdown'),
+    path('tiptap/health', tiptap_health, name='tiptap_health'),
+]
+
+# 将 tiptap_urlpatterns 添加到主 urlpatterns
+urlpatterns += tiptap_urlpatterns
