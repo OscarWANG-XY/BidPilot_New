@@ -8,7 +8,7 @@ export interface TipTap {
   id: number;
   name: string;
   description: string;
-  tiptap_content: string;
+  tiptap_content: any;
   created_at: string;
   updated_at: string;
 }
@@ -17,7 +17,7 @@ export interface TipTap {
 export interface TipTapInput {
   name: string;
   description: string;
-  tiptap_content: string;
+  tiptap_content: any;
 }
 
 // Create an axios instance

@@ -10,6 +10,14 @@ import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TextStyle from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
+import Image from '@tiptap/extension-image';
+import Link from '@tiptap/extension-link';
+import TextAlign from '@tiptap/extension-text-align';
+import Highlight from '@tiptap/extension-highlight';
+import Typography from '@tiptap/extension-typography';
+import Underline from '@tiptap/extension-underline';
+import Subscript from '@tiptap/extension-subscript';
+import Superscript from '@tiptap/extension-superscript';
 import { useTipTaps } from './useTiptap';
 import {
   Bold,
@@ -20,6 +28,9 @@ import {
   Heading2,
   Heading3,
   AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
   List,
   ListOrdered,
   Quote,
@@ -30,6 +41,12 @@ import {
   Redo,
   LucideProps,
   Menu,
+  Image as ImageIcon,
+  Link as LinkIcon,
+  Highlighter,
+  Underline as UnderlineIcon,
+  Subscript as SubscriptIcon,
+  Superscript as SuperscriptIcon,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -250,14 +267,69 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
       }),
       Table.configure({
         resizable: true,
+        HTMLAttributes: {
+          class: 'tiptap-table',
+        },
       }),
       TableHeader,
       TableRow,
       TableCell,
       TextStyle,
       Color,
+      Image.configure({
+        inline: false,
+        allowBase64: true,
+      }),
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'tiptap-link',
+        },
+      }),
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+        alignments: ['left', 'center', 'right', 'justify'],
+        defaultAlignment: 'left',
+      }),
+      Highlight.configure({
+        multicolor: true,
+      }),
+      Typography,
+      Underline,
+      Subscript,
+      Superscript,
     ],
-    content: initialContent ? JSON.parse(initialContent) : '',
+    content: initialContent ? (() => {
+      try {
+        console.log('Content type:', typeof initialContent);
+        console.log('Content preview:', initialContent);
+        
+        // Handle different formats of initialContent
+        if (typeof initialContent === 'object') {
+          return initialContent;
+        } else if (typeof initialContent === 'string') {
+          // Check if it's a Python-style dictionary string
+          if (initialContent.startsWith("{'") || initialContent.startsWith("{\"")) {
+            // Convert Python-style quotes to JSON-compatible quotes
+            const jsonString = initialContent
+              .replace(/'/g, '"')
+              .replace(/None/g, 'null')
+              .replace(/True/g, 'true')
+              .replace(/False/g, 'false');
+            
+            console.log('Converted to JSON string:', jsonString);
+            return JSON.parse(jsonString);
+          } else {
+            // Regular JSON string
+            return JSON.parse(initialContent);
+          }
+        }
+        return '';
+      } catch (error) {
+        console.error('Failed to parse Tiptap content:', error);
+        return ''; // Provide a default value
+      }
+    })() : '',
     onUpdate: ({ editor }) => {
       // 当编辑器内容更新时，重新生成目录
       generateToc(editor);
@@ -309,8 +381,35 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
       
       if (editor && existingTestground.tiptap_content) {
         try {
-          const content = JSON.parse(existingTestground.tiptap_content);
-          editor.commands.setContent(content);
+          const content = existingTestground.tiptap_content;
+          console.log('Existing content type:', typeof content);
+          console.log('Existing content preview:', content);
+          
+          // Handle different formats of content
+          let parsedContent;
+          if (typeof content === 'object') {
+            parsedContent = content;
+          } else if (typeof content === 'string') {
+            // Check if it's a Python-style dictionary string
+            if (content.startsWith("{'") || content.startsWith("{\"")) {
+              // Convert Python-style quotes to JSON-compatible quotes
+              const jsonString = content
+                .replace(/'/g, '"')
+                .replace(/None/g, 'null')
+                .replace(/True/g, 'true')
+                .replace(/False/g, 'false');
+              
+              console.log('Converted to JSON string:', jsonString);
+              parsedContent = JSON.parse(jsonString);
+            } else {
+              // Regular JSON string
+              parsedContent = JSON.parse(content);
+            }
+          }
+          
+          console.log('Parsed content:', parsedContent);
+          editor.commands.setContent(parsedContent || '');
+          
           // 内容加载后重新生成目录
           setTimeout(() => {
             generateToc(editor);
@@ -521,6 +620,33 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
               
               <div className="flex flex-wrap mb-1 mr-3 border-r border-gray-300 pr-2">
                 <ToolbarButton 
+                  onClick={() => editor?.chain().focus().setTextAlign('left').run()}
+                  active={editor?.isActive({ textAlign: 'left' })}
+                  icon={AlignLeft}
+                  tooltip="左对齐"
+                />
+                <ToolbarButton 
+                  onClick={() => editor?.chain().focus().setTextAlign('center').run()}
+                  active={editor?.isActive({ textAlign: 'center' })}
+                  icon={AlignCenter}
+                  tooltip="居中对齐"
+                />
+                <ToolbarButton 
+                  onClick={() => editor?.chain().focus().setTextAlign('right').run()}
+                  active={editor?.isActive({ textAlign: 'right' })}
+                  icon={AlignRight}
+                  tooltip="右对齐"
+                />
+                <ToolbarButton 
+                  onClick={() => editor?.chain().focus().setTextAlign('justify').run()}
+                  active={editor?.isActive({ textAlign: 'justify' })}
+                  icon={AlignJustify}
+                  tooltip="两端对齐"
+                />
+              </div>
+              
+              <div className="flex flex-wrap mb-1 mr-3 border-r border-gray-300 pr-2">
+                <ToolbarButton 
                   onClick={() => editor?.chain().focus().toggleBulletList().run()}
                   active={editor?.isActive('bulletList')}
                   icon={List}
@@ -541,6 +667,54 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
               </div>
               
               <div className="flex flex-wrap mb-1 mr-3 border-r border-gray-300 pr-2">
+                <ToolbarButton 
+                  onClick={() => editor?.chain().focus().toggleUnderline().run()}
+                  active={editor?.isActive('underline')}
+                  icon={UnderlineIcon}
+                  tooltip="下划线"
+                />
+                <ToolbarButton 
+                  onClick={() => editor?.chain().focus().toggleHighlight().run()}
+                  active={editor?.isActive('highlight')}
+                  icon={Highlighter}
+                  tooltip="高亮"
+                />
+                <ToolbarButton 
+                  onClick={() => editor?.chain().focus().toggleSubscript().run()}
+                  active={editor?.isActive('subscript')}
+                  icon={SubscriptIcon}
+                  tooltip="下标"
+                />
+                <ToolbarButton 
+                  onClick={() => editor?.chain().focus().toggleSuperscript().run()}
+                  active={editor?.isActive('superscript')}
+                  icon={SuperscriptIcon}
+                  tooltip="上标"
+                />
+              </div>
+              
+              <div className="flex flex-wrap mb-1 mr-3 border-r border-gray-300 pr-2">
+                <ToolbarButton 
+                  onClick={() => {
+                    const url = window.prompt('输入图片URL');
+                    if (url) {
+                      editor?.chain().focus().setImage({ src: url }).run();
+                    }
+                  }}
+                  icon={ImageIcon}
+                  tooltip="插入图片"
+                />
+                <ToolbarButton 
+                  onClick={() => {
+                    const url = window.prompt('输入链接URL');
+                    if (url) {
+                      editor?.chain().focus().setLink({ href: url }).run();
+                    }
+                  }}
+                  active={editor?.isActive('link')}
+                  icon={LinkIcon}
+                  tooltip="插入链接"
+                />
                 <ToolbarButton 
                   onClick={() => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
                   icon={TableIcon}

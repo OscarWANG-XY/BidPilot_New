@@ -14,6 +14,17 @@ const Underline = require('@tiptap/extension-underline').default;
 const Subscript = require('@tiptap/extension-subscript').default;
 const Superscript = require('@tiptap/extension-superscript').default;
 
+
+// 添加 JSDOM 来提供 DOM 环境
+const { JSDOM } = require('jsdom');
+const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
+
+// 设置全局浏览器类环境
+global.window = dom.window;
+global.document = dom.window.document;
+global.navigator = dom.window.navigator;
+
+
 // 创建Tiptap编辑器实例及其扩展
 function createEditor() {
   return new Editor({
@@ -68,6 +79,8 @@ function createEditor() {
       Subscript,
       Superscript,
     ],
+    editable: false,  // 由于这是服务器端，我们不需要编辑功能
+    injectCSS: false, // 不要尝试注入 CSS
   });
 }
 

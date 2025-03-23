@@ -338,7 +338,7 @@ def handle_task_status_change(sender, instance, created, **kwargs):
         
     logger.info(f"任务状态更新: {instance.name}, 类型: {instance.type}, 状态: {instance.status}, 锁定状态: {instance.lock_status}")
 
-    # 根据任务类型和状态调用不同的处理器
+    # # 根据任务类型和状态调用不同的处理器
     if instance.type == TaskType.UPLOAD_TENDER_FILE:
         handle_file_upload_auto_task(instance)
     elif instance.type == TaskType.DOCX_EXTRACTION_TASK:
