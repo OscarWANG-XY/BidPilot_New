@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
-import { TenderFileUpload } from './_01_TenderFileupload_v2'
-import { DocxExtractionTask } from './_02_DocxExtractionTask_v2'
-import { DocxTreeBuildTask } from './_03_DocxTreeBuildTask_v2'
-import { TaskStatus } from '@/types/projects_dt_stru/projectTasks_interface'
+import { TenderFileUpload } from './_01_TenderFileupload'
+import { DocxExtractionTask } from './_02_DocxExtractionTask'
+import { DocOutlineAnalysisTask } from './_03_DocOutlineAnalysisTask'
+import { TaskStatus, TaskLockStatus } from '@/types/projects_dt_stru/projectTasks_interface'
 
 interface TenderAnalysisPageProps {
   projectId: string
@@ -11,17 +11,23 @@ interface TenderAnalysisPageProps {
 export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectId }) => {
   // 只保留需要在父组件层面协调的状态
   const [fileUploadStatus, setFileUploadStatus] = useState<TaskStatus>(TaskStatus.NOT_STARTED)
-  const [extractionTaskStatus, setExtractionTaskStatus] = useState<TaskStatus>(TaskStatus.NOT_STARTED)
-  
+  const [extractionTaskLockStatus, setExtractionTaskLockStatus] = useState<TaskLockStatus>(TaskLockStatus.UNLOCKED)
+  const [outlineAnalysisTaskLockStatus, setOutlineAnalysisTaskLockStatus] = useState<TaskLockStatus>(TaskLockStatus.UNLOCKED)
+
   // 简化的状态处理函数
   const handleFileUploadStateChange = (status: TaskStatus) => {
     console.log('File upload task status updated:', status)
     setFileUploadStatus(status)
   }
   
-  const handleExtractionStateChange = (status: TaskStatus) => {
-    console.log('Extraction task status updated:', status)
-    setExtractionTaskStatus(status)
+  const handleExtractionStateChange = (lockStatus: TaskLockStatus) => {
+    console.log('Extraction task status updated:', lockStatus)
+    setExtractionTaskLockStatus(lockStatus)
+  }
+
+  const handleOutlineAnalysisStateChange = (lockStatus: TaskLockStatus) => {
+    console.log('Outline analysis task status updated:', lockStatus)
+    setOutlineAnalysisTaskLockStatus(lockStatus)
   }
   
   // 导航处理函数
@@ -33,11 +39,11 @@ export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectI
     }
   }
   
-  const handleNavigateToTreeTask = () => {
-    console.log('Navigating to tree building task')
-    const treeElement = document.getElementById('tree-task-section')
-    if (treeElement) {
-      treeElement.scrollIntoView({ behavior: 'smooth' })
+  const handleNavigateToOutlineAnalysisTask = () => {
+    console.log('Navigating to outline analysis task')
+    const outlineElement = document.getElementById('outline-task-section')
+    if (outlineElement) {
+      outlineElement.scrollIntoView({ behavior: 'smooth' })
     }
   }
   
@@ -62,17 +68,19 @@ export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectI
           projectId={projectId}
           isEnabled={fileUploadStatus === TaskStatus.COMPLETED}  // 文件上传任务完成后，让该组件渲染启动，这样就显示手动启动的按钮
           onStatusChange={handleExtractionStateChange}
-          onNavigateToNextTask={handleNavigateToTreeTask}     // 回调让页面滑动到下一个任务
+          onNavigateToNextTask={handleNavigateToOutlineAnalysisTask}     // 回调让页面滑动到下一个任务
         />
       </div>
       
-      {/* Document Tree Building Task */}
-      <div id="tree-task-section">
-        <DocxTreeBuildTask 
+      {/* Document Outline Analysis Task */}
+      {/* <div id="outline-task-section">
+        <DocOutlineAnalysisTask 
           projectId={projectId}
-          isEnabled={extractionTaskStatus === TaskStatus.COMPLETED}
+          isEnabled={extractionTaskLockStatus === TaskLockStatus.LOCKED}  // 文件上传任务完成后，让该组件渲染启动，这样就显示手动启动的按钮
+          onStatusChange={handleOutlineAnalysisStateChange}
+          onNavigateToNextTask={handleNavigateToOutlineAnalysisTask}     // 回调让页面滑动到下一个任务
         />
-      </div>
+      </div> */}
     </div>
   )
 }

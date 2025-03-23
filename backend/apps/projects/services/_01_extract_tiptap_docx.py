@@ -76,16 +76,16 @@ class DocxExtractorStep(PipelineStep[Project, Dict[str, Any]]):
                 type=TaskType.DOCX_EXTRACTION_TASK
             )
             # 确保转换为字符串
-            task.tiptap_content = json.dumps(tiptap_content, indent=2, ensure_ascii=False)
+            task.docx_tiptap = tiptap_content
             task.save()
 
-            logger.info(f"成功保存tiptap内容: project_id={current_project.id}, content_length={len(task.tiptap_content) if task.tiptap_content else 0}")
+            logger.info(f"成功保存tiptap内容: project_id={current_project.id}, content_length={len(task.docx_tiptap) if task.docx_tiptap else 0}")
 
             # 在处理文档后添加日志
             logger.info(f"文档内容提取成功: project_id={current_project.id}, content_size={len(str(tiptap_content))}")
 
             # 在保存后添加验证日志
-            logger.info(f"保存后验证: project_id={current_project.id}, tiptap_content_saved={bool(task.tiptap_content)}, length={len(task.tiptap_content) if task.tiptap_content else 0}")
+            logger.info(f"保存后验证: project_id={current_project.id}, tiptap_content_saved={bool(task.docx_tiptap)}, length={len(task.docx_tiptap) if task.docx_tiptap else 0}")
 
             return tiptap_content
 

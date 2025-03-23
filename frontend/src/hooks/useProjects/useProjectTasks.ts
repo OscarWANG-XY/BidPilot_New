@@ -73,104 +73,83 @@ export const useProjectTasks = () => {
       ...options, // 允许传入额外的配置选项
     });
     
-    // // 添加一个专门用于轮询文档提取任务状态的查询
-    // const pollDocxExtractionTask = (projectId: string, stageType: StageType) => useQuery({
-    //   queryKey: ['docxExtractionTaskPoll', projectId, stageType],
-    //   queryFn: async () => {
-    //     console.log('🔄 [useProjectTasks] 轮询文档提取任务状态:', { projectId, stageType });
-    //     const result = await TaskApi.getDocxExtractionTask(projectId, stageType);
-    //     return result;
-    //   },
-    //   refetchInterval: 2000,
-    // //   select: (data) => {
-    // //     const shouldStopPolling = data.status !== 'ACTIVE';
-    // //     if (shouldStopPolling) {
-    // //       // 可以在这里手动停止轮询，例如通过设置 enabled: false
-    // //       // 或者在组件中根据这个标志处理
-    // //     }
-    // //     return data;
-    // //   },
-    //   refetchOnWindowFocus: false,
-    //   staleTime: 0,
-    //   enabled: Boolean(projectId) && Boolean(stageType),
-    // });
 
 
-// 修改轮询逻辑，使其更加智能
-const pollDocxExtractionTask = (projectId: string, stageType: StageType) => {
-  // 使用状态来控制是否启用轮询
-  const [shouldPoll, setShouldPoll] = useState<boolean>(false);
-  
-  const query = useQuery({
-    queryKey: ['docxExtractionTaskPoll', projectId, stageType],
-    queryFn: async () => {
-      console.log('🔄 [useProjectTasks] 轮询文档提取任务状态:', { projectId, stageType });
-      const result = await TaskApi.getDocxExtractionTask(projectId, stageType);
-      return result;
-    },
-    refetchInterval: shouldPoll ? 2000 : false, // 根据状态决定是否轮询
-    refetchOnWindowFocus: false,
-    staleTime: 0,
-    enabled: Boolean(projectId) && Boolean(stageType) && shouldPoll,
-    // 当projectId变化时，确保缓存被清除
-    gcTime: 0,
-  });
+    // 修改轮询逻辑，使其更加智能
+    const pollDocxExtractionTask = (projectId: string, stageType: StageType) => {
+    // 使用状态来控制是否启用轮询
+    const [shouldPoll, setShouldPoll] = useState<boolean>(false);
+    
+    const query = useQuery({
+        queryKey: ['docxExtractionTaskPoll', projectId, stageType],
+        queryFn: async () => {
+        console.log('🔄 [useProjectTasks] 轮询文档提取任务状态:', { projectId, stageType });
+        const result = await TaskApi.getDocxExtractionTask(projectId, stageType);
+        return result;
+        },
+        refetchInterval: shouldPoll ? 2000 : false, // 根据状态决定是否轮询
+        refetchOnWindowFocus: false,
+        staleTime: 0,
+        enabled: Boolean(projectId) && Boolean(stageType) && shouldPoll,
+        // 当projectId变化时，确保缓存被清除
+        gcTime: 0,
+    });
 
-  // 当任务状态不是 ACTIVE 时，停止轮询
-  useEffect(() => {
-    if (query.data && query.data.status !== 'ACTIVE') {
-      console.log('🛑 [useProjectTasks] 任务不再处于活动状态，停止轮询');
-      setShouldPoll(false);
-    } else if (query.data && query.data.status === 'ACTIVE') {
-      // 如果状态是ACTIVE，确保轮询已启动
-      setShouldPoll(true);
-    }
-  }, [query.data]);
-
-  // 当projectId变化时，重置轮询状态
-  useEffect(() => {
-    // 初始检查任务状态，如果是ACTIVE则自动开始轮询
-    const checkInitialStatus = async () => {
-      if (projectId && stageType) {
-        try {
-          const result = await TaskApi.getDocxExtractionTask(projectId, stageType);
-          if (result && result.status === 'ACTIVE') {
-            console.log('▶️ [useProjectTasks] 检测到任务状态为ACTIVE，自动启动轮询');
-            setShouldPoll(true);
-          }
-        } catch (error) {
-          console.error('检查初始状态失败:', error);
+    // 当任务状态不是 ACTIVE 时，停止轮询
+    useEffect(() => {
+        if (query.data && query.data.status !== 'ACTIVE') {
+        console.log('🛑 [useProjectTasks] 任务不再处于活动状态，停止轮询');
+        setShouldPoll(false);
+        } else if (query.data && query.data.status === 'ACTIVE') {
+        // 如果状态是ACTIVE，确保轮询已启动
+        setShouldPoll(true);
         }
-      }
+    }, [query.data]);
+
+    // 当projectId变化时，重置轮询状态
+    useEffect(() => {
+        // 初始检查任务状态，如果是ACTIVE则自动开始轮询
+        const checkInitialStatus = async () => {
+        if (projectId && stageType) {
+            try {
+            const result = await TaskApi.getDocxExtractionTask(projectId, stageType);
+            if (result && result.status === 'ACTIVE') {
+                console.log('▶️ [useProjectTasks] 检测到任务状态为ACTIVE，自动启动轮询');
+                setShouldPoll(true);
+            }
+            } catch (error) {
+            console.error('检查初始状态失败:', error);
+            }
+        }
+        };
+        
+        checkInitialStatus();
+        
+        // 清理函数
+        return () => {
+        setShouldPoll(false);
+        };
+    }, [projectId, stageType]);
+
+    // 提供一个手动启动轮询的方法
+    const startPolling = useCallback(() => {
+        console.log('▶️ [useProjectTasks] 手动启动轮询');
+        setShouldPoll(true);
+    }, []);
+
+    // 提供一个手动停止轮询的方法
+    const stopPolling = useCallback(() => {
+        console.log('⏹️ [useProjectTasks] 手动停止轮询');
+        setShouldPoll(false);
+    }, []);
+
+    return {
+        ...query,
+        startPolling,
+        stopPolling,
+        isPolling: shouldPoll
     };
-    
-    checkInitialStatus();
-    
-    // 清理函数
-    return () => {
-      setShouldPoll(false);
     };
-  }, [projectId, stageType]);
-
-  // 提供一个手动启动轮询的方法
-  const startPolling = useCallback(() => {
-    console.log('▶️ [useProjectTasks] 手动启动轮询');
-    setShouldPoll(true);
-  }, []);
-
-  // 提供一个手动停止轮询的方法
-  const stopPolling = useCallback(() => {
-    console.log('⏹️ [useProjectTasks] 手动停止轮询');
-    setShouldPoll(false);
-  }, []);
-
-  return {
-    ...query,
-    startPolling,
-    stopPolling,
-    isPolling: shouldPoll
-  };
-};
 
 
 
@@ -180,20 +159,20 @@ const pollDocxExtractionTask = (projectId: string, stageType: StageType) => {
         stageType,
         status,
         lockStatus,
-        tiptapContent,
+        docxTiptap,
       }: {
         projectId: string;
         stageType: StageType;
         status?: TaskStatus;
         lockStatus?: TaskLockStatus;
-        tiptapContent?: any;
+        docxTiptap?: any;
       }) => {
         console.log('📤 [useProjectTasks] 更新文档提取任务:', { projectId, stageType, status, lockStatus });
         
         const taskData: any = {};
         if (status) taskData.status = status;
         if (lockStatus) taskData.lock_status = lockStatus;
-        if (tiptapContent !== undefined) taskData.tiptap_content = tiptapContent;
+        if (docxTiptap !== undefined) taskData.docx_tiptap = docxTiptap;
         
         const result = await TaskApi.updateDocxExtractionTask(projectId, stageType, taskData);
         console.log('✅ [useProjectTasks] 更新文档提取任务成功:', result);
@@ -212,6 +191,13 @@ const pollDocxExtractionTask = (projectId: string, stageType: StageType) => {
       }
     });
   
+
+
+
+
+
+
+
     // Return all task operations
     return {
       // File Upload Tasks
@@ -222,5 +208,10 @@ const pollDocxExtractionTask = (projectId: string, stageType: StageType) => {
       docxExtractionTaskQuery,
       pollDocxExtractionTask,
       updateDocxExtractionTask: updateDocxExtractionTask.mutateAsync,
+
+    //   // Document Outline Analysis Tasks
+    //   docOutlineAnalysisTaskQuery,
+    //   pollDocOutlineAnalysisTask,
+    //   updateDocOutlineAnalysisTask: updateDocOutlineAnalysisTask.mutateAsync,
     };
   };

@@ -33,7 +33,7 @@ class StageStatus(models.TextChoices):
 class TaskType(models.TextChoices):
     UPLOAD_TENDER_FILE = 'UPLOAD_TENDER_FILE', '上传招标文件'
     DOCX_EXTRACTION_TASK = 'DOCX_EXTRACTION_TASK', '提取文档信息'
-    DOCX_TREE_BUILD_TASK = 'DOCX_TREE_BUILD_TASK', '构建文档树'
+    OUTLINE_ANALYSIS_TASK = 'OUTLINE_ANALYSIS_TASK', '分析文档结构'
     #AI_STRUCTURE_ANALYSIS = 'AI_STRUCTURE_ANALYSIS', 'AI分析层级结构'
     #BIDDER_INSTRUCTION_ANALYSIS = 'BIDDER_INSTRUCTION_ANALYSIS', '分析投标人须知'
     # SCORING_CRITERIA_ANALYSIS = 'SCORING_CRITERIA_ANALYSIS', '分析评分标准'
@@ -182,13 +182,48 @@ class Task(models.Model):
     
      ######TODO 待将tiptap_content改为 docx_content, 移到ProjectStage里。 
     # 添加特定任务类型的字段，用于存储文档提取任务的内容
-    tiptap_content = models.JSONField(
+    docx_tiptap = models.JSONField(
         null=True,
         blank=True,
         verbose_name='tiptap内容',
         help_text='存储tiptap内容'
     )
+
+    context = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='上下文',
+        help_text='存储上下文'
+    )
+
+    result_raw = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='结果原始数据',
+        help_text='存储结果原始数据'
+    )
+
+    result_Tiptapjson = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='结果JSON',
+        help_text='存储结果JSON'
+    )
     
+    result_markdown = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name='结果Markdown',
+        help_text='存储结果Markdown'
+    )
+    
+    result_html = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name='结果HTML',
+        help_text='存储结果HTML'
+    )
+
     class Meta:
         verbose_name = '任务'
         verbose_name_plural = '任务'

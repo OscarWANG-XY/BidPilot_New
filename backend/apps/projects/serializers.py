@@ -366,7 +366,7 @@ class DocxExtractionTaskDetailSerializer(serializers.ModelSerializer):
         model = Task
         fields = ['id','name','type',
                   'status', 'lock_status',
-                  'tiptap_content'
+                  'docx_tiptap'
                   ]  
         read_only_fields = fields  # 所有字段都是只读的
     
@@ -383,7 +383,7 @@ class DocxExtractionTaskUpdateSerializer(ChangeTrackingModelSerializer):
         fields = [
             #'id', 'name', 'type',
             'status', 'lock_status',
-            'tiptap_content',
+            'docx_tiptap',
         ]
     
     def validate(self, data):

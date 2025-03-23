@@ -46,7 +46,7 @@
     createdAt: Date;               // 创建时间
     updatedAt: Date;               // 更新时间
     lockStatus: TaskLockStatus;    // 锁定状态
-    tiptapContent?: any;           // tiptap内容（JSON，可选）
+    docxTiptap?: any;           // tiptap内容（JSON，可选）
   }
   
   // 特定任务类型接口 - 对应后端特定任务的序列化器
@@ -72,14 +72,14 @@
     type: TaskType;
     status: TaskStatus;
     lockStatus: TaskLockStatus;
-    tiptapContent: string;
+    docxTiptap: string;
   }
   
   // 文档提取任务更新接口 - 对应 DocxExtractionTaskUpdateSerializer
   export interface DocxExtractionTaskUpdate {
     status: TaskStatus;
     lockStatus: TaskLockStatus;
-    tiptapContent: string;
+    docxTiptap: string;
   }
   
 

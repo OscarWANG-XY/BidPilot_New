@@ -24,10 +24,10 @@ def process_docx_extraction(project_id: int):
         )
         
         # 检查内容是否已保存
-        if not docx_extraction_task.tiptap_content:
+        if not docx_extraction_task.docx_tiptap:
             logger.warning(f"tiptap_content未保存，尝试再次保存: project_id={project_id}")
             import json
-            docx_extraction_task.tiptap_content = json.dumps(tiptap_content)
+            docx_extraction_task.docx_tiptap = tiptap_content
             docx_extraction_task.save()
         
         # 更新任务状态为完成

@@ -28,8 +28,8 @@ def set_change_metadata(instance, user, remarks=''):
 def compare_values(old_value, new_value, field_name):
     """比较旧值和新值，确定它们是否已更改。"""
     # Add logging for JSONField comparison
-    if field_name == 'tiptap_content':
-        logger.info(f"compare_values for tiptap_content:")
+    if field_name == 'docx_tiptap':
+        logger.info(f"compare_values for docx_tiptap:")
         logger.info(f"Old value type: {type(old_value)}")
         logger.info(f"New value type: {type(new_value)}")
     
@@ -40,7 +40,7 @@ def compare_values(old_value, new_value, field_name):
         new_str = json.dumps(new_value, sort_keys=True) if new_value else None
         
         # Add logging for JSON string comparison
-        if field_name == 'tiptap_content':
+        if field_name == 'docx_tiptap':
             logger.info(f"JSON comparison:")
             logger.info(f"Old JSON string: {old_str}")
             logger.info(f"New JSON string: {new_str}")
@@ -215,23 +215,23 @@ def track_task_changes(sender, instance, **kwargs):
         
         # 获取所有字段
         fields_to_track = [
-            'name', 'description', 'type', 'status', 'lock_status', 'tiptap_content'
+            'name', 'description', 'type', 'status', 'lock_status', 'docx_tiptap'
         ]
         
         for field in fields_to_track:
             old_value = getattr(old_instance, field)
             new_value = getattr(instance, field)
             
-            # Add detailed logging for tiptap_content
-            # if field == 'tiptap_content':
-            #     logger.info(f"Comparing tiptap_content for task {instance.id}:")
+            # Add detailed logging for docx_tiptap
+            # if field == 'docx_tiptap':
+            #     logger.info(f"Comparing docx_tiptap for task {instance.id}:")
             #     logger.info(f"Old value type: {type(old_value)}, value: {old_value}")
             #     logger.info(f"New value type: {type(new_value)}, value: {new_value}")
 
             changed, old_str, new_str, is_complex = compare_values(old_value, new_value, field)
             
-            # Add more logging for tiptap_content comparison result
-            # if field == 'tiptap_content':
+            # Add more logging for docx_tiptap comparison result
+            # if field == 'docx_tiptap':
             #     logger.info(f"Comparison result: changed={changed}, is_complex={is_complex}")
             #     logger.info(f"Old string: {old_str}")
             #     logger.info(f"New string: {new_str}")
@@ -298,7 +298,6 @@ def initialize_project_stages(sender, instance, created, **kwargs):
                     type=TaskType.UPLOAD_TENDER_FILE,
                     status=TaskStatus.ACTIVE,
                     lock_status=TaskLockStatus.UNLOCKED,
-                    tiptap_content=None
                 )
                 # 创建文档提取任务
                 Task.objects.create(
@@ -308,7 +307,21 @@ def initialize_project_stages(sender, instance, created, **kwargs):
                     type=TaskType.DOCX_EXTRACTION_TASK,
                     status=TaskStatus.NOT_STARTED,
                     lock_status=TaskLockStatus.UNLOCKED,
-                    tiptap_content=None,
+                    docx_tiptap=None,
+                )
+
+                Task.objects.create(
+                    stage=stage,
+                    name='文档结构分析',
+                    description='分析文档结构',
+                    type=TaskType.OUTLINE_ANALYSIS_TASK,
+                    status=TaskStatus.NOT_STARTED,
+                    lock_status=TaskLockStatus.UNLOCKED,
+                    context = None,
+                    result_raw = None,
+                    result_Tiptapjson = None,
+                    result_markdown = None,
+                    result_html = None,
                 )
                 
                 # logger.info(f"为阶段 {stage_name} 创建了文档提取和文档树构建任务")
@@ -390,8 +403,8 @@ def handle_docx_extraction_auto_task(instance):
 
     logger.info(f"DocxExtractionTask状态更新，检查是否需要启动文档提取")
 
-    # 1. 外围条件：DocxExtractionTask 满足 PROCESSING + UNLOCKED + tiptap_content=None 状态
-    if instance.status == TaskStatus.ACTIVE and instance.lock_status == TaskLockStatus.UNLOCKED and instance.tiptap_content is None:
+    # 1. 外围条件：DocxExtractionTask 满足 PROCESSING + UNLOCKED + docx_tiptap=None 状态
+    if instance.status == TaskStatus.ACTIVE and instance.lock_status == TaskLockStatus.UNLOCKED and instance.docx_tiptap is None:
 
         logger.info(f"探测到 DocxExtractionTask状态为: ACTIVE + UNLOCKED")
 
