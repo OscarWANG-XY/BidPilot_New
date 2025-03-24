@@ -25,7 +25,7 @@ class GenericLLMService:
         self.prompt_template = prompt_template
         self.output_parser = output_parser or StrOutputParser()
         self._init_llm()
-        self.executor = ThreadPoolExecutor(max_workers=self.config.max_workers)
+        #self.executor = ThreadPoolExecutor(max_workers=self.config.max_workers)
 
     def _init_llm(self):
         """初始化LLM模型"""

@@ -15,6 +15,26 @@ class LLMConfig(BaseModel):
     max_workers: int = 4
     timeout: int = Field(default=30, description="API 调用超时时间(秒)")
     retry_times: int = Field(default=3, description="API 调用重试次数")
+    
+    def to_model(self) -> Dict[str, Any]:
+        """将LLMConfig转换为可存储到数据库JSONField的字典格式
+        
+        Returns:
+            Dict[str, Any]: 可存储到数据库的字典
+        """
+        return self.model_dump()
+    
+    @classmethod
+    def from_model(cls, data: Dict[str, Any]) -> "LLMConfig":
+        """从数据库JSONField中恢复LLMConfig实例
+        
+        Args:
+            data (Dict[str, Any]): 从数据库中读取的字典数据
+            
+        Returns:
+            LLMConfig: 恢复的LLMConfig实例
+        """
+        return cls(**data)
 
 class LLMRequest(BaseModel):
     """通用LLM请求模型"""

@@ -7,8 +7,8 @@ logger = logging.getLogger(__name__)
 
 from apps.projects.models import Project, Task, TaskType
 from apps.projects.services.base import PipelineStep
-from apps._tools.docx_parser.pipeline import DocxParserPipeline
-from apps.projects.services.helpers.tiptap_helpers import TiptapUtils
+
+
 
 
 class DocxExtractorStep(PipelineStep[Project, Dict[str, Any]]):
@@ -53,9 +53,17 @@ class DocxExtractorStep(PipelineStep[Project, Dict[str, Any]]):
             
             # 使用DocxParserPipeline提取文档元素
             logger.info(f"开始提取文档内容: project_id={current_project.id}, temp_file={temp_file_path}")
-            pipeline = DocxParserPipeline(temp_file_path)
-            tiptap_content = pipeline.load().parse().to_tiptap_json()
-            
+
+
+            # 使用DocxParserPipeline提取文档元素 - Approach 1 （自定义版本）
+            # from apps.projects.tiptap.helpers import TiptapUtils
+            # from apps._tools.docx_parser.pipeline import DocxParserPipeline
+            # pipeline = DocxParserPipeline(temp_file_path)
+            # tiptap_content = pipeline.load().parse().to_tiptap_json()
+
+            # 使用docx_to_tiptap_json函数提取文档元素   - Approach 2 (微服务版本)
+            from apps.projects.tiptap import docx_to_tiptap_json
+            tiptap_content = docx_to_tiptap_json(temp_file_path)
             
             # 输出验证
             if not self.validate_output(tiptap_content):

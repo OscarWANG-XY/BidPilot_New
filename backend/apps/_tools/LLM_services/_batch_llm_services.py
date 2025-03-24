@@ -27,24 +27,24 @@ class BatchLLMService(GenericLLMService):
 
             async def _wrapped_process(request: LLMRequest, idx: int):
                 try:
-                    result = await self.process(request)
+                    result = await self.process(request)  # 调用父类方法，从GenericLLMService中继承
 
-                    # 标准化输出格式
-                    if isinstance(result, str):
-                        try:
-                            processed_result = json.loads(result)
-                        except json.JSONDecodeError:
-                            # 解析失败，提供默认结构
-                            processed_result = {"titles_to_detail": []}
-                    elif isinstance(result, dict) and "titles_to_detail" in result:
-                        # 已经是正确格式的字典
-                        processed_result = result
-                    else:
-                        # 其他情况，提供默认结构
-                        processed_result = {"titles_to_detail": []}
+                    # # 标准化输出格式
+                    # if isinstance(result, str):
+                    #     try:
+                    #         processed_result = json.loads(result)
+                    #     except json.JSONDecodeError:
+                    #         # 解析失败，提供默认结构
+                    #         processed_result = {"titles_to_detail": []}
+                    # elif isinstance(result, dict) and "titles_to_detail" in result:
+                    #     # 已经是正确格式的字典
+                    #     processed_result = result
+                    # else:
+                    #     # 其他情况，提供默认结构
+                    #     processed_result = {"titles_to_detail": []}
 
                     return BatchResult(
-                        result=processed_result,
+                        result=result,
                         success=True,
                         request_index=idx,
                         approach="asyncio",

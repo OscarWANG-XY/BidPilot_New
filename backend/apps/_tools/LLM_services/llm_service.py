@@ -27,11 +27,7 @@ class LLMService:
     def create_service(self) -> GenericLLMService:
         """创建LLM服务实例"""
         return GenericLLMService(config=self.llm_config, prompt_template=self.prompt_template)
-
-    def create_batch_service(self) -> BatchLLMService:
-        """创建批量LLM服务实例"""
-        return BatchLLMService(config=self.llm_config, prompt_template=self.prompt_template)
-
+    
     async def analyze(self, data_input: str) -> Any:
         """执行分析"""
         service = self.create_service()
@@ -40,6 +36,13 @@ class LLMService:
             output_format=self.output_format
         )
         return await service.process(request)
+
+
+
+
+    def create_batch_service(self) -> BatchLLMService:
+        """创建批量LLM服务实例"""
+        return BatchLLMService(config=self.llm_config, prompt_template=self.prompt_template)
 
     async def batch_analyze_with_repeats(self, data_inputs: Union[str, List[str]], repeats: int = 1) -> List[Any]:
         """批量执行分析"""
@@ -72,7 +75,7 @@ class LLMService:
         # 执行批量分析
         return await service.batch_process(
             requests = requests,
-            parallel = "asyncio",
+            #parallel = "asyncio",
             max_concurrent = 10,
             repeat = repeats
             )

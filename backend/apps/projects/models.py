@@ -182,6 +182,8 @@ class Task(models.Model):
     
      ######TODO 待将tiptap_content改为 docx_content, 移到ProjectStage里。 
     # 添加特定任务类型的字段，用于存储文档提取任务的内容
+    
+    # 用于存储 招标文件提取的 tiptap JSON 内容 
     docx_tiptap = models.JSONField(
         null=True,
         blank=True,
@@ -189,13 +191,57 @@ class Task(models.Model):
         help_text='存储tiptap内容'
     )
 
-    context = models.JSONField(
+    # 用于存储 大模型分析的 数据输入
+    data_input = models.JSONField(
         null=True,
         blank=True,
-        verbose_name='上下文',
-        help_text='存储上下文'
+        verbose_name='数据输入',
+        help_text='存储数据输入'
     )
 
+    # 用于存储 大模型分析的 补充上下文
+    additional_input = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='补充输入',
+        help_text='存储补充输入'
+    )
+
+    # 用于存储 大模型分析的 输出格式
+    output_format = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='输出格式',
+        help_text='存储输出格式'
+    )
+
+    # 用于存储 大模型分析的 prompt 模板
+    prompt_template = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='prompt模板',
+        help_text='存储prompt模板'
+    )
+
+    # 用于存储 大模型分析的 索引路径映射
+    index_path_map = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='索引路径映射',
+        help_text='存储索引路径映射'
+    )
+    
+
+
+    # 用于存储 大模型分析的 的模型配置
+    llm_config = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='模型配置',
+        help_text='存储模型配置'
+    )
+
+    # 用于存储 大模型分析的 结果原始数据
     result_raw = models.JSONField(
         null=True,
         blank=True,
@@ -203,13 +249,15 @@ class Task(models.Model):
         help_text='存储结果原始数据'
     )
 
+    # 用于存储 大模型分析的 结果的 Tiptap JSON
     result_Tiptapjson = models.JSONField(
         null=True,
         blank=True,
-        verbose_name='结果JSON',
-        help_text='存储结果JSON'
+        verbose_name='结果Tiptap JSON',
+        help_text='存储结果Tiptap JSON'
     )
     
+    # 用于存储 大模型分析的 结果的 Markdown
     result_markdown = models.TextField(
         null=True,
         blank=True,
@@ -217,6 +265,7 @@ class Task(models.Model):
         help_text='存储结果Markdown'
     )
     
+    # 用于存储 大模型分析的 结果的 HTML 
     result_html = models.TextField(
         null=True,
         blank=True,

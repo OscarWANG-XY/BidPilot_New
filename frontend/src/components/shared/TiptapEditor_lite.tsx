@@ -54,16 +54,16 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-// Custom Heading extension with ID support
-const CustomHeading = Heading.extend({
+// ------------     自定义标题扩展ID属性 -> 以实现目录导航跳转。 ------------
+const CustomHeading = Heading.extend({ //为标题元素添加自定义属性id
   addAttributes() {
     return {
-      ...this.parent?.(),
+      ...this.parent?.(),   // 保留父类所有属性（即原Heading的扩展）
       // Add ID attribute
       id: {
-        default: null,
-        parseHTML: element => element.getAttribute('id'),
-        renderHTML: attributes => {
+        default: null,   // 默认值为null
+        parseHTML: element => element.getAttribute('id'), // 从HTML元素中解析ID属性
+        renderHTML: attributes => {   //将ID属性渲染到HTML元素中，如果ID属性不存在，则返回空对象
           if (!attributes.id) {
             return {}
           }
@@ -75,17 +75,22 @@ const CustomHeading = Heading.extend({
 
   // Ensure ID attribute is included during rendering
   renderHTML({ node, HTMLAttributes }) {
+    // 检查当前级别是否在配置的级别列表中
     const hasLevel = this.options.levels.includes(node.attrs.level)
+    // 如果存在，则使用当前级别，否则使用默认级别[0]
     const level = hasLevel ? node.attrs.level : this.options.levels[0]
 
     return [
-      `h${level}`,
-      mergeAttributes(this.options.HTMLAttributes, HTMLAttributes),
-      0,
+      `h${level}`,  // 如 h1, h2, h3
+      mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), // 合并父类和当前级别的HTML属性
+      0,  // 没有子节点
     ]
   },
 });
 
+
+
+// ------------     工具栏按钮组件 的标准化定义 （框架和样式） ------------
 // Icon type definition
 type IconComponent = React.ForwardRefExoticComponent<
   Omit<LucideProps, "ref"> & React.RefAttributes<SVGSVGElement>
@@ -135,6 +140,9 @@ const ToolbarButton = ({
   );
 };
 
+
+
+// ------------     目录导航 ------------
 // TOC item interface
 interface TocItem {
   id: string;
@@ -142,7 +150,7 @@ interface TocItem {
   text: string;
 }
 
-// Function to generate safe slug IDs
+// Function to generate safe slug IDs  -> 用于生成安全的slug ID （嵌条码）
 const generateSlug = (text: string): string => {
   return text
     .toLowerCase()
@@ -153,6 +161,9 @@ const generateSlug = (text: string): string => {
     .replace(/-+$/, '');            // Remove trailing hyphens
 };
 
+
+
+// ------------     组件接口定义 + 组件实现 ------------
 type TiptapEditorLiteProps = {
   initialContent?: string;
   onChange?: (content: string) => void;
