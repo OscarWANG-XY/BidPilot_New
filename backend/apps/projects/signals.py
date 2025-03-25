@@ -317,11 +317,6 @@ def initialize_project_stages(sender, instance, created, **kwargs):
                     type=TaskType.OUTLINE_ANALYSIS_TASK,
                     status=TaskStatus.NOT_STARTED,
                     lock_status=TaskLockStatus.UNLOCKED,
-                    context = None,
-                    result_raw = None,
-                    result_Tiptapjson = None,
-                    result_markdown = None,
-                    result_html = None,
                 )
                 
                 # logger.info(f"为阶段 {stage_name} 创建了文档提取和文档树构建任务")

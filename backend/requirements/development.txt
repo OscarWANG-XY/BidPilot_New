@@ -32,8 +32,7 @@ pip-tools==7.3.0
 python-json-logger==3.2.1  # Useful for development debugging and log analysis
 
 # 文件类型检测 for windows
-python-magic-bin==0.4.14 
 
 
 # Celery 
-kombu[sqlalchemy]==3.1.1  # 支持使用数据库作为消息代理
+kombu[sqlalchemy]>=5.3.4  # 支持使用数据库作为消息代理
