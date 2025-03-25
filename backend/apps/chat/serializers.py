@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
-class UserSerializer(serializers.ModelSerializer):
+class ChatUserSerializer(serializers.ModelSerializer):
     """用户基本信息序列化器"""
     class Meta:
         model = User
@@ -60,7 +60,7 @@ class ChatMessageCreateSerializer(ChatMessageSerializer):
 
 class ChatSessionSerializer(serializers.ModelSerializer):
     """聊天会话序列化器"""
-    created_by = UserSerializer(read_only=True)
+    created_by = ChatUserSerializer(read_only=True)
     messages = ChatMessageSerializer(many=True, read_only=True)
     message_count = serializers.IntegerField(read_only=True)
     last_message = ChatMessageSerializer(read_only=True)

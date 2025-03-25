@@ -1,9 +1,10 @@
-from ._generic_llm_services import GenericLLMService, LLMRequest, LLMConfig
+from ._generic_llm_services import GenericLLMService, LLMRequest, LLMConfig, RedisStreamingCallbackHandler
 from ._batch_llm_services import BatchLLMService
 from apps.doc_analysis.pipeline.types import OutlineAnalysisResult
 from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
-from typing import Any, List, Union
+from typing import Any, List, Union, Optional
 import os
+from apps.projects.utils.redis_manager import RedisManager
 
 
 class LLMService:
@@ -23,6 +24,7 @@ class LLMService:
         self.prompt_template = prompt_template
         self.llm_config = config
         self.output_format = output_format
+        self.redis_manager = RedisManager()
 
     def create_service(self) -> GenericLLMService:
         """创建LLM服务实例"""
@@ -36,6 +38,59 @@ class LLMService:
             output_format=self.output_format
         )
         return await service.process(request)
+    
+    async def analyze_streaming(self, data_input: str, stream_id: Optional[str] = None, metadata: dict = None) -> str:
+        """
+        执行流式分析
+        
+        Args:
+            data_input: 输入数据
+            stream_id: 流ID，如果为None则自动生成
+            metadata: 任务元数据
+            
+        Returns:
+            str: 任务ID
+        """
+        # 如果没有提供stream_id，则生成一个
+        if stream_id is None:
+            stream_id = self.redis_manager.generate_stream_id()
+        
+        # 初始化任务状态
+        metadata = metadata or {}
+        metadata.update({
+            "model": self.llm_config.llm_model_name,
+            "temperature": self.llm_config.temperature,
+            "top_p": self.llm_config.top_p
+        })
+        self.redis_manager.initialize_task(stream_id, metadata)
+        
+        # 创建流式回调处理器
+        streaming_callback = RedisStreamingCallbackHandler(
+            redis_manager=self.redis_manager,
+            stream_id=stream_id
+        )
+        
+        # 创建服务和请求
+        service = self.create_service()
+        request = LLMRequest.create(
+            data_input=data_input,
+            output_format=self.output_format
+        )
+        
+        # 异步执行分析
+        try:
+            # 更新任务状态为处理中
+            self.redis_manager.update_task_status(stream_id, "PROCESSING")
+            
+            # 执行分析
+            await service.process(request, streaming_callback=streaming_callback)
+            
+            # 返回任务ID
+            return stream_id
+        except Exception as e:
+            # 标记任务失败
+            self.redis_manager.mark_stream_failed(stream_id, str(e))
+            raise
 
 
 

@@ -91,12 +91,3 @@ LOGGING = {
 }
 
 
-# Celery Configuration for Development (using PostgreSQL)
-CELERY_BROKER_URL = 'sqla+postgresql://postgres:123456@localhost:5432/bidpilot_new'  # 使用数据库作为消息代理
-CELERY_RESULT_BACKEND = 'django-db'  # 使用数据库存储结果
-CELERY_CACHE_BACKEND = 'django-cache'
-
-
-# 开发时使用同步执行， 等功能稳定后，切换到异步。 
-#CELERY_TASK_ALWAYS_EAGER = True
-#CELERY_TASK_EAGER_PROPAGATES = True

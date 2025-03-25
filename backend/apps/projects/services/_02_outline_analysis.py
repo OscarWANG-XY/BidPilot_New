@@ -1,10 +1,11 @@
 import asyncio, os, nest_asyncio
-from typing import List, Dict, Tuple, Any
+from typing import List, Dict, Tuple, Any, Optional
 import logging
 logger = logging.getLogger(__name__)
 
-from apps.projects.models import Project, Task, TaskType
+from apps.projects.models import Project, Task, TaskType, TaskStatus
 from apps.projects.services.base import PipelineStep
+from apps.projects.utils.redis_manager import RedisManager
 
 from apps._tools.LLM_services._llm_data_types import LLMConfig
 from apps._tools.LLM_services.llm_service import LLMService
@@ -19,6 +20,7 @@ class DocxOutlineAnalyzerStep(PipelineStep[Project, Dict[str, Any]]):
     def __init__(self):
         super().__init__()
         nest_asyncio.apply()  # 允许在Jupyter Notebook中运行异步代码
+        self.redis_manager = RedisManager()
 
 
     def process(self, data: Project, init_run: bool = True) -> Dict[str, Any]:
@@ -67,6 +69,56 @@ class DocxOutlineAnalyzerStep(PipelineStep[Project, Dict[str, Any]]):
         task.save()
         
         return raw_result
+    
+    async def process_streaming(self, data: Project, stream_id: Optional[str] = None) -> str:
+        """
+        流式处理文档元素，分析目录和正文标题的一致性
+        
+        Args:
+            data: 项目数据
+            stream_id: 流ID，如果为None则自动生成
+            
+        Returns:
+            str: 任务ID
+        """
+        if not self.validate_input(data):
+            raise ValueError("输入数据无效")
+        
+        # 提取当前分析的document_analysis
+        task = Task.objects.get(stage__project=data, type=TaskType.DOCX_EXTRACTION_TASK)
+        
+        # 准备数据
+        data_input, index_path_map = self.prepare_requests_data(task)
+        llm_config = self.build_llm_config(model_name="qwen-max-0125")
+        
+        # 初始化LLM服务
+        llm_service = LLMService(
+            config=llm_config,
+            prompt_template=self.build_prompt_template(),
+            output_format=self.output_format_required()
+        )
+        
+        # 准备元数据
+        metadata = {
+            "project_id": str(data.id),
+            "task_type": str(task.type),
+            "model": llm_config.llm_model_name,
+            "index_path_map": index_path_map
+        }
+        
+        # 执行流式分析
+        # 返回的是ID，不是分析的内容，因为内容直接存储在Redis中.
+        stream_id = await llm_service.analyze_streaming(
+            data_input=data_input,
+            stream_id=stream_id,
+            metadata=metadata
+        )
+        
+        # 更新任务状态
+        task.status = TaskStatus.ACTIVE
+        task.save()
+        
+        return stream_id
 
     
     def validate_input(self, data: Project) -> bool:
@@ -140,11 +192,11 @@ class DocxOutlineAnalyzerStep(PipelineStep[Project, Dict[str, Any]]):
     def build_prompt_template(self) -> str:
             return """
 你是一个擅长文档结构分析的 AI，接下来我会提供一些文本内容，每条数据包含 content（文本内容）和 index（索引）。你的任务是：
-识别标题：判断文本是否是一个章节标题（例如“第X章”、“X.X”、“X.X.X” 等， 也可能是其他格式）。
+识别标题：判断文本是否是一个章节标题（例如"第X章"、"X.X"、"X.X.X" 等， 也可能是其他格式）。
 确定层级：
-“第X章” → H1（#）
-“X.X” → H2（##）
-“X.X.X” → H3（###）
+"第X章" → H1（#）
+"X.X" → H2（##）
+"X.X.X" → H3（###）
 如果不是标题，则忽略
 
 

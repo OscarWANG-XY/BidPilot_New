@@ -3,7 +3,7 @@
 from rest_framework import serializers
 from .models import User, VerificationCode
 
-class UserSerializer(serializers.ModelSerializer):
+class AuthUserSerializer(serializers.ModelSerializer):
     """用户序列化器 - 用于一般场景的用户信息序列化"""
     class Meta:
         model = User
@@ -123,7 +123,15 @@ class TokenSerializer(serializers.Serializer):
     """令牌序列化器"""
     token = serializers.CharField(source='access_token')
     refreshToken = serializers.CharField(source='refresh_token')
-    user = UserSerializer()
+    user = AuthUserSerializer()
 
     class Meta:
         fields = ['token', 'refreshToken', 'user'] 
+
+
+# -----------  登出序列化器 done test   -------------
+class LogoutSerializer(serializers.Serializer):
+    """登出序列化器, 不放内容，为空序列化器"""
+    pass
+
+

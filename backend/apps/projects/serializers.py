@@ -15,7 +15,7 @@ User = get_user_model()
 
 # ============ 基础模型序列化器 (Basic Model Serializers) ============
 
-class UserBriefSerializer(serializers.ModelSerializer):
+class ProjectUserBriefSerializer(serializers.ModelSerializer):
     """
     用户简要信息序列化器
     在项目相关API中展示用户的基本信息，只包含id, phone, role的必要信息。
@@ -64,7 +64,7 @@ class ProjectChangeHistorySerializer(serializers.ModelSerializer):
     """
     项目变更历史记录序列化器
     """
-    changed_by = UserBriefSerializer(read_only=True)
+    changed_by = ProjectUserBriefSerializer(read_only=True)
     
     class Meta:
         model = ProjectChangeHistory
@@ -80,7 +80,7 @@ class StageChangeHistorySerializer(serializers.ModelSerializer):
     """
     阶段变更历史记录序列化器
     """
-    changed_by = UserBriefSerializer(read_only=True)
+    changed_by = ProjectUserBriefSerializer(read_only=True)
     
     class Meta:
         model = StageChangeHistory
@@ -96,7 +96,7 @@ class TaskChangeHistorySerializer(serializers.ModelSerializer):
     """
     任务变更历史记录序列化器
     """
-    changed_by = UserBriefSerializer(read_only=True)
+    changed_by = ProjectUserBriefSerializer(read_only=True)
     
     class Meta:
         model = TaskChangeHistory
@@ -113,7 +113,7 @@ class TaskChangeHistorySerializer(serializers.ModelSerializer):
 # ============= Project 项目序列化器 =============
 class ProjectListSerializer(serializers.ModelSerializer):
     """项目列表序列化器"""
-    creator = UserBriefSerializer(read_only=True)
+    creator = ProjectUserBriefSerializer(read_only=True)
     project_type_display = serializers.CharField(source='get_project_type_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     current_active_stage_display = serializers.CharField(source='get_current_active_stage_display', read_only=True)

@@ -10,7 +10,7 @@ from django.core.cache import cache
 User = get_user_model()
 
 # 用户序列化器，用于序列化 User 模型
-class UserSerializer(serializers.ModelSerializer):
+class FileUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User  # 指定序列化的模型
         fields = ['id', 'phone', 'email', 'role']  # 指定序列化的字段
@@ -30,7 +30,7 @@ class FileRecordSerializer(serializers.ModelSerializer):
     
     mime_type = serializers.CharField()
     
-    owner = UserSerializer(read_only=True)
+    owner = FileUserSerializer(read_only=True)
     
     # 添加项目ID字段，用于前端显示和关联
     project_id = serializers.PrimaryKeyRelatedField(

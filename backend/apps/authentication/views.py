@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from rest_framework import status
 from rest_framework.views import APIView
+from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.core.exceptions import ValidationError
@@ -15,7 +16,8 @@ from .serializers import (
     WechatLoginSerializer,
     WechatBindPhoneSerializer,
     TokenSerializer,
-    UserSerializer
+    AuthUserSerializer,
+    LogoutSerializer
 )
 from .services import AuthService
 import logging
@@ -162,8 +164,9 @@ class PasswordLoginView(APIView):
         }
     )
 )
-class LogoutView(APIView):
+class LogoutView(GenericAPIView):
     permission_classes = [AllowAny]  # 改为 AllowAny，因为 token 可能已过期
+    serializer_class = LogoutSerializer 
 
     def post(self, request):
         try:
@@ -481,7 +484,7 @@ class WechatBindPhoneView(APIView):
         summary='获取用户信息',
         description='获取当前登录用户的详细信息',
         responses={
-            200: UserSerializer,
+            200: AuthUserSerializer,
             401: OpenApiTypes.OBJECT
         }
     ),
@@ -489,9 +492,9 @@ class WechatBindPhoneView(APIView):
         tags=['auth'],
         summary='更新用户信息',
         description='更新当前登录用户的信息',
-        request=UserSerializer,
+        request=AuthUserSerializer,
         responses={
-            200: UserSerializer,
+            200: AuthUserSerializer,
             400: OpenApiTypes.OBJECT,
             401: OpenApiTypes.OBJECT
         }
@@ -506,7 +509,7 @@ class UserProfileView(APIView):
         logger.info("=== 收到获取用户信息请求 views.py/UserProfileView ===")
         logger.info("获取用户信息的用户ID: %s", request.user.id)
         
-        serializer = UserSerializer(request.user)
+        serializer = AuthUserSerializer(request.user)
         logger.info("用户信息序列化成功，返回响应数据")
         return Response(serializer.data)
 
@@ -516,7 +519,7 @@ class UserProfileView(APIView):
         logger.info("更新用户信息请求数据: %s", request.data)
         logger.info("启动序列化器...")
 
-        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        serializer = AuthUserSerializer(request.user, data=request.data, partial=True)
         if serializer.is_valid():
             logger.info("序列化器验证通过，验证后的数据: %s", serializer.validated_data)
             serializer.save()

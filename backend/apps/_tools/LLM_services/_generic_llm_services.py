@@ -1,9 +1,10 @@
-from typing import Optional, Any
+from typing import Optional, Any, Dict, Callable, List
 from ._llm_data_types import LLMRequest, LLMConfig
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from langchain.callbacks import StreamingStdOutCallbackHandler
 from langchain_core.output_parsers import StrOutputParser
+from langchain.callbacks.base import BaseCallbackHandler
 from concurrent.futures import ThreadPoolExecutor
 from openai import RateLimitError, APIError
 from requests.exceptions import Timeout
@@ -11,6 +12,56 @@ import os, logging, tiktoken
 
 
 logger = logging.getLogger(__name__)
+
+
+class RedisStreamingCallbackHandler(BaseCallbackHandler):
+    """将LLM流式输出存储到Redis的回调处理器"""
+    
+    def __init__(self, redis_manager, stream_id):
+        """
+        初始化回调处理器
+        
+        Args:
+            redis_manager: Redis管理器实例
+            stream_id: 流ID
+        """
+        self.redis_manager = redis_manager
+        self.stream_id = stream_id
+        self.current_token_buffer = ""
+        self.token_count = 0
+        self.chunk_size = 10  # 每收集10个token发送一次
+    
+    def on_llm_start(self, serialized, prompts, **kwargs):
+        """LLM开始生成时的回调"""
+        logger.info(f"开始LLM流式生成: stream_id={self.stream_id}")
+        self.redis_manager.update_task_status(self.stream_id, "RUNNING")
+    
+    def on_llm_new_token(self, token: str, **kwargs):
+        """接收到新token时的回调"""
+        self.current_token_buffer += token
+        self.token_count += 1
+        
+        # 当积累了足够的token或遇到换行符时发送
+        if self.token_count >= self.chunk_size or "\n" in token:
+            self.redis_manager.add_stream_chunk(self.stream_id, self.current_token_buffer)
+            self.current_token_buffer = ""
+            self.token_count = 0
+    
+    def on_llm_end(self, response, **kwargs):
+        """LLM生成结束时的回调"""
+        # 发送剩余的buffer
+        if self.current_token_buffer:
+            self.redis_manager.add_stream_chunk(self.stream_id, self.current_token_buffer)
+        
+        # 标记流完成
+        self.redis_manager.mark_stream_complete(self.stream_id)
+        logger.info(f"完成LLM流式生成: stream_id={self.stream_id}")
+    
+    def on_llm_error(self, error, **kwargs):
+        """LLM生成出错时的回调"""
+        error_msg = str(error)
+        logger.error(f"LLM流式生成错误: {error_msg}, stream_id={self.stream_id}")
+        self.redis_manager.mark_stream_failed(self.stream_id, error_msg)
 
 
 class GenericLLMService:
@@ -39,10 +90,11 @@ class GenericLLMService:
             timeout=self.config.timeout,
         )
 
-    async def process(self, request: LLMRequest) -> Any:
+    async def process(self, request: LLMRequest, streaming_callback=None) -> Any:
         """
         处理LLM请求
         :param request: LLM请求对象
+        :param streaming_callback: 流式处理回调
         :return: 处理结果
         """
         try:
@@ -75,8 +127,15 @@ class GenericLLMService:
             input_tokens = self._count_tokens(str(formatted_prompt))
             logger.info(f"Input tokens: {input_tokens}")
 
-            # 直接使用配置中的streaming设置
-            chain_config = {"callbacks": [StreamingStdOutCallbackHandler()]} if self.config.streaming else {}
+            # 配置回调
+            callbacks = []
+            if streaming_callback:
+                callbacks.append(streaming_callback)
+            elif self.config.streaming:
+                callbacks.append(StreamingStdOutCallbackHandler())
+            
+            # 执行链
+            chain_config = {"callbacks": callbacks} if callbacks else {}
             result = await chain.ainvoke(request_dict, config=chain_config)
 
             output_tokens = self._count_tokens(str(result))
