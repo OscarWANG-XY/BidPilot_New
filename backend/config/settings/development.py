@@ -18,9 +18,14 @@ CORS_ALLOWED_ORIGINS = [
 # 自定义用户模型
 AUTH_USER_MODEL = 'authentication.User'
 
-# 调试输出
-#print("Development settings loaded")
-#print("INSTALLED_APPS:", INSTALLED_APPS)
+# JWT 时效配置
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),  # 设置access token有效期为30分钟
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),    # 设置refresh token有效期为1天
+    # 其他配置...
+}
 
 
 
@@ -85,6 +90,16 @@ LOGGING = {
         'apps.projects.signals': {
             'handlers': ['console'],
             'level': 'INFO',
+            'propagate': False,
+        },
+        'apps._tools.LLM_services': {
+            'handlers': ['console'],
+            'level': 'DEBUG',  # 设置为DEBUG以显示所有日志
+            'propagate': False,
+        },
+        'apps.projects.utils.redis_manager': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
             'propagate': False,
         },
     },

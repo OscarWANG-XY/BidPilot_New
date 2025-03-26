@@ -14,131 +14,76 @@ from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTempla
 
 
 
-class DocxOutlineAnalyzerStep(PipelineStep[Project, Dict[str, Any]]):
+class DocxOutlineAnalyzerStep():
     """文档大纲分析器，用于比较和分析文档的目录(TOC)和大纲(Outline)结构"""
 
-    def __init__(self):
+    def __init__(self, project: Project, stream_id: Optional[str] = None, redo_analysis: bool = False):
         super().__init__()
         nest_asyncio.apply()  # 允许在Jupyter Notebook中运行异步代码
-        self.redis_manager = RedisManager()
 
+        task = Task.objects.get(stage__project=project, type=TaskType.OUTLINE_ANALYSIS_TASK)
 
-    def process(self, data: Project, init_run: bool = True) -> Dict[str, Any]:
-        """
-        处理文档元素，分析目录和正文标题的一致性
-        """
-
-        if not self.validate_input(data):
-            raise ValueError("输入数据无效")
+        if not redo_analysis:
+            self.data_input, self.index_path_map = self.prepare_requests_data(project)
+            self.output_format = self.output_format_required()
+            self.prompt_template = self.build_prompt_template()
+            self.llm_config = self.build_llm_config(model_name="qwen-max-0125")
+            self.stream_id = stream_id
+            self.redis_manager = RedisManager()
         
-        
-        # 提取当前分析的document_analysis, 注意：data.document_analysis 是ModelData类型
-        task = Task.objects.get(stage__project=data, type=TaskType.DOCX_EXTRACTION_TASK)
-
-
-        if init_run:
-            data_input, index_path_map = self.prepare_requests_data(task)
-            llm_config = self.build_llm_config(model_name="qwen-max-0125")
-            task.data_input = data_input
-            task.index_path_map = index_path_map
-            task.output_format = self.output_format_required()
-            task.prompt_template = self.build_prompt_template()
-            task.llm_config = llm_config.to_model()
+            # 保存字符串而不是方法对象
+            task.data_input = self.data_input
+            task.index_path_map = self.index_path_map
+            task.output_format = self.output_format
+            task.prompt_template = self.prompt_template
+            task.llm_config = self.llm_config.to_model()
             task.save()
 
+        if redo_analysis:
+            self.data_input = task.data_input
+            self.index_path_map = task.index_path_map
+            self.output_format = task.output_format
+            self.prompt_template = task.prompt_template
+            self.llm_config = LLMConfig.from_model(task.llm_config)
 
-        # 从模型中获取配置, 初始化LLM服务 
-        llm_service = LLMService(
-            config= LLMConfig.from_model(task.llm_config),
-            prompt_template=task.prompt_template,
-            output_format=task.output_format
-        )
-
-        # 异步分析封装 - 单模型分析
-        async def _analyze():
-            return await llm_service.analyze(
-                data_input=task.data_input,
-            )
-        
-        raw_result = asyncio.run(_analyze())
-
-        # 合并结果
-        #final_results = BatchResult.merge_hybrid(raw_batch_results)
-
-        task.result_raw = raw_result
-        task.save()
-        
-        return raw_result
     
-    async def process_streaming(self, data: Project, stream_id: Optional[str] = None) -> str:
+    async def process_streaming(self, stream_id: Optional[str] = None) -> str:
         """
         流式处理文档元素，分析目录和正文标题的一致性
-        
-        Args:
-            data: 项目数据
-            stream_id: 流ID，如果为None则自动生成
-            
-        Returns:
-            str: 任务ID
         """
-        if not self.validate_input(data):
-            raise ValueError("输入数据无效")
-        
-        # 提取当前分析的document_analysis
-        task = Task.objects.get(stage__project=data, type=TaskType.DOCX_EXTRACTION_TASK)
-        
-        # 准备数据
-        data_input, index_path_map = self.prepare_requests_data(task)
-        llm_config = self.build_llm_config(model_name="qwen-max-0125")
-        
+
         # 初始化LLM服务
         llm_service = LLMService(
-            config=llm_config,
-            prompt_template=self.build_prompt_template(),
-            output_format=self.output_format_required()
+            config=self.llm_config,
+            prompt_template=self.prompt_template,
+            output_format=self.output_format
         )
         
         # 准备元数据
         metadata = {
-            "project_id": str(data.id),
-            "task_type": str(task.type),
-            "model": llm_config.llm_model_name,
-            "index_path_map": index_path_map
+            "model": self.llm_config.llm_model_name,
+            "index_path_map": self.index_path_map
         }
         
         # 执行流式分析
         # 返回的是ID，不是分析的内容，因为内容直接存储在Redis中.
-        stream_id = await llm_service.analyze_streaming(
-            data_input=data_input,
-            stream_id=stream_id,
+        await llm_service.analyze_streaming(
+            data_input=self.data_input,
+            stream_id = stream_id,
             metadata=metadata
         )
         
-        # 更新任务状态
-        task.status = TaskStatus.ACTIVE
-        task.save()
-        
         return stream_id
 
-    
-    def validate_input(self, data: Project) -> bool:
-        """验证输入数据"""
 
-        # 检查是否存在DOCX_EXTRACTION_TASK类型的任务
-        task = Task.objects.get(stage__project=data, type=TaskType.DOCX_EXTRACTION_TASK)
-        if not task or not task.docx_tiptap:
-            return False
-        return True
-    
-    def validate_output(self, data: Any) -> bool:
-        """验证输出数据"""
-        return isinstance(data, Any)
-
-
-    def prepare_requests_data(self, task: Task) -> Tuple[List[str], Dict[str, str]]:
-
+    def prepare_requests_data(self, project: Project) -> Tuple[List[str], Dict[str, str]]:
+        """
+        准备请求数据
+        """ 
+        docx_extraction_task = Task.objects.get(stage__project=project, type=TaskType.DOCX_EXTRACTION_TASK)
+        
         from apps.projects.tiptap.helpers import TiptapUtils
-        data_input, index_path_map = TiptapUtils.extract_indexed_paragraphs(task.docx_tiptap, 50)
+        data_input, index_path_map = TiptapUtils.extract_indexed_paragraphs(docx_extraction_task.docx_tiptap, 50)
 
         return data_input, index_path_map
 

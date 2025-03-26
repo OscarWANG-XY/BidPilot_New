@@ -243,6 +243,16 @@ CORS_ALLOW_HEADERS = [
 
 
 
+
+
+
+# ----------------------------- Tiptap Service Configuration -----------------------------
+TIPTAP_SERVICE_URL = 'http://localhost:3000'  # Update this to match your deployment
+TIPTAP_SERVICE_TIMEOUT = 30  # seconds
+
+
+
+
 # ------------------------------ Celery配置 ------------------------------
 
 # Celery Base Configuration
@@ -257,16 +267,6 @@ INSTALLED_APPS += [
     'django_celery_beat',
 ]
 
-
-
-# ----------------------------- Tiptap Service Configuration -----------------------------
-TIPTAP_SERVICE_URL = 'http://localhost:3000'  # Update this to match your deployment
-TIPTAP_SERVICE_TIMEOUT = 30  # seconds
-
-
-
-
-
 # ----------------------------- Redis Configuration -----------------------------
 REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
 REDIS_PORT = int(os.getenv('REDIS_PORT', 6379))
@@ -279,6 +279,10 @@ REDIS_URL = f"redis://{':' + REDIS_PASSWORD + '@' if REDIS_PASSWORD else ''}{RED
 # Configure Celery to use Redis
 CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_TASK_ALWAYS_EAGER = False  # 确保任务在后台运行，而不是同步执行
+CELERY_TASK_ACKS_LATE = True  # 确保任务完成后才确认
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1  # 减少预取任务数量，避免任务堆积
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True 
 
 # Configure Django Cache with Redis
 CACHES = {
@@ -293,12 +297,3 @@ CACHES = {
 }
 
 
-# Celery Configuration for Development (using PostgreSQL)
-# CELERY_BROKER_URL = 'sqla+postgresql://postgres:123456@localhost:5432/bidpilot_new'  # 使用数据库作为消息代理
-# CELERY_RESULT_BACKEND = 'django-db'  # 使用数据库存储结果
-# CELERY_CACHE_BACKEND = 'django-cache'
-
-
-# 开发时使用同步执行， 等功能稳定后，切换到异步。 
-#CELERY_TASK_ALWAYS_EAGER = True
-#CELERY_TASK_EAGER_PROPAGATES = True

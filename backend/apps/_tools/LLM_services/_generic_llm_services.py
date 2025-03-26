@@ -34,7 +34,7 @@ class RedisStreamingCallbackHandler(BaseCallbackHandler):
     def on_llm_start(self, serialized, prompts, **kwargs):
         """LLM开始生成时的回调"""
         logger.info(f"开始LLM流式生成: stream_id={self.stream_id}")
-        self.redis_manager.update_task_status(self.stream_id, "RUNNING")
+        self.redis_manager.update_stream_status(self.stream_id, "PROCESSING")
     
     def on_llm_new_token(self, token: str, **kwargs):
         """接收到新token时的回调"""

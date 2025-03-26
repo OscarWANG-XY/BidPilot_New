@@ -9,19 +9,35 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
+
+class RedisStreamStatus:
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
 class RedisManager:
     """Redis 管理器，用于处理大模型流式输出的存储和检索"""
     
     def __init__(self):
         """初始化 Redis 连接"""
-        self.redis_client = redis.Redis(
-            host=settings.REDIS_HOST,
-            port=settings.REDIS_PORT,
-            db=settings.REDIS_DB,
-            password=settings.REDIS_PASSWORD,
-            decode_responses=True  # 自动将字节解码为字符串
-        )
-        self.default_expiry = 3600  # 默认过期时间：1小时
+        try:
+            self.redis_client = redis.Redis(
+                host=settings.REDIS_HOST,
+                port=settings.REDIS_PORT,
+                db=settings.REDIS_DB,
+                password=settings.REDIS_PASSWORD,
+                decode_responses=True  # 自动将字节解码为字符串
+            )
+            self.default_expiry = 3600  # 默认过期时间：1小时
+            
+            # 测试连接(测试用)
+            ping_result = self.redis_client.ping()
+            logger.info(f"Redis 连接测试: {ping_result}")
+        except Exception as e:
+            logger.error(f"Redis 连接失败: {str(e)}")
+            raise
     
     def create_stream_key(self, stream_id: str) -> str:
         """创建用于存储流式输出的键名"""
@@ -84,7 +100,7 @@ class RedisManager:
             
             # 更新任务状态
             status_key = self.create_status_key(stream_id)
-            self.redis_client.hset(status_key, "status", "COMPLETED")
+            self.redis_client.hset(status_key, "status", RedisStreamStatus.COMPLETED)
             self.redis_client.expire(status_key, self.default_expiry)
             
             return True
@@ -109,7 +125,7 @@ class RedisManager:
             
             # 更新任务状态
             status_key = self.create_status_key(stream_id)
-            self.redis_client.hset(status_key, "status", "FAILED")
+            self.redis_client.hset(status_key, "status", RedisStreamStatus.FAILED)
             self.redis_client.hset(status_key, "error", error_message)
             self.redis_client.expire(status_key, self.default_expiry)
             
@@ -151,18 +167,15 @@ class RedisManager:
     def stream_chunks_generator(self, stream_id: str, poll_interval: float = 0.1) -> Generator[str, None, None]:
         """
         生成器函数，用于流式获取输出块
-        
-        Args:
-            stream_id: 流ID
-            poll_interval: 轮询间隔（秒）
-            
-        Yields:
-            str: 输出内容块
         """
+
         stream_key = self.create_stream_key(stream_id)
         last_index = -1
         done = False
-        
+
+        # 添加初始消息
+        yield "data: 正在等待分析结果...\n\n"
+
         while not done:
             try:
                 # 获取新块
@@ -212,7 +225,7 @@ class RedisManager:
                 yield f"event: error\ndata: Internal server error\n\n"
                 done = True
     
-    def initialize_task(self, stream_id: str, metadata: Dict = None) -> bool:
+    def initialize_stream(self, stream_id: str, metadata: Dict = None) -> bool:
         """
         初始化任务状态
         
@@ -227,7 +240,7 @@ class RedisManager:
             status_key = self.create_status_key(stream_id)
             
             # 设置基本状态
-            self.redis_client.hset(status_key, "status", "PENDING")
+            self.redis_client.hset(status_key, "status", RedisStreamStatus.PENDING)
             self.redis_client.hset(status_key, "start_time", time.time())
             
             # 添加元数据
@@ -245,7 +258,7 @@ class RedisManager:
             logger.error(f"初始化任务失败: {str(e)}, stream_id={stream_id}")
             return False
     
-    def update_task_status(self, stream_id: str, status: str, metadata: Dict = None) -> bool:
+    def update_stream_status(self, stream_id: str, status: str, metadata: Dict = None) -> bool:
         """
         更新任务状态
         
@@ -259,6 +272,7 @@ class RedisManager:
         """
         try:
             status_key = self.create_status_key(stream_id)
+            logger.info(f"更新流状态: stream_id={stream_id}, status={status}, key={status_key}")
             
             # 更新状态
             self.redis_client.hset(status_key, "status", status)
@@ -273,13 +287,17 @@ class RedisManager:
             
             # 刷新过期时间
             self.redis_client.expire(status_key, self.default_expiry)
-            
+
+            # 验证数据是否写入(测试用)
+            verification = self.redis_client.hgetall(status_key)
+            logger.info(f"验证流状态: key={status_key}, data={verification}")
+                        
             return True
         except Exception as e:
             logger.error(f"更新任务状态失败: {str(e)}, stream_id={stream_id}")
             return False
     
-    def get_task_status(self, stream_id: str) -> Dict:
+    def get_stream_status(self, stream_id: str) -> Dict:
         """
         获取任务状态
         

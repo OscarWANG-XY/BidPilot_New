@@ -7,6 +7,7 @@ from .views import (
     ProjectChangeHistoryViewSet, 
     StageChangeHistoryViewSet, 
     TaskChangeHistoryViewSet,
+    test_sse,
 )
 
 router = DefaultRouter()
@@ -24,8 +25,10 @@ stage_router = routers.NestedDefaultRouter(router, '', lookup='project')
 stage_router.register('stages', ProjectStageViewSet, basename='project-stages')
 
 urlpatterns = [
+    path('test-sse/', test_sse, name='test-sse'),  # 添加SSE测试路由
     path('', include(router.urls)),
     path('', include(stage_router.urls)),  # 添加嵌套路由URLs
+
 ]
 
 
