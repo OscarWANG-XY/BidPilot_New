@@ -314,7 +314,7 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
               .replace(/True/g, 'true')
               .replace(/False/g, 'false');
             
-            console.log('Converted to JSON string:', jsonString);
+            // console.log('Converted to JSON string:', jsonString);
             return JSON.parse(jsonString);
           } else {
             // Regular JSON string
@@ -366,7 +366,7 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
               .replace(/True/g, 'true')
               .replace(/False/g, 'false');
             
-            console.log('Converted to JSON string:', jsonString);
+            // console.log('Converted to JSON string:', jsonString);
             parsedContent = JSON.parse(jsonString);
           } else {
             // Regular JSON string

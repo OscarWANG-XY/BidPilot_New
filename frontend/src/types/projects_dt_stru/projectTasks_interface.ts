@@ -17,6 +17,7 @@
     // DOCUMENT_REVIEW = 'DOCUMENT_REVIEW',                    // 文档审核
     // DOCUMENT_REVISION = 'DOCUMENT_REVISION',                // 文档修订
     // DOCUMENT_PRODUCTION = 'DOCUMENT_PRODUCTION',            // 文档生产
+    OUTLINE_ANALYSIS_TASK = 'OUTLINE_ANALYSIS_TASK',          // 大纲分析
     OTHER = 'OTHER'                                         // 其他
   }
   
@@ -83,6 +84,55 @@
   }
   
 
-  
+  // Outline analysis task interfaces
+export interface OutlineAnalysisTaskDetail {
+  id: string;
+  name: string;
+  type: TaskType;
+  status: TaskStatus;
+  lockStatus: TaskLockStatus;
+}
+
+export interface OutlineAnalysisTaskUpdate {
+  status: TaskStatus;
+  lockStatus?: TaskLockStatus;
+}
+
+
+
+
+
+// Stream response interfaces
+export interface StreamStartResponse {
+  taskId: string;
+  streamId: string;
+  status: string;
+  message: string;
+}
+
+export interface StreamStatusResponse {
+  status: string;
+  start_time: string;
+  update_time?: string;
+  error?: string;
+  model?: string;
+  celery_task_id?: string;
+  project_id?: string;
+  task_type?: string;
+  // Any other metadata returned from the server
+}
+
+export interface StreamResultResponse {
+  status: string;
+  content: string;
+  chunks_count: number;
+  metadata: {
+    model?: string;
+    celery_task_id?: string;
+    project_id?: string;
+    task_type?: string;
+    [key: string]: any;
+  };
+}
   
   

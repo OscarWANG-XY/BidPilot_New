@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { StageType } from '@/types/projects_dt_stru/projectStage_interface'
 import { TaskStatus, TaskLockStatus } from '@/types/projects_dt_stru/projectTasks_interface'
-import { useProjectTasks } from '@/hooks/useProjects/useProjectTasks'
+import { useDocxExtraction } from '@/hooks/useProjects/useTaskDocxExtraction'
 import TiptapEditor_lite from '@/components/shared/TiptapEditor_lite'
 import { toast } from '@/hooks/use-toast'
 
@@ -26,7 +26,7 @@ export const DocxExtractionTask: React.FC<DocxExtractionTaskProps> = ({
 
 
   // 使用API hooks获取和更新任务状态
-  const { docxExtractionTaskQuery, pollDocxExtractionTask, updateDocxExtractionTask } = useProjectTasks()
+  const { docxExtractionTaskQuery, pollDocxExtractionTask, updateDocxExtractionTask } = useDocxExtraction()
 
   // 查询任务状态（从API获取）
   const { data: taskData, isLoading: isTaskLoading, refetch: refetchTaskData } = 

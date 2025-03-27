@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 import { TenderFileUpload } from './_01_TenderFileupload'
 import { DocxExtractionTask } from './_02_DocxExtractionTask'
-import { DocOutlineAnalysisTask } from './_03_DocOutlineAnalysisTask'
+// import { DocOutlineAnalysisTask } from './_03_OutlineAnalysisTask'
 import { TaskStatus, TaskLockStatus } from '@/types/projects_dt_stru/projectTasks_interface'
-
+import { OutlineAnalysisStreamingView } from '@/components/projects/TenderAnalysis/OutlineAnalysisStreamingView'
+import { StageType } from '@/types/projects_dt_stru/projectStage_interface'
 interface TenderAnalysisPageProps {
   projectId: string
 }
@@ -71,6 +72,19 @@ export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectI
           onNavigateToNextTask={handleNavigateToOutlineAnalysisTask}     // 回调让页面滑动到下一个任务
         />
       </div>
+
+
+      {/* Document Extraction Task */}
+      <div id="extraction-task-section">
+        <OutlineAnalysisStreamingView
+          projectId={projectId}
+          stageType={StageType.TENDER_ANALYSIS}
+          // isEnabled={fileUploadStatus === TaskStatus.COMPLETED}  // 文件上传任务完成后，让该组件渲染启动，这样就显示手动启动的按钮
+          // onStatusChange={handleExtractionStateChange}
+          // onNavigateToNextTask={handleNavigateToOutlineAnalysisTask}     // 回调让页面滑动到下一个任务
+        />
+      </div>
+
       
       {/* Document Outline Analysis Task */}
       {/* <div id="outline-task-section">

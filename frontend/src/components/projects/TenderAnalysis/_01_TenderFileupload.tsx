@@ -10,7 +10,7 @@ import { StageType } from '@/types/projects_dt_stru/projectStage_interface'
 import { TaskStatus } from '@/types/projects_dt_stru/projectTasks_interface'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
-import { useProjectTasks } from '@/hooks/useProjects/useProjectTasks'
+import { useUploadFile } from '@/hooks/useProjects/useTaskUploadFile'
 
 
 // Part1: 组件的props定义
@@ -33,7 +33,7 @@ export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({
 }) => {
 
   // 使用useProjectTasks获取和更新任务状态
-  const { fileUploadTaskQuery, updateFileUploadTask } = useProjectTasks()
+  const { fileUploadTaskQuery, updateFileUploadTask } = useUploadFile()
 
   // 查询任务状态（从API获取）
   const { data: taskData } = fileUploadTaskQuery(projectId, StageType.TENDER_ANALYSIS);
