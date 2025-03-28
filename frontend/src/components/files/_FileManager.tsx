@@ -24,6 +24,8 @@ interface FileManagerProps {
   allowMultiple?: boolean;
   // 添加删除检查回调函数，如果返回false则阻止删除
   onDeleteCheck?: () => boolean;
+  // 添加删除成功回调函数
+  onDeleteSuccess?: () => void;
   // 添加只读模式，为true时禁用上传和删除
   readOnly?: boolean;
   // 新增：加载状态变化回调
@@ -46,6 +48,7 @@ export function FileManager({
   acceptedFileTypes,
   allowMultiple = true,
   onDeleteCheck,
+  onDeleteSuccess,
   readOnly = false,
   onLoadingChange // 新增：接收加载状态变化回调
 }: FileManagerProps) {
