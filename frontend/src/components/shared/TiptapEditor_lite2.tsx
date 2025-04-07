@@ -21,31 +21,32 @@ import Superscript from '@tiptap/extension-superscript';
 import {
   Bold,
   Italic,
-  Strikethrough,
-  Eraser,
+  // Strikethrough,
+  // Eraser,
+  Text as TextIcon,
   Heading1,
   Heading2,
   Heading3,
   AlignLeft,
   AlignCenter,
   AlignRight,
-  AlignJustify,
+  // AlignJustify,
   List,
   ListOrdered,
-  Quote,
+  // Quote,
   Table as TableIcon,
-  Code,
-  Minus,
+  // Code,
+  // Minus,
   Undo,
   Redo,
   LucideProps,
   Menu,
   Image as ImageIcon,
-  Link as LinkIcon,
-  Highlighter,
+  // Link as LinkIcon,
+  // Highlighter,
   Underline as UnderlineIcon,
-  Subscript as SubscriptIcon,
-  Superscript as SuperscriptIcon,
+  // Subscript as SubscriptIcon,
+  // Superscript as SuperscriptIcon,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -503,7 +504,7 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
                     icon={Italic}
                     tooltip="斜体 (Ctrl+I)"
                   />
-                  <ToolbarButton 
+                  {/* <ToolbarButton 
                     onClick={() => editor?.chain().focus().toggleStrike().run()}
                     active={editor?.isActive('strike')}
                     disabled={!editor?.can().chain().focus().toggleStrike().run()}
@@ -513,15 +514,15 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
                   <ToolbarButton
                     onClick={() => editor?.chain().focus().unsetAllMarks().run()}
                     icon={Eraser}
-                    tooltip="清除格式"
-                  />
+                    tooltip="清除格式" 
+                  />*/}
                 </div>
                 
                 <div className="flex flex-wrap mb-1 mr-3 border-r border-gray-300 pr-2">
                   <ToolbarButton 
                     onClick={() => editor?.chain().focus().setParagraph().run()}
                     active={editor?.isActive('paragraph')}
-                    icon={AlignLeft}
+                    icon={TextIcon}
                     tooltip="正文"
                   />
                   <ToolbarButton 
@@ -564,12 +565,12 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
                     icon={AlignRight}
                     tooltip="右对齐"
                   />
-                  <ToolbarButton 
+                  {/* <ToolbarButton 
                     onClick={() => editor?.chain().focus().setTextAlign('justify').run()}
                     active={editor?.isActive({ textAlign: 'justify' })}
                     icon={AlignJustify}
                     tooltip="两端对齐"
-                  />
+                  /> */}
                 </div>
                 
                 <div className="flex flex-wrap mb-1 mr-3 border-r border-gray-300 pr-2">
@@ -585,12 +586,12 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
                     icon={ListOrdered}
                     tooltip="有序列表"
                   />
-                  <ToolbarButton 
+                  {/* <ToolbarButton 
                     onClick={() => editor?.chain().focus().toggleBlockquote().run()}
                     active={editor?.isActive('blockquote')}
                     icon={Quote}
                     tooltip="引用"
-                  />
+                  /> */}
                 </div>
                 
                 <div className="flex flex-wrap mb-1 mr-3 border-r border-gray-300 pr-2">
@@ -600,7 +601,7 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
                     icon={UnderlineIcon}
                     tooltip="下划线"
                   />
-                  <ToolbarButton 
+                  {/* <ToolbarButton 
                     onClick={() => editor?.chain().focus().toggleHighlight().run()}
                     active={editor?.isActive('highlight')}
                     icon={Highlighter}
@@ -617,7 +618,7 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
                     active={editor?.isActive('superscript')}
                     icon={SuperscriptIcon}
                     tooltip="上标"
-                  />
+                  /> */}
                 </div>
                 
                 <div className="flex flex-wrap mb-1 mr-3 border-r border-gray-300 pr-2">
@@ -631,7 +632,7 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
                     icon={ImageIcon}
                     tooltip="插入图片"
                   />
-                  <ToolbarButton 
+                  {/* <ToolbarButton 
                     onClick={() => {
                       const url = window.prompt('输入链接URL');
                       if (url) {
@@ -641,13 +642,13 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
                     active={editor?.isActive('link')}
                     icon={LinkIcon}
                     tooltip="插入链接"
-                  />
+                  /> */}
                   <ToolbarButton 
                     onClick={() => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
                     icon={TableIcon}
                     tooltip="插入表格"
                   />
-                  <ToolbarButton 
+                  {/* <ToolbarButton 
                     onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
                     active={editor?.isActive('codeBlock')}
                     icon={Code}
@@ -657,7 +658,7 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
                     onClick={() => editor?.chain().focus().setHorizontalRule().run()}
                     icon={Minus}
                     tooltip="分隔线"
-                  />
+                  /> */}
                 </div>
                 
                 <div className="flex flex-wrap mb-1">

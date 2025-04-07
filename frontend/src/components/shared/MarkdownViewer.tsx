@@ -1,27 +1,31 @@
 import React, { useEffect, useRef, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { cn } from '@/lib/utils';
+import ReactMarkdown from 'react-markdown';   
+import remarkGfm from 'remark-gfm';   // 支持GFM（GitHub Flavored Markdown）语法
+import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';  // 用于代码块的高亮显示
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';  // 代码块的样式 
+import { cn } from '@/lib/utils';   // 用于合并 className 
+
 
 interface MarkdownStreamingViewerProps {
   content: string;
   isStreaming?: boolean;
   isComplete?: boolean;
-  className?: string;
-  containerClassName?: string;
+  className?: string;   // 内部内容的样式
+  containerClassName?: string;  // 容器本身的样式
 }
 
 export const MarkdownStreamingViewer: React.FC<MarkdownStreamingViewerProps> = ({
   content,
-  isStreaming = false,
-  isComplete = false,
+  isStreaming = false,    // 初始化为false
+  isComplete = false,    // 初始化为false
   className,
   containerClassName,
 }) => {
+  
+  // 引用容器DOM元素，用于流式传输时自动滚动到底部 
   const containerRef = useRef<HTMLDivElement>(null);
-  // 处理内容以处理不完整的markdown块
+
+  // 存储处理后的markdown内容
   const [processedContent, setProcessedContent] = useState<string>('');
   
   // 处理markdown内容以确保它可渲染
@@ -97,8 +101,8 @@ export const MarkdownStreamingViewer: React.FC<MarkdownStreamingViewerProps> = (
       )}
       
       <div className={cn("prose prose-sm dark:prose-invert max-w-none", className)}>
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
+        <ReactMarkdown   // MARKDOWN渲染器
+          remarkPlugins={[remarkGfm]}  // 添加GFM插件， 支持GFM语法
           components={{
             code({ className, children, ...props }) {
               const match = /language-(\w+)/.exec(className || '');
@@ -116,12 +120,13 @@ export const MarkdownStreamingViewer: React.FC<MarkdownStreamingViewerProps> = (
               
               return (
                 <SyntaxHighlighter
-                  style={vscDarkPlus as any}
-                  language={match ? match[1] : ''}
-                  PreTag="div"
-                  {...rest}
+                  style={vscDarkPlus as any}       // 使用VS Code的dark+主题样式
+                  language={match ? match[1] : ''} // 设置代码语言
+                  PreTag="div"                     // 使用div作为包裹元素
+                  {...rest}                       // 传递其他属性
                 >
-                  {String(children).replace(/\n$/, '')}
+                  {String(children).replace(/\n$/, '')  //处理子内容
+                  }   
                 </SyntaxHighlighter>
               );
             },

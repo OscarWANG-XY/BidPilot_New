@@ -18,9 +18,9 @@ import { Route as ChatImport } from './routes/chat'
 import { Route as ProjectsIndexImport } from './routes/projects/index'
 import { Route as PlaygroundIndexImport } from './routes/playground/index'
 import { Route as ProjectsProjectIdImport } from './routes/projects/$projectId'
-import { Route as PlaygroundTree1Import } from './routes/playground/tree1'
+import { Route as PlaygroundTiptapeditorImport } from './routes/playground/tiptap_editor'
+import { Route as PlaygroundMarkdowneditorImport } from './routes/playground/markdown_editor'
 import { Route as PlaygroundLayoutImport } from './routes/playground/_layout'
-import { Route as PlaygroundAIAnalysisDashboardImport } from './routes/playground/AIAnalysisDashboard'
 import { Route as ChatSessionIdImport } from './routes/chat.$sessionId'
 import { Route as AuthServiceTermImport } from './routes/auth/service-term'
 import { Route as AuthRegisterImport } from './routes/auth/register'
@@ -115,9 +115,15 @@ const ProjectsProjectIdRoute = ProjectsProjectIdImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
-const PlaygroundTree1Route = PlaygroundTree1Import.update({
-  id: '/tree1',
-  path: '/tree1',
+const PlaygroundTiptapeditorRoute = PlaygroundTiptapeditorImport.update({
+  id: '/tiptap_editor',
+  path: '/tiptap_editor',
+  getParentRoute: () => PlaygroundRoute,
+} as any)
+
+const PlaygroundMarkdowneditorRoute = PlaygroundMarkdowneditorImport.update({
+  id: '/markdown_editor',
+  path: '/markdown_editor',
   getParentRoute: () => PlaygroundRoute,
 } as any)
 
@@ -125,13 +131,6 @@ const PlaygroundLayoutRoute = PlaygroundLayoutImport.update({
   id: '/_layout',
   getParentRoute: () => PlaygroundRoute,
 } as any)
-
-const PlaygroundAIAnalysisDashboardRoute =
-  PlaygroundAIAnalysisDashboardImport.update({
-    id: '/playground/AIAnalysisDashboard',
-    path: '/playground/AIAnalysisDashboard',
-    getParentRoute: () => rootRoute,
-  } as any)
 
 const ChatSessionIdRoute = ChatSessionIdImport.update({
   id: '/$sessionId',
@@ -319,13 +318,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatSessionIdImport
       parentRoute: typeof ChatImport
     }
-    '/playground/AIAnalysisDashboard': {
-      id: '/playground/AIAnalysisDashboard'
-      path: '/playground/AIAnalysisDashboard'
-      fullPath: '/playground/AIAnalysisDashboard'
-      preLoaderRoute: typeof PlaygroundAIAnalysisDashboardImport
-      parentRoute: typeof rootRoute
-    }
     '/playground': {
       id: '/playground'
       path: '/playground'
@@ -340,11 +332,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlaygroundLayoutImport
       parentRoute: typeof PlaygroundRoute
     }
-    '/playground/tree1': {
-      id: '/playground/tree1'
-      path: '/tree1'
-      fullPath: '/playground/tree1'
-      preLoaderRoute: typeof PlaygroundTree1Import
+    '/playground/markdown_editor': {
+      id: '/playground/markdown_editor'
+      path: '/markdown_editor'
+      fullPath: '/playground/markdown_editor'
+      preLoaderRoute: typeof PlaygroundMarkdowneditorImport
+      parentRoute: typeof PlaygroundImport
+    }
+    '/playground/tiptap_editor': {
+      id: '/playground/tiptap_editor'
+      path: '/tiptap_editor'
+      fullPath: '/playground/tiptap_editor'
+      preLoaderRoute: typeof PlaygroundTiptapeditorImport
       parentRoute: typeof PlaygroundImport
     }
     '/projects/$projectId': {
@@ -441,13 +440,15 @@ const ChatRouteWithChildren = ChatRoute._addFileChildren(ChatRouteChildren)
 
 interface PlaygroundRouteChildren {
   PlaygroundLayoutRoute: typeof PlaygroundLayoutRoute
-  PlaygroundTree1Route: typeof PlaygroundTree1Route
+  PlaygroundMarkdowneditorRoute: typeof PlaygroundMarkdowneditorRoute
+  PlaygroundTiptapeditorRoute: typeof PlaygroundTiptapeditorRoute
   PlaygroundIndexRoute: typeof PlaygroundIndexRoute
 }
 
 const PlaygroundRouteChildren: PlaygroundRouteChildren = {
   PlaygroundLayoutRoute: PlaygroundLayoutRoute,
-  PlaygroundTree1Route: PlaygroundTree1Route,
+  PlaygroundMarkdowneditorRoute: PlaygroundMarkdowneditorRoute,
+  PlaygroundTiptapeditorRoute: PlaygroundTiptapeditorRoute,
   PlaygroundIndexRoute: PlaygroundIndexRoute,
 }
 
@@ -498,9 +499,9 @@ export interface FileRoutesByFullPath {
   '/auth/register': typeof AuthRegisterRoute
   '/auth/service-term': typeof AuthServiceTermRoute
   '/chat/$sessionId': typeof ChatSessionIdRoute
-  '/playground/AIAnalysisDashboard': typeof PlaygroundAIAnalysisDashboardRoute
   '/playground': typeof PlaygroundLayoutRoute
-  '/playground/tree1': typeof PlaygroundTree1Route
+  '/playground/markdown_editor': typeof PlaygroundMarkdowneditorRoute
+  '/playground/tiptap_editor': typeof PlaygroundTiptapeditorRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
   '/playground/': typeof PlaygroundIndexRoute
   '/projects': typeof ProjectsIndexRoute
@@ -528,9 +529,9 @@ export interface FileRoutesByTo {
   '/auth/register': typeof AuthRegisterRoute
   '/auth/service-term': typeof AuthServiceTermRoute
   '/chat/$sessionId': typeof ChatSessionIdRoute
-  '/playground/AIAnalysisDashboard': typeof PlaygroundAIAnalysisDashboardRoute
   '/playground': typeof PlaygroundIndexRoute
-  '/playground/tree1': typeof PlaygroundTree1Route
+  '/playground/markdown_editor': typeof PlaygroundMarkdowneditorRoute
+  '/playground/tiptap_editor': typeof PlaygroundTiptapeditorRoute
   '/projects': typeof ProjectsIndexRoute
   '/projects/$projectId/bid-writing': typeof ProjectsProjectIdBidWritingRoute
   '/projects/$projectId/tender-analysis': typeof ProjectsProjectIdTenderAnalysisRoute
@@ -557,10 +558,10 @@ export interface FileRoutesById {
   '/auth/register': typeof AuthRegisterRoute
   '/auth/service-term': typeof AuthServiceTermRoute
   '/chat/$sessionId': typeof ChatSessionIdRoute
-  '/playground/AIAnalysisDashboard': typeof PlaygroundAIAnalysisDashboardRoute
   '/playground': typeof PlaygroundRouteWithChildren
   '/playground/_layout': typeof PlaygroundLayoutRoute
-  '/playground/tree1': typeof PlaygroundTree1Route
+  '/playground/markdown_editor': typeof PlaygroundMarkdowneditorRoute
+  '/playground/tiptap_editor': typeof PlaygroundTiptapeditorRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
   '/playground/': typeof PlaygroundIndexRoute
   '/projects/': typeof ProjectsIndexRoute
@@ -590,9 +591,9 @@ export interface FileRouteTypes {
     | '/auth/register'
     | '/auth/service-term'
     | '/chat/$sessionId'
-    | '/playground/AIAnalysisDashboard'
     | '/playground'
-    | '/playground/tree1'
+    | '/playground/markdown_editor'
+    | '/playground/tiptap_editor'
     | '/projects/$projectId'
     | '/playground/'
     | '/projects'
@@ -619,9 +620,9 @@ export interface FileRouteTypes {
     | '/auth/register'
     | '/auth/service-term'
     | '/chat/$sessionId'
-    | '/playground/AIAnalysisDashboard'
     | '/playground'
-    | '/playground/tree1'
+    | '/playground/markdown_editor'
+    | '/playground/tiptap_editor'
     | '/projects'
     | '/projects/$projectId/bid-writing'
     | '/projects/$projectId/tender-analysis'
@@ -646,10 +647,10 @@ export interface FileRouteTypes {
     | '/auth/register'
     | '/auth/service-term'
     | '/chat/$sessionId'
-    | '/playground/AIAnalysisDashboard'
     | '/playground'
     | '/playground/_layout'
-    | '/playground/tree1'
+    | '/playground/markdown_editor'
+    | '/playground/tiptap_editor'
     | '/projects/$projectId'
     | '/playground/'
     | '/projects/'
@@ -677,7 +678,6 @@ export interface RootRouteChildren {
   AuthPrivacyPolicyRoute: typeof AuthPrivacyPolicyRoute
   AuthRegisterRoute: typeof AuthRegisterRoute
   AuthServiceTermRoute: typeof AuthServiceTermRoute
-  PlaygroundAIAnalysisDashboardRoute: typeof PlaygroundAIAnalysisDashboardRoute
   PlaygroundRoute: typeof PlaygroundRouteWithChildren
   ProjectsProjectIdRoute: typeof ProjectsProjectIdRouteWithChildren
   ProjectsIndexRoute: typeof ProjectsIndexRoute
@@ -696,7 +696,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthPrivacyPolicyRoute: AuthPrivacyPolicyRoute,
   AuthRegisterRoute: AuthRegisterRoute,
   AuthServiceTermRoute: AuthServiceTermRoute,
-  PlaygroundAIAnalysisDashboardRoute: PlaygroundAIAnalysisDashboardRoute,
   PlaygroundRoute: PlaygroundRouteWithChildren,
   ProjectsProjectIdRoute: ProjectsProjectIdRouteWithChildren,
   ProjectsIndexRoute: ProjectsIndexRoute,
@@ -724,7 +723,6 @@ export const routeTree = rootRoute
         "/auth/privacy-policy",
         "/auth/register",
         "/auth/service-term",
-        "/playground/AIAnalysisDashboard",
         "/playground",
         "/projects/$projectId",
         "/projects/"
@@ -773,14 +771,12 @@ export const routeTree = rootRoute
       "filePath": "chat.$sessionId.tsx",
       "parent": "/chat"
     },
-    "/playground/AIAnalysisDashboard": {
-      "filePath": "playground/AIAnalysisDashboard.tsx"
-    },
     "/playground": {
       "filePath": "playground",
       "children": [
         "/playground/_layout",
-        "/playground/tree1",
+        "/playground/markdown_editor",
+        "/playground/tiptap_editor",
         "/playground/"
       ]
     },
@@ -788,8 +784,12 @@ export const routeTree = rootRoute
       "filePath": "playground/_layout.tsx",
       "parent": "/playground"
     },
-    "/playground/tree1": {
-      "filePath": "playground/tree1.tsx",
+    "/playground/markdown_editor": {
+      "filePath": "playground/markdown_editor.tsx",
+      "parent": "/playground"
+    },
+    "/playground/tiptap_editor": {
+      "filePath": "playground/tiptap_editor.tsx",
       "parent": "/playground"
     },
     "/projects/$projectId": {

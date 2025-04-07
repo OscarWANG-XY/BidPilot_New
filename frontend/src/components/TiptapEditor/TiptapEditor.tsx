@@ -59,7 +59,7 @@ const CustomHeading = Heading.extend({ //为标题元素添加自定义属性id
   addAttributes() {
     return {
       ...this.parent?.(),   // 保留父类所有属性（即原Heading的扩展）
-      // Add ID attribute
+      // 添加ID属性
       id: {
         default: null,   // 默认值为null
         parseHTML: element => element.getAttribute('id'), // 从HTML元素中解析ID属性
@@ -73,7 +73,7 @@ const CustomHeading = Heading.extend({ //为标题元素添加自定义属性id
     }
   },
 
-  // Ensure ID attribute is included during rendering
+  // 确保在渲染过程中包含ID属性
   renderHTML({ node, HTMLAttributes }) {
     // 检查当前级别是否在配置的级别列表中
     const hasLevel = this.options.levels.includes(node.attrs.level)
@@ -91,12 +91,12 @@ const CustomHeading = Heading.extend({ //为标题元素添加自定义属性id
 
 
 // ------------     工具栏按钮组件 的标准化定义 （框架和样式） ------------
-// Icon type definition
+// 图标类型定义
 type IconComponent = React.ForwardRefExoticComponent<
   Omit<LucideProps, "ref"> & React.RefAttributes<SVGSVGElement>
 >;
 
-// Enhanced toolbar button with icon and tooltip
+// 增强的工具栏按钮，带有图标和工具提示
 const ToolbarButton = ({ 
   onClick, 
   active, 
@@ -143,46 +143,52 @@ const ToolbarButton = ({
 
 
 // ------------     目录导航 ------------
-// TOC item interface
+// 目录项接口定义
 interface TocItem {
   id: string;
   level: number;
   text: string;
 }
 
-// Function to generate safe slug IDs  -> 用于生成安全的slug ID （嵌条码）
+// 生成安全的slug ID函数（用于创建标题的唯一标识符）
 const generateSlug = (text: string): string => {
   return text
     .toLowerCase()
-    .replace(/\s+/g, '-')           // Replace spaces with hyphens
-    .replace(/[^\w\-]+/g, '')       // Remove non-alphanumeric characters
-    .replace(/\-\-+/g, '-')         // Replace multiple hyphens with single hyphen
-    .replace(/^-+/, '')             // Remove leading hyphens
-    .replace(/-+$/, '');            // Remove trailing hyphens
+    .replace(/\s+/g, '-')           // 将空格替换为连字符
+    .replace(/[^\w\-]+/g, '')       // 移除非字母数字字符
+    .replace(/\-\-+/g, '-')         // 将多个连字符替换为单个连字符
+    .replace(/^-+/, '')             // 移除开头的连字符
+    .replace(/-+$/, '');            // 移除结尾的连字符
 };
 
 
 
 // ------------     组件接口定义 + 组件实现 ------------
-type TiptapEditorLiteProps = {
-  initialContent?: string;
-  onChange?: (content: string) => void;
-  maxHeight?: number;
-  showToc?: boolean;
-  readOnly?: boolean;
+type TiptapEditorProps = {
+  initialContent?: string;          // 初始内容
+  onChange?: (content: string) => void;  // 内容变化回调
+  maxHeight?: number;               // 编辑器最大高度
+  minHeight?: number;               // 编辑器最小高度
+  maxWidth?: number | string;       // 编辑器最大宽度
+  minWidth?: number | string;       // 编辑器最小宽度
+  showToc?: boolean;                // 是否显示目录
+  readOnly?: boolean;               // 是否只读模式
 };
 
-const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({ 
+const TiptapEditor: React.FC<TiptapEditorProps> = ({ 
   initialContent = '',
   onChange,
   maxHeight = 400,
+  minHeight = 200,       // 默认最小高度
+  maxWidth = '100%',     // 默认最大宽度
+  minWidth = '300px',    // 默认最小宽度
   showToc = true,
   readOnly = false
 }) => {
-  const [tocItems, setTocItems] = useState<TocItem[]>([]);
-  const [tocVisible, setTocVisible] = useState(true);
+  const [tocItems, setTocItems] = useState<TocItem[]>([]);  // 目录项状态
+  const [tocVisible, setTocVisible] = useState(true);       // 目录可见性状态
   
-  // Generate TOC - add IDs to headings and collect TOC items
+  // 生成目录 - 为标题添加ID并收集目录项
   const generateToc = useCallback((editor: any) => {
     if (!editor) return;
     
@@ -190,10 +196,10 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
     const transaction = editor.state.tr;
     let hasChanges = false;
     
-    // Find all headings in the document
+    // 查找文档中的所有标题
     editor.state.doc.descendants((node: any, pos: number) => {
       if (node.type.name === 'heading') {
-        // Get heading text
+        // 获取标题文本
         let text = '';
         node.descendants((textNode: any) => {
           if (textNode.text) {
@@ -203,18 +209,18 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
         
         const displayText = text || '无标题';
         
-        // Generate a unique and readable ID for the heading
-        // Use existing ID if available, otherwise generate a new one based on text
+        // 为标题生成唯一且可读的ID
+        // 如果已有ID则使用现有ID，否则基于文本生成新ID
         let headingId = node.attrs.id;
         
         if (!headingId) {
-          // Generate ID based on text content
+          // 基于文本内容生成ID
           const baseId = generateSlug(displayText);
           
-          // Add position suffix to ensure uniqueness for same-name IDs
+          // 添加位置后缀以确保同名ID的唯一性
           headingId = `${baseId}-${pos}`;
           
-          // Store ID in heading node attributes
+          // 将ID存储在标题节点属性中
           transaction.setNodeMarkup(pos, undefined, {
             ...node.attrs,
             id: headingId,
@@ -223,7 +229,7 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
           hasChanges = true;
         }
         
-        // Add to TOC items
+        // 添加到目录项
         headings.push({
           id: headingId,
           level: node.attrs.level,
@@ -232,7 +238,7 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
       }
     });
     
-    // Apply transaction to update editor content
+    // 应用事务更新编辑器内容
     if (hasChanges && transaction.steps.length > 0) {
       editor.view.dispatch(transaction);
     }
@@ -240,12 +246,12 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
     setTocItems(headings);
   }, []);
 
-  // Initialize editor with content and custom extensions
+  // 使用内容和自定义扩展初始化编辑器
   const editor = useEditor({
     extensions: [
-      // Use custom Heading extension instead of the one in StarterKit
+      // 使用自定义Heading扩展代替StarterKit中的默认扩展
       StarterKit.configure({
-        heading: false, // Disable default Heading
+        heading: false, // 禁用默认Heading
         bulletList: {
           keepMarks: true,
           keepAttributes: false,
@@ -255,11 +261,11 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
           keepAttributes: false,
         },
       }),
-      // Add custom Heading extension
+      // 添加自定义Heading扩展
       CustomHeading.configure({
         levels: [1, 2, 3],
       }),
-      // Add TextAlign extension with the same configuration as in editor-config.js
+      // 添加TextAlign扩展，配置与editor-config.js中相同
       TextAlign.configure({
         types: ['heading', 'paragraph'],
         alignments: ['left', 'center', 'right', 'justify'],
@@ -301,13 +307,13 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
           ? initialContent.substring(0, 100) + '...' 
           : 'Object provided');
         
-        // Handle different formats of initialContent
+        // 处理不同格式的initialContent
         if (typeof initialContent === 'object') {
           return initialContent;
         } else if (typeof initialContent === 'string') {
-          // Check if it's a Python-style dictionary string
+          // 检查是否为Python风格的字典字符串
           if (initialContent.startsWith("{'") || initialContent.startsWith("{\"")) {
-            // Convert Python-style quotes to JSON-compatible quotes
+            // 将Python风格的引号转换为JSON兼容的引号
             const jsonString = initialContent
               .replace(/'/g, '"')
               .replace(/None/g, 'null')
@@ -317,29 +323,29 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
             // console.log('Converted to JSON string:', jsonString);
             return JSON.parse(jsonString);
           } else {
-            // Regular JSON string
+            // 常规JSON字符串
             return JSON.parse(initialContent);
           }
         }
         return '';
       } catch (error) {
         console.error('Failed to parse Tiptap content:', error);
-        return ''; // Provide a default value
+        return ''; // 提供默认值
       }
     })() : '',
-    editable: !readOnly,
+    editable: !readOnly,  // 根据readOnly属性设置是否可编辑
     onUpdate: ({ editor }) => {
-      // When editor content is updated, regenerate TOC
+      // 当编辑器内容更新时，重新生成目录
       generateToc(editor);
       
-      // If onChange callback is provided, pass editor content
+      // 如果提供了onChange回调，传递编辑器内容
       if (onChange) {
         onChange(JSON.stringify(editor.getJSON()));
       }
     },
   });
 
-  // Initial TOC generation
+  // 初始目录生成
   useEffect(() => {
     if (editor) {
       generateToc(editor);
@@ -347,27 +353,27 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
   }, [editor, generateToc]);
 
 
-  // 当 readOnly 属性变化时更新编辑器可编辑状态
+  // 当readOnly属性变化时更新编辑器可编辑状态
   useEffect(() => {
     if (editor) {
       editor.setEditable(!readOnly);
     }
   }, [editor, readOnly]);
 
-  // Update editor content when initialContent changes
+  // 当initialContent变化时更新编辑器内容
   useEffect(() => {
     if (editor && initialContent) {
       try {
         console.log('Updating content, type:', typeof initialContent);
         
-        // Handle different formats of content
+        // 处理不同格式的内容
         let parsedContent;
         if (typeof initialContent === 'object') {
           parsedContent = initialContent;
         } else if (typeof initialContent === 'string') {
-          // Check if it's a Python-style dictionary string
+          // 检查是否为Python风格的字典字符串
           if (initialContent.startsWith("{'") || initialContent.startsWith("{\"")) {
-            // Convert Python-style quotes to JSON-compatible quotes
+            // 将Python风格的引号转换为JSON兼容的引号
             const jsonString = initialContent
               .replace(/'/g, '"')
               .replace(/None/g, 'null')
@@ -377,7 +383,7 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
             // console.log('Converted to JSON string:', jsonString);
             parsedContent = JSON.parse(jsonString);
           } else {
-            // Regular JSON string
+            // 常规JSON字符串
             parsedContent = JSON.parse(initialContent);
           }
         }
@@ -385,7 +391,7 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
         console.log('Parsed content:', parsedContent);
         editor.commands.setContent(parsedContent || '');
         
-        // Regenerate TOC after content is loaded
+        // 内容加载后重新生成目录
         setTimeout(() => {
           generateToc(editor);
         }, 100);
@@ -395,35 +401,35 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
     }
   }, [initialContent, editor, generateToc]);
 
-  // Scroll to specified heading position
+  // 滚动到指定标题位置
   const scrollToHeading = (id: string) => {
     if (!editor) return;
     
-    // Get editor container element - modified to get scrollable container
+    // 获取编辑器容器元素 - 修改为获取可滚动容器
     const scrollContainer = document.querySelector('.tiptap-content')?.closest('.overflow-y-auto');
     if (!scrollContainer) return;
     
-    // Find heading DOM element
+    // 查找标题DOM元素
     const headingElement = document.getElementById(id);
     
     if (headingElement) {
-      // Calculate scroll position instead of using scrollIntoView
+      // 计算滚动位置，而不是使用scrollIntoView
       const containerRect = scrollContainer.getBoundingClientRect();
       const headingRect = headingElement.getBoundingClientRect();
       const relativePosition = headingRect.top - containerRect.top;
       
-      // Scroll to heading element position, but only scroll editor content area
+      // 滚动到标题元素位置，但只滚动编辑器内容区域
       scrollContainer.scrollTop = scrollContainer.scrollTop + relativePosition - containerRect.height / 2 + headingRect.height / 2;
       
-      // If not in read-only mode, focus the heading
+      // 如果不是只读模式，聚焦标题
       if (!readOnly) {
         setTimeout(() => {
-          // Get DOM position
+          // 获取DOM位置
           const view = editor.view;
           const domPos = view.posAtDOM(headingElement, 0);
           
           if (domPos > -1) {
-            // Set selection to the heading
+            // 将选择设置到标题
             editor.commands.setTextSelection(domPos);
             editor.commands.focus();
           }
@@ -433,7 +439,13 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
   };
 
   return (
-    <div className="border border-gray-200 rounded-lg bg-white shadow-sm">
+    <div 
+      className="border border-gray-200 rounded-lg bg-white shadow-sm"
+      style={{ 
+        maxWidth: maxWidth, 
+        minWidth: minWidth 
+      }}
+    >
       <div className="mb-5">
         <div className="flex justify-between items-center mb-2">
           {showToc && tocItems.length > 0 && (
@@ -447,9 +459,9 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
           )}
         </div>
         
-        {/* Layout container for TOC and editor */}
+        {/* 目录和编辑器的布局容器 */}
         <div className="flex gap-4">
-          {/* TOC navigation area */}
+          {/* 目录导航区域 */}
           {showToc && tocVisible && tocItems.length > 0 && (
             <div className="w-64 border border-gray-200 rounded-md p-3 bg-gray-50">
               <div className="font-medium text-gray-700 mb-2 flex items-center">
@@ -483,11 +495,12 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
             </div>
           )}
           
-          {/* Content editing area container */}
+          {/* 内容编辑区域容器 */}
           <div className={`relative border border-gray-200 rounded-md flex-1 ${showToc && tocVisible ? 'w-3/4' : 'w-full'}`}>
-            {/* Fixed toolbar at the top - only shown in non-read-only mode */}
+            {/* 顶部固定工具栏 - 仅在非只读模式下显示 */}
             {!readOnly && (
               <div className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200 rounded-t-md p-2 flex flex-wrap">
+                {/* 文本格式工具组 */}
                 <div className="flex flex-wrap mb-1 mr-3 border-r border-gray-300 pr-2">
                   <ToolbarButton 
                     onClick={() => editor?.chain().focus().toggleBold().run()}
@@ -517,6 +530,7 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
                   />
                 </div>
                 
+                {/* 标题样式工具组 */}
                 <div className="flex flex-wrap mb-1 mr-3 border-r border-gray-300 pr-2">
                   <ToolbarButton 
                     onClick={() => editor?.chain().focus().setParagraph().run()}
@@ -544,7 +558,7 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
                   />
                 </div>
                 
-                {/* Add text alignment buttons */}
+                {/* 文本对齐工具组 */}
                 <div className="flex flex-wrap mb-1 mr-3 border-r border-gray-300 pr-2">
                   <ToolbarButton 
                     onClick={() => editor?.chain().focus().setTextAlign('left').run()}
@@ -572,6 +586,7 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
                   />
                 </div>
                 
+                {/* 列表和引用工具组 */}
                 <div className="flex flex-wrap mb-1 mr-3 border-r border-gray-300 pr-2">
                   <ToolbarButton 
                     onClick={() => editor?.chain().focus().toggleBulletList().run()}
@@ -593,6 +608,7 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
                   />
                 </div>
                 
+                {/* 文本装饰工具组 */}
                 <div className="flex flex-wrap mb-1 mr-3 border-r border-gray-300 pr-2">
                   <ToolbarButton 
                     onClick={() => editor?.chain().focus().toggleUnderline().run()}
@@ -620,6 +636,7 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
                   />
                 </div>
                 
+                {/* 插入元素工具组 */}
                 <div className="flex flex-wrap mb-1 mr-3 border-r border-gray-300 pr-2">
                   <ToolbarButton 
                     onClick={() => {
@@ -660,6 +677,7 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
                   />
                 </div>
                 
+                {/* 撤销/重做工具组 */}
                 <div className="flex flex-wrap mb-1">
                   <ToolbarButton 
                     onClick={() => editor?.chain().focus().undo().run()}
@@ -677,10 +695,13 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
               </div>
             )}
             
-            {/* Scrollable editor content area */}
+            {/* 可滚动的编辑器内容区域 */}
             <div 
               className="overflow-y-auto bg-white rounded-b-md"
-              style={{ maxHeight: `${maxHeight}px` }}
+              style={{ 
+                maxHeight: `${maxHeight}px`,
+                minHeight: `${minHeight}px`
+              }}
             >
               <div className="p-4">
                 <EditorContent editor={editor} className="tiptap-content"/>
@@ -693,12 +714,9 @@ const TiptapEditor_lite: React.FC<TiptapEditorLiteProps> = ({
   );
 };
 
-export default TiptapEditor_lite;
+export default TiptapEditor;
 
-
-
-
-// Usage example:
+// 使用示例:
 // <TiptapEditor_lite
 //   initialContent={yourContent}
 //   onChange={(content) => handleContentChange(content)}

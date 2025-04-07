@@ -66,23 +66,7 @@
   }
   
   
-  // 文档提取任务查询接口 - 对应 DocxExtractionTaskDetailSerializer
-  export interface DocxExtractionTaskDetail {
-    id: string;
-    name: string;
-    type: TaskType;
-    status: TaskStatus;
-    lockStatus: TaskLockStatus;
-    docxTiptap: string;
-  }
-  
-  // 文档提取任务更新接口 - 对应 DocxExtractionTaskUpdateSerializer
-  export interface DocxExtractionTaskUpdate {
-    status: TaskStatus;
-    lockStatus: TaskLockStatus;
-    docxTiptap: string;
-  }
-  
+
 
   // Outline analysis task interfaces
 export interface OutlineAnalysisTaskDetail {
@@ -97,11 +81,6 @@ export interface OutlineAnalysisTaskUpdate {
   status: TaskStatus;
   lockStatus?: TaskLockStatus;
 }
-
-
-
-
-
 // Stream response interfaces
 export interface StreamStartResponse {
   taskId: string;

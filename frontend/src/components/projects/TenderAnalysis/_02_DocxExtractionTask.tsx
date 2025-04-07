@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { StageType } from '@/types/projects_dt_stru/projectStage_interface'
 import { TaskStatus, TaskLockStatus } from '@/types/projects_dt_stru/projectTasks_interface'
-import { useDocxExtraction } from '@/hooks/useProjects/useTaskDocxExtraction'
+import { useDocxExtraction } from '@/components/projects/TenderAnalysis/Task_components/useTaskDocxExtraction'
 import TiptapEditor_lite from '@/components/shared/TiptapEditor_lite'
 import { toast } from '@/hooks/use-toast'
 
@@ -26,16 +26,16 @@ export const DocxExtractionTask: React.FC<DocxExtractionTaskProps> = ({
 
 
   // 使用API hooks获取和更新任务状态
-  const { docxExtractionTaskQuery, pollDocxExtractionTask, updateDocxExtractionTask } = useDocxExtraction()
+  const { DocxExtractionQuery, DocxExtractionUpdate } = useDocxExtraction()
 
   // 查询任务状态（从API获取）
   const { data: taskData, isLoading: isTaskLoading, refetch: refetchTaskData } = 
-    docxExtractionTaskQuery(projectId, StageType.TENDER_ANALYSIS, {
+    DocxExtractionQuery(projectId, StageType.TENDER_ANALYSIS, {
       refetchOnMount: true,   // 确保projectId变化时重新获取数据
     });
 
   // 轮询任务状态，用于实时更新提取进度
-  const { data: pollTaskData, startPolling, stopPolling } = pollDocxExtractionTask(projectId, StageType.TENDER_ANALYSIS);
+  const { data: pollTaskData, startPolling, stopPolling } = DocxExtractionQuery(projectId, StageType.TENDER_ANALYSIS);
 
   // 本地状态管理
   const [status, setStatus] = useState<TaskStatus>(TaskStatus.NOT_STARTED)
@@ -170,7 +170,7 @@ export const DocxExtractionTask: React.FC<DocxExtractionTaskProps> = ({
   const handleSaveContent = async () => {
     setLoading(true)
     try {
-      await updateDocxExtractionTask({
+      await DocxExtractionUpdate({
         projectId,
         stageType: StageType.TENDER_ANALYSIS,
         docxTiptap: JSON.parse(editorContent)  //与上面加载的tiptapContent的JSON.stringify正好相反
@@ -198,7 +198,7 @@ export const DocxExtractionTask: React.FC<DocxExtractionTaskProps> = ({
     setLoading(true);
     try {
       // 更新任务状态为完成并锁定任务
-      await updateDocxExtractionTask({
+      await DocxExtractionUpdate({
         projectId,
         stageType: StageType.TENDER_ANALYSIS,
         docxTiptap: JSON.parse(editorContent),
@@ -241,7 +241,7 @@ export const DocxExtractionTask: React.FC<DocxExtractionTaskProps> = ({
     setLoading(true);
     try {
       // 更新任务状态为激活，触发后端提取流程
-      await updateDocxExtractionTask({
+      await DocxExtractionUpdate({
         projectId,
         stageType: StageType.TENDER_ANALYSIS,
         status: TaskStatus.ACTIVE,

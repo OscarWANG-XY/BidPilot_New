@@ -1,0 +1,105 @@
+/* markdown.scss - Markdown 编辑器样式 */
+@layer components {
+    .markdown-preview {
+      h1, h2, h3, h4, h5, h6 {
+        @apply font-bold leading-tight mt-6 mb-4;
+      }
+  
+      h1 {
+        @apply text-2xl border-b border-gray-200 pb-2;
+      }
+  
+      h2 {
+        @apply text-xl border-b border-gray-200 pb-2;
+      }
+  
+      h3 {
+        @apply text-lg;
+      }
+  
+      p {
+        @apply mb-4;
+      }
+  
+      ul, ol {
+        @apply pl-8 mb-4;
+      }
+  
+      ul {
+        @apply list-disc;
+      }
+  
+      ol {
+        @apply list-decimal;
+      }
+  
+      blockquote {
+        @apply pl-4 border-l-4 border-gray-300 text-gray-600 my-4;
+      }
+  
+      pre {
+        @apply bg-gray-50 rounded-md p-4 overflow-auto mb-4;
+      }
+  
+      code {
+        @apply font-mono text-sm bg-gray-100 px-1 py-0.5 rounded;
+      }
+  
+      pre code {
+        @apply bg-transparent p-0 rounded-none;
+      }
+  
+      a {
+        @apply text-blue-600 hover:underline;
+      }
+  
+      table {
+        @apply border-collapse w-full mb-4;
+        
+        th, td {
+          @apply border border-gray-300 p-2;
+        }
+        
+        th {
+          @apply bg-gray-100;
+        }
+      }
+  
+      img {
+        @apply max-w-full h-auto my-4 rounded;
+      }
+    }
+  }
+  
+  /* 代码高亮的基础样式 */
+  .language-js, .language-javascript,
+  .language-ts, .language-typescript,
+  .language-py, .language-python,
+  .language-java, .language-c,
+  .language-cpp, .language-csharp,
+  .language-html, .language-css,
+  .language-json, .language-markdown,
+  .language-bash, .language-shell {
+    @apply rounded-md;
+  }
+  
+  /* Markdown 编辑器容器样式 */
+  .markdown-editor {
+    @apply border border-gray-200 rounded-md overflow-hidden bg-white;
+    
+    .editor-container, .preview-container {
+      @apply w-full;
+    }
+    
+    .markdown-textarea {
+      @apply w-full p-4 border-none resize-none font-mono text-sm leading-relaxed outline-none;
+    }
+    
+    .editor-actions, .preview-actions {
+      @apply flex justify-end p-2 bg-gray-50 border-t border-gray-200;
+      
+      button {
+        @apply px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors;
+      }
+    }
+  }
