@@ -181,6 +181,8 @@ export function FileManager({
         toast({
           title: "文件已删除",
         });
+        // 调用删除成功的回调函数
+        onDeleteSuccess?.();
       },
       onError: (error: any) => {
         console.error('❌ [_FileManager.tsx] 删除错误详情:', {

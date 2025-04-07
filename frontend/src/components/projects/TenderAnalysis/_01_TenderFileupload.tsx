@@ -13,16 +13,6 @@ import { AlertCircleIcon } from 'lucide-react'
 import { useUploadFile } from '@/hooks/useProjects/useTaskUploadFile'
 
 
-// ----------------------- 定义组件的props ---------------------
-interface TenderFileUploadProps {
-  // 传入参数
-  projectId: string
-  isEnabled?: boolean                     // 添加isEnabled属性，与TaskA保持一致
-  // 回调函数
-  onStateChange?: (status: TaskStatus) => void  // 状态数据回传
-  onNavigateToNextTask?: () => void             // 回调进入下个任务的Tab
-}
-
 
 // ----------------------- 构建TaskReducer ------------------------
 // 定义状态类型
@@ -34,16 +24,16 @@ interface State {
 
 // 定义 Action 类型
 type Action =
-  | { type: 'SYNC_FROM_API'; payload: TaskStatus }
+  | { type: 'SET_LOADING_FROM_API'; payload: TaskStatus }
   | { type: 'START_CONFIRM_SUBMIT' }  // 针对 用户点击“确认上传”按钮触发
   | { type: 'COMPLETE_TASK_SUCCESS' }  // 针对 实际API调用完成
   | { type: 'COMPLETE_TASK_FAILURE' } // 针对 实际API调用失败
   | { type: 'RESET_FILE_MANAGER'};
 
 // Reducer 函数
-function taskReducer(state: State, action: Action): State {
+function Reducer(state: State, action: Action): State {
   switch (action.type) {
-    case 'SYNC_FROM_API':
+    case 'SET_LOADING_FROM_API':
       // 只有当API返回的状态与当前状态不同时才更新
       return state.status !== action.payload 
         ? { ...state, status: action.payload } 
@@ -80,6 +70,19 @@ function taskReducer(state: State, action: Action): State {
   }
 }
 
+
+
+// ----------------------- 定义组件的props ---------------------
+interface TenderFileUploadProps {
+  // 传入参数
+  projectId: string
+  isEnabled?: boolean                     // 添加isEnabled属性，与TaskA保持一致
+  // 回调函数
+  onStateChange?: (status: TaskStatus) => void  // 状态数据回传
+  onNavigateToNextTask?: () => void             // 回调进入下个任务的Tab
+}
+
+
 // ========================================== 组件主函数 =============================================
 export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({ 
   // 传入参数
@@ -98,7 +101,7 @@ export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({
   }
 
   // 使用Reducer管理组件状态
-  const [state, dispatch] = useReducer(taskReducer, initialState);
+  const [state, dispatch] = useReducer(Reducer, initialState);
   const { status, isNavigating, fileManagerKey } = state;
 
 
@@ -109,10 +112,11 @@ export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({
   const { data: taskData } = fileUploadTaskQuery(projectId, StageType.TENDER_ANALYSIS);
 
 
+
   // 同步API数据到本地状态
   useEffect(() => {
     if (taskData) {
-      dispatch({ type: 'SYNC_FROM_API', payload: taskData.status });
+      dispatch({ type: 'SET_LOADING_FROM_API', payload: taskData.status });
     }
   }, [taskData]);   // 不需要使用useDemo，因为在reducer里已经有代码进行实际变化的核查。
 

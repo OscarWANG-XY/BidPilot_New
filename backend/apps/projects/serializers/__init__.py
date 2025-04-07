@@ -17,9 +17,15 @@ from .stage_serializers import (
 )
 from .task_serializers import (
     TaskListSerializer,
+)
+from .task_files_upload_serializers import (
     FileUploadTaskDetailSerializer, FileUploadTaskUpdateSerializer,
-    DocxExtractionTaskDetailSerializer, DocxExtractionTaskUpdateSerializer,
-    DocOutlineAnalysisTaskDetailSerializer, DocOutlineAnalysisTaskUpdateSerializer
+)
+from .task_docx_extraction_serializers import (
+    DocxExtractionTaskDetailSerializer, DocxExtractionTaskUpdateSerializer, DocxExtractionStartSerializer,
+)
+from .task_outline_analysis_serializers import (
+    DocOutlineAnalysisTaskDetailSerializer, DocOutlineAnalysisTaskUpdateSerializer,
 )
 
 __all__ = [
@@ -42,6 +48,6 @@ __all__ = [
     # 任务序列化器
     'TaskListSerializer',
     'FileUploadTaskDetailSerializer', 'FileUploadTaskUpdateSerializer',
-    'DocxExtractionTaskDetailSerializer', 'DocxExtractionTaskUpdateSerializer',
+    'DocxExtractionTaskDetailSerializer', 'DocxExtractionTaskUpdateSerializer', 'DocxExtractionStartSerializer',
     'DocOutlineAnalysisTaskDetailSerializer', 'DocOutlineAnalysisTaskUpdateSerializer'
 ] 

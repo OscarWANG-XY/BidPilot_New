@@ -2,7 +2,7 @@
 from .project_views import ProjectViewSet
 from .stage_views import ProjectStageViewSet
 from .history_views import ProjectChangeHistoryViewSet, StageChangeHistoryViewSet, TaskChangeHistoryViewSet
-from .streaming_views import test_sse
+from .task_outline_analysis_views import test_sse
 
 __all__ = [
     # 项目视图

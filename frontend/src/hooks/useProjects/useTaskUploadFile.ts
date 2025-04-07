@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { TaskApi } from '@/api/projects_api/projectTasks_api';
+import { UploadFileApi } from '@/api/projects_api/taskUploadFile_api';
 // import { StreamingTaskApi } from '@/api/projects_api/taskOutlineAnalysis_api';
 import type { StageType } from '@/types/projects_dt_stru/projectStage_interface';
 import type {
@@ -17,7 +17,7 @@ export const useUploadFile = () => {
       queryKey: ['fileUploadTask', projectId, stageType],
       queryFn: async () => {
         console.log('🔍 [useProjectTasks] 查询文件上传任务:', { projectId, stageType });
-        const result = await TaskApi.getFileUploadTask(projectId, stageType);
+        const result = await UploadFileApi.getFileUploadTask(projectId, stageType);
         console.log('📥 [useProjectTasks] 查询文件上传任务成功:', result);
         return result;
       },
@@ -45,7 +45,7 @@ export const useUploadFile = () => {
         if (status) taskData.status = status;
         if (lockStatus) taskData.lock_status = lockStatus;
         
-        const result = await TaskApi.updateFileUploadTask(projectId, stageType, taskData);
+        const result = await UploadFileApi.updateFileUploadTask(projectId, stageType, taskData);
         console.log('✅ [useProjectTasks] 更新文件上传任务成功:', result);
         return result;
       },
