@@ -335,7 +335,7 @@ export const useStream = (projectId?: string, stageType?: StageType) => {
     // Stream state
     streamId,
     streamContent,
-    isStreaming,
+    isStreaming,    // 正在分析中
     streamError,
     streamComplete,
     streamStatus: streamStatusQuery.data,
@@ -344,7 +344,7 @@ export const useStream = (projectId?: string, stageType?: StageType) => {
     // Actions
     startStream: startStreamMutation.mutateAsync,
     stopStreaming,
-    isStartingStream: startStreamMutation.isPending,
+    isStartingStream: startStreamMutation.isPending,  // 正在启动分析
     
     // Status queries
     isLoadingStatus: streamStatusQuery.isLoading,

@@ -10,10 +10,13 @@ import type {
 export enum TaskStatus {
   PENDING = 'PENDING',   
   CONFIGURING = 'CONFIGURING',             
-  ANALYZING = 'ANALYZING',       
+  ANALYZING = 'ANALYZING',
   REVIEWING = 'REVIEWING',              
   COMPLETED = 'COMPLETED',
-  RESET = 'RESET'
+  RESET = 'RESET',
+  FAILED = 'FAILED',
+  QUEUED = 'QUEUED',
+
 }
 
 // ------------- 定义接口 -------------

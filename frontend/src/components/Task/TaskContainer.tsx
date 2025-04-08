@@ -1,23 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useTasks } from './hook&APIs.tsx/useTasks';
+import { useStream } from './hook&APIs.tsx/useStreaming';
 import { TaskStatus } from './hook&APIs.tsx/tasksApi';
 import type { StageType } from '@/types/projects_dt_stru/projectStage_interface';
 import { useUnsavedChangesWarning } from './hook&APIs.tsx/useUnsavedChangeWarning';
 
-import { testTasks } from './testData';
-
 // 引入状态特定组件
-import ConfigurationPanel from './ConfigurationPanel';
-import AnalysisProgressPanel from './tempPanelsforTest/AnalysisProgressPanel';
+import ConfigurationPanel from './ConfigurationPanel/ConfigurationPanel';
+import AnalysisPanel from './AnalysisPanel/AnalysisPanel';
 import ReviewPanel from './tempPanelsforTest/ReviewPanel';
 import ResultEditorPanel from './tempPanelsforTest/ResultEditorPanel';
 import CompletionPanel from './tempPanelsforTest/CompletionPanel';
 import ConfigurationPreview from './tempPanelsforTest/ConfigurationPreview';
 // 引入共享组件
 import StatusBar from './shared/StatusBar';
-
-// 测试模式开关 - 设置为 true 使用测试数据，设置为 false 使用实际 API
-const TEST_MODE = true;
 
 
 interface TaskContainerProps {
@@ -44,19 +40,23 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
         isUpdating
     } = useTasks();
 
-
-    // 测试模式状态管理
-    const [testTaskState, setTestTaskState] = useState(testTasks.configuring);
-    const [testIsLoading, setTestIsLoading] = useState(false);
-    const [testIsError, setTestIsError] = useState(false);
-    const [testError, setTestError] = useState<Error | null>(null);
-    const [testIsUpdating, setTestIsUpdating] = useState(false);
-
-
     // 获取任务数据
-    const { data: task, isLoading, isError, error } = TEST_MODE 
-    ? { data: testTaskState, isLoading: testIsLoading, isError: testIsError, error: testError }
-    : useTaskData(projectId, stageType);
+    const { data: task, isLoading, isError, error } = useTaskData(projectId, stageType);
+
+    // Add streaming hook for ANALYZING state
+    const {
+        streamId,
+        streamContent,
+        isStreaming,
+        streamError,
+        streamComplete,
+        streamStatus,
+        streamResult,
+        startStream,
+        stopStreaming,
+        isStartingStream,   // 正在启动分析
+    } = useStream(projectId, stageType);
+
 
 
     //  --------   UI状态管理 (引入本地存储) -------- 
@@ -89,30 +89,11 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
     useUnsavedChangesWarning(isEditingResult || isEditingConfig, '您有未保存的编辑内容，确定要离开吗？');
 
 
-    // 测试模式下的模拟操作函数 （静态测试代码）
-    const simulateApiCall = async (callback: () => void, newState: any) => {
-        if (!TEST_MODE) return;
-        
-        setTestIsUpdating(true);
-        // 模拟API调用延迟
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        callback();
-        setTestTaskState(newState);
-        setTestIsUpdating(false);
-    };
-
-
     // ------------ 处理 CONFIGURING 状态 ------------
     // 加载模板配置 （目前在useTasks.ts中，通过失效缓存触发重新查询。 未来待拓展）
     const handleLoadConfig = async () => {
-        if (TEST_MODE) {
-            await simulateApiCall(() => {
-              console.log('模拟加载配置');
-            }, testTasks.configuring);
-          } else {
-            //API调用代码
-            await loadConfig(projectId, stageType);
-          }
+        await loadConfig(projectId, stageType);
+          
     };
 
     // 开始编辑配置
@@ -149,22 +130,8 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
 
     // 保存配置
     const handleSaveConfig = async (context: string, prompt: string, companyInfo: any) => {
-        if (TEST_MODE) {
-            await simulateApiCall(() => {
-              console.log('模拟保存配置');
-              // 更新测试数据中的配置
-              const updatedTask = {
-                ...testTaskState,
-                context,
-                prompt,
-                companyInfo
-              };
-              return updatedTask;
-            }, testTasks.configuring);
-        } else {
-            //API调用代码
-            await saveConfig(projectId, stageType, context, prompt, companyInfo);
-        }
+        await saveConfig(projectId, stageType, context, prompt, companyInfo);
+        
             // 由于上面保存配置后，取消编辑的重置，会使用最新的配置内容 （在useTasks.ts中，向后端保存数据后，会手动invalidate缓存，导致重新获取任务数据，以保持最新状态）
         if (isEditingConfig) {
             handleCancelConfigEditing(); // 保存成功后退出编辑模式
@@ -176,27 +143,24 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
 
     // 开始分析
     const handleStartAnalysis = async () => {
-        if (TEST_MODE) {
-            await simulateApiCall(() => {
-              console.log('模拟开始分析');
-            }, testTasks.analyzing);
-          } else {
-            //API调用代码
-            await startAnalysis(projectId, stageType);
-          }
+        await startAnalysis(projectId, stageType);
+        // Start streaming after analysis begins
+        if (projectId && stageType) {
+            try {
+                await startStream();
+            } catch (error) {
+                console.error('Failed to start streaming:', error);
+            }
+        }
     };
 
 // ---------------------------- 处理 ANALYZING 状态 -------------------
     // 处理分析完成
     const handleTerminateAnalysis = async () => {
-        if (TEST_MODE) {
-            await simulateApiCall(() => {
-              console.log('模拟终止分析');
-            }, testTasks.reviewing);
-          } else {
-            //API调用代码
-            await terminateAnalysis(projectId, stageType);
-          }
+        // Stop streaming first
+        stopStreaming();
+        // Then terminate the analysis task
+        await terminateAnalysis(projectId, stageType);
     };
     // 如果没有点击terminal, 再大模型分析结束后，需要一个自动的状态跳转 从Analyzing到REVIEWING
 
@@ -204,27 +168,16 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
 
     // 处理重启分析, 先重置任务到配置状态，然后立即启动分析, 不包括重新编辑配置。会直接采用上一个阶段编辑并保存的配置结果。 
     const handleRestartAnalysis = async () => {
-        if (TEST_MODE) {
-            await simulateApiCall(() => {
-              console.log('模拟重启分析');
-            }, testTasks.analyzing);
-          } else {
-            //API调用代码
-            await resetTask(projectId, stageType);
-            setTimeout(async () => {
-              await startAnalysis(projectId, stageType);
-            }, 300);
-          }
+        await resetTask(projectId, stageType);
+        setTimeout(async () => {
+            await startAnalysis(projectId, stageType);
+        }, 300);
+          
     };
 
     // 接受结果 进入COMPLETED状态
-    const handleAcceptResult = async () => {
-        if (TEST_MODE) {
-        await simulateApiCall(() => {
-            console.log('模拟接受结果');
-        }, testTasks.completed);
-        //API调用代码
-        } else if (task?.originalResult) {
+    const handleAcceptResult = async () => { 
+        if (task?.originalResult) {
         await acceptResult(projectId, stageType, task.originalResult);
         }
     };
@@ -251,22 +204,9 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
 
     // 保存已编辑的结果
     const handleSaveEditedResult = async () => {
-        if (TEST_MODE) {
-            await simulateApiCall(() => {
-              console.log('模拟保存编辑结果');
-              // 在测试模式下，我们可以更新测试数据中的结果
-              const updatedTask = {
-                ...testTaskState,
-                originalResult: editingResult
-              };
-              return updatedTask;
-            }, testTasks.reviewing);
-          } else {
-            //API调用代码
-            await saveEditedResult(projectId, stageType, editingResult);
-          }
-          handleCancelResultEditing();
-          localStorage.removeItem('editingResult');
+        await saveEditedResult(projectId, stageType, editingResult);
+        handleCancelResultEditing();
+        localStorage.removeItem('editingResult');
     };
 
     // ------------ 处理 COMPLETED 状态 ------------
@@ -323,68 +263,6 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
             }
         }
     }, [task, projectId, stageType]);
-
-
-    // 添加测试控制面板
-    const renderTestControls = () => {
-        if (!TEST_MODE) return null;
-        
-        return (
-        <div className="bg-yellow-100 p-3 border-b border-yellow-300">
-            <h3 className="text-sm font-bold mb-2">测试控制面板</h3>
-            <div className="flex flex-wrap gap-2">
-            <button 
-                className="px-2 py-1 text-xs bg-blue-500 text-white rounded"
-                onClick={() => setTestTaskState(testTasks.configuring)}
-            >
-                配置状态
-            </button>
-            <button 
-                className="px-2 py-1 text-xs bg-yellow-500 text-white rounded"
-                onClick={() => setTestTaskState(testTasks.analyzing)}
-            >
-                分析状态
-            </button>
-            <button 
-                className="px-2 py-1 text-xs bg-purple-500 text-white rounded"
-                onClick={() => setTestTaskState(testTasks.reviewing)}
-            >
-                审核状态
-            </button>
-            <button 
-                className="px-2 py-1 text-xs bg-green-500 text-white rounded"
-                onClick={() => setTestTaskState(testTasks.completed)}
-            >
-                完成状态
-            </button>
-            <button 
-                className="px-2 py-1 text-xs bg-gray-500 text-white rounded"
-                onClick={() => setTestTaskState(testTasks.pending)}
-            >
-                等待状态
-            </button>
-            <button 
-                className="px-2 py-1 text-xs bg-red-500 text-white rounded"
-                onClick={() => {
-                setTestIsError(true);
-                setTestError(new Error('测试错误信息'));
-                }}
-            >
-                错误状态
-            </button>
-            <button 
-                className="px-2 py-1 text-xs bg-gray-500 text-white rounded"
-                onClick={() => {
-                setTestIsLoading(true);
-                setTimeout(() => setTestIsLoading(false), 2000);
-                }}
-            >
-                加载状态
-            </button>
-            </div>
-        </div>
-        );
-    };
 
 
     // ------------ 根据当前任务状态和UI状态渲染相应组件 ------------
@@ -446,10 +324,15 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
 
             case TaskStatus.ANALYZING:
                 return (
-                <AnalysisProgressPanel
-                    //基础属性
-                    task={task} // 获取当前任务的所有数据，包括状态，配置内容，结果数据等
-                    isUpdating={isUpdating} //向子组件传递 更新操作正在进行中 （即UI加载状态）
+                <AnalysisPanel
+                    // 流式数据相关属性
+                    streamContent={streamContent}
+                    isStreaming={isStreaming}
+                    streamError={streamError}
+                    streamComplete={streamComplete}
+                    streamStatus={streamStatus}
+                    streamResult={streamResult}
+                    isStartingStream={isStartingStream}
                     // 与流程相关的回调
                     onTerminateAnalysis={handleTerminateAnalysis}
                 />
@@ -509,9 +392,6 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
 
   return (
     <div className="flex flex-col h-full w-full">
-
-      {/* 测试控制面板 */}
-      {renderTestControls()}
 
       {/* 状态栏展示当前任务状态和基本信息 */}
       <StatusBar task={task} isLoading={isLoading} isError={isError} />

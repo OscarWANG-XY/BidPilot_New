@@ -1,9 +1,32 @@
+/*
+### 2.1 ConfigurationPanel
+- 初次渲染该组件时，自动加载Context, Prompt, CompanyInfo模板内容
+只读模式
+- Context, Prompt, CompanyInfo 分别在共享组件 TiptapEditorLite 只读展示
+- 加载模板按钮 -> 回调handleLoadConfig ->更新Context, Prompt, CompanyInfo的内容
+- 开始编辑按钮 -> 回调handleStartConfigEditing -> Panel 切换到 编辑模式
+- 开始分析按钮 -> 回调handleStartAnlaysis -> 离开当前Panel, 进入AnalysisProgressPanel  
+编辑模式
+if(isEditingConfig) 
+- TiptapEditorLite 可编辑被触发，Context,Prompt,CompanyInfo 进入可编辑状态 
+- 取消编辑按钮 -> 回调handleStartConfigEDITING, Panel 退回 只读模式
+- 保存编辑按钮 -> 回调handelSavConfig, Panel退回 只读模式
+*/
+
+
+
 import React from 'react';
-import type { Type_TaskDetail } from './hook&APIs.tsx/tasksApi';
+import type { Type_TaskDetail } from '../hook&APIs.tsx/tasksApi';
 import TiptapEditor_lite from '@/components/shared/TiptapEditor_lite2' // Assuming TiptapEditor is in this location
 import { Button } from '@/components/ui/button'; // Assuming you have a UI button component
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
   
   interface ConfigurationPanelProps {
     // 基础属性
@@ -45,6 +68,7 @@ import { Loader2 } from 'lucide-react';
     onCancelEditing,
     onSaveConfig
   }) => {
+    
     // 处理加载模板的函数
     const handleLoadTemplateClick = () => {
       onLoadConfig();
@@ -57,18 +81,19 @@ import { Loader2 } from 'lucide-react';
   
     // 设置 TiptapEditor 的基本配置
     const editorConfig = {
-      maxHeight: 800,
+      maxHeight: 400, // 固定高度
       showToc: true
     };
   
     return (
-      <Card className="w-full shadow-sm">
-        <CardHeader className="pb-2">
+      <Card className="max-w-5xl mx-auto w-full shadow-sm">
+        <CardHeader className="pb-4">
           <div className="flex justify-between items-center">
             <CardTitle className="text-xl font-semibold">配置任务</CardTitle>
             
             {!isEditing && (
               <div className="flex space-x-2">
+                {/*刷新配置按钮*/}
                 <Button 
                   variant="outline"
                   size="sm"
@@ -77,6 +102,7 @@ import { Loader2 } from 'lucide-react';
                 >
                   刷新配置
                 </Button>
+                {/*编辑配置按钮*/}
                 <Button 
                   size="sm"
                   onClick={() => onStartEditing()}
@@ -89,62 +115,71 @@ import { Loader2 } from 'lucide-react';
           </div>
         </CardHeader>
   
-        <CardContent className="pt-2">
-          {/* 编辑区域 - 横向排列 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CardContent className="pt-4">
+          {/* 编辑区域 - 纵向排列 */}
+          <Accordion type="multiple" defaultValue={["context", "prompt", "companyInfo"]} className="w-full">
             {/* 上下文编辑区域 */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">上下文 (Context)</label>
-              <div className="border rounded-md overflow-hidden">
-                <TiptapEditor_lite
-                  initialContent={isEditing ? editingContext : task.context || ''}
-                  onChange={onEditingContextChange}
-                  readOnly={!isEditing}
-                  {...editorConfig}
-                />
-              </div>
-            </div>
+            <AccordionItem value="context" className="focus-within:ring-2 ring-blue-500">
+              <AccordionTrigger className="text-sm font-medium">上下文 (Context)</AccordionTrigger>
+              <AccordionContent>
+                <div className="border rounded-md overflow-hidden h-[400px]">
+                  <TiptapEditor_lite
+                    initialContent={isEditing ? editingContext : task.context || ''}
+                    onChange={onEditingContextChange}
+                    readOnly={!isEditing}
+                    {...editorConfig}
+                  />
+                </div>
+              </AccordionContent>
+            </AccordionItem>
   
             {/* 提示词编辑区域 */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">提示词 (Prompt)</label>
-              <div className="border rounded-md overflow-hidden">
-                <TiptapEditor_lite
-                  initialContent={isEditing ? editingPrompt : task.prompt || ''}
-                  onChange={onEditingPromptChange}
-                  readOnly={!isEditing}
-                  {...editorConfig}
-                />
-              </div>
-            </div>
+            <AccordionItem value="prompt" className="focus-within:ring-2 ring-blue-500">
+              <AccordionTrigger className="text-sm font-medium">提示词 (Prompt)</AccordionTrigger>
+              <AccordionContent>
+                <div className="border rounded-md overflow-hidden h-[400px]">
+                  <TiptapEditor_lite
+                    initialContent={isEditing ? editingPrompt : task.prompt || ''}
+                    onChange={onEditingPromptChange}
+                    readOnly={!isEditing}
+                    {...editorConfig}
+                  />
+                </div>
+              </AccordionContent>
+            </AccordionItem>
   
             {/* 公司信息编辑区域 */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">公司信息 (Company Info)</label>
-              <div className="border rounded-md overflow-hidden">
-                <TiptapEditor_lite
-                  initialContent={isEditing ? editingCompanyInfo : task.companyInfo || ''}
-                  onChange={onEditingCompanyInfoChange}
-                  readOnly={!isEditing}
-                  {...editorConfig}
-                />
-              </div>
-            </div>
-          </div>
+            <AccordionItem value="companyInfo" className="focus-within:ring-2 ring-blue-500">
+              <AccordionTrigger className="text-sm font-medium">公司信息 (Company Info)</AccordionTrigger>
+              <AccordionContent>
+                <div className="border rounded-md overflow-hidden h-[400px]">
+                  <TiptapEditor_lite
+                    initialContent={isEditing ? editingCompanyInfo : task.companyInfo || ''}
+                    onChange={onEditingCompanyInfoChange}
+                    readOnly={!isEditing}
+                    {...editorConfig}
+                  />
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </CardContent>
   
-        <CardFooter className="flex justify-end pt-2">
+        <CardFooter className="flex justify-end pt-4">
           {isEditing ? (
-            <>
+            <div className="flex gap-x-2">
+              {/*取消编辑的按钮*/}
               <Button 
                 variant="outline" 
+                size="sm"
                 onClick={onCancelEditing}
                 disabled={isUpdating}
-                className="mr-2"
               >
                 取消编辑
               </Button>
+              {/*保存配置的按钮*/}
               <Button 
+                size="sm"
                 onClick={handleSaveConfig}
                 disabled={isUpdating}
               >
@@ -157,9 +192,11 @@ import { Loader2 } from 'lucide-react';
                   '保存配置'
                 )}
               </Button>
-            </>
+            </div>
           ) : (
+            // {/* 开始分析 按钮*/}
             <Button 
+              size="sm"
               onClick={onStartAnalysis}
               disabled={isUpdating || !task.context || !task.prompt}
             >

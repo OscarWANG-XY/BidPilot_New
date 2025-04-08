@@ -19,6 +19,7 @@ import { Route as ProjectsIndexImport } from './routes/projects/index'
 import { Route as PlaygroundIndexImport } from './routes/playground/index'
 import { Route as ProjectsProjectIdImport } from './routes/projects/$projectId'
 import { Route as PlaygroundTiptapeditorImport } from './routes/playground/tiptap_editor'
+import { Route as PlaygroundTaskImport } from './routes/playground/task'
 import { Route as PlaygroundMarkdowneditorImport } from './routes/playground/markdown_editor'
 import { Route as PlaygroundLayoutImport } from './routes/playground/_layout'
 import { Route as ChatSessionIdImport } from './routes/chat.$sessionId'
@@ -118,6 +119,12 @@ const ProjectsProjectIdRoute = ProjectsProjectIdImport.update({
 const PlaygroundTiptapeditorRoute = PlaygroundTiptapeditorImport.update({
   id: '/tiptap_editor',
   path: '/tiptap_editor',
+  getParentRoute: () => PlaygroundRoute,
+} as any)
+
+const PlaygroundTaskRoute = PlaygroundTaskImport.update({
+  id: '/task',
+  path: '/task',
   getParentRoute: () => PlaygroundRoute,
 } as any)
 
@@ -339,6 +346,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlaygroundMarkdowneditorImport
       parentRoute: typeof PlaygroundImport
     }
+    '/playground/task': {
+      id: '/playground/task'
+      path: '/task'
+      fullPath: '/playground/task'
+      preLoaderRoute: typeof PlaygroundTaskImport
+      parentRoute: typeof PlaygroundImport
+    }
     '/playground/tiptap_editor': {
       id: '/playground/tiptap_editor'
       path: '/tiptap_editor'
@@ -441,6 +455,7 @@ const ChatRouteWithChildren = ChatRoute._addFileChildren(ChatRouteChildren)
 interface PlaygroundRouteChildren {
   PlaygroundLayoutRoute: typeof PlaygroundLayoutRoute
   PlaygroundMarkdowneditorRoute: typeof PlaygroundMarkdowneditorRoute
+  PlaygroundTaskRoute: typeof PlaygroundTaskRoute
   PlaygroundTiptapeditorRoute: typeof PlaygroundTiptapeditorRoute
   PlaygroundIndexRoute: typeof PlaygroundIndexRoute
 }
@@ -448,6 +463,7 @@ interface PlaygroundRouteChildren {
 const PlaygroundRouteChildren: PlaygroundRouteChildren = {
   PlaygroundLayoutRoute: PlaygroundLayoutRoute,
   PlaygroundMarkdowneditorRoute: PlaygroundMarkdowneditorRoute,
+  PlaygroundTaskRoute: PlaygroundTaskRoute,
   PlaygroundTiptapeditorRoute: PlaygroundTiptapeditorRoute,
   PlaygroundIndexRoute: PlaygroundIndexRoute,
 }
@@ -501,6 +517,7 @@ export interface FileRoutesByFullPath {
   '/chat/$sessionId': typeof ChatSessionIdRoute
   '/playground': typeof PlaygroundLayoutRoute
   '/playground/markdown_editor': typeof PlaygroundMarkdowneditorRoute
+  '/playground/task': typeof PlaygroundTaskRoute
   '/playground/tiptap_editor': typeof PlaygroundTiptapeditorRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
   '/playground/': typeof PlaygroundIndexRoute
@@ -531,6 +548,7 @@ export interface FileRoutesByTo {
   '/chat/$sessionId': typeof ChatSessionIdRoute
   '/playground': typeof PlaygroundIndexRoute
   '/playground/markdown_editor': typeof PlaygroundMarkdowneditorRoute
+  '/playground/task': typeof PlaygroundTaskRoute
   '/playground/tiptap_editor': typeof PlaygroundTiptapeditorRoute
   '/projects': typeof ProjectsIndexRoute
   '/projects/$projectId/bid-writing': typeof ProjectsProjectIdBidWritingRoute
@@ -561,6 +579,7 @@ export interface FileRoutesById {
   '/playground': typeof PlaygroundRouteWithChildren
   '/playground/_layout': typeof PlaygroundLayoutRoute
   '/playground/markdown_editor': typeof PlaygroundMarkdowneditorRoute
+  '/playground/task': typeof PlaygroundTaskRoute
   '/playground/tiptap_editor': typeof PlaygroundTiptapeditorRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
   '/playground/': typeof PlaygroundIndexRoute
@@ -593,6 +612,7 @@ export interface FileRouteTypes {
     | '/chat/$sessionId'
     | '/playground'
     | '/playground/markdown_editor'
+    | '/playground/task'
     | '/playground/tiptap_editor'
     | '/projects/$projectId'
     | '/playground/'
@@ -622,6 +642,7 @@ export interface FileRouteTypes {
     | '/chat/$sessionId'
     | '/playground'
     | '/playground/markdown_editor'
+    | '/playground/task'
     | '/playground/tiptap_editor'
     | '/projects'
     | '/projects/$projectId/bid-writing'
@@ -650,6 +671,7 @@ export interface FileRouteTypes {
     | '/playground'
     | '/playground/_layout'
     | '/playground/markdown_editor'
+    | '/playground/task'
     | '/playground/tiptap_editor'
     | '/projects/$projectId'
     | '/playground/'
@@ -776,6 +798,7 @@ export const routeTree = rootRoute
       "children": [
         "/playground/_layout",
         "/playground/markdown_editor",
+        "/playground/task",
         "/playground/tiptap_editor",
         "/playground/"
       ]
@@ -786,6 +809,10 @@ export const routeTree = rootRoute
     },
     "/playground/markdown_editor": {
       "filePath": "playground/markdown_editor.tsx",
+      "parent": "/playground"
+    },
+    "/playground/task": {
+      "filePath": "playground/task.tsx",
       "parent": "/playground"
     },
     "/playground/tiptap_editor": {

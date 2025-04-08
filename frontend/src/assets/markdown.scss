@@ -2,27 +2,31 @@
 @layer components {
     .markdown-preview {
       h1, h2, h3, h4, h5, h6 {
-        @apply font-bold leading-tight mt-6 mb-4;
+        @apply font-semibold leading-tight mt-8 mb-4 text-foreground;
       }
   
       h1 {
-        @apply text-2xl border-b border-gray-200 pb-2;
+        @apply text-3xl border-b border-border pb-2;
       }
   
       h2 {
-        @apply text-xl border-b border-gray-200 pb-2;
+        @apply text-2xl border-b border-border pb-2;
       }
   
       h3 {
+        @apply text-xl;
+      }
+      
+      h4 {
         @apply text-lg;
       }
   
       p {
-        @apply mb-4;
+        @apply mb-4 text-muted-foreground leading-7;
       }
   
       ul, ol {
-        @apply pl-8 mb-4;
+        @apply pl-6 mb-4 text-muted-foreground;
       }
   
       ul {
@@ -34,39 +38,52 @@
       }
   
       blockquote {
-        @apply pl-4 border-l-4 border-gray-300 text-gray-600 my-4;
+        @apply pl-4 border-l-4 border-muted text-muted-foreground my-6 italic;
       }
   
       pre {
-        @apply bg-gray-50 rounded-md p-4 overflow-auto mb-4;
+        @apply bg-muted rounded-md p-4 overflow-auto mb-4;
       }
   
       code {
-        @apply font-mono text-sm bg-gray-100 px-1 py-0.5 rounded;
+        @apply font-mono text-sm bg-muted px-1.5 py-0.5 rounded text-foreground;
       }
   
       pre code {
-        @apply bg-transparent p-0 rounded-none;
+        @apply bg-transparent p-0 rounded-none text-foreground;
       }
   
       a {
-        @apply text-blue-600 hover:underline;
+        @apply text-primary hover:underline underline-offset-4;
       }
   
       table {
-        @apply border-collapse w-full mb-4;
+        @apply w-full mb-6 border-collapse;
         
         th, td {
-          @apply border border-gray-300 p-2;
+          @apply border border-border p-2 text-left;
         }
         
         th {
-          @apply bg-gray-100;
+          @apply bg-muted font-medium;
+        }
+        
+        tr:nth-child(even) {
+          @apply bg-muted/50;
         }
       }
   
       img {
-        @apply max-w-full h-auto my-4 rounded;
+        @apply max-w-full h-auto my-6 rounded-md border border-border;
+      }
+      
+      hr {
+        @apply my-8 border-border;
+      }
+      
+      /* 添加间距一致性 */
+      * + * {
+        @apply mt-1.5;
       }
     }
   }
@@ -80,26 +97,26 @@
   .language-html, .language-css,
   .language-json, .language-markdown,
   .language-bash, .language-shell {
-    @apply rounded-md;
+    @apply rounded-md font-mono text-sm;
   }
   
   /* Markdown 编辑器容器样式 */
   .markdown-editor {
-    @apply border border-gray-200 rounded-md overflow-hidden bg-white;
+    @apply border border-border rounded-md overflow-hidden bg-card text-card-foreground shadow-sm;
     
     .editor-container, .preview-container {
       @apply w-full;
     }
     
     .markdown-textarea {
-      @apply w-full p-4 border-none resize-none font-mono text-sm leading-relaxed outline-none;
+      @apply w-full p-4 border-none resize-none font-mono text-sm leading-relaxed outline-none bg-background text-foreground;
     }
     
     .editor-actions, .preview-actions {
-      @apply flex justify-end p-2 bg-gray-50 border-t border-gray-200;
+      @apply flex justify-end p-2 bg-muted/50 border-t border-border;
       
       button {
-        @apply px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors;
+        @apply px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary/90 transition-colors;
       }
     }
   }

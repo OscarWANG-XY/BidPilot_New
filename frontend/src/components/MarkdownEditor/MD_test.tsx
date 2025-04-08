@@ -8,6 +8,8 @@ const MarkdownEditorTest: React.FC = () => {
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamContent, setStreamContent] = useState('');
+  const [editorHeight, setEditorHeight] = useState(300);
+  const [editorWidth, setEditorWidth] = useState(800);
 
   const handleTestChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const testKey = e.target.value;
@@ -63,15 +65,55 @@ const MarkdownEditorTest: React.FC = () => {
             只读模式
           </label>
         </div>
+        
+        {/* 尺寸调整控制 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          {/* 编辑器高度调整 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              编辑器高度: {editorHeight}px
+            </label>
+            <input
+              type="range"
+              min="200"
+              max="800"
+              step="50"
+              value={editorHeight}
+              onChange={(e) => setEditorHeight(Number(e.target.value))}
+              className="w-full"
+            />
+          </div>
+          
+          {/* 编辑器宽度调整 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              编辑器宽度: {editorWidth}px
+            </label>
+            <input
+              type="range"
+              min="500"
+              max="1500"
+              step="50"
+              value={editorWidth}
+              onChange={(e) => setEditorWidth(Number(e.target.value))}
+              className="w-full"
+            />
+          </div>
+        </div>
       </div>
       
       <div className="mb-8">
         <h2 className="text-xl font-semibold mb-3">编辑器</h2>
-        <MarkdownEditor 
-          content={content} 
-          onChange={setContent} 
-          readOnly={isReadOnly}
-        />
+        <div style={{ maxWidth: `${editorWidth}px`, margin: '0 auto' }}>
+          <MarkdownEditor 
+            content={content} 
+            onChange={setContent} 
+            readOnly={isReadOnly}
+            maxHeight={editorHeight}
+            minHeight={200}
+            maxWidth={editorWidth}
+          />
+        </div>
       </div>
       
       <div className="mb-8">
@@ -84,11 +126,16 @@ const MarkdownEditorTest: React.FC = () => {
           {isStreaming ? '正在生成...' : '模拟流式输出'}
         </button>
         
-        <MarkdownEditor 
-          content={streamContent} 
-          readOnly={true} 
-          streamingContent={isStreaming} 
-        />
+        <div style={{ maxWidth: `${editorWidth}px`, margin: '0 auto' }}>
+          <MarkdownEditor 
+            content={streamContent} 
+            readOnly={true} 
+            isStreaming={isStreaming} 
+            maxHeight={editorHeight}
+            minHeight={200}
+            maxWidth={editorWidth}
+          />
+        </div>
       </div>
     </div>
   );
