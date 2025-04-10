@@ -28,7 +28,7 @@ export const useTasks = () => {
       
       // 仅在任务处于分析中状态时进行轮询
       refetchInterval: (query) => {
-        return query.state.data?.status === TaskStatus.ANALYZING ? 1000 : false;
+        return query.state.data?.status === TaskStatus.PROCESSING ? 1000 : false;
       },
       refetchOnWindowFocus: false,   // 窗口获得焦点时，不会触发查询
       staleTime: 0,   //这里将数据立即标记过时，这样的化，确保组件重新刷新时，也触发重新查询，而不是使用缓存数据。 （queryKey变化，手动时效，refectch触发等场景受过时条件约束，都是直接触发查询） 
@@ -128,7 +128,7 @@ export const useTasks = () => {
     return updateTaskStatus.mutateAsync({
       projectId,
       stageType,
-      status: TaskStatus.ANALYZING,
+      status: TaskStatus.PROCESSING,
     });
   }, [updateTaskStatus]);
 

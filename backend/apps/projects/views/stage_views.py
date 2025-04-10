@@ -65,6 +65,7 @@ class ProjectStageViewSet(
     def get_queryset(self):
         """
         获取查询集，只返回当前用户创建的特定项目的阶段
+        这里需要改写get_queryset() 来加入request.user 的过滤 
         """
         queryset = ProjectStage.objects.filter(project__creator=self.request.user)
     

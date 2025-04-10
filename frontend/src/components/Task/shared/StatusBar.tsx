@@ -15,11 +15,11 @@ const StatusBar: React.FC<StatusBarProps> = ({ task, isLoading, isError }) => {
     if (!task) return '无任务数据';
     
     switch (task.status) {
-      case TaskStatus.PENDING:
+      case TaskStatus.NOT_STARTED:
         return '等待前置任务';
       case TaskStatus.CONFIGURING:
         return '配置中';
-      case TaskStatus.ANALYZING:
+      case TaskStatus.PROCESSING:
         return '分析中';
       case TaskStatus.REVIEWING:
         return '审核中';
@@ -37,11 +37,11 @@ const StatusBar: React.FC<StatusBarProps> = ({ task, isLoading, isError }) => {
     if (!task) return 'bg-gray-400';
     
     switch (task.status) {
-      case TaskStatus.PENDING:
+      case TaskStatus.NOT_STARTED:
         return 'bg-gray-400';
       case TaskStatus.CONFIGURING:
         return 'bg-blue-400';
-      case TaskStatus.ANALYZING:
+      case TaskStatus.PROCESSING:
         return 'bg-yellow-400';
       case TaskStatus.REVIEWING:
         return 'bg-purple-400';

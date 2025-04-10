@@ -7,7 +7,7 @@ export const mockTask: Type_TaskDetail = {
   id: 'task-123',
   name: '市场竞争分析任务',
   type: 'DOCX_EXTRACTION_TASK' as TaskType,
-  status: 'PENDING' as TaskStatus,
+  status: 'NOT_STARTED' as TaskStatus,
   taskStartedAt: '2025-04-01T08:00:00Z',
   // 测试数据里，我们需要确保context, prompt, companyInfo 是 TiptapJSON 转化成的string类型。 
   context: JSON.stringify({

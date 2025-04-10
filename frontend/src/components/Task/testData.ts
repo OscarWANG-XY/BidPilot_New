@@ -54,7 +54,7 @@ export const testTasks = {
     id: 'task-002-analyzing',
     projectId: 'project-001',
     stageType: 'TENDER_ANALYSIS',
-    status: TaskStatus.ANALYZING,
+    status: TaskStatus.PROCESSING,
     context: JSON.stringify({
       type: 'doc',
       content: [
@@ -286,7 +286,7 @@ export const testTasks = {
     id: 'task-005-pending',
     projectId: 'project-001',
     stageType: 'TENDER_ANALYSIS',
-    status: TaskStatus.PENDING,
+    status: TaskStatus.NOT_STARTED,
     context: JSON.stringify({
       type: 'doc',
       content: [

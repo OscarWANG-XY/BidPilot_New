@@ -6,6 +6,7 @@ from ..models import Task
 from ..serializers import TaskDetailSerializer, TaskUpdateSerializer
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiTypes
 import logging
+from rest_framework.decorators import action
 
 logger = logging.getLogger(__name__)
 
@@ -32,11 +33,90 @@ logger = logging.getLogger(__name__)
             404: OpenApiTypes.OBJECT
         }
     ),
+    load_config=extend_schema(
+        tags=['tasks'],
+        summary='加载任务配置',
+        description='重新加载任务配置信息',
+        responses={
+            200: TaskDetailSerializer,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
+    save_config=extend_schema(
+        tags=['tasks'],
+        summary='保存任务配置',
+        description='保存任务的配置信息',
+        request=TaskUpdateSerializer,
+        responses={
+            200: TaskDetailSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
+    start_analysis=extend_schema(
+        tags=['tasks'],
+        summary='开始分析',
+        description='将任务状态更改为分析中',
+        responses={
+            200: TaskDetailSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
+    start_review=extend_schema(
+        tags=['tasks'],
+        summary='开始审核',
+        description='将任务状态更改为审核中',
+        responses={
+            200: TaskDetailSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
+    accept_result=extend_schema(
+        tags=['tasks'],
+        summary='接受结果',
+        description='接受分析结果并将任务状态更改为已完成',
+        responses={
+            200: TaskDetailSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
+    save_edited_result=extend_schema(
+        tags=['tasks'],
+        summary='保存编辑后的结果',
+        description='保存编辑后的结果并将任务状态更改为已完成',
+        request=TaskUpdateSerializer,
+        responses={
+            200: TaskDetailSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
+    reset_task=extend_schema(
+        tags=['tasks'],
+        summary='重置任务',
+        description='将任务状态重置为配置中',
+        responses={
+            200: TaskDetailSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
 )
 class TaskViewSet(
-    mixins.RetrieveModelMixin,
-    mixins.UpdateModelMixin,
-    viewsets.GenericViewSet,
+    # mixins.RetrieveModelMixin,
+    # mixins.UpdateModelMixin,
+    #viewsets.GenericViewSet,
+    viewsets.ModelViewSet,
 ):
     """
     任务视图集，提供任务的读取和更新功能
@@ -55,7 +135,9 @@ class TaskViewSet(
         """
         获取查询集，只返回当前用户创建的项目中的任务
         注意：多层嵌套过滤
-        由于stage_pk不是id, 而是stage_type, 所以我们需要显性改写get_queryset()
+        显性改写get_queryset()的必要性：
+        1.需要加入request.user 的过滤 
+        2.由于stage_pk不是id, 而是stage_type, 所以我们需要
         """
         # 首先过滤出当前用户创建的项目中的任务
         queryset = Task.objects.filter(stage__project__creator=self.request.user)
@@ -91,9 +173,10 @@ class TaskViewSet(
         )
         return obj
     
+
+    # --------------------------------------------------------------------------    
     # 通过以上的get_queryset() 和get_object()的改写，我们最终找到了对应类型的task对象。 
     # 找到这个对象以后，我们就可以开始展开一下的视图函数的操作了。 
-    # 
 
 
     def partial_update(self, request, *args, **kwargs):
@@ -114,3 +197,156 @@ class TaskViewSet(
             return Response(TaskDetailSerializer(task).data)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+    @action(detail=True, methods=['get'])
+    def load_config(self, request, *args, **kwargs):
+        """
+        加载任务配置
+        实际上只是返回当前任务的详情，前端会使用这个数据重新加载配置
+        """
+        task = self.get_object()
+        serializer = TaskDetailSerializer(task)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def save_config(self, request, *args, **kwargs):
+        """
+        保存任务配置
+        保存context、prompt和companyInfo，保持状态为CONFIGURING
+        """
+        task = self.get_object()
+        
+        # 确保状态为CONFIGURING
+        data = request.data.copy()
+        data['status'] = 'CONFIGURING'
+        
+        serializer = self.get_serializer(
+            task, 
+            data=data, 
+            partial=True,
+            context={'request': request}
+        )
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response(TaskDetailSerializer(task).data)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=['post'])
+    def start_analysis(self, request, *args, **kwargs):
+        """
+        开始分析
+        将任务状态更改为ANALYZING
+        """
+        task = self.get_object()
+        
+        # 设置状态为ANALYZING
+        serializer = self.get_serializer(
+            task, 
+            data={'status': 'ANALYZING'}, 
+            partial=True,
+            context={'request': request}
+        )
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response(TaskDetailSerializer(task).data)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=['post'])
+    def start_review(self, request, *args, **kwargs):
+        """
+        开始审核
+        将任务状态更改为REVIEWING
+        """
+        task = self.get_object()
+        
+        # 设置状态为REVIEWING
+        serializer = self.get_serializer(
+            task, 
+            data={'status': 'REVIEWING'}, 
+            partial=True,
+            context={'request': request}
+        )
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response(TaskDetailSerializer(task).data)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=['post'])
+    def accept_result(self, request, *args, **kwargs):
+        """
+        接受结果
+        将任务状态更改为COMPLETED
+        后端会将streamResult转为TiptapJSON格式，存储在finalResult中
+        """
+        task = self.get_object()
+        
+        # 设置状态为COMPLETED
+        serializer = self.get_serializer(
+            task, 
+            data={'status': 'COMPLETED'}, 
+            partial=True,
+            context={'request': request}
+        )
+        
+        if serializer.is_valid():
+            # 在这里可以添加将streamResult转为TiptapJSON格式的逻辑
+            # 如果需要的话，可以在save之前设置finalResult
+            serializer.save()
+            return Response(TaskDetailSerializer(task).data)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=['post'])
+    def save_edited_result(self, request, *args, **kwargs):
+        """
+        保存编辑后的结果
+        保存finalResult并将任务状态更改为COMPLETED
+        """
+        task = self.get_object()
+        
+        # 确保状态为COMPLETED
+        data = request.data.copy()
+        data['status'] = 'COMPLETED'
+        
+        serializer = self.get_serializer(
+            task, 
+            data=data, 
+            partial=True,
+            context={'request': request}
+        )
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response(TaskDetailSerializer(task).data)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=['post'])
+    def reset_task(self, request, *args, **kwargs):
+        """
+        重置任务
+        将任务状态重置为CONFIGURING
+        """
+        task = self.get_object()
+        
+        # 设置状态为CONFIGURING
+        serializer = self.get_serializer(
+            task, 
+            data={'status': 'CONFIGURING'}, 
+            partial=True,
+            context={'request': request}
+        )
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response(TaskDetailSerializer(task).data)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    

@@ -53,6 +53,13 @@ class TaskStatus(models.TextChoices):
     COMPLETED = 'COMPLETED', '完成'
     FAILED = 'FAILED', '失败'
 
+# class TaskStatus(models.TextChoices):
+#     NOT_STARTED = 'NOT_STARTED', '未开始'
+#     CONFIGURING = 'CONFIGURING', '配置中'
+#     ANALYZING = 'ANALYZING', '分析中'
+#     REVIEWING = 'REVIEWING', '审核中'
+#     COMPLETED = 'COMPLETED', '完成'
+
 class TaskLockStatus(models.TextChoices):
     LOCKED = 'LOCKED', '锁定'
     UNLOCKED = 'UNLOCKED', '解锁'

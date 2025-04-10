@@ -8,11 +8,12 @@ import type {
 
 // 任务状态枚举 - 与后端对齐
 export enum TaskStatus {
-  PENDING = 'PENDING',   
+  NOT_STARTED = 'NOT_STARTED',   
   CONFIGURING = 'CONFIGURING',             
-  ANALYZING = 'ANALYZING',
+  PROCESSING = 'PROCESSING',   // 替换ANALYZING, ACTIVE
   REVIEWING = 'REVIEWING',              
   COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
 }
 
 // ------------- 定义接口 -------------
@@ -39,6 +40,7 @@ export interface Type_TaskDetail {
   inTokens?: number;     //只读
   outTokens?: number;    //只读
   totalTokens?: number;  //只读
+  errorMessage?: string; //只读
 }
 
 // 文档提取任务更新接口 - 对应 DocxExtractionTaskUpdateSerializer

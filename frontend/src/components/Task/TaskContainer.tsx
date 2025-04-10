@@ -300,11 +300,25 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
 
         // 根据任务状态渲染对应组件
         switch (task.status) {
-            case TaskStatus.PENDING:
+            case TaskStatus.NOT_STARTED:
                 return (
                 <div className="flex items-center justify-center py-12">
                     等待前置任务完成...
                 </div>
+                );
+
+            case TaskStatus.FAILED:   // 任务执行失败，需要重置任务, 这里先简单处理（占位），未来再考虑是否用完善的方式。
+                return (
+                    <div className="flex flex-col items-center justify-center py-12 text-red-500">
+                        <p className="text-xl font-semibold mb-4">任务执行失败</p>
+                        <p className="mb-4">{task.errorMessage || "未知错误"}</p>
+                        <button 
+                            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                            onClick={handleResetTask}
+                        >
+                            重置任务
+                        </button>
+                    </div>
                 );
 
             case TaskStatus.CONFIGURING:
@@ -336,7 +350,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
                 />
                 );
 
-            case TaskStatus.ANALYZING:
+            case TaskStatus.PROCESSING:
                 return (
                 <AnalysisPanel
                     // 流式数据相关属性
@@ -400,7 +414,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
         <StatusBar task={task} isLoading={isLoading} isError={isError} />
 
         {/* 当任务已配置且不在配置阶段时，显示配置信息预览 */}
-        {task && task.status !== TaskStatus.CONFIGURING && task.status !== TaskStatus.PENDING && (
+        {task && task.status !== TaskStatus.CONFIGURING && task.status !== TaskStatus.NOT_STARTED && task.status !== TaskStatus.FAILED && (
         <ConfigurationPreview 
             context={task.context}
             prompt={task.prompt}
@@ -409,9 +423,10 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
         )}
 
         {/* 当任务已经完成分析时，显示配置信息预览 */}
-        {task && task.status !== TaskStatus.CONFIGURING && 
-                 task.status !== TaskStatus.PENDING && 
-                 task.status !== TaskStatus.ANALYZING && 
+        {task && task.status !== TaskStatus.FAILED &&
+                 task.status !== TaskStatus.CONFIGURING && 
+                 task.status !== TaskStatus.NOT_STARTED && 
+                 task.status !== TaskStatus.PROCESSING && 
                  task.status !== TaskStatus.REVIEWING && (
             <ResultPreview 
                 finalResult={task.finalResult || ''}
