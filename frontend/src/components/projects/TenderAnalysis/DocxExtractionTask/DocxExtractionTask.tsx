@@ -7,7 +7,8 @@ import { Progress } from '@/components/ui/progress'
 import { StageType } from '@/_types/projects_dt_stru/projectStage_interface'
 import { TaskStatus, TaskLockStatus } from '@/_types/projects_dt_stru/projectTasks_interface'
 import { useDocxExtraction } from './useTaskDocxExtraction'
-import TiptapEditor_lite from '@/components/shared/TiptapEditor_lite'
+//import TiptapEditor_lite from '@/components/shared/TiptapEditor_lite'
+import TiptapEditor from '@/components/TiptapEditor/TiptapEditor'
 import { toast } from '@/_hooks/use-toast'
 
 interface DocxExtractionTaskProps {
@@ -369,7 +370,7 @@ export const DocxExtractionTask: React.FC<DocxExtractionTaskProps> = ({
                 {(editorContent || status === TaskStatus.COMPLETED) && !isExtracting && (
                   <>
                     <div className="border rounded-md mb-4">
-                      <TiptapEditor_lite
+                      <TiptapEditor
                         initialContent={editorContent}
                         onChange={handleEditorContentChange}
                         maxHeight={500}

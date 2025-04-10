@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DocxExtractionApi } from '@/components/projects/TenderAnalysis/Task_components/taskDocxExtraction_api';
+import { DocxExtractionApi } from '@/components/projects/TenderAnalysis/DocxExtractionTask/taskDocxExtraction_api';
 // import { StreamingTaskApi } from '@/api/projects_api/taskOutlineAnalysis_api';
-import type { Type_DocxExtractionTaskDetail, Type_DocxExtractionTaskUpdate } from '@/components/projects/TenderAnalysis/Task_components/taskDocxExtraction_api';
+import type { Type_DocxExtractionTaskDetail, Type_DocxExtractionTaskUpdate } from '@/components/projects/TenderAnalysis/DocxExtractionTask/taskDocxExtraction_api';
 import type { StageType } from '@/_types/projects_dt_stru/projectStage_interface';
 import type {
   TaskStatus,
@@ -30,7 +30,7 @@ export const useDocxExtraction = () => {
       // 只有当任务处于 ACTIVE 状态时，才进行轮询
       // 语法：refetchInterval 在useQuery内部接收的是原始Query对象，要通过query.state.date来访问里面的数据。
       refetchInterval: (query) => {
-        return query.state.data?.status === 'ACTIVE' ? 2000 : false;
+        return query.state.data?.status === 'PROCESSING' ? 2000 : false;
       },
       refetchOnWindowFocus: false,
       staleTime: 0,
@@ -60,7 +60,7 @@ export const useDocxExtraction = () => {
       queryClient.setQueryData(
         ['docxExtractionTask', projectId, stageType], 
         (oldData: Type_DocxExtractionTaskDetail) => {
-          if (oldData && oldData.status === 'ACTIVE') {
+          if (oldData && oldData.status === 'PROCESSING') {
                               //status的更新逻辑为：如果oldData.docxTiptap存在（非空），则任务完成，返回COMPLETED, 否则NOT_STARTED
           return { ...oldData, status: oldData.docxTiptap ? 'COMPLETED' : 'NOT_STARTED' };
         }
@@ -72,7 +72,7 @@ export const useDocxExtraction = () => {
       ...query,
       startPolling,
       stopPolling,
-      isPolling: query.data?.status === 'ACTIVE', //这里使用了useQuery返回的query对象，已经扁平化了，不能加state. 
+      isPolling: query.data?.status === 'PROCESSING', //这里使用了useQuery返回的query对象，已经扁平化了，不能加state. 
     };
   };
 

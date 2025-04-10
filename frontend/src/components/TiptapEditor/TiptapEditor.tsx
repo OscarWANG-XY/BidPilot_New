@@ -302,10 +302,10 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
     ],
     content: initialContent ? (() => {
       try {
-        console.log('Content type:', typeof initialContent);
-        console.log('Content preview:', typeof initialContent === 'string' 
-          ? initialContent.substring(0, 100) + '...' 
-          : 'Object provided');
+        // console.log('Content type:', typeof initialContent);
+        // console.log('Content preview:', typeof initialContent === 'string' 
+        //   ? initialContent.substring(0, 100) + '...' 
+        //   : 'Object provided');
         
         // 处理不同格式的initialContent
         if (typeof initialContent === 'object') {
