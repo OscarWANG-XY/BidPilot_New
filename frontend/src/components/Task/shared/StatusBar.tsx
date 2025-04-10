@@ -25,8 +25,6 @@ const StatusBar: React.FC<StatusBarProps> = ({ task, isLoading, isError }) => {
         return '审核中';
       case TaskStatus.COMPLETED:
         return '已完成';
-      case TaskStatus.RESET:
-        return '重置中';
       default:
         return `未知状态: ${task.status}`;
     }
@@ -49,8 +47,6 @@ const StatusBar: React.FC<StatusBarProps> = ({ task, isLoading, isError }) => {
         return 'bg-purple-400';
       case TaskStatus.COMPLETED:
         return 'bg-green-500';
-      case TaskStatus.RESET:
-        return 'bg-gray-400';
       default:
         return 'bg-gray-400';
     }

@@ -6,7 +6,7 @@ import { TaskType } from '@/types/projects_dt_stru/projectTasks_interface';
 export const mockTask: Type_TaskDetail = {
   id: 'task-123',
   name: '市场竞争分析任务',
-  type: TaskType.OUTLINE_ANALYSIS_TASK,
+  type: 'DOCX_EXTRACTION_TASK' as TaskType,
   status: 'PENDING' as TaskStatus,
   taskStartedAt: '2025-04-01T08:00:00Z',
   // 测试数据里，我们需要确保context, prompt, companyInfo 是 TiptapJSON 转化成的string类型。 
@@ -144,7 +144,6 @@ export const mockTask: Type_TaskDetail = {
   }),
   // 其他必要的字段
   streamingResult: '',
-  originalResult: '',
   finalResult: '',
   // 添加其他可能需要的字段
 };

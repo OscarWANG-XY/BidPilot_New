@@ -135,28 +135,38 @@ export const useTasks = () => {
 
 
   // ------------ ANALYZING状态 处理钩子 ------------
-  const terminateAnalysis = useCallback((
-    projectId: string, 
-    stageType: StageType, 
-  ) => {
-    return updateTaskStatus.mutateAsync({
-      projectId,
-      stageType,
-      status: TaskStatus.REVIEWING,
-    });
-  }, [updateTaskStatus]);
+
+        //在这里不保留钩子，TerminateAnalysis的钩子放在了useStreaming.tsx中
+    const startReview = useCallback((
+      projectId: string, 
+      stageType: StageType, 
+    ) => {
+      return updateTaskStatus.mutateAsync({
+        projectId,
+        stageType,
+        status: TaskStatus.REVIEWING,
+      });
+    }, [updateTaskStatus]);
+
+
 
   // ------------ REVIEWING状态 处理钩子 ------------
+
+
+
+
+
   const acceptResult = useCallback((
     projectId: string,
     stageType: StageType,
-    originalResult: string
+    //originalResult: string    
+    // 说明： 我们不传入streamResult, 而是发起状态变更，然后在后端将streamResult转为TiptapJSON格式，存储在finalResult中。 
   ) => {
     return updateTaskStatus.mutateAsync({
       projectId,
       stageType,
       status: TaskStatus.COMPLETED,
-      finalResult: originalResult
+      //finalResult: originalResult
     });
   }, [updateTaskStatus]);
 
@@ -204,10 +214,11 @@ export const useTasks = () => {
     saveConfig,
     startAnalysis,
 
-    // --- ANALYZING状态 数据处理快捷钩子 -------
-    terminateAnalysis,
+    // --- ANALYZING状态 数据处理快捷钩子 （在useStreaming.tsx中）-------
+    startReview,
 
     // --- REVIEWING状态 数据处理快捷钩子 -------
+ 
     acceptResult,
     saveEditedResult,
 

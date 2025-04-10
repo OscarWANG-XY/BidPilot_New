@@ -13,10 +13,6 @@ export enum TaskStatus {
   ANALYZING = 'ANALYZING',
   REVIEWING = 'REVIEWING',              
   COMPLETED = 'COMPLETED',
-  RESET = 'RESET',
-  FAILED = 'FAILED',
-  QUEUED = 'QUEUED',
-
 }
 
 // ------------- 定义接口 -------------
@@ -34,7 +30,7 @@ export interface Type_TaskDetail {
   companyInfo?: string;        
   // 结果数据
   streamingResult?: string;   //只读    
-  originalResult?: string;    //只读
+  //originalResult?: string;    不再增加originalResult, 结果的编辑直接在finalResult中进行。 
   finalResult?: string;
   // 统计数据
   taskStartedAt?: string;      //只读

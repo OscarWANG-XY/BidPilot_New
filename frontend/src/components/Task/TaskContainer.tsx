@@ -8,10 +8,10 @@ import { useUnsavedChangesWarning } from './hook&APIs.tsx/useUnsavedChangeWarnin
 // 引入状态特定组件
 import ConfigurationPanel from './ConfigurationPanel/ConfigurationPanel';
 import AnalysisPanel from './AnalysisPanel/AnalysisPanel';
-import ReviewPanel from './tempPanelsforTest/ReviewPanel';
-import ResultEditorPanel from './tempPanelsforTest/ResultEditorPanel';
-import CompletionPanel from './tempPanelsforTest/CompletionPanel';
-import ConfigurationPreview from './tempPanelsforTest/ConfigurationPreview';
+import ReviewPanel from './ReviewPanel/ReviewPanel';
+import CompletionPanel from './CompletionPanel/CompletionPanel';
+import ConfigurationPreview from './ConfigurationPreview/ConfigurationPreview';
+import ResultPreview from './ResultPreview/ResultPreview';
 // 引入共享组件
 import StatusBar from './shared/StatusBar';
 
@@ -31,7 +31,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
     const {
         useTaskData,
         startAnalysis,
-        terminateAnalysis,
+        startReview,
         acceptResult,
         saveEditedResult,
         resetTask,
@@ -45,7 +45,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
 
     // Add streaming hook for ANALYZING state
     const {
-        streamId,
+        //streamId,
         streamContent,
         isStreaming,
         streamError,
@@ -159,12 +159,8 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
     const handleTerminateAnalysis = async () => {
         // Stop streaming first
         stopStreaming();
-        // Then terminate the analysis task
-        await terminateAnalysis(projectId, stageType);
     };
     // 如果没有点击terminal, 再大模型分析结束后，需要一个自动的状态跳转 从Analyzing到REVIEWING
-
-// ------------------- 处理 REVIEWING 状态 ------------------- 
 
     // 处理重启分析, 先重置任务到配置状态，然后立即启动分析, 不包括重新编辑配置。会直接采用上一个阶段编辑并保存的配置结果。 
     const handleRestartAnalysis = async () => {
@@ -172,31 +168,46 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
         setTimeout(async () => {
             await startAnalysis(projectId, stageType);
         }, 300);
-          
+            
     };
 
     // 接受结果 进入COMPLETED状态
     const handleAcceptResult = async () => { 
-        if (task?.originalResult) {
-        await acceptResult(projectId, stageType, task.originalResult);
+        // 当streamComplete为true时，说明streamResult已经处理完毕，我们可以触发后端接受结果
+        // acceptResult向后端发起status变更为COMPLETED的请求，而在后端需要将streamResult转为TiptapJSON格式，存储在finalResult中。
+        if (streamComplete) {
+        await acceptResult(projectId, stageType);
         }
     };
 
+    // 处理人工核审
+    const handleStartReview = async () => {
+        await startReview(projectId, stageType);  // 这个将让status从ANALYZING变为REVIEWING
+
+    };
+
+// ------------------- 处理 REVIEWING 状态 ------------------- 
+
+
+
     // 处理结果编辑操作, 进入Editing_Result状态
-    const handleStartResultEditing = () => {
-        if (task?.originalResult) {
-            setEditingResult(task.originalResult);
+    const handleStartResultEditing = async () => {
+        // 当ANALYZING里的任务完成，我们并不是直接将streamResult拿来用。
+        // 编辑使用Tiptap编辑器，所以我们在后端需要先将streamResult转为TiptapJSON格式，存储在OriginalResult中。
+        // 前端调用OriginalResult, 进行编辑。 
+        // 待测试检查，数据是否及时处理并返回了？
+        if (task?.finalResult) {
+            setEditingResult(task.finalResult);
             setIsEditingResult(true);
-            localStorage.setItem('editingResult', task.originalResult);
+            localStorage.setItem('editingResult', task.finalResult);
             localStorage.setItem('isEditingResult', 'true');
-            
         }
     };
 
     const handleCancelResultEditing = () => {
         // 取消编辑时，当编辑未保存，恢复到编辑前的原始值； 但编辑已保存，现实编辑保存后的最新值。 
-        if (task?.originalResult) {
-            setEditingResult(task.originalResult);
+        if (task?.finalResult) {
+            setEditingResult(task.finalResult);
         }
         setIsEditingResult(false);
         localStorage.setItem('isEditingResult', 'false');
@@ -205,8 +216,10 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
     // 保存已编辑的结果
     const handleSaveEditedResult = async () => {
         await saveEditedResult(projectId, stageType, editingResult);
-        handleCancelResultEditing();
-        localStorage.removeItem('editingResult');
+        if (isEditingResult) {
+            handleCancelResultEditing();
+            localStorage.removeItem('editingResult');
+        }
     };
 
     // ------------ 处理 COMPLETED 状态 ------------
@@ -214,6 +227,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
     const handleResetTask = async () => {
         await resetTask(projectId, stageType);
     };
+    
 
     // 通知父组件任务已完成
     useEffect(() => {
@@ -335,6 +349,11 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
                     isStartingStream={isStartingStream}
                     // 与流程相关的回调
                     onTerminateAnalysis={handleTerminateAnalysis}
+                    // 添加完成后的操作回调
+                    onRestartAnalysis={handleRestartAnalysis}
+                    onAcceptResult={handleAcceptResult}
+                    onStartResultEditing={handleStartReview}
+
                 />
                 );
             
@@ -342,21 +361,15 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
                 return (
                 <ReviewPanel
                     //基础属性
-                    task={task}
+                    finalResult={task.finalResult || ''}
                     isUpdating={isUpdating}
-
-                    // 与流程相关的回调
-                    onAcceptResult={handleAcceptResult}         // 接受结果 跳转进入COMPLETED状态 
-                    onRestartAnalysis={handleRestartAnalysis}   // 重新分析 （回到configuring, 然后直接触发startAnalysis）
-                    onStartEditing={handleStartResultEditing}   // 进入编辑状态
-                    
 
                     // 与UI编辑相关的回调
                     isEditing={isEditingResult}
 
                     editingResult={editingResult}
+                    onStartEditing={handleStartResultEditing}
                     onEditingResultChange={setEditingResult}
-
                     onCancelEditing={handleCancelResultEditing}
                     onSaveEditedResult={handleSaveEditedResult}
                 />
@@ -365,20 +378,10 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
             case TaskStatus.COMPLETED:
                 return (
                 <CompletionPanel
-                    //基础属性
-                    task={task}
-                    isUpdating={isUpdating}
-
                     // 与流程相关的回调
                     onResetTask={handleResetTask}
+                    nextTaskPath="/tasks/next-task-id"
                 />
-                );
-
-            case TaskStatus.RESET:
-                return (
-                <div className="flex items-center justify-center py-12">
-                    任务正在重置中...
-                </div>
                 );
 
             default:
@@ -393,17 +396,28 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
   return (
     <div className="flex flex-col h-full w-full">
 
-      {/* 状态栏展示当前任务状态和基本信息 */}
-      <StatusBar task={task} isLoading={isLoading} isError={isError} />
+        {/* 状态栏展示当前任务状态和基本信息 */}
+        <StatusBar task={task} isLoading={isLoading} isError={isError} />
 
-    {/* 当任务已配置且不在配置阶段时，显示配置信息预览 */}
-    {/* {task && task.status !== TaskStatus.CONFIGURING && task.status !== TaskStatus.PENDING && (
-      <ConfigurationPreview 
-        context={task.context}
-        prompt={task.prompt}
-        companyInfo={task.companyInfo}
-      />
-    )} */}
+        {/* 当任务已配置且不在配置阶段时，显示配置信息预览 */}
+        {task && task.status !== TaskStatus.CONFIGURING && task.status !== TaskStatus.PENDING && (
+        <ConfigurationPreview 
+            context={task.context}
+            prompt={task.prompt}
+            companyInfo={task.companyInfo}
+        />
+        )}
+
+        {/* 当任务已经完成分析时，显示配置信息预览 */}
+        {task && task.status !== TaskStatus.CONFIGURING && 
+                 task.status !== TaskStatus.PENDING && 
+                 task.status !== TaskStatus.ANALYZING && 
+                 task.status !== TaskStatus.REVIEWING && (
+            <ResultPreview 
+                finalResult={task.finalResult || ''}
+            />
+        )}
+
 
       {/* 主要内容区域 */}
       <div className="flex-1 overflow-auto">

@@ -12,6 +12,9 @@ export interface AnalysisPanelProps {
   isStartingStream: boolean;
   
   onTerminateAnalysis: () => Promise<void>;
+  onRestartAnalysis?: () => Promise<void>;
+  onAcceptResult?: () => Promise<void>;
+  onStartResultEditing?: () => void;
 }
 
 const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
@@ -22,7 +25,10 @@ const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   streamStatus,
   streamResult,
   isStartingStream,
-  onTerminateAnalysis
+  onTerminateAnalysis,
+  onRestartAnalysis,
+  onAcceptResult,
+  onStartResultEditing
 }) => {
   // Check if analysis is running (this assumes task state management is handled elsewhere)
   const isAnalysisRunning = isStreaming || isStartingStream;
@@ -64,8 +70,9 @@ const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
       
       {/* Control area and resource metrics */}
       <div className="flex justify-between items-center p-3 bg-gray-50 rounded-md">
-        {/* Stop analysis button */}
-        <div>
+        {/* Action buttons */}
+        <div className="flex space-x-3">
+          {/* Show stop button during analysis */}
           {isAnalysisRunning && (
             <button
               onClick={onTerminateAnalysis}
@@ -74,6 +81,30 @@ const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
             >
               停止分析
             </button>
+          )}
+          
+          {/* Show action buttons when analysis is complete */}
+          {streamComplete && !isAnalysisRunning && (
+            <>
+              <button
+                onClick={onRestartAnalysis}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              >
+                重新分析
+              </button>
+              <button
+                onClick={onAcceptResult}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+              >
+                接受结果
+              </button>
+              <button
+                onClick={onStartResultEditing}
+                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+              >
+                人工核审
+              </button>
+            </>
           )}
         </div>
         
