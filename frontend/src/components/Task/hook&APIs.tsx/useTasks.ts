@@ -3,6 +3,7 @@ import { TaskApi } from './tasksApi';
 import type { Type_TaskDetail, Type_TaskUpdate } from './tasksApi';
 import type { StageType } from '@/_types/projects_dt_stru/projectStage_interface';
 import { TaskStatus } from './tasksApi';
+import { TaskType } from '@/_types/projects_dt_stru/projectTasks_interface';
 import { useCallback } from 'react';
 
 export const useTasks = () => {
@@ -17,12 +18,13 @@ export const useTasks = () => {
   const useTaskData = (
     projectId: string, 
     stageType: StageType, 
+    taskType: TaskType,
     options = {}
   ) => {
     return useQuery({
-      queryKey: ['tasks', projectId, stageType],
+      queryKey: ['tasks', projectId, stageType, taskType],
       queryFn: async () => {
-        const result = await TaskApi.getTask(projectId, stageType);
+        const result = await TaskApi.getTask(projectId, stageType, taskType);
         return result as Type_TaskDetail;
       },
       
@@ -43,6 +45,7 @@ export const useTasks = () => {
     mutationFn: async ({
       projectId,
       stageType,
+      taskType,
       status,
       //docxTiptap,
       context,
@@ -52,6 +55,7 @@ export const useTasks = () => {
     }: {
       projectId: string;
       stageType: StageType;
+      taskType: TaskType;
       status: TaskStatus;
       //docxTiptap?: string;
       context?: string;
@@ -59,9 +63,9 @@ export const useTasks = () => {
       relatedCompanyInfo?: string;
       finalResult?: string;
     }) => {
-      const taskData: Partial<Type_TaskUpdate> = {
-        status
-      };
+
+      //以下这个语句是同时完成了 const taskData: Partial<Type_TaskUpdate> = {}; 和 taskData.status = status;
+      const taskData: Partial<Type_TaskUpdate> = {status};
       
       // if (docxTiptap !== undefined) {
       //   taskData.docxTiptap = typeof docxTiptap === 'string' ? docxTiptap : JSON.stringify(docxTiptap);
@@ -79,11 +83,11 @@ export const useTasks = () => {
         taskData.finalResult = typeof finalResult === 'string' ? finalResult : JSON.stringify(finalResult);
       }
       
-      return await TaskApi.updateTask(projectId, stageType, taskData as Type_TaskUpdate);
+      return await TaskApi.updateTask(projectId, stageType, taskType, taskData as Type_TaskUpdate);
     },
-    onSuccess: (_, { projectId, stageType }) => {
+    onSuccess: (_, { projectId, stageType, taskType }) => {
       queryClient.invalidateQueries({
-        queryKey: ['tasks', projectId, stageType]
+        queryKey: ['tasks', projectId, stageType, taskType]
       });
     }
   });
@@ -94,10 +98,11 @@ export const useTasks = () => {
   const loadConfig = useCallback((
     projectId: string,
     stageType: StageType,
+    taskType: TaskType
   ) => {
   // 简单地使缓存失效，触发重新查询
     return queryClient.invalidateQueries({
-      queryKey: ['tasks', projectId, stageType]
+      queryKey: ['tasks', projectId, stageType, taskType]
     });
   }, [queryClient]);
 
@@ -106,6 +111,7 @@ export const useTasks = () => {
   const saveConfig = useCallback((
     projectId: string,
     stageType: StageType,
+    taskType: TaskType,
     context: string,
     prompt: string,
     relatedCompanyInfo: any,
@@ -113,6 +119,7 @@ export const useTasks = () => {
     return updateTaskStatus.mutateAsync({
       projectId,
       stageType,
+      taskType,
       status: TaskStatus.CONFIGURING,
       context, 
       prompt,
@@ -124,10 +131,12 @@ export const useTasks = () => {
   const startAnalysis = useCallback((
     projectId: string, 
     stageType: StageType, 
+    taskType: TaskType,
   ) => {
     return updateTaskStatus.mutateAsync({
       projectId,
       stageType,
+      taskType,
       status: TaskStatus.PROCESSING,
     });
   }, [updateTaskStatus]);
@@ -140,10 +149,12 @@ export const useTasks = () => {
     const startReview = useCallback((
       projectId: string, 
       stageType: StageType, 
+      taskType: TaskType,
     ) => {
       return updateTaskStatus.mutateAsync({
         projectId,
-        stageType,
+        stageType,  
+        taskType,
         status: TaskStatus.REVIEWING,
       });
     }, [updateTaskStatus]);
@@ -152,19 +163,17 @@ export const useTasks = () => {
 
   // ------------ REVIEWING状态 处理钩子 ------------
 
-
-
-
-
   const acceptResult = useCallback((
     projectId: string,
     stageType: StageType,
+    taskType: TaskType,
     //originalResult: string    
     // 说明： 我们不传入streamResult, 而是发起状态变更，然后在后端将streamResult转为TiptapJSON格式，存储在finalResult中。 
   ) => {
     return updateTaskStatus.mutateAsync({
       projectId,
       stageType,
+      taskType,
       status: TaskStatus.COMPLETED,
       //finalResult: originalResult
     });
@@ -173,11 +182,13 @@ export const useTasks = () => {
   const saveEditedResult = useCallback((
     projectId: string, 
     stageType: StageType,
+    taskType: TaskType,
     finalResult: string
   ) => {
     return updateTaskStatus.mutateAsync({
       projectId,
       stageType,
+      taskType,
       status: TaskStatus.COMPLETED,
       finalResult
     });
@@ -187,11 +198,13 @@ export const useTasks = () => {
   // ------------ COMPLETED状态 处理钩子 ------------
   const resetTask = useCallback((
     projectId: string, 
-    stageType: StageType
+    stageType: StageType,
+    taskType: TaskType
   ) => {
     return updateTaskStatus.mutateAsync({
       projectId,
       stageType,
+      taskType,
       status: TaskStatus.CONFIGURING,
     });
   }, [updateTaskStatus]);

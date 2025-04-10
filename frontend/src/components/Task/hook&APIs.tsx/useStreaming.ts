@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { StreamingTaskApi } from '@/components/projects/TenderAnalysis/OutlineAnalysisTask/taskOutlineAnalysis_api';
+import { TaskSteamingApi } from '@/components/Task/hook&APIs.tsx/streamingApi';
 import type { StageType } from '@/_types/projects_dt_stru/projectStage_interface';
 import type {
+  TaskType,
   StreamStartResponse,
   StreamStatusResponse,
   StreamResultResponse
@@ -69,7 +70,7 @@ import { useState, useEffect, useCallback, useRef, useMemo, useReducer } from 'r
 
 
 
-export const useStream = (projectId?: string, stageType?: StageType) => {
+export const useStream = (projectId: string, stageType: StageType, taskType: TaskType) => {
   const queryClient = useQueryClient();
 
 
@@ -133,10 +134,10 @@ export const useStream = (projectId?: string, stageType?: StageType) => {
   // -------- 启动流失分析任务 --------
   const startStreamMutation = useMutation({
     mutationFn: async () => {
-      if (!projectId || !stageType) {
-        throw new Error('Project ID and Stage Type are required');
+      if (!projectId || !stageType || !taskType) {
+        throw new Error('Project ID and Stage Type and Task Type are required');
       }
-      return StreamingTaskApi.startOutlineAnalysisStream(projectId, stageType);
+      return TaskSteamingApi.startStream(projectId, stageType, taskType);
     },
 
     // 启动成功的处理
@@ -178,13 +179,13 @@ export const useStream = (projectId?: string, stageType?: StageType) => {
   const streamStatusQuery = useQuery<StreamStatusResponse>({
     queryKey: ['streamStatus', streamParams.projectId, streamParams.stageType, streamParams.streamId],
     queryFn: async () => {
-      if (!projectId || !stageType || !streamId) {
+      if (!projectId || !stageType || !taskType || !streamId) {
         throw new Error('Missing required parameters');
       }
-      return StreamingTaskApi.getStreamStatus(projectId, stageType, streamId);
+      return TaskSteamingApi.getStreamStatus(projectId, stageType, taskType, streamId);
     },
     // enabled 控制是否启用查询， 只有当项目id，阶段类型，流id都存在，并且流没有在运行，并且需要轮询时，才启用查
-    enabled: Boolean(projectId) && Boolean(stageType) && Boolean(streamId) && shouldPoll,
+    enabled: Boolean(projectId) && Boolean(stageType) && Boolean(taskType) && Boolean(streamId) && shouldPoll,
     // 轮询间隔
     refetchInterval: shouldPoll ? 2000 : false,
     // 窗口重新获得焦点时是否重新请求 
@@ -198,12 +199,12 @@ export const useStream = (projectId?: string, stageType?: StageType) => {
   const streamResultQuery = useQuery<StreamResultResponse>({
     queryKey: ['streamResult', streamParams.projectId, streamParams.stageType, streamParams.streamId],
     queryFn: async () => {
-      if (!projectId || !stageType || !streamId) {
+      if (!projectId || !stageType || !taskType || !streamId) {
         throw new Error('Missing required parameters');
       }
-      return StreamingTaskApi.getStreamResult(projectId, stageType, streamId);
+      return TaskSteamingApi.getStreamResult(projectId, stageType, taskType, streamId);
     },
-    enabled: Boolean(projectId) && Boolean(stageType) && Boolean(streamId) && streamComplete,
+    enabled: Boolean(projectId) && Boolean(stageType) && Boolean(taskType) && Boolean(streamId) && streamComplete,
     // Only fetch once when stream is complete
     staleTime: Infinity,
   });
@@ -242,9 +243,10 @@ export const useStream = (projectId?: string, stageType?: StageType) => {
 
       
       // 开始新的流 
-      const abort = StreamingTaskApi.fetchStreamingData(
+      const abort = TaskSteamingApi.fetchStreamingData(
         projectId,
         stageType,
+        taskType,
         streamId,
         {
           onMessage: (data) => {

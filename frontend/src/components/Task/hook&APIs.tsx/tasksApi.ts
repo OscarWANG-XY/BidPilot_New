@@ -61,17 +61,18 @@ export const TaskApi = {
     startTask: async (
         projectId: string, 
         stageType: StageType, 
+        taskType: TaskType
     ): Promise<Type_TaskDetail> => {
-        const response = await axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/start_docx_extraction/`);
+        const response = await axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/start_task/`);
         console.log('📥 手动启动文档提取成功:', response.data);
         return response.data;
     },
 
 
     // 获取项目阶段下的文档提取任务
-    getTask: async (projectId: string, stageType: StageType): Promise<Type_TaskDetail> => {
+    getTask: async (projectId: string, stageType: StageType, taskType: TaskType): Promise<Type_TaskDetail> => {
         console.log('📤 获取文档提取任务:', { projectId, stageType });
-        const response = await axiosInstance.get(`/projects/${projectId}/stages/${stageType}/docx_extraction/`);
+        const response = await axiosInstance.get(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/get_task/`);
         console.log('📥 获取文档提取任务成功:', response.data);
         return response.data;
     },
@@ -80,11 +81,12 @@ export const TaskApi = {
     updateTask: async (
         projectId: string, 
         stageType: StageType, 
+        taskType: TaskType,
         taskData: Type_TaskUpdate
     ): Promise<Type_TaskDetail> => {
         console.log('📤 更新文档提取任务:', { projectId, stageType, taskData });
         const response = await axiosInstance.patch(
-        `/projects/${projectId}/stages/${stageType}/docx_extraction/`, 
+        `/projects/${projectId}/stages/${stageType}/tasks/${taskType}/update_task/`, 
         taskData
         );
         console.log('📥 更新文档提取任务成功:', response.data);

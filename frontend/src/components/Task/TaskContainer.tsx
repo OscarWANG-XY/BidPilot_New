@@ -3,6 +3,7 @@ import { useTasks } from './hook&APIs.tsx/useTasks';
 import { useStream } from './hook&APIs.tsx/useStreaming';
 import { TaskStatus } from './hook&APIs.tsx/tasksApi';
 import type { StageType } from '@/_types/projects_dt_stru/projectStage_interface';
+import { TaskType } from '@/_types/projects_dt_stru/projectTasks_interface';
 import { useUnsavedChangesWarning } from './hook&APIs.tsx/useUnsavedChangeWarning';
 
 // 引入状态特定组件
@@ -19,12 +20,14 @@ import StatusBar from './shared/StatusBar';
 interface TaskContainerProps {
   projectId: string;
   stageType: StageType;
+  taskType: TaskType;
   onComplete?: () => void; // 可选回调，当任务完成时通知父组件
 }
 
 const TaskContainer: React.FC<TaskContainerProps> = ({
   projectId,
   stageType,
+  taskType,
   onComplete
 }) => {
   // 使用自定义hook获取任务数据和操作方法
@@ -41,7 +44,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
     } = useTasks();
 
     // 获取任务数据
-    const { data: task, isLoading, isError, error } = useTaskData(projectId, stageType);
+    const { data: task, isLoading, isError, error } = useTaskData(projectId, stageType, taskType);
 
     // Add streaming hook for ANALYZING state
     const {
@@ -55,7 +58,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
         startStream,
         stopStreaming,
         isStartingStream,   // 正在启动分析
-    } = useStream(projectId, stageType);
+    } = useStream(projectId, stageType, taskType);
 
 
 
@@ -92,7 +95,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
     // ------------ 处理 CONFIGURING 状态 ------------
     // 加载模板配置 （目前在useTasks.ts中，通过失效缓存触发重新查询。 未来待拓展）
     const handleLoadConfig = async () => {
-        await loadConfig(projectId, stageType);
+        await loadConfig(projectId, stageType, taskType);
           
     };
 
@@ -130,7 +133,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
 
     // 保存配置
     const handleSaveConfig = async (context: string, prompt: string, relatedCompanyInfo: any) => {
-        await saveConfig(projectId, stageType, context, prompt, relatedCompanyInfo);
+        await saveConfig(projectId, stageType, taskType, context, prompt, relatedCompanyInfo);
         
             // 由于上面保存配置后，取消编辑的重置，会使用最新的配置内容 （在useTasks.ts中，向后端保存数据后，会手动invalidate缓存，导致重新获取任务数据，以保持最新状态）
         if (isEditingConfig) {
@@ -143,7 +146,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
 
     // 开始分析
     const handleStartAnalysis = async () => {
-        await startAnalysis(projectId, stageType);
+        await startAnalysis(projectId, stageType, taskType);
         // Start streaming after analysis begins
         if (projectId && stageType) {
             try {
@@ -164,9 +167,9 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
 
     // 处理重启分析, 先重置任务到配置状态，然后立即启动分析, 不包括重新编辑配置。会直接采用上一个阶段编辑并保存的配置结果。 
     const handleRestartAnalysis = async () => {
-        await resetTask(projectId, stageType);
+        await resetTask(projectId, stageType, taskType);
         setTimeout(async () => {
-            await startAnalysis(projectId, stageType);
+            await startAnalysis(projectId, stageType, taskType);
         }, 300);
             
     };
@@ -176,13 +179,13 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
         // 当streamComplete为true时，说明streamResult已经处理完毕，我们可以触发后端接受结果
         // acceptResult向后端发起status变更为COMPLETED的请求，而在后端需要将streamResult转为TiptapJSON格式，存储在finalResult中。
         if (streamComplete) {
-        await acceptResult(projectId, stageType);
+        await acceptResult(projectId, stageType, taskType);
         }
     };
 
     // 处理人工核审
     const handleStartReview = async () => {
-        await startReview(projectId, stageType);  // 这个将让status从ANALYZING变为REVIEWING
+        await startReview(projectId, stageType, taskType);  // 这个将让status从ANALYZING变为REVIEWING
 
     };
 
@@ -215,7 +218,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
 
     // 保存已编辑的结果
     const handleSaveEditedResult = async () => {
-        await saveEditedResult(projectId, stageType, editingResult);
+        await saveEditedResult(projectId, stageType, taskType, editingResult);
         if (isEditingResult) {
             handleCancelResultEditing();
             localStorage.removeItem('editingResult');
@@ -225,7 +228,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
     // ------------ 处理 COMPLETED 状态 ------------
     // 重置任务
     const handleResetTask = async () => {
-        await resetTask(projectId, stageType);
+        await resetTask(projectId, stageType, taskType);
     };
     
 
