@@ -27,7 +27,7 @@ export const useDocxExtraction = () => {
         return result as Type_DocxExtractionTaskDetail;
       },
       
-      // 只有当任务处于 ACTIVE 状态时，才进行轮询
+      // 只有当任务处于 PROCESSING 状态时，才进行轮询
       // 语法：refetchInterval 在useQuery内部接收的是原始Query对象，要通过query.state.date来访问里面的数据。
       refetchInterval: (query) => {
         return query.state.data?.status === 'PROCESSING' ? 2000 : false;
@@ -49,14 +49,14 @@ export const useDocxExtraction = () => {
         ['docxExtractionTask', projectId, stageType], 
         // 更新函数
         (oldData: Type_DocxExtractionTaskDetail) => {
-          if (oldData) { return { ...oldData, status: 'ACTIVE' }; } 
+          if (oldData) { return { ...oldData, status: 'PROCESSING' }; } 
           return oldData;
         }
       );
     }, [projectId, query.refetch]);
 
     const stopPolling = useCallback(() => {
-      // Update the query data to set status to something other than ACTIVE
+      // Update the query data to set status to something other than PROCESSING
       queryClient.setQueryData(
         ['docxExtractionTask', projectId, stageType], 
         (oldData: Type_DocxExtractionTaskDetail) => {

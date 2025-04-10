@@ -410,11 +410,11 @@ def handle_docx_extraction_auto_task(instance):
             project = stage.project
 
 
-            # 2. 检查状态是否从NOT_STARTED转为ACTIVE
+            # 2. 检查状态是否从NOT_STARTED转为PROCESSING
             status_change = TaskChangeHistory.objects.filter(
                 task=instance,
                 field_name='status',
-                #old_value=TaskStatus.NOT_STARTED, #这里不再强制指定之前的状态，意味着我们允许从任何状态转为ACTIVE，包括failed, completed, 等。
+                #old_value=TaskStatus.NOT_STARTED, #这里不再强制指定之前的状态，意味着我们允许从任何状态转为PROCESSING，包括failed, completed, 等。
                 new_value=TaskStatus.PROCESSING
             ).order_by('-changed_at').first()
             
