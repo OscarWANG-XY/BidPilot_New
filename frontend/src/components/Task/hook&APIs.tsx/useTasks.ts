@@ -44,36 +44,36 @@ export const useTasks = () => {
       projectId,
       stageType,
       status,
-      docxTiptap,
+      //docxTiptap,
       context,
       prompt,
-      companyInfo,
+      relatedCompanyInfo,
       finalResult
     }: {
       projectId: string;
       stageType: StageType;
       status: TaskStatus;
-      docxTiptap?: string;
+      //docxTiptap?: string;
       context?: string;
       prompt?: string;
-      companyInfo?: string;
+      relatedCompanyInfo?: string;
       finalResult?: string;
     }) => {
       const taskData: Partial<Type_TaskUpdate> = {
         status
       };
       
-      if (docxTiptap !== undefined) {
-        taskData.docxTiptap = typeof docxTiptap === 'string' ? docxTiptap : JSON.stringify(docxTiptap);
-      }
+      // if (docxTiptap !== undefined) {
+      //   taskData.docxTiptap = typeof docxTiptap === 'string' ? docxTiptap : JSON.stringify(docxTiptap);
+      // }
       if (context !== undefined) {
         taskData.context = typeof context === 'string' ? context : JSON.stringify(context);
       }
       if (prompt !== undefined) {
         taskData.prompt = typeof prompt === 'string' ? prompt : JSON.stringify(prompt);
       }
-      if (companyInfo !== undefined) {
-        taskData.companyInfo = typeof companyInfo === 'string' ? companyInfo : JSON.stringify(companyInfo);
+      if (relatedCompanyInfo !== undefined) {
+        taskData.relatedCompanyInfo = typeof relatedCompanyInfo === 'string' ? relatedCompanyInfo : JSON.stringify(relatedCompanyInfo);
       }
       if (finalResult !== undefined) {
         taskData.finalResult = typeof finalResult === 'string' ? finalResult : JSON.stringify(finalResult);
@@ -108,7 +108,7 @@ export const useTasks = () => {
     stageType: StageType,
     context: string,
     prompt: string,
-    companyInfo: any,
+    relatedCompanyInfo: any,
   ) => {
     return updateTaskStatus.mutateAsync({
       projectId,
@@ -116,7 +116,7 @@ export const useTasks = () => {
       status: TaskStatus.CONFIGURING,
       context, 
       prompt,
-      companyInfo,
+      relatedCompanyInfo,
     });
   }, [updateTaskStatus]);
 

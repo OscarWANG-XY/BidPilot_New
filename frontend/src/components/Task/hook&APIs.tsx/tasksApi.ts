@@ -30,7 +30,7 @@ export interface Type_TaskDetail {
   prompt?: string;             
   relatedCompanyInfo?: string;        
   // 结果数据
-  streamingResult?: string;   //只读    
+  //streamingResult?: string;   //只读    
   //originalResult?: string;    不再增加originalResult, 结果的编辑直接在finalResult中进行。 
   finalResult?: string;
   // 统计数据
@@ -46,10 +46,10 @@ export interface Type_TaskDetail {
 // 文档提取任务更新接口 - 对应 DocxExtractionTaskUpdateSerializer
 export interface Type_TaskUpdate {         
   status: TaskStatus;          
-  docxTiptap?: string;         
+  //docxTiptap?: string;         
   context?: string;            
   prompt?: string;             
-  companyInfo?: string;         
+  relatedCompanyInfo?: string;         
   finalResult?: string;
 }
   

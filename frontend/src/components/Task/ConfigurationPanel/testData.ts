@@ -143,7 +143,7 @@ export const mockTask: Type_TaskDetail = {
     ]
   }),
   // 其他必要的字段
-  streamingResult: '',
+  //streamingResult: '',
   finalResult: '',
   // 添加其他可能需要的字段
 };
