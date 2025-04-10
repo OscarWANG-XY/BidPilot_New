@@ -1,7 +1,7 @@
 //import { useEffect } from "react"; // 引入 React 的 useEffect 钩子，用于处理副作用
 
 import { useAuth } from "@/contexts/auth-context"; // 引入自定义的 Auth 上下文，用于处理登录逻辑
-import { useToast } from "@/hooks/use-toast"; // 引入自定义的 Toast 钩子，用于显示提示信息
+import { useToast } from "@/_hooks/use-toast"; // 引入自定义的 Toast 钩子，用于显示提示信息
 
 
 import { Link } from "@tanstack/react-router"; // 引入路由链接组件，用于页面跳转
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"; // 引入自定义的 Button �
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // 引入自定义的 Card 组件
 import { Separator } from "@/components/ui/separator"; // 引入自定义的 Separator 组件
 
-import { LoginMethod } from "@/types/auth_dt_stru"; // 引入登录方法的枚举类型
+import { LoginMethod } from "@/_types/auth_dt_stru"; // 引入登录方法的枚举类型
 
 import { CodeLoginForm } from "./login_components/CodeLoginForm"; // 引入验证码登录表单组件
 import { PasswordLoginForm } from "./login_components/PasswordLoginForm"; // 引入密码登录表单组件

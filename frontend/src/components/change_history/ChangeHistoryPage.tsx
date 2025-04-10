@@ -8,8 +8,8 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChangeHistoryTable } from '@/components/change_history/ChangeHistoryTable';
-import { useChangeHistory } from '@/hooks/useProjects/useProjectsHistory';
-import { useProjects } from '@/hooks/useProjects/useProjects';
+import { useChangeHistory } from '@/_hooks/useProjects/useProjectsHistory';
+import { useProjects } from '@/_hooks/useProjects/useProjects';
 import { 
   ArrowLeft, 
   FileText, 

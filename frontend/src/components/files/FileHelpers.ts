@@ -1,4 +1,4 @@
-import { FileRecord, FileType } from "@/types/files_dt_stru";  // 数据接口文件类型
+import { FileRecord, FileType } from "@/_types/files_dt_stru";  // 数据接口文件类型
 
 
 //========================= FileHelpers.ts 是辅助函数的集合 ========================= 

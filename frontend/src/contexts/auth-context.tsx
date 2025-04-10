@@ -11,7 +11,7 @@ import {
   ForgotPasswordForm,
   AuthResponse,
   WechatLoginResponse,
-} from '@/types/auth_dt_stru';
+} from '@/_types/auth_dt_stru';
 import {
   requestCaptcha,
   login,
@@ -19,9 +19,9 @@ import {
   registerUser,
   forgotPassword,
   logout,
-} from '@/api/auth_api'
-import { UserResponse } from '@/types/user_dt_stru';
-import { getCurrentUser} from '@/api/user_api';
+} from '@/_api/auth_api'
+import { UserResponse } from '@/_types/user_dt_stru';
+import { getCurrentUser} from '@/_api/user_api';
 
 const STORAGE_KEYS = {
   TOKEN: 'token',

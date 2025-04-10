@@ -49,7 +49,9 @@ class TaskType(models.TextChoices):
 
 class TaskStatus(models.TextChoices):
     NOT_STARTED = 'NOT_STARTED', '未开始'
-    ACTIVE = 'ACTIVE', '激活中'
+    CONFIGURING = 'CONFIGURING', '配置中'
+    PROCESSING = 'PROCESSING', '处理中'
+    REVIEWING = 'REVIEWING', '审核中'
     COMPLETED = 'COMPLETED', '完成'
     FAILED = 'FAILED', '失败'
 

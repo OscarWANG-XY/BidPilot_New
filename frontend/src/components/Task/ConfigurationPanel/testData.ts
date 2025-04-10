@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Type_TaskDetail, TaskStatus } from '../hook&APIs.tsx/tasksApi';
-import { TaskType } from '@/types/projects_dt_stru/projectTasks_interface';
+import { TaskType } from '@/_types/projects_dt_stru/projectTasks_interface';
 
 // Mock task data
 export const mockTask: Type_TaskDetail = {

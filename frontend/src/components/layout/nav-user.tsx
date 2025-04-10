@@ -29,8 +29,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/contexts/auth-context"
-import { useToast } from "@/hooks/use-toast"
-import { UserResponse } from "@/types/user_dt_stru"
+import { useToast } from "@/_hooks/use-toast"
+import { UserResponse } from "@/_types/user_dt_stru"
 
 // ========================= 用户导航栏 =========================
 export function NavUser({

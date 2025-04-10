@@ -1,4 +1,4 @@
-import { FileRecord } from "@/types/files_dt_stru";  // 数据接口文件类型
+import { FileRecord } from "@/_types/files_dt_stru";  // 数据接口文件类型
 import { FilePreview } from "@/components/files/FilePreview/FilePreview";  // 文件预览组件
 import { Button } from "@/components/ui/button";  // 按钮ui组件
 import { 

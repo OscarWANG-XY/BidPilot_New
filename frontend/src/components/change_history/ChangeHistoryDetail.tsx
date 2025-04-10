@@ -3,11 +3,11 @@ import { useParams, useNavigate } from '@tanstack/react-router';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { useChangeHistory } from '@/hooks/useProjects/useProjectsHistory';
+import { useChangeHistory } from '@/_hooks/useProjects/useProjectsHistory';
 import { ArrowLeft, Clock, User, FileText, Tag } from 'lucide-react';
 import { 
   TaskChangeHistory 
-} from '@/types/projects_dt_stru/projectHistory_interface';
+} from '@/_types/projects_dt_stru/projectHistory_interface';
 
 type HistoryType = 'project' | 'stage' | 'task';
 

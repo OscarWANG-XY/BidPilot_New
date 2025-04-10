@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { useProjects } from '@/hooks/useProjects/useProjects'      // 项目Hook
-import { useToast } from '@/hooks/use-toast'           // Hook
+import { useProjects } from '@/_hooks/useProjects/useProjects'      // 项目Hook
+import { useToast } from '@/_hooks/use-toast'           // Hook
 import { CreateProjectDialog } from './_01_ProjectCreate'   // 自定义"创建项目"组件
 import { ProjectFilter } from './_03_ProjectsFilter'  //自定义 项目查询 组件
 import { ProjectList } from './_02_ProjectsList'      //自定义 项目列表 组件
 //import { ProjectDetail } from './ProjectDetail'  //自定义 项目详情 组件
-import { ProjectQueryParams } from '@/types/projects_dt_stru/projects_interface' 
+import { ProjectQueryParams } from '@/_types/projects_dt_stru/projects_interface' 
 import { useNavigate } from '@tanstack/react-router'  // 修改为 TanStack Router 的导入
 
 // ===================================== 项目管理器 ==================================== 

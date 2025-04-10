@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { StreamingTaskApi } from '@/api/projects_api/taskOutlineAnalysis_api';
-import type { StageType } from '@/types/projects_dt_stru/projectStage_interface';
+import { StreamingTaskApi } from '@/components/projects/TenderAnalysis/OutlineAnalysisTask/taskOutlineAnalysis_api';
+import type { StageType } from '@/_types/projects_dt_stru/projectStage_interface';
 import type {
   StreamStartResponse,
   StreamStatusResponse,
   StreamResultResponse
-} from '@/types/projects_dt_stru/projectTasks_interface';
+} from '@/_types/projects_dt_stru/projectTasks_interface';
 import { useState, useEffect, useCallback, useRef, useMemo, useReducer } from 'react';
 
 

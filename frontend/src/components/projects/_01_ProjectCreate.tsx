@@ -1,6 +1,6 @@
 import { useState } from "react"  // 引入React自带的useState钩子，用于管理组件的状态
 import { useNavigate } from '@tanstack/react-router' // 用于项目创建后，跳转到项目详情页
-import { ProjectType } from "@/types/projects_dt_stru/projects_interface" // 引入自定义的数据类型
+import { ProjectType } from "@/_types/projects_dt_stru/projects_interface" // 引入自定义的数据类型
 import { Button } from "@/components/ui/button"  // 使用shadcn的 按钮组件 
 import {
   Dialog,
@@ -21,7 +21,7 @@ import {
 import { Input } from "@/components/ui/input"  // 使用shadcn的 输入框组件
 import { Label } from "@/components/ui/label"  // 使用shadcn的 标签组件
 import { FilePlus2 } from "lucide-react"  // 使用lucide-react的图标
-import { useProjects } from '@/hooks/useProjects/useProjects'  // 使用自定义的 项目管理状态
+import { useProjects } from '@/_hooks/useProjects/useProjects'  // 使用自定义的 项目管理状态
 
 
 // ================================ 创建项目对话框组件 ============================================ 

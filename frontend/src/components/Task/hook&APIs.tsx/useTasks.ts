@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { TaskApi } from './tasksApi';
 import type { Type_TaskDetail, Type_TaskUpdate } from './tasksApi';
-import type { StageType } from '@/types/projects_dt_stru/projectStage_interface';
+import type { StageType } from '@/_types/projects_dt_stru/projectStage_interface';
 import { TaskStatus } from './tasksApi';
 import { useCallback } from 'react';
 

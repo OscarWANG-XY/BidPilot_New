@@ -1,7 +1,7 @@
 import { TaskStatus } from '../hook&APIs.tsx/tasksApi';
-import { TaskType } from '@/types/projects_dt_stru/projectTasks_interface';
+import { TaskType } from '@/_types/projects_dt_stru/projectTasks_interface';
 import type { Type_TaskDetail } from '../hook&APIs.tsx/tasksApi';
-import type { StageType } from '@/types/projects_dt_stru/projectStage_interface';
+import type { StageType } from '@/_types/projects_dt_stru/projectStage_interface';
 
 // 测试用的项目ID和阶段类型
 export const TEST_PROJECT_ID = 'test-project-123';

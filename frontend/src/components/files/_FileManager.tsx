@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";  // 状态管理
-import { useFiles } from "@/hooks/useFiles";   // 文件管理HOOKS
-import { useToast } from "@/hooks/use-toast";  // 消息提示HOOKS
-import { FileRecord } from "@/types/files_dt_stru";  // 数据接口类型
+import { useFiles } from "@/_hooks/useFiles";   // 文件管理HOOKS
+import { useToast } from "@/_hooks/use-toast";  // 消息提示HOOKS
+import { FileRecord } from "@/_types/files_dt_stru";  // 数据接口类型
 import { validateFile } from "./FileHelpers";  // 功能函数
 import { FileUploadButton } from "./FileUploadButton";  // 上传按钮子组件
 import { FileTable } from "./FileTable";  // 文件列表子组件

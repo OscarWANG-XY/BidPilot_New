@@ -1,6 +1,6 @@
 import { useEffect } from "react"
 import { useAuth } from "@/contexts/auth-context"
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/_hooks/use-toast"
 import { useNavigate } from "@tanstack/react-router"
 
 export function LogoutComponent() {

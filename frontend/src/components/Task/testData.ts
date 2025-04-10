@@ -1,5 +1,5 @@
 import { TaskStatus } from './hook&APIs.tsx/tasksApi';
-import { TaskType } from '@/types/projects_dt_stru/projectTasks_interface';
+import { TaskType } from '@/_types/projects_dt_stru/projectTasks_interface';
 
 // 模拟任务数据，用于组件测试
 export const testTasks = {

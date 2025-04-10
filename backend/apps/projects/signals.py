@@ -296,7 +296,7 @@ def initialize_project_stages(sender, instance, created, **kwargs):
                     name='招标文件上传',
                     description='上传招标文件',
                     type=TaskType.UPLOAD_TENDER_FILE,
-                    status=TaskStatus.ACTIVE,
+                    status=TaskStatus.PROCESSING,
                     lock_status=TaskLockStatus.UNLOCKED,
                 )
                 # 创建文档提取任务
@@ -310,6 +310,7 @@ def initialize_project_stages(sender, instance, created, **kwargs):
                     docx_tiptap=None,
                 )
 
+                # 创建文档结构分析任务
                 Task.objects.create(
                     stage=stage,
                     name='文档结构分析',
@@ -359,7 +360,7 @@ def handle_file_upload_auto_task(instance):
             status_change = TaskChangeHistory.objects.filter(
                 task=instance,
                 field_name='status',
-                old_value=TaskStatus.ACTIVE,
+                old_value=TaskStatus.PROCESSING,
                 new_value=TaskStatus.COMPLETED
             ).order_by('-changed_at').first()
             
@@ -399,9 +400,9 @@ def handle_docx_extraction_auto_task(instance):
     logger.info(f"DocxExtractionTask状态更新，检查是否需要启动文档提取")
 
     # 1. 外围条件：DocxExtractionTask 满足 PROCESSING + UNLOCKED + docx_tiptap=None 状态
-    if instance.status == TaskStatus.ACTIVE and instance.lock_status == TaskLockStatus.UNLOCKED and instance.docx_tiptap is None:
+    if instance.status == TaskStatus.PROCESSING and instance.lock_status == TaskLockStatus.UNLOCKED and instance.docx_tiptap is None:
 
-        logger.info(f"探测到 DocxExtractionTask状态为: ACTIVE + UNLOCKED")
+        logger.info(f"探测到 DocxExtractionTask状态为: PROCESSING + UNLOCKED")
 
         try:
             # 获取相关联的阶段和项目 
@@ -414,15 +415,15 @@ def handle_docx_extraction_auto_task(instance):
                 task=instance,
                 field_name='status',
                 #old_value=TaskStatus.NOT_STARTED, #这里不再强制指定之前的状态，意味着我们允许从任何状态转为ACTIVE，包括failed, completed, 等。
-                new_value=TaskStatus.ACTIVE
+                new_value=TaskStatus.PROCESSING
             ).order_by('-changed_at').first()
             
             if not status_change:
-                logger.warning(f"DocxExtractionTask状态未变为ACTIVE，跳过处理")
+                logger.warning(f"DocxExtractionTask状态未变为PROCESSING，跳过处理")
                 return
             
             # 可以添加日志记录原始状态
-            logger.info(f"DocxExtractionTask状态从{status_change.old_value}变为ACTIVE")
+            logger.info(f"DocxExtractionTask状态从{status_change.old_value}变为PROCESSING")
             
             # b. 使用Celery任务异步处理文档提取
             from .tasks import process_docx_extraction

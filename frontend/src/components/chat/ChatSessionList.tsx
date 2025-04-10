@@ -1,11 +1,11 @@
 // components/chat/ChatSessionList.tsx
 import { useNavigate } from '@tanstack/react-router';
-import { ChatSession } from '@/types/chat_dt_stru';
+import { ChatSession } from '@/_types/chat_dt_stru';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MessageSquarePlus, Trash2 } from 'lucide-react';
-import { useChatSessions } from '@/hooks/useChat';
+import { useChatSessions } from '@/_hooks/useChat';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import {

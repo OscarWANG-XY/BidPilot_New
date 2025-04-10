@@ -1,6 +1,6 @@
 // components/chat/ChatPanel.tsx
-import { useChat } from '@/hooks/useChat';
-import { ChatMessage as MessageType } from '@/types/chat_dt_stru';
+import { useChat } from '@/_hooks/useChat';
+import { ChatMessage as MessageType } from '@/_types/chat_dt_stru';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';

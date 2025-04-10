@@ -1,9 +1,9 @@
-import axiosInstance from '../../../api/axios_instance';
-import type { StageType } from '@/types/projects_dt_stru/projectStage_interface';
+import axiosInstance from '../../../_api/axios_instance';
+import type { StageType } from '@/_types/projects_dt_stru/projectStage_interface';
 import type { 
   TaskType, 
 //  TaskStatus 
-} from '@/types/projects_dt_stru/projectTasks_interface';
+} from '@/_types/projects_dt_stru/projectTasks_interface';
 
 
 // 任务状态枚举 - 与后端对齐

@@ -52,7 +52,7 @@ class StreamingViewMixin:
         )
 
         outline_task = Task.objects.get(stage=stage, type=TaskType.OUTLINE_ANALYSIS_TASK)
-        outline_task.status = TaskStatus.ACTIVE
+        outline_task.status = TaskStatus.PROCESSING
         outline_task.save()
         
         # 启动Celery任务

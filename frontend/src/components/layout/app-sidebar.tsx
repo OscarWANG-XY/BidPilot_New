@@ -10,9 +10,9 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { useProjects } from "@/hooks/useProjects/useProjects"
+import { useProjects } from "@/_hooks/useProjects/useProjects"
 import { useAuth } from "@/contexts/auth-context" // 使用你已有的 auth-context
-import { UserResponse } from "@/types/user_dt_stru"
+import { UserResponse } from "@/_types/user_dt_stru"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // 使用 sidebarProjectsQuery 钩子获取项目列表

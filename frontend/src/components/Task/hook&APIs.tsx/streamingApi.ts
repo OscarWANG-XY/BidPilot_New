@@ -1,6 +1,6 @@
-import axiosInstance from '../../../api/axios_instance';
-import type { StageType } from '@/types/projects_dt_stru/projectStage_interface';
-import type { TaskType } from '@/types/projects_dt_stru/projectTasks_interface';
+import axiosInstance from '../../../_api/axios_instance';
+import type { StageType } from '@/_types/projects_dt_stru/projectStage_interface';
+import type { TaskType } from '@/_types/projects_dt_stru/projectTasks_interface';
 export interface StreamStartResponse {
   taskId: string;
   streamId: string;

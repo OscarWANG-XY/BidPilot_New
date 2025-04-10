@@ -83,7 +83,7 @@ class DocxExtractionViewMixin:
         serializer = DocxExtractionStartSerializer(
             task, 
             data={
-                "status": TaskStatus.ACTIVE,
+                "status": TaskStatus.PROCESSING,
                 "lock_status": TaskLockStatus.UNLOCKED
             },
             partial=True,

@@ -1,5 +1,5 @@
 import { useRef, useEffect, memo } from "react";  // 添加 useRef, useEffect, and memo
-import { FileRecord } from "@/types/files_dt_stru";  // 文件数据接口
+import { FileRecord } from "@/_types/files_dt_stru";  // 文件数据接口
 import { 
   Table, 
   TableBody, 

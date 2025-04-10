@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTasks } from './hook&APIs.tsx/useTasks';
 import { useStream } from './hook&APIs.tsx/useStreaming';
 import { TaskStatus } from './hook&APIs.tsx/tasksApi';
-import type { StageType } from '@/types/projects_dt_stru/projectStage_interface';
+import type { StageType } from '@/_types/projects_dt_stru/projectStage_interface';
 import { useUnsavedChangesWarning } from './hook&APIs.tsx/useUnsavedChangeWarning';
 
 // 引入状态特定组件

@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { TenderAnalysisPage } from '@/components/projects/TenderAnalysis/_TenderAnalysisPage'
+import { TenderAnalysisPage } from '@/components/projects/TenderAnalysis/TenderAnalysisPage'
 
 export const Route = createFileRoute('/projects/$projectId/tender-analysis')({
   component: TenderAnalysisComponent,

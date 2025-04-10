@@ -2,9 +2,9 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/_hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
-import { CaptchaRequest } from "@/types/auth_dt_stru"
+import { CaptchaRequest } from "@/_types/auth_dt_stru"
 import { useCaptchaCountdown } from "@/components/auth/use-captcha-countdown"
 
 interface VerificationCodeInputProps {

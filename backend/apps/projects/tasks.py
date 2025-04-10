@@ -77,7 +77,7 @@ def process_outline_analysis_streaming(self, project_id, stream_id=None):
         )
         
         print(f"outline_task.status: {outline_task.status}")
-        if outline_task.status != TaskStatus.ACTIVE:
+        if outline_task.status != TaskStatus.PROCESSING:
             print(f"大纲分析任务未激活，无法启动分析")
             #logger.error(f"大纲分析任务未激活，无法启动分析")
             return 

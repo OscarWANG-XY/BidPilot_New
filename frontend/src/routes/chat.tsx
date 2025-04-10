@@ -1,7 +1,7 @@
 // routes/chat/index.tsx
 import { createFileRoute, Outlet, useMatchRoute } from '@tanstack/react-router'
 import { ChatSessionList } from '@/components/chat/ChatSessionList'
-import { useChatSessions } from '@/hooks/useChat'
+import { useChatSessions } from '@/_hooks/useChat'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 import { MessageSquarePlus } from 'lucide-react'

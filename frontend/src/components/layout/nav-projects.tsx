@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/tooltip"
 
 import { CreateProjectDialog } from "@/components/projects/_01_ProjectCreate"
-import { ProjectsSidebarItem } from "@/types/projects_dt_stru/projects_interface"
+import { ProjectsSidebarItem } from "@/_types/projects_dt_stru/projects_interface"
 
 export function NavProjects({
 projects,

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, StopCircle, Copy, Download, CheckCircle } from 'lucide-react'; // 添加CheckCircle图标
 import { MarkdownStreamingViewer } from './MarkdownViewer';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/_hooks/use-toast';
 
 interface MarkdownStreamingRendererProps {
   title?: string;

@@ -4,9 +4,9 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Link, useLocation } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
-import { toast } from '@/hooks/use-toast'
-import { ProjectStatus } from '@/types/projects_dt_stru/projects_interface'
-import { useProjects } from '@/hooks/useProjects/useProjects'
+import { toast } from '@/_hooks/use-toast'
+import { ProjectStatus } from '@/_types/projects_dt_stru/projects_interface'
+import { useProjects } from '@/_hooks/useProjects/useProjects'
 
 interface ProjectLayoutProps {
   projectId: string
