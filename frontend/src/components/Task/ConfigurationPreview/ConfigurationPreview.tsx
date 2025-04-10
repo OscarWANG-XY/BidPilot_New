@@ -11,13 +11,13 @@ import TiptapEditor_lite from '@/components/shared/TiptapEditor_lite2';
 interface ConfigurationPreviewProps {
   context?: string;
   prompt?: string;
-  companyInfo?: any;
+  relatedCompanyInfo?: any;
 }
 
 const ConfigurationPreview: React.FC<ConfigurationPreviewProps> = ({
   context,
   prompt,
-  companyInfo
+  relatedCompanyInfo
 }) => {
   // 设置 TiptapEditor 的基本配置
   const editorConfig = {
@@ -32,7 +32,7 @@ const ConfigurationPreview: React.FC<ConfigurationPreviewProps> = ({
       </CardHeader>
 
       <CardContent className="pt-4">
-        <Accordion type="multiple" defaultValue={["context", "prompt", "companyInfo"]} className="w-full">
+        <Accordion type="multiple" defaultValue={["context", "prompt", "relatedCompanyInfo"]} className="w-full">
           {/* 上下文预览区域 */}
           <AccordionItem value="context" className="focus-within:ring-2 ring-blue-500">
             <AccordionTrigger className="text-sm font-medium">上下文 (Context)</AccordionTrigger>
@@ -62,12 +62,12 @@ const ConfigurationPreview: React.FC<ConfigurationPreviewProps> = ({
           </AccordionItem>
 
           {/* 公司信息预览区域 */}
-          <AccordionItem value="companyInfo" className="focus-within:ring-2 ring-blue-500">
+          <AccordionItem value="relatedCompanyInfo" className="focus-within:ring-2 ring-blue-500">
             <AccordionTrigger className="text-sm font-medium">公司信息 (Company Info)</AccordionTrigger>
             <AccordionContent>
               <div className="border rounded-md overflow-hidden h-[400px]">
                 <TiptapEditor_lite
-                  initialContent={companyInfo || ''}
+                  initialContent={relatedCompanyInfo || ''}
                   readOnly={true}
                   {...editorConfig}
                 />

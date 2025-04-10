@@ -43,10 +43,10 @@ import {
     
     editingContext: string;
     editingPrompt: string;
-    editingCompanyInfo: any;
+    editingRelatedCompanyInfo: any;
     onEditingContextChange: (context: string) => void;
     onEditingPromptChange: (prompt: string) => void;
-    onEditingCompanyInfoChange: (companyInfo: any) => void;
+    onEditingRelatedCompanyInfoChange: (relatedCompanyInfo: any) => void;
   
     onCancelEditing: () => void;
     onSaveConfig: (context: string, prompt: string, companyInfo: any) => Promise<void>;
@@ -61,10 +61,10 @@ import {
     isEditing,
     editingContext,
     editingPrompt,
-    editingCompanyInfo,
+    editingRelatedCompanyInfo,
     onEditingContextChange,
     onEditingPromptChange,
-    onEditingCompanyInfoChange,
+    onEditingRelatedCompanyInfoChange,
     onCancelEditing,
     onSaveConfig
   }) => {
@@ -76,7 +76,7 @@ import {
   
     // 处理保存配置的函数
     const handleSaveConfig = async () => {
-      await onSaveConfig(editingContext, editingPrompt, editingCompanyInfo);
+      await onSaveConfig(editingContext, editingPrompt, editingRelatedCompanyInfo);
     };
   
     // 设置 TiptapEditor 的基本配置
@@ -154,8 +154,8 @@ import {
               <AccordionContent>
                 <div className="border rounded-md overflow-hidden h-[400px]">
                   <TiptapEditor_lite
-                    initialContent={isEditing ? editingCompanyInfo : task.companyInfo || ''}
-                    onChange={onEditingCompanyInfoChange}
+                    initialContent={isEditing ? editingRelatedCompanyInfo : task.relatedCompanyInfo || ''}
+                    onChange={onEditingRelatedCompanyInfoChange}
                     readOnly={!isEditing}
                     {...editorConfig}
                   />

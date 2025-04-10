@@ -79,8 +79,8 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
     const [editingPrompt, setEditingPrompt] = useState<string>(() => {
         return localStorage.getItem('editingPrompt') || '';
     });
-    const [editingCompanyInfo, setEditingCompanyInfo] = useState<any>(() => {
-        const saved = localStorage.getItem('editingCompanyInfo');
+    const [editingRelatedCompanyInfo, setEditingRelatedCompanyInfo] = useState<any>(() => {
+        const saved = localStorage.getItem('editingRelatedCompanyInfo');
         return saved ? JSON.parse(saved) : null;
     });
 
@@ -102,16 +102,16 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
         if (task) {
             const context = task.context || '';
             const prompt = task.prompt || '';
-            const companyInfo = task.companyInfo || null;
+            const relatedCompanyInfo = task.relatedCompanyInfo || null;
             
             setEditingContext(context);
             setEditingPrompt(prompt);
-            setEditingCompanyInfo(companyInfo);
+            setEditingRelatedCompanyInfo(relatedCompanyInfo);
             setIsEditingConfig(true);
             
             localStorage.setItem('editingContext', context);
             localStorage.setItem('editingPrompt', prompt);
-            localStorage.setItem('editingCompanyInfo', companyInfo ? JSON.stringify(companyInfo) : '');
+            localStorage.setItem('editingRelatedCompanyInfo', relatedCompanyInfo ? JSON.stringify(relatedCompanyInfo) : '');
             localStorage.setItem('isEditingConfig', 'true');
         }
     };
@@ -122,22 +122,22 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
         if (task) {
             setEditingContext(task.context || '');
             setEditingPrompt(task.prompt || '');
-            setEditingCompanyInfo(task.companyInfo || null);
+            setEditingRelatedCompanyInfo(task.relatedCompanyInfo || null);
             }
             setIsEditingConfig(false);
             localStorage.setItem('isEditingConfig', 'false');
     };
 
     // 保存配置
-    const handleSaveConfig = async (context: string, prompt: string, companyInfo: any) => {
-        await saveConfig(projectId, stageType, context, prompt, companyInfo);
+    const handleSaveConfig = async (context: string, prompt: string, relatedCompanyInfo: any) => {
+        await saveConfig(projectId, stageType, context, prompt, relatedCompanyInfo);
         
             // 由于上面保存配置后，取消编辑的重置，会使用最新的配置内容 （在useTasks.ts中，向后端保存数据后，会手动invalidate缓存，导致重新获取任务数据，以保持最新状态）
         if (isEditingConfig) {
             handleCancelConfigEditing(); // 保存成功后退出编辑模式
             localStorage.removeItem('editingContext');
             localStorage.removeItem('editingPrompt');
-            localStorage.removeItem('editingCompanyInfo');
+            localStorage.removeItem('editingRelatedCompanyInfo');
         }
     };
 
@@ -242,11 +242,11 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
         if (isEditingConfig) {
         localStorage.setItem('editingContext', editingContext || '');
         localStorage.setItem('editingPrompt', editingPrompt || '');
-        if (editingCompanyInfo) {
-            localStorage.setItem('editingCompanyInfo', JSON.stringify(editingCompanyInfo));
+        if (editingRelatedCompanyInfo) {
+            localStorage.setItem('editingRelatedCompanyInfo', JSON.stringify(editingRelatedCompanyInfo));
         }
         }
-    }, [isEditingConfig, editingContext, editingPrompt, editingCompanyInfo]);
+    }, [isEditingConfig, editingContext, editingPrompt, editingRelatedCompanyInfo]);
 
     // 同步编辑内容到localStorage
     useEffect(() => {
@@ -273,7 +273,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
                 localStorage.removeItem('isEditingConfig');
                 localStorage.removeItem('editingContext');
                 localStorage.removeItem('editingPrompt');
-                localStorage.removeItem('editingCompanyInfo');
+                localStorage.removeItem('editingRelatedCompanyInfo');
             }
         }
     }, [task, projectId, stageType]);
@@ -339,10 +339,10 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
 
                     editingContext={editingContext}   // 向子组件传递当前编辑的内容，初始化时，直接从当前任务中复制
                     editingPrompt={editingPrompt}
-                    editingCompanyInfo={editingCompanyInfo}
+                    editingRelatedCompanyInfo={editingRelatedCompanyInfo}
                     onEditingContextChange={setEditingContext}  // 用户更改文本框或受控组件的值时，回调，更新编辑内容
                     onEditingPromptChange={setEditingPrompt}
-                    onEditingCompanyInfoChange={setEditingCompanyInfo}
+                    onEditingRelatedCompanyInfoChange={setEditingRelatedCompanyInfo}
 
                     onCancelEditing={handleCancelConfigEditing}  // 点击取消编辑按钮，退出编辑模式
                     onSaveConfig={handleSaveConfig}    //点击保存，保存当前编辑的配置到后端
@@ -418,7 +418,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
         <ConfigurationPreview 
             context={task.context}
             prompt={task.prompt}
-            companyInfo={task.companyInfo}
+            relatedCompanyInfo={task.relatedCompanyInfo}
         />
         )}
 

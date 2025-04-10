@@ -116,7 +116,7 @@ const ConfigurationPanelTest: React.FC = () => {
               <ul className="list-disc pl-5 space-y-1">
                 <li>上下文(Context): <span className="font-mono">{props.task.context?.length || 0} 字符</span></li>
                 <li>提示词(Prompt): <span className="font-mono">{props.task.prompt?.length || 0} 字符</span></li>
-                <li>公司信息: <span className="font-mono">{props.task.companyInfo?.length || 0} 字符</span></li>
+                <li>公司信息: <span className="font-mono">{props.task.relatedCompanyInfo?.length || 0} 字符</span></li>
               </ul>
             </div>
           </div>

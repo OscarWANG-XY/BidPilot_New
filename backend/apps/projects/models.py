@@ -158,7 +158,7 @@ class ProjectStage(models.Model):
 
 # 统一的任务模型，替代原来的基于抽象类的多个任务模型
 class Task(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  # Type_TaskDetail
     stage = models.ForeignKey(
         ProjectStage,
         on_delete=models.CASCADE,
@@ -166,7 +166,7 @@ class Task(models.Model):
         verbose_name='所属阶段'
     )
     
-    name = models.CharField('任务名称', max_length=100)
+    name = models.CharField('任务名称', max_length=100)   # Type_TaskDetail
     description = models.TextField('描述', blank=True)
     type = models.CharField(
         '任务类型',
@@ -174,7 +174,7 @@ class Task(models.Model):
         choices=TaskType.choices,
         default=TaskType.OTHER
     )
-    status = models.CharField(
+    status = models.CharField(                          # Type_TaskDetail
         '状态',
         max_length=20,
         choices=TaskStatus.choices,
@@ -199,6 +199,91 @@ class Task(models.Model):
         verbose_name='tiptap内容',
         help_text='存储tiptap内容'
     )
+
+    # 用于和前端tasksApi数据结构对齐的部分：  Type_TaskDetail
+    context = models.JSONField(             # Type_TaskDetail
+        null=True,
+        blank=True,
+        verbose_name='上下文',
+        help_text='存储上下文'
+    )
+
+    prompt = models.JSONField(             # Type_TaskDetail
+        null=True,
+        blank=True,
+        verbose_name='prompt',
+        help_text='存储prompt'
+    )
+
+    related_company_info = models.JSONField(             # Type_TaskDetail
+        null=True,
+        blank=True,
+        verbose_name='公司信息',
+        help_text='存储公司信息'
+    )
+    
+    final_result = models.JSONField(             # Type_TaskDetail
+        null=True,
+        blank=True,
+        verbose_name='最终结果',
+        help_text='存储最终结果'
+    )
+
+    task_started_at = models.DateTimeField(             # Type_TaskDetail
+        null=True,
+        blank=True,
+        verbose_name='任务开始时间',
+        help_text='存储任务开始时间'
+    )
+
+    task_completed_at = models.DateTimeField(             # Type_TaskDetail
+        null=True,
+        blank=True,
+        verbose_name='任务完成时间',
+        help_text='存储任务完成时间'
+    )
+
+    analysis_duration = models.IntegerField(             # Type_TaskDetail
+        null=True,
+        blank=True,
+        verbose_name='分析时长',
+        help_text='存储分析时长'
+    )
+
+    in_tokens = models.IntegerField(             # Type_TaskDetail
+        null=True,
+        blank=True,
+        verbose_name='输入token',
+        help_text='存储输入token'
+    )           
+
+    out_tokens = models.IntegerField(             # Type_TaskDetail
+        null=True,
+        blank=True,
+        verbose_name='输出token',
+        help_text='存储输出token'
+    )
+    
+    total_tokens = models.IntegerField(             # Type_TaskDetail
+        null=True,
+        blank=True,
+        verbose_name='总token',
+        help_text='存储总token'
+    )   
+
+    error_message = models.TextField(             # Type_TaskDetail
+        null=True,
+        blank=True,
+        verbose_name='错误信息',
+        help_text='存储错误信息'
+    )
+    
+
+
+
+
+
+
 
     # 用于存储 大模型分析的 数据输入
     data_input = models.JSONField(
@@ -281,6 +366,10 @@ class Task(models.Model):
         verbose_name='结果HTML',
         help_text='存储结果HTML'
     )
+
+
+
+
 
     class Meta:
         verbose_name = '任务'

@@ -28,7 +28,7 @@ export interface Type_TaskDetail {
   // 配置数据       
   context?: string;            
   prompt?: string;             
-  companyInfo?: string;        
+  relatedCompanyInfo?: string;        
   // 结果数据
   streamingResult?: string;   //只读    
   //originalResult?: string;    不再增加originalResult, 结果的编辑直接在finalResult中进行。 
