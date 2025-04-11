@@ -17,7 +17,7 @@
     // DOCUMENT_REVIEW = 'DOCUMENT_REVIEW',                    // 文档审核
     // DOCUMENT_REVISION = 'DOCUMENT_REVISION',                // 文档修订
     // DOCUMENT_PRODUCTION = 'DOCUMENT_PRODUCTION',            // 文档生产
-    c = 'OUTLINE_ANALYSIS_TASK',          // 大纲分析
+    OUTLINE_ANALYSIS_TASK = 'OUTLINE_ANALYSIS_TASK',          // 大纲分析
     OTHER = 'OTHER'                                         // 其他
   }
   

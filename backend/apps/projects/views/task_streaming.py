@@ -72,7 +72,7 @@ class StreamingViewMixin:
         })
     
     @extend_schema(
-        tags=['task-outline-analysis'],
+        tags=['task-stream'],
         summary='获取大纲分析任务状态',
         description='根据流ID获取大纲分析任务的当前状态',
         parameters=[
@@ -84,8 +84,8 @@ class StreamingViewMixin:
             404: OpenApiTypes.OBJECT
         }
     )
-    @action(detail=True, methods=['GET'], url_path='outline-analysis-status/(?P<stream_id>[^/.]+)')
-    def get_outline_analysis_status(self, request, project_pk=None, pk=None, stream_id=None):
+    @action(detail=True, methods=['GET'], url_path='stream-status/(?P<stream_id>[^/.]+)')
+    def get_stream_status(self, request, project_pk=None, pk=None, stream_id=None):
         """
         获取大纲分析任务状态
         
@@ -117,7 +117,7 @@ class StreamingViewMixin:
         return Response(stream_status)
     
     @extend_schema(
-        tags=['task-outline-analysis'],
+        tags=['task-stream'],
         summary='流式获取大纲分析结果',
         description='根据流ID获取大纲分析的实时流式结果',
         parameters=[
@@ -129,8 +129,8 @@ class StreamingViewMixin:
             404: OpenApiTypes.OBJECT
         }
     )
-    @action(detail=True, methods=['GET'], url_path='outline-analysis-stream/(?P<stream_id>[^/.]+)')
-    def stream_outline_analysis(self, request, project_pk=None, pk=None, stream_id=None):
+    @action(detail=True, methods=['GET'], url_path='stream-chunks/(?P<stream_id>[^/.]+)')
+    def get_stream_chunks(self, request, project_pk=None, pk=None, stream_id=None):
         """
         流式获取大纲分析结果
         
@@ -172,7 +172,7 @@ class StreamingViewMixin:
         return response
     
     @extend_schema(
-        tags=['task-outline-analysis'],
+        tags=['task-stream'],
         summary='获取完整的大纲分析结果',
         description='根据流ID获取已完成的大纲分析的完整结果',
         parameters=[
@@ -184,8 +184,8 @@ class StreamingViewMixin:
             404: OpenApiTypes.OBJECT
         }
     )
-    @action(detail=True, methods=['GET'], url_path='outline-analysis-result/(?P<stream_id>[^/.]+)')
-    def get_outline_analysis_result(self, request, project_pk=None, pk=None, stream_id=None):
+    @action(detail=True, methods=['GET'], url_path='stream-result/(?P<stream_id>[^/.]+)')
+    def get_stream_result(self, request, project_pk=None, pk=None, stream_id=None):
         """
         获取完整的大纲分析结果
         
@@ -232,36 +232,3 @@ class StreamingViewMixin:
             'chunks_count': len(content_chunks),
             'metadata': {k: v for k, v in stream_status.items() if k not in ['status', 'error', 'start_time', 'update_time']}
         })
-
-
-# 添加测试SSE视图的schema
-@extend_schema(
-    tags=['task-outline-analysis'],
-    summary='测试SSE连接',
-    description='用于测试服务器发送事件(SSE)连接的简单端点',
-    responses={
-        200: OpenApiTypes.BINARY
-    }
-)
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def test_sse(request):
-    """
-    测试SSE连接
-    """
-    def event_stream():
-        for i in range(10):
-            yield f"data: 测试消息 {i}\n\n"
-            time.sleep(0.5)
-        yield "event: done\ndata: \n\n"
-    
-    response = StreamingHttpResponse(
-        streaming_content=event_stream(),
-        content_type='text/event-stream'
-    )
-    response['Cache-Control'] = 'no-cache'
-    response['X-Accel-Buffering'] = 'no'
-    #response['Connection'] = 'keep-alive'
-    
-    return response 
-

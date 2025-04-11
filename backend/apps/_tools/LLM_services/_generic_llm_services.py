@@ -15,7 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 class RedisStreamingCallbackHandler(BaseCallbackHandler):
-    """将LLM流式输出存储到Redis的回调处理器"""
+    """
+    将LLM流式输出存储到Redis的回调处理器
+    以下定义了on_llm_start, on_llm_new_token, on_llm_end, on_llm_error 四个回调函数
+    BaseCallbackHandler 是langchain的回调处理器基类, 它会在合适时机调用上面的回调函数
+    
+    """
     
     def __init__(self, redis_manager, stream_id):
         """
@@ -134,7 +139,7 @@ class GenericLLMService:
             elif self.config.streaming:
                 callbacks.append(StreamingStdOutCallbackHandler())
             
-            # 执行链
+            # 执行链 （callbacks 在这里通过chain_config传递给chain，被调用）
             chain_config = {"callbacks": callbacks} if callbacks else {}
             result = await chain.ainvoke(request_dict, config=chain_config)
 
