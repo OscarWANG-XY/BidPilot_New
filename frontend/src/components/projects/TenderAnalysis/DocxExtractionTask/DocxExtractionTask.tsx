@@ -161,78 +161,8 @@ export const DocxExtractionTask: React.FC<DocxExtractionTaskProps> = ({
     }
   }, [lockStatus, onStatusChange])
 
-  
-  // 处理编辑器内容变化
-  const handleEditorContentChange = (content: string) => {
-    setEditorContent(content);
-  }
 
-  // 保存内容到后端
-  const handleSaveContent = async () => {
-    setLoading(true)
-    try {
-      await DocxExtractionUpdate({
-        projectId,
-        stageType: StageType.TENDER_ANALYSIS,
-        docxTiptap: JSON.parse(editorContent)  //与上面加载的tiptapContent的JSON.stringify正好相反
-      })
-      
-      toast({
-        title: "内容已保存",
-        description: "招标文件解析内容已成功保存",
-      })
-    } catch (error) {
-      console.error('保存内容时出错:', error)
-      toast({
-        title: "保存失败",
-        description: "无法保存解析内容，请稍后重试",
-        variant: "destructive"
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // 合并后的处理函数
-  const handleCompleteAndNavigate = async () => {
-    console.log('handleCompleteAndNavigate')
-    setLoading(true);
-    try {
-      // 更新任务状态为完成并锁定任务
-      await DocxExtractionUpdate({
-        projectId,
-        stageType: StageType.TENDER_ANALYSIS,
-        docxTiptap: JSON.parse(editorContent),
-        status: TaskStatus.COMPLETED,
-        lockStatus: TaskLockStatus.LOCKED,
-      });
-
-      // 更新本地状态
-      setStatus(TaskStatus.COMPLETED);
-      setLockStatus(TaskLockStatus.LOCKED);
-
-      toast({
-        title: "任务已完成并锁定",
-        description: "正在进入文档结构分析任务",
-      });
-
-      // 回调父组件进行导航
-      if (onNavigateToNextTask) {
-        onNavigateToNextTask();
-      }
-    } catch (error) {
-      console.error('操作失败:', error);
-      toast({
-        title: "操作失败",
-        description: "无法完成任务并导航，请稍后重试",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 手动启动文档提取
+  // 手动启动文档提取 （将状态设置为PROCESSING，并更新到后端, 内容status）
   const handleStartExtraction = async () => {
     // 如果任务已完成，不应该重新启动提取
     if (status === TaskStatus.COMPLETED) {
@@ -271,6 +201,77 @@ export const DocxExtractionTask: React.FC<DocxExtractionTaskProps> = ({
       setLoading(false);
     }
   };
+  
+  // 处理编辑器内容变化 (将内容设置到本地状态, 不连接后端)
+  const handleEditorContentChange = (content: string) => {
+    setEditorContent(content);
+  }
+
+  // 保存内容到后端 （将内容docxTiptap更新到后端）
+  const handleSaveContent = async () => {
+    setLoading(true)
+    try {
+      await DocxExtractionUpdate({
+        projectId,
+        stageType: StageType.TENDER_ANALYSIS,
+        docxTiptap: JSON.parse(editorContent)  //与上面加载的tiptapContent的JSON.stringify正好相反
+      })
+      
+      toast({
+        title: "内容已保存",
+        description: "招标文件解析内容已成功保存",
+      })
+    } catch (error) {
+      console.error('保存内容时出错:', error)
+      toast({
+        title: "保存失败",
+        description: "无法保存解析内容，请稍后重试",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 合并后的处理函数 (将状态设置为Completed，并更新到后端, 内容：docxTiptap, status, lockStatus）
+  const handleCompleteAndNavigate = async () => {
+    console.log('handleCompleteAndNavigate')
+    setLoading(true);
+    try {
+      // 更新任务状态为完成并锁定任务
+      await DocxExtractionUpdate({
+        projectId,
+        stageType: StageType.TENDER_ANALYSIS,
+        docxTiptap: JSON.parse(editorContent),
+        status: TaskStatus.COMPLETED,
+        lockStatus: TaskLockStatus.LOCKED,
+      });
+
+      // 更新本地状态
+      setStatus(TaskStatus.COMPLETED);
+      setLockStatus(TaskLockStatus.LOCKED);
+
+      toast({
+        title: "任务已完成并锁定",
+        description: "正在进入文档结构分析任务",
+      });
+
+      // 回调父组件进行导航
+      if (onNavigateToNextTask) {
+        onNavigateToNextTask();
+      }
+    } catch (error) {
+      console.error('操作失败:', error);
+      toast({
+        title: "操作失败",
+        description: "无法完成任务并导航，请稍后重试",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   // 在组件卸载时停止轮询
   useEffect(() => {

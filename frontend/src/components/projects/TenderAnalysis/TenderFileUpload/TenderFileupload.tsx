@@ -59,7 +59,7 @@ function Reducer(state: State, action: Action): State {
         status: TaskStatus.PROCESSING   // 如果API调用失败，恢复状态为激活 （状态回滚）
       };
     
-      case 'RESET_FILE_MANAGER':
+    case 'RESET_FILE_MANAGER':
         return { 
           ...state, 
           fileManagerKey: state.fileManagerKey + 1
@@ -175,7 +175,7 @@ export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({
   const { hasDocxFile, hasExactlyOneDocxFile } = fileAnalysis
 
 
-  // 处理文件上传的函数 - 返回一个布尔值表示是否应该继续上传
+  // 处理文件上传的函数 - 多条件检查（文件类型，文件数量，任务状态）
   const handleFileUpload = useCallback((file: File): boolean => {
     // 如果任务已完成，阻止上传
     if (status === TaskStatus.COMPLETED) {
@@ -211,22 +211,20 @@ export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({
     console.log('File validation passed, proceeding with upload:', file);
     return true; // 允许上传
   },[status, hasDocxFile])
-
-
   
-  // 处理文件加载状态变化
+  // 处理文件加载状态变化  （没有实际使用，只是占位）
   const handleLoadingChange = useCallback((loading: boolean) => {
     console.log('Files loading state changed:', loading)
     //setIsFilesLoading(loading)
   },[])
   
-  // 处理上传成功的回调
+  // 处理上传成功的回调 （刷新文件列表）
   const handleUploadSuccess = useCallback(async () => {
     console.log('File uploaded successfully, refreshing file list');
     await refreshFiles();
   },[refreshFiles])
   
-  // 文件删除处理函数 (useCallback 确保函数引用不变, 避免引用它的子组件不必要的重新渲染)
+  // 文件删除处理函数 - （任务状态检查，只有本任务未完成，才能删除文件）
   // 如果不使用callback, 每次该组件渲染会创建新的函数实例，触发子组件不必要的渲染。
   // 依赖项是看内部使用了哪些外部变量
   const handleDeleteCheck = useCallback(() => {
@@ -241,8 +239,7 @@ export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({
     return true;
   },[status])
 
-
-  // 添加删除成功的回调
+  // 添加删除成功的回调 - (重置文件管理器组件, 以便可以重新上传文件)
   const handleDeleteSuccess = useCallback(() => {
     // 重置 FileManager 组件
     dispatch({ type: 'RESET_FILE_MANAGER' });
@@ -264,13 +261,14 @@ export const TenderFileUpload: React.FC<TenderFileUploadProps> = ({
       return;
     }
 
-    // 开始完成任务流程
+    // 开始完成任务流程  （disptach 提供了本地状态的更新，用于用户界面的即时反馈） - 乐观更新
+    //（乐观更新，可能会出现状态回调的风险，这个等未来来看如何避免 TODO）
     dispatch({ type: 'START_CONFIRM_SUBMIT' });
     console.log("任务状态更新为完成");
     
     try {
 
-      // 更新后端状态
+      // 更新后端状态 - 实际API调用 - 确保状态被更新到后端
       await updateFileUploadTask({
         projectId,
         stageType: StageType.TENDER_ANALYSIS,

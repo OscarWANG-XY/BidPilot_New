@@ -31,6 +31,7 @@ import type { TaskType, TaskStatus, TaskLockStatus } from '@/_types/projects_dt_
 export const DocxExtractionApi = {
 
     // 手动启动文档提取， 不需要专门发送status数据，只需要有请求到后端特定的端口即可。
+    // axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/start_docx_extraction/`)
     startDocxExtraction: async (
         projectId: string, 
         stageType: StageType, 
@@ -40,8 +41,8 @@ export const DocxExtractionApi = {
         return response.data;
     },
 
-
     // 获取项目阶段下的文档提取任务
+    // axiosInstance.get(`/projects/${projectId}/stages/${stageType}/docx_extraction/`)
     getDocxExtractionTask: async (projectId: string, stageType: StageType): Promise<Type_DocxExtractionTaskDetail> => {
         console.log('📤 获取文档提取任务:', { projectId, stageType });
         const response = await axiosInstance.get(`/projects/${projectId}/stages/${stageType}/docx_extraction/`);
@@ -50,6 +51,7 @@ export const DocxExtractionApi = {
     },
 
     // 更新项目阶段下的文档提取任务
+    // axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/docx_extraction/`, taskData)
     updateDocxExtractionTask: async (
         projectId: string, 
         stageType: StageType, 
