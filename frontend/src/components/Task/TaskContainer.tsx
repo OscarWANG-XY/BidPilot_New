@@ -38,7 +38,10 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
 }) => {
   // 使用自定义hook获取任务数据和操作方法
     const {
-        useTaskData,
+        taskData,
+        isLoading,
+        isError,
+        error,
         startAnalysis,
         startReview,
         acceptResult,
@@ -47,10 +50,10 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
         loadConfig,
         saveConfig,
         isUpdating
-    } = useTasks();
+    } = useTasks(projectId, stageType, taskType);
 
     // 获取任务数据
-    const { data: task, isLoading, isError, error } = useTaskData(projectId, stageType, taskType);
+    // const { data: task, isLoading, isError, error } = useTaskData(projectId, stageType, taskType);
 
     // Add streaming hook for ANALYZING state
     const {
@@ -101,17 +104,17 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
     // ------------ 处理 CONFIGURING 状态 ------------
     // 加载模板配置 （目前在useTasks.ts中，通过失效缓存触发重新查询。 未来待拓展）
     const handleLoadConfig = async () => {
-        await loadConfig(projectId, stageType, taskType);
+        await loadConfig();
           
     };
 
     // 开始编辑配置
     const handleStartConfigEditing = () => {
         // 当任务进入编辑模式时，会从当前任务中复制初始值 
-        if (task) {
-            const context = task.context || '';
-            const prompt = task.prompt || '';
-            const relatedCompanyInfo = task.relatedCompanyInfo || null;
+        if (taskData) {
+            const context = taskData.context || '';
+            const prompt = taskData.prompt || '';
+            const relatedCompanyInfo = taskData.relatedCompanyInfo || null;
             
             setEditingContext(context);
             setEditingPrompt(prompt);
@@ -128,10 +131,10 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
     // 取消配置编辑
     const handleCancelConfigEditing = () => {
         // 取消编辑时，当编辑未保存，恢复到编辑前的原始值； 但编辑已保存，现实编辑保存后的最新值。 
-        if (task) {
-            setEditingContext(task.context || '');
-            setEditingPrompt(task.prompt || '');
-            setEditingRelatedCompanyInfo(task.relatedCompanyInfo || null);
+        if (taskData) {
+            setEditingContext(taskData.context || '');
+            setEditingPrompt(taskData.prompt || '');
+            setEditingRelatedCompanyInfo(taskData.relatedCompanyInfo || null);
             }
             setIsEditingConfig(false);
             localStorage.setItem('isEditingConfig', 'false');
@@ -139,7 +142,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
 
     // 保存配置
     const handleSaveConfig = async (context: string, prompt: string, relatedCompanyInfo: any) => {
-        await saveConfig(projectId, stageType, taskType, context, prompt, relatedCompanyInfo);
+        await saveConfig(context, prompt, relatedCompanyInfo);
         
             // 由于上面保存配置后，取消编辑的重置，会使用最新的配置内容 （在useTasks.ts中，向后端保存数据后，会手动invalidate缓存，导致重新获取任务数据，以保持最新状态）
         if (isEditingConfig) {
@@ -152,9 +155,9 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
 
     // 开始分析
     const handleStartAnalysis = async () => {
-        await startAnalysis(projectId, stageType, taskType);
+        await startAnalysis();
         // Start streaming after analysis begins
-        if (projectId && stageType) {
+        if (projectId && stageType && taskType) {
             try {
 
                 await startStream();
@@ -174,9 +177,9 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
 
     // 处理重启分析, 先重置任务到配置状态，然后立即启动分析, 不包括重新编辑配置。会直接采用上一个阶段编辑并保存的配置结果。 
     const handleRestartAnalysis = async () => {
-        await resetTask(projectId, stageType, taskType);
+        await resetTask();
         setTimeout(async () => {
-            await startAnalysis(projectId, stageType, taskType);
+            await startAnalysis();
         }, 300);
             
     };
@@ -186,13 +189,13 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
         // 当streamComplete为true时，说明streamResult已经处理完毕，我们可以触发后端接受结果
         // acceptResult向后端发起status变更为COMPLETED的请求，而在后端需要将streamResult转为TiptapJSON格式，存储在finalResult中。
         if (streamComplete) {
-        await acceptResult(projectId, stageType, taskType);
+        await acceptResult();
         }
     };
 
     // 处理人工核审
     const handleStartReview = async () => {
-        await startReview(projectId, stageType, taskType);  // 这个将让status从ANALYZING变为REVIEWING
+        await startReview();  // 这个将让status从ANALYZING变为REVIEWING
 
     };
 
@@ -206,18 +209,18 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
         // 编辑使用Tiptap编辑器，所以我们在后端需要先将streamResult转为TiptapJSON格式，存储在OriginalResult中。
         // 前端调用OriginalResult, 进行编辑。 
         // 待测试检查，数据是否及时处理并返回了？
-        if (task?.finalResult) {
-            setEditingResult(task.finalResult);
+        if (taskData?.finalResult) {
+            setEditingResult(taskData.finalResult);
             setIsEditingResult(true);
-            localStorage.setItem('editingResult', task.finalResult);
+            localStorage.setItem('editingResult', taskData.finalResult);
             localStorage.setItem('isEditingResult', 'true');
         }
     };
 
     const handleCancelResultEditing = () => {
         // 取消编辑时，当编辑未保存，恢复到编辑前的原始值； 但编辑已保存，现实编辑保存后的最新值。 
-        if (task?.finalResult) {
-            setEditingResult(task.finalResult);
+        if (taskData?.finalResult) {
+            setEditingResult(taskData.finalResult);
         }
         setIsEditingResult(false);
         localStorage.setItem('isEditingResult', 'false');
@@ -225,7 +228,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
 
     // 保存已编辑的结果
     const handleSaveEditedResult = async () => {
-        await saveEditedResult(projectId, stageType, taskType, editingResult);
+        await saveEditedResult(editingResult);
         if (isEditingResult) {
             handleCancelResultEditing();
             localStorage.removeItem('editingResult');
@@ -235,16 +238,16 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
     // ------------ 处理 COMPLETED 状态 ------------
     // 重置任务
     const handleResetTask = async () => {
-        await resetTask(projectId, stageType, taskType);
+        await resetTask();
     };
     
 
     // 通知父组件任务已完成
     useEffect(() => {
-        if (task?.status === TaskStatus.COMPLETED && onComplete) {
+        if (taskData?.status === TaskStatus.COMPLETED && onComplete) {
         onComplete();
         }
-    }, [task?.status, onComplete]);
+    }, [taskData?.status, onComplete]);
 
 
     // 同步编辑内容到localStorage
@@ -268,7 +271,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
 
     // 当任务变更时，清理无关的编辑状态
     useEffect(() => {
-        if (task && task.id) {
+        if (taskData && taskData.id) {
             // 存储当前任务ID
             const currentTaskId = `${projectId}-${stageType}`;
             const storedTaskId = localStorage.getItem('currentTaskId');
@@ -286,7 +289,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
                 localStorage.removeItem('editingRelatedCompanyInfo');
             }
         }
-    }, [task, projectId, stageType]);
+    }, [taskData, projectId, stageType, taskType]);
 
 
     // ------------ 根据当前任务状态和UI状态渲染相应组件 ------------
@@ -304,12 +307,12 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
         );
         }
 
-        if (!task) {
+        if (!taskData) {
         return <div className="flex items-center justify-center py-12">未找到任务数据</div>;
         }
 
         // 根据任务状态渲染对应组件
-        switch (task.status) {
+        switch (taskData.status) {
             case TaskStatus.NOT_STARTED:
                 return (
                 <div className="flex items-center justify-center py-12">
@@ -328,7 +331,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
                 return (
                     <div className="flex flex-col items-center justify-center py-12 text-red-500">
                         <p className="text-xl font-semibold mb-4">任务执行失败</p>
-                        <p className="mb-4">{task.errorMessage || "未知错误"}</p>
+                        <p className="mb-4">{taskData.errorMessage || "未知错误"}</p>
                         <button 
                             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                             onClick={handleResetTask}
@@ -343,7 +346,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
                 return (
                 <ConfigurationPanel
                     //基础属性
-                    task={task}  // 获取当前任务的所有数据，包括状态，配置内容，结果数据等
+                    task={taskData}  // 获取当前任务的所有数据，包括状态，配置内容，结果数据等
                     isUpdating={isUpdating}  //向子组件传递 更新操作正在进行中 （即UI加载状态）
 
                     // 与流程相关的回调
@@ -392,7 +395,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
                 return (
                 <ReviewPanel
                     //基础属性
-                    finalResult={task.finalResult || ''}
+                    finalResult={taskData.finalResult || ''}
                     isUpdating={isUpdating}
 
                     // 与UI编辑相关的回调
@@ -418,7 +421,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
             default:
                 return (
                 <div className="flex items-center justify-center py-12">
-                    未知任务状态: {task.status}
+                    未知任务状态: {taskData.status}
                 </div>
                 );
         }
@@ -439,25 +442,25 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
 
 
         {/* 状态栏展示当前任务状态和基本信息 */}
-        {isEnabled && <StatusBar task={task} isLoading={isLoading} isError={isError} />}
+        {isEnabled && <StatusBar task={taskData} isLoading={isLoading} isError={isError} />}
 
         {/* 当任务已配置且不在配置阶段时，显示配置信息预览 */}
-        {isEnabled && task && task.status !== TaskStatus.CONFIGURING && task.status !== TaskStatus.NOT_STARTED && task.status !== TaskStatus.FAILED && (
+        {isEnabled && taskData && taskData.status !== TaskStatus.CONFIGURING && taskData.status !== TaskStatus.NOT_STARTED && taskData.status !== TaskStatus.FAILED && (
         <ConfigurationPreview 
-            context={task.context}
-            prompt={task.prompt}
-            relatedCompanyInfo={task.relatedCompanyInfo}
+            context={taskData.context}
+            prompt={taskData.prompt}
+            relatedCompanyInfo={taskData.relatedCompanyInfo}
         />
         )}
 
         {/* 当任务已经完成分析时，显示配置信息预览 */}
-        {isEnabled && task && task.status !== TaskStatus.FAILED &&
-                task.status !== TaskStatus.CONFIGURING && 
-                task.status !== TaskStatus.NOT_STARTED && 
-                task.status !== TaskStatus.PROCESSING && 
-                task.status !== TaskStatus.REVIEWING && (
+        {isEnabled && taskData && taskData.status !== TaskStatus.FAILED &&
+                taskData.status !== TaskStatus.CONFIGURING && 
+                taskData.status !== TaskStatus.NOT_STARTED && 
+                taskData.status !== TaskStatus.PROCESSING && 
+                taskData.status !== TaskStatus.REVIEWING && (
             <ResultPreview 
-                finalResult={task.finalResult || ''}
+                finalResult={taskData.finalResult || ''}
             />
         )}
 
