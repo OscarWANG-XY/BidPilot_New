@@ -2,8 +2,10 @@ import logging, asyncio
 from celery import shared_task
 from apps.projects.models import Project, Task, TaskType, TaskStatus
 from apps.projects.services._01_extract_tiptap_docx import DocxExtractorStep
-from apps.projects.services._02_outline_analysis import DocxOutlineAnalyzerStep
+from apps.projects.services._02_outline_analysis import DocxOutlineAnalyzerStep  
 from apps.projects.utils.redis_manager import RedisManager, RedisStreamStatus
+from apps.projects.services.llm_task_analysis import LLMTaskAnalysisStep  # 测试中...
+
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +33,8 @@ def process_docx_extraction(project_id: int):
             docx_extraction_task.save()
         
         # 更新任务状态为完成
-        docx_extraction_task.status = TaskStatus.COMPLETED
-        docx_extraction_task.save()
+        # docx_extraction_task.status = TaskStatus.COMPLETED
+        # docx_extraction_task.save()
         
         logger.info(f"文档提取任务完成: project_id={project_id}")
     
@@ -135,3 +137,119 @@ def process_outline_analysis_streaming(self, project_id, stream_id=None):
         # 重新引发异常以便Celery可以记录
         raise
 
+
+
+# 以下为测试中的任务.... 
+@shared_task(bind=True, ignore_result=True)
+def process_task_analysis_streaming(self, project_id, stage_type, task_type, stream_id=None):
+    """
+    流式处理任务分析
+    
+    这是一个同步函数，内部使用事件循环来执行异步代码
+    """
+    
+    
+    try:
+        # 记录任务开始
+        print(f"开始流式处理任务分析: project_id={project_id}, stage_type={stage_type}, task_type={task_type}, celery_task_id={self.request.id}")
+        #logger.info(f"开始流式处理文档大纲分析: project_id={project_id}, celery_task_id={self.request.id}")
+        
+        # 获取项目
+        project = Project.objects.get(id=project_id)
+
+        task = Task.objects.get(
+            stage__project=project,
+            stage__type=stage_type,
+            type=task_type
+        )
+        
+        print(f"outline_task.status: {outline_task.status}")
+        if task.status != TaskStatus.PROCESSING:
+            print(f"任务分析未启用，无法启动分析")
+            #logger.error(f"任务分析未启用，无法启动分析")
+            return 
+
+
+        # 初始化分析器 （TODO:需要替换为general的分析器）
+        analyzer = LLMTaskAnalysisStep(project)
+
+        # 初始化Redis管理器
+        redis_manager = RedisManager()
+        stream_id = self.request.id   # 使用Celery任务的ID作为stream_id
+        print(f"在Celery任务中，有通过Context取得stream_id么: {stream_id}")
+        print(f"尝试另一种写法: {self.request.id}")
+            
+        # 记录Celery任务ID与Redis任务ID的映射关系
+        redis_manager.update_stream_status(
+            stream_id, 
+            RedisStreamStatus.PENDING,
+            {
+                "celery_task_id": self.request.id,
+                "project_id": str(project_id),
+                "stage_type": str(stage_type),
+                "task_type": str(task.type)
+            }
+        )
+        
+        # 添加初始内容块，确保流内容键存在
+        redis_manager.add_stream_chunk(stream_id, "正在准备分析文档大纲...\n")
+
+        # 执行流式分析 
+        # asyncio.run(analyzer.process_streaming(stream_id))
+        
+
+        # 初始化LLM服务
+        from apps._tools.LLM_services._llm_data_types import LLMConfig
+        from apps._tools.LLM_services.llm_service import LLMService
+        llm_service = LLMService(
+            config=self.llm_config,
+            prompt_template=self.prompt_template,
+            output_format=self.output_format
+        )
+        
+        # 准备元数据
+        metadata = {
+            "model": self.llm_config.llm_model_name,
+            "index_path_map": self.index_path_map
+        }
+        
+        # 执行流式分析
+        # 返回的是ID，不是分析的内容，因为内容直接存储在Redis中.
+        asyncio.run(
+            llm_service.analyze_streaming(
+                data_input=self.data_input,
+                stream_id = stream_id,
+                metadata=metadata
+            )
+        )
+
+
+
+
+
+        outline_task.status = TaskStatus.COMPLETED
+        outline_task.save()
+        
+        print(f"流式文档大纲分析完成: project_id={project_id}, stream_id={stream_id}")
+        
+        return stream_id
+        
+    except Exception as e:
+        print(f"流式文档大纲分析失败: {str(e)}, project_id={project_id}")
+        
+        # 更新任务状态
+        try:
+            outline_task = Task.objects.get(
+                stage__project_id=project_id,
+                type=TaskType.OUTLINE_ANALYSIS_TASK
+            )
+            outline_task.status = TaskStatus.FAILED
+            outline_task.save()
+        except Exception as inner_e:
+            print(f"更新任务状态失败: {str(inner_e)}")
+            #logger.error(f"更新任务状态失败: {str(inner_e)}")
+        if stream_id:
+            redis_manager.mark_stream_failed(stream_id, str(e))
+        
+        # 重新引发异常以便Celery可以记录
+        raise
