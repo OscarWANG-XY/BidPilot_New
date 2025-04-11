@@ -56,7 +56,7 @@ export const useTasks = () => {
       projectId: string;
       stageType: StageType;
       taskType: TaskType;
-      status: TaskStatus;
+      status?: TaskStatus;
       //docxTiptap?: string;
       context?: string;
       prompt?: string;
@@ -100,10 +100,14 @@ export const useTasks = () => {
     stageType: StageType,
     taskType: TaskType
   ) => {
-  // 简单地使缓存失效，触发重新查询
-    return queryClient.invalidateQueries({
-      queryKey: ['tasks', projectId, stageType, taskType]
-    });
+    // 直接调用API中的loadConfig方法
+    return TaskApi.loadConfig(projectId, stageType, taskType)
+      .then(() => {
+        // 使缓存失效，触发重新查询
+        queryClient.invalidateQueries({
+          queryKey: ['tasks', projectId, stageType, taskType]
+        });
+      });
   }, [queryClient]);
 
 
@@ -116,16 +120,18 @@ export const useTasks = () => {
     prompt: string,
     relatedCompanyInfo: any,
   ) => {
-    return updateTaskStatus.mutateAsync({
-      projectId,
-      stageType,
-      taskType,
-      status: TaskStatus.CONFIGURING,
-      context, 
+    // 直接调用API中的saveConfig方法
+    return TaskApi.saveConfig(projectId, stageType, taskType, {
+      context,
       prompt,
-      relatedCompanyInfo,
+      relatedCompanyInfo
+    }).then(() => {
+      // 使缓存失效，触发重新查询
+      queryClient.invalidateQueries({
+        queryKey: ['tasks', projectId, stageType, taskType]
+      });
     });
-  }, [updateTaskStatus]);
+  }, [queryClient]);
 
   // 提供任务状态流转的便捷方法
   const startAnalysis = useCallback((
@@ -133,13 +139,15 @@ export const useTasks = () => {
     stageType: StageType, 
     taskType: TaskType,
   ) => {
-    return updateTaskStatus.mutateAsync({
-      projectId,
-      stageType,
-      taskType,
-      status: TaskStatus.PROCESSING,
-    });
-  }, [updateTaskStatus]);
+    // 直接调用API中的startAnalysis方法
+    return TaskApi.startAnalysis(projectId, stageType, taskType)
+      .then(() => {
+        // 使缓存失效，触发重新查询
+        queryClient.invalidateQueries({
+          queryKey: ['tasks', projectId, stageType, taskType]
+        });
+      });
+  }, [queryClient]);
 
 
 
@@ -151,13 +159,15 @@ export const useTasks = () => {
       stageType: StageType, 
       taskType: TaskType,
     ) => {
-      return updateTaskStatus.mutateAsync({
-        projectId,
-        stageType,  
-        taskType,
-        status: TaskStatus.REVIEWING,
-      });
-    }, [updateTaskStatus]);
+      // 直接调用API中的startReview方法
+      return TaskApi.startReview(projectId, stageType, taskType)
+        .then(() => {
+          // 使缓存失效，触发重新查询
+          queryClient.invalidateQueries({
+            queryKey: ['tasks', projectId, stageType, taskType]
+          });
+        });
+    }, [queryClient]);
 
 
 
@@ -167,17 +177,17 @@ export const useTasks = () => {
     projectId: string,
     stageType: StageType,
     taskType: TaskType,
-    //originalResult: string    
-    // 说明： 我们不传入streamResult, 而是发起状态变更，然后在后端将streamResult转为TiptapJSON格式，存储在finalResult中。 
+     // 说明： 我们不传入streamResult, 而是发起状态变更，然后在后端将streamResult转为TiptapJSON格式，存储在finalResult中。
   ) => {
-    return updateTaskStatus.mutateAsync({
-      projectId,
-      stageType,
-      taskType,
-      status: TaskStatus.COMPLETED,
-      //finalResult: originalResult
-    });
-  }, [updateTaskStatus]);
+    // 直接调用API中的acceptResult方法
+    return TaskApi.acceptResult(projectId, stageType, taskType)
+      .then(() => {
+        // 使缓存失效，触发重新查询
+        queryClient.invalidateQueries({
+          queryKey: ['tasks', projectId, stageType, taskType]
+        });
+      });
+  }, [queryClient]);
 
   const saveEditedResult = useCallback((
     projectId: string, 
@@ -185,14 +195,16 @@ export const useTasks = () => {
     taskType: TaskType,
     finalResult: string
   ) => {
-    return updateTaskStatus.mutateAsync({
-      projectId,
-      stageType,
-      taskType,
-      status: TaskStatus.COMPLETED,
+    // 直接调用API中的saveEditedResult方法
+    return TaskApi.saveEditedResult(projectId, stageType, taskType, {
       finalResult
+    }).then(() => {
+      // 使缓存失效，触发重新查询
+      queryClient.invalidateQueries({
+        queryKey: ['tasks', projectId, stageType, taskType]
+      });
     });
-  }, [updateTaskStatus]);
+  }, [queryClient]);
 
 
   // ------------ COMPLETED状态 处理钩子 ------------
@@ -201,13 +213,15 @@ export const useTasks = () => {
     stageType: StageType,
     taskType: TaskType
   ) => {
-    return updateTaskStatus.mutateAsync({
-      projectId,
-      stageType,
-      taskType,
-      status: TaskStatus.CONFIGURING,
-    });
-  }, [updateTaskStatus]);
+    // 直接调用API中的resetTask方法
+    return TaskApi.resetTask(projectId, stageType, taskType)
+      .then(() => {
+        // 使缓存失效，触发重新查询
+        queryClient.invalidateQueries({
+          queryKey: ['tasks', projectId, stageType, taskType]
+        });
+      });
+  }, [queryClient]);
   
 
 
@@ -215,26 +229,20 @@ export const useTasks = () => {
   return {
     // 基础查询
     useTaskData,
-
     // 基础更新
     updateTaskStatus: updateTaskStatus.mutateAsync,
     isUpdating: updateTaskStatus.isPending,
-
     // --- CONFIGURING状态 数据处理快捷钩子 -------
     loadConfig,
       // 纯UI方法 editConfig, 不放在useLLMTasks中, 而在LLMTaskContainer.tsx中 
       // 纯UI方法 cancelEditConfig, 不放在useLLMTasks中, 而在LLMTaskContainer.tsx中 
     saveConfig,
     startAnalysis,
-
     // --- ANALYZING状态 数据处理快捷钩子 （在useStreaming.tsx中）-------
     startReview,
-
     // --- REVIEWING状态 数据处理快捷钩子 -------
- 
     acceptResult,
     saveEditedResult,
-
     // --- COMPLETED状态 数据处理快捷钩子 -------
     resetTask,
 

@@ -58,26 +58,20 @@ export interface Type_TaskUpdate {
 export const TaskApi = {
 
     // 手动启动文档提取， 不需要专门发送status数据，只需要有请求到后端特定的端口即可。
-    startTask: async (
-        projectId: string, 
-        stageType: StageType, 
-        taskType: TaskType
-    ): Promise<Type_TaskDetail> => {
-        const response = await axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/start_task/`);
-        console.log('📥 手动启动文档提取成功:', response.data);
-        return response.data;
-    },
-
+    // patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/start_task/`)
+ 
 
     // 获取项目阶段下的文档提取任务
+    //get(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/get_task/`)
     getTask: async (projectId: string, stageType: StageType, taskType: TaskType): Promise<Type_TaskDetail> => {
         console.log('📤 获取文档提取任务:', { projectId, stageType });
-        const response = await axiosInstance.get(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/get_task/`);
+        const response = await axiosInstance.get(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/`);
         console.log('📥 获取文档提取任务成功:', response.data);
         return response.data;
     },
 
     // 更新项目阶段下的文档提取任务
+    // patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/update_task/`, taskData)
     updateTask: async (
         projectId: string, 
         stageType: StageType, 
@@ -92,4 +86,85 @@ export const TaskApi = {
         console.log('📥 更新文档提取任务成功:', response.data);
         return response.data;
     },
+
+
+    loadConfig: async (
+      projectId: string, 
+      stageType: StageType, 
+      taskType: TaskType
+  ): Promise<Type_TaskDetail> => {
+      const response = await axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/load_config/`);
+      console.log('📥 加载配置成功:', response.data);
+      return response.data;
+  },
+
+
+    saveConfig: async (
+      projectId: string, 
+      stageType: StageType, 
+      taskType: TaskType,
+      taskData: Partial<Type_TaskUpdate>  //在useTasks中，传入了匿名对象 {context, prompt, relatedCompanyInfo}， 这是通过位置与taskData匹配上的。 
+  ): Promise<Type_TaskDetail> => {
+      const response = await axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/save_config/`, taskData);
+      console.log('📥 保存配置成功:', response.data);
+      return response.data;
+  },
+
+    startAnalysis: async (
+      projectId: string, 
+      stageType: StageType, 
+      taskType: TaskType
+  ): Promise<Type_TaskDetail> => {
+      const response = await axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/start_analysis/`);
+      console.log('📥 开始分析成功:', response.data);
+      return response.data;
+  },
+
+
+    startReview: async (
+      projectId: string, 
+      stageType: StageType, 
+      taskType: TaskType
+  ): Promise<Type_TaskDetail> => {
+      const response = await axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/start_review/`);
+      console.log('📥 开始审核成功:', response.data);
+      return response.data;
+  },
+
+
+    acceptResult: async (
+      projectId: string, 
+      stageType: StageType, 
+      taskType: TaskType
+  ): Promise<Type_TaskDetail> => {
+      const response = await axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/accept_result/`);
+      console.log('📥 接受结果成功:', response.data);
+      return response.data;
+  },
+
+    saveEditedResult: async (
+      projectId: string, 
+      stageType: StageType, 
+      taskType: TaskType,
+      taskData: Partial<Type_TaskUpdate>
+  ): Promise<Type_TaskDetail> => {
+      const response = await axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/save_edited_result/`, taskData);
+      console.log('📥 保存编辑结果成功:', response.data);
+      return response.data;
+  },
+
+    resetTask: async (
+      projectId: string, 
+      stageType: StageType, 
+      taskType: TaskType
+  ): Promise<Type_TaskDetail> => {
+      const response = await axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/reset_task/`);
+      console.log('📥 重置任务成功:', response.data);
+      return response.data;
+  },
+
+
+
   }
+
+  

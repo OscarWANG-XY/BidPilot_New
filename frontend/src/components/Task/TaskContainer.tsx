@@ -5,6 +5,10 @@ import { TaskStatus } from './hook&APIs.tsx/tasksApi';
 import type { StageType } from '@/_types/projects_dt_stru/projectStage_interface';
 import { TaskType } from '@/_types/projects_dt_stru/projectTasks_interface';
 import { useUnsavedChangesWarning } from './hook&APIs.tsx/useUnsavedChangeWarning';
+import { Button } from '@/components/ui/button'; // Assuming you have a UI button component
+
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { AlertCircleIcon} from 'lucide-react'
 
 // 引入状态特定组件
 import ConfigurationPanel from './ConfigurationPanel/ConfigurationPanel';
@@ -21,6 +25,7 @@ interface TaskContainerProps {
   projectId: string;
   stageType: StageType;
   taskType: TaskType;
+  isEnabled: boolean;
   onComplete?: () => void; // 可选回调，当任务完成时通知父组件
 }
 
@@ -28,6 +33,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
   projectId,
   stageType,
   taskType,
+  isEnabled,
   onComplete
 }) => {
   // 使用自定义hook获取任务数据和操作方法
@@ -150,6 +156,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
         // Start streaming after analysis begins
         if (projectId && stageType) {
             try {
+
                 await startStream();
             } catch (error) {
                 console.error('Failed to start streaming:', error);
@@ -306,7 +313,14 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
             case TaskStatus.NOT_STARTED:
                 return (
                 <div className="flex items-center justify-center py-12">
-                    等待前置任务完成...
+                    <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={handleLoadConfig}
+                    disabled={isUpdating}
+                    >
+                    加载配置
+                    </Button>
                 </div>
                 );
 
@@ -333,7 +347,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
                     isUpdating={isUpdating}  //向子组件传递 更新操作正在进行中 （即UI加载状态）
 
                     // 与流程相关的回调
-                    onLoadConfig={handleLoadConfig}  //点击加载,从预设模块加载配置
+                    // onLoadConfig={handleLoadConfig}  //点击加载,从预设模块加载配置
                     onStartAnalysis={handleStartAnalysis}  //点击开始分析按钮，任务状态切换到ANALYZING
                     onStartEditing={handleStartConfigEditing}  // 点击开始编辑按钮，进入编辑模式
 
@@ -413,11 +427,22 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
   return (
     <div className="flex flex-col h-full w-full">
 
+        {!isEnabled && (
+                      <Alert variant="default">
+                      <AlertCircleIcon className="h-4 w-4" />
+                      <AlertTitle>任务未激活</AlertTitle>
+                      <AlertDescription>
+                        请先完成上一个任务
+                    </AlertDescription>
+                </Alert>
+        )}
+
+
         {/* 状态栏展示当前任务状态和基本信息 */}
-        <StatusBar task={task} isLoading={isLoading} isError={isError} />
+        {isEnabled && <StatusBar task={task} isLoading={isLoading} isError={isError} />}
 
         {/* 当任务已配置且不在配置阶段时，显示配置信息预览 */}
-        {task && task.status !== TaskStatus.CONFIGURING && task.status !== TaskStatus.NOT_STARTED && task.status !== TaskStatus.FAILED && (
+        {isEnabled && task && task.status !== TaskStatus.CONFIGURING && task.status !== TaskStatus.NOT_STARTED && task.status !== TaskStatus.FAILED && (
         <ConfigurationPreview 
             context={task.context}
             prompt={task.prompt}
@@ -426,21 +451,26 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
         )}
 
         {/* 当任务已经完成分析时，显示配置信息预览 */}
-        {task && task.status !== TaskStatus.FAILED &&
-                 task.status !== TaskStatus.CONFIGURING && 
-                 task.status !== TaskStatus.NOT_STARTED && 
-                 task.status !== TaskStatus.PROCESSING && 
-                 task.status !== TaskStatus.REVIEWING && (
+        {isEnabled && task && task.status !== TaskStatus.FAILED &&
+                task.status !== TaskStatus.CONFIGURING && 
+                task.status !== TaskStatus.NOT_STARTED && 
+                task.status !== TaskStatus.PROCESSING && 
+                task.status !== TaskStatus.REVIEWING && (
             <ResultPreview 
                 finalResult={task.finalResult || ''}
             />
         )}
 
+        {/* 主要内容区域 */}
+        {isEnabled && (
+            <div className="flex-1 overflow-auto">
+                {renderContent()}
+            </div>
+        )}
 
-      {/* 主要内容区域 */}
-      <div className="flex-1 overflow-auto">
-        {renderContent()}
-      </div>
+
+
+
     </div>
   );
 };

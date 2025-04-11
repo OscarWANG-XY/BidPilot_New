@@ -34,7 +34,7 @@ import {
     isUpdating: boolean;
   
     // 与流程相关的回调
-    onLoadConfig: () => Promise<void>;
+    // onLoadConfig: () => Promise<void>;
     onStartAnalysis: () => Promise<void>;
     onStartEditing: () => void;
   
@@ -55,7 +55,7 @@ import {
   const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
     task,
     isUpdating,
-    onLoadConfig,
+    // onLoadConfig,
     onStartAnalysis,
     onStartEditing,
     isEditing,
@@ -70,9 +70,9 @@ import {
   }) => {
     
     // 处理加载模板的函数
-    const handleLoadTemplateClick = () => {
-      onLoadConfig();
-    };
+    // const handleLoadTemplateClick = () => {
+    //   onLoadConfig();
+    // };
   
     // 处理保存配置的函数
     const handleSaveConfig = async () => {
@@ -94,14 +94,14 @@ import {
             {!isEditing && (
               <div className="flex space-x-2">
                 {/*刷新配置按钮*/}
-                <Button 
+                {/* <Button 
                   variant="outline"
                   size="sm"
                   onClick={handleLoadTemplateClick}
                   disabled={isUpdating}
                 >
                   刷新配置
-                </Button>
+                </Button> */}
                 {/*编辑配置按钮*/}
                 <Button 
                   size="sm"

@@ -36,23 +36,24 @@ export interface StreamResultResponse {
 export const TaskSteamingApi = {
 
 // ================= 针对 流失输出 相关的API =====================
-    // 启动流失分析
+    // 启动流分析
+    // axiosInstance.post(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/start-stream/`)
     startStream: async (
       projectId: string, 
       stageType: StageType,
       taskType: TaskType
     ): Promise<StreamStartResponse> => {
-      console.log('📤 启动流式大纲分析:', { projectId, stageType });
+      console.log('📤 启动流式大纲分析:', { projectId, stageType, taskType });
       const response = await axiosInstance.post(
         //`/projects/${projectId}/stages/${stageType}/analyze-outline-streaming/`
-        `/projects/${projectId}/stages/${stageType}/tasks/${taskType}/start_stream/`
+        `/projects/${projectId}/stages/${stageType}/tasks/${taskType}/start-stream/`
       );
       console.log('📥 流式大纲分析启动成功:', response.data);
       return response.data;
     },
 
-
-    // Get stream status (non-streaming endpoint)
+    // 获取流状态
+    // axiosInstance.get(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/stream-status/${streamId}/`)
     getStreamStatus: async (
       projectId: string, 
       stageType: StageType, 
@@ -62,15 +63,14 @@ export const TaskSteamingApi = {
       console.log('📤 获取流状态:', { projectId, stageType, streamId });
       const response = await axiosInstance.get(
         //`/projects/${projectId}/stages/${stageType}/outline-analysis-status/${streamId}/`
-        `/projects/${projectId}/stages/${stageType}/tasks/${taskType}/stream_status/${streamId}/`
+        `/projects/${projectId}/stages/${stageType}/tasks/${taskType}/stream-status/${streamId}/`
       );
       console.log('📥 获取流状态成功:', response.data);
       return response.data;
     },
 
-
-
-    // 获取完整的 流结果
+    // 获取流结果
+    // axiosInstance.get(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/stream-result/${streamId}/`)
     getStreamResult: async (
       projectId: string, 
       stageType: StageType, 
@@ -80,15 +80,15 @@ export const TaskSteamingApi = {
       console.log('📤 获取完整流结果:', { projectId, stageType, streamId });
       const response = await axiosInstance.get(
         //`/projects/${projectId}/stages/${stageType}/outline-analysis-result/${streamId}/`
-        `/projects/${projectId}/stages/${stageType}/tasks/${taskType}/stream_result/${streamId}/`
+        `/projects/${projectId}/stages/${stageType}/tasks/${taskType}/stream-result/${streamId}/`
       );
       console.log('📥 获取完整流结果成功:', response.data);
       return response.data;
     },
 
-
     // ----------- 关键流式数据获取函数 （通过FETCH API 实现 SSE 流式数据获取） -----------
-    fetchStreamingData: (
+    // fetch-get(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/stream-chunks/${streamId}/`)
+    fetchStreamChunks: (
       projectId: string, 
       stageType: StageType, 
       taskType: TaskType,
@@ -113,7 +113,7 @@ export const TaskSteamingApi = {
       
       // Start fetch request with proper headers for SSE
       //fetch(`/api/projects/${projectId}/stages/${stageType}/outline-analysis-stream/${streamId}/`, {
-      fetch(`/api/projects/${projectId}/stages/${stageType}/tasks/${taskType}/stream/${streamId}/`, {
+      fetch(`/api/projects/${projectId}/stages/${stageType}/tasks/${taskType}/stream-chunks/${streamId}/`, {
         method: 'GET',
         headers: {
           //'Accept': 'text/event-stream',

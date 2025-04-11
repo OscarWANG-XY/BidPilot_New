@@ -116,8 +116,9 @@ export const useStream = (projectId: string, stageType: StageType, taskType: Tas
   const streamParams = useMemo(() => ({
     projectId,
     stageType,
+    taskType,
     streamId
-  }), [projectId, stageType, streamId]);
+  }), [projectId, stageType, taskType, streamId]);
 
 
   // Batch content updates function
@@ -142,7 +143,7 @@ export const useStream = (projectId: string, stageType: StageType, taskType: Tas
 
     // 启动成功的处理
     onSuccess: (data: StreamStartResponse) => {
-      console.log('✅ [useOutlineAnalysisStream] 流式分析任务启动成功:', data);
+      console.log('✅ 流式分析任务启动成功:', data);
       
       // Fix: Use data.streamId instead of data.stream_id
       dispatchStreamState({ type: 'STREAM_STARTED', payload: data.streamId });
@@ -155,13 +156,13 @@ export const useStream = (projectId: string, stageType: StageType, taskType: Tas
       
       // 使之前的缓存数据时效，促使数据更新。
       queryClient.invalidateQueries({
-        queryKey: ['outlineAnalysisTask', projectId, stageType]
+        queryKey: ['streamStatus', projectId, stageType, taskType, streamId]
       });
     },
 
     // 启动失败的处理
     onError: (error: any) => {
-      console.error('❌ [useOutlineAnalysisStream] 启动流式分析任务失败:', error);
+      console.error('❌ 启动流式分析任务失败:', error);
       // setStreamError(error.message || '启动流式分析任务失败');
       // setIsStreaming(false);
       dispatchStreamState({ 
@@ -177,7 +178,7 @@ export const useStream = (projectId: string, stageType: StageType, taskType: Tas
   // 虽然有useEffect, 但比如网络突然中断，useEffect无法监听到，需要streamStatusQuery来监听。
   // enable条件要求在整个生命周期都监听，直到流状态为COMPLETED, FAILED, CANCELLED时（由shouldPoll控制），才停止轮询。
   const streamStatusQuery = useQuery<StreamStatusResponse>({
-    queryKey: ['streamStatus', streamParams.projectId, streamParams.stageType, streamParams.streamId],
+    queryKey: ['streamStatus', streamParams.projectId, streamParams.stageType, streamParams.taskType, streamParams.streamId],
     queryFn: async () => {
       if (!projectId || !stageType || !taskType || !streamId) {
         throw new Error('Missing required parameters');
@@ -197,7 +198,7 @@ export const useStream = (projectId: string, stageType: StageType, taskType: Tas
 
   // -------- 获取完整的流结果 --------
   const streamResultQuery = useQuery<StreamResultResponse>({
-    queryKey: ['streamResult', streamParams.projectId, streamParams.stageType, streamParams.streamId],
+    queryKey: ['streamResult', streamParams.projectId, streamParams.stageType, streamParams.taskType, streamParams.streamId],
     queryFn: async () => {
       if (!projectId || !stageType || !taskType || !streamId) {
         throw new Error('Missing required parameters');
@@ -216,7 +217,7 @@ export const useStream = (projectId: string, stageType: StageType, taskType: Tas
 
   useEffect(() => {
     
-    if (projectId && stageType && streamId && isStreaming) {
+    if (projectId && stageType && taskType && streamId && isStreaming) {
       
       // 如果存在之前的流，则终止之前的流，避免多个流存在。 
       if (abortStreamRef.current) {
@@ -243,18 +244,18 @@ export const useStream = (projectId: string, stageType: StageType, taskType: Tas
 
       
       // 开始新的流 
-      const abort = TaskSteamingApi.fetchStreamingData(
+      const abort = TaskSteamingApi.fetchStreamChunks(
         projectId,
         stageType,
         taskType,
         streamId,
         {
           onMessage: (data) => {
-            console.log('📥 [useOutlineAnalysisStream] 收到流式数据:', data);
+            console.log('📥  收到流式数据:', data);
             batchContentUpdate(data); // 当定时器被触发时，将缓存的数据通过flushContentBuffer一次性倒出给reducer
           },
           onError: (error) => {
-            console.error('❌ [useOutlineAnalysisStream] 流式数据错误:', error);
+            console.error('❌ 流式数据错误:', error);
               // setStreamError(error);   // 记录错误
               // setIsStreaming(false);   // 停止流 （设置停止状态）
 
@@ -265,11 +266,11 @@ export const useStream = (projectId: string, stageType: StageType, taskType: Tas
 
             // 手动让 queryClient 重新请求流的状态，可能用于界面显示错误详情。
             queryClient.invalidateQueries({
-              queryKey: ['streamStatus', projectId, stageType, streamId]
+              queryKey: ['streamStatus', projectId, stageType, taskType, streamId]
             });
           },
           onComplete: () => {
-            console.log('✅ [useOutlineAnalysisStream] 流式数据接收完成');
+            console.log('✅ 流式数据接收完成');
             // setStreamComplete(true);  // 设置流的完成状态， 这个会触发streamResultQuery的查询
             // setIsStreaming(false);   // 停止流 （设置停止状态）
             
@@ -280,13 +281,13 @@ export const useStream = (projectId: string, stageType: StageType, taskType: Tas
 
             // 重新请求数据，确保前端同步最新状态
             queryClient.invalidateQueries({
-              queryKey: ['streamStatus', projectId, stageType, streamId]
+              queryKey: ['streamStatus', projectId, stageType, taskType, streamId]
             });
             queryClient.invalidateQueries({
-              queryKey: ['streamResult', projectId, stageType, streamId]
+              queryKey: ['streamResult', projectId, stageType, taskType, streamId]
             });
             queryClient.invalidateQueries({
-              queryKey: ['outlineAnalysisTask', projectId, stageType]
+              queryKey: ['startStream', projectId, stageType, taskType]
             });
           }
         }
