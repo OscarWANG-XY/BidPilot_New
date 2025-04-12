@@ -1,15 +1,25 @@
 import axiosInstance from '../../../_api/axios_instance';
 import type { StageType } from '@/_types/projects_dt_stru/projectStage_interface';
 import type { TaskType } from '@/_types/projects_dt_stru/projectTasks_interface';
+
+// 流式分析任务状态枚举 - 与后端utils.redis_manager.py 对齐
+export enum StreamStatus {
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED'
+}
+
+
 export interface StreamStartResponse {
   taskId: string;
   streamId: string;
-  status: string;
+  status: StreamStatus;
   message: string;
 }
 
 export interface StreamStatusResponse {
-  status: string;
+  status: StreamStatus;
   start_time: string;
   update_time?: string;
   error?: string;
@@ -21,7 +31,7 @@ export interface StreamStatusResponse {
 }
 
 export interface StreamResultResponse {
-  status: string;
+  status: StreamStatus;
   content: string;
   chunks_count: number;
   metadata: {

@@ -87,7 +87,8 @@ export const TaskApi = {
         return response.data;
     },
 
-
+    // 加载配置
+    // axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/load_config/`)
     loadConfig: async (
       projectId: string, 
       stageType: StageType, 
@@ -98,7 +99,8 @@ export const TaskApi = {
       return response.data;
   },
 
-
+    // 保存配置
+    // axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/save_config/`, taskData)
     saveConfig: async (
       projectId: string, 
       stageType: StageType, 
@@ -110,6 +112,8 @@ export const TaskApi = {
       return response.data;
   },
 
+    // 开始分析
+    // axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/start_analysis/`)
     startAnalysis: async (
       projectId: string, 
       stageType: StageType, 
@@ -120,7 +124,8 @@ export const TaskApi = {
       return response.data;
   },
 
-
+    // 开始审核
+    // axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/start_review/`)
     startReview: async (
       projectId: string, 
       stageType: StageType, 
@@ -131,7 +136,8 @@ export const TaskApi = {
       return response.data;
   },
 
-
+    // 接受结果
+    // axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/accept_result/`)
     acceptResult: async (
       projectId: string, 
       stageType: StageType, 
@@ -142,6 +148,8 @@ export const TaskApi = {
       return response.data;
   },
 
+    // 保存编辑结果
+    // axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/save_edited_result/`, taskData)
     saveEditedResult: async (
       projectId: string, 
       stageType: StageType, 
@@ -153,6 +161,8 @@ export const TaskApi = {
       return response.data;
   },
 
+    // 重置任务
+    // axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/reset_task/`)
     resetTask: async (
       projectId: string, 
       stageType: StageType, 

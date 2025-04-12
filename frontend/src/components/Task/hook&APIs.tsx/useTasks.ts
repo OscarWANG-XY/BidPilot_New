@@ -17,18 +17,26 @@ export const useTasks = (
   const taskQuery = useQuery({
     queryKey: ['tasks', projectId, stageType, taskType],
     queryFn: async () => {
-      const result = await TaskApi.getTask(projectId, stageType, taskType);
-      return result as Type_TaskDetail;
+      try{
+        const result = await TaskApi.getTask(projectId, stageType, taskType);
+        return result as Type_TaskDetail;
+      }catch(error){
+        // 捕获并保存错误状态
+        console.error('任务查询出错:', error);
+        throw error; // 重新抛出错误，让 React Query 处理
+      }
     },
     
     // 仅在任务处于分析中状态时进行轮询
     refetchInterval: (query) => {
+      if(query.state.error) return false
       return query.state.data?.status === TaskStatus.PROCESSING ? 1000 : false;
     },
     refetchOnWindowFocus: false,
     staleTime: 0,
     gcTime: 5 * 60 * 1000,
     enabled: Boolean(projectId) && Boolean(stageType) && Boolean(taskType),
+    retry: 3, //限制重试次数，避免无限重试 
   });
 
   // 更新任务状态
@@ -155,6 +163,18 @@ export const useTasks = (
     isLoading: taskQuery.isLoading,
     isError: taskQuery.isError,
     error: taskQuery.error,
+
+
+    // 添加重置错误状态的方法 （手动重新尝试时调用）
+    resetError: () => {
+    if (taskQuery.error) {
+      // 重置错误状态
+      queryClient.resetQueries({
+        queryKey: ['tasks', projectId, stageType, taskType],
+        exact: true
+      });
+    }
+  },
     
     // 更新方法
     updateTask: updateTaskMutation.mutateAsync,

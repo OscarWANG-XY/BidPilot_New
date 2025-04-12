@@ -1,14 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { TaskSteamingApi } from '@/components/Task/hook&APIs.tsx/streamingApi';
 import type { StageType } from '@/_types/projects_dt_stru/projectStage_interface';
+import type { TaskType } from '@/_types/projects_dt_stru/projectTasks_interface';
 import type {
-  TaskType,
   StreamStartResponse,
   StreamStatusResponse,
-  StreamResultResponse
-} from '@/_types/projects_dt_stru/projectTasks_interface';
-import { useState, useEffect, useCallback, useRef, useMemo, useReducer } from 'react';
+  StreamResultResponse,
+  StreamStatus
+} from '@/components/Task/hook&APIs.tsx/streamingApi';
+import { useEffect, useCallback, useRef, useMemo, useReducer } from 'react';
 
+
+
+//========================== Reducer 管理流状态 （特别适合生命周期的管理） ==========================  
+// StreamState定义了状态机
+// StreamAction定义了状态机的行为（type表达了意图， payload代表了意图所需的负载/数据）
+// reducer 定义了如何从 旧的StreamState 到 新的StreamAction
 
   // Stream state reducer for consolidated state management
   type StreamState = {
@@ -20,41 +27,45 @@ import { useState, useEffect, useCallback, useRef, useMemo, useReducer } from 'r
   };
 
   // 以下payload代表随着action的类型传递的数据或负载。 如STREAM_STARTED, 传递的是stream_id, 如STREAM_DATA, 传递的是数据
+  // 关于reducer的使用：
+  // 1. 一个action 只能由一个payload， 如果多个值要传，需要合并成一个对象。 
+  // 2. payload就是调用这个action时，需要传入的参数。  
+  // 3. 如果没有payload，意味着这个action不需要传参
   type StreamAction = 
-  | { type: 'STREAM_STARTED'; payload: string }
-  | { type: 'STREAM_DATA'; payload: string }
-  | { type: 'STREAM_ERROR'; payload: string }
-  | { type: 'STREAM_COMPLETE' }
-  | { type: 'STREAM_RESET' };
+  | { type: 'START_STREAM'; payload: string }  // 启动流，payload=流ID
+  | { type: 'ACCEPT_DATA'; payload: string }     // 接收数据，payload=新数据块
+  | { type: 'CATCH_ERROR'; payload: string }    // 发生错误，payload=错误信息
+  | { type: 'COMPLETE_STREAM' }                  // 流完成（无payload）
+  | { type: 'RESET_STREAM' };                    // 重置流（无payload）
 
   const streamReducer = (state: StreamState, action: StreamAction): StreamState => {
     switch (action.type) {
-      case 'STREAM_STARTED':
+      case 'START_STREAM':
         return {
-          id: action.payload,
+          id: action.payload,  // payload（携带的货物），这里代表真正有用的负载/数据。 调用这个action时，只需要传入这个参数。 
           content: '',
           isStreaming: true,
           error: null,
           complete: false
         };
-      case 'STREAM_DATA':
+      case 'ACCEPT_DATA':
         return {
           ...state,
           content: state.content + action.payload
         };
-      case 'STREAM_ERROR':
+      case 'CATCH_ERROR':
         return {
           ...state,
           error: action.payload,
           isStreaming: false
         };
-      case 'STREAM_COMPLETE':
+      case 'COMPLETE_STREAM':
         return {
           ...state,
           complete: true,
           isStreaming: false
         };
-      case 'STREAM_RESET':
+      case 'RESET_STREAM':
         return {
           id: null,
           content: '',
@@ -70,135 +81,107 @@ import { useState, useEffect, useCallback, useRef, useMemo, useReducer } from 'r
 
 
 
+
+// ========================== 针对 Reducer 本地存储 ==========================  
+// 添加本地存储键名常量
+const STREAM_STATE_STORAGE_KEY = 'STREAM_STATE_CACHE';
+
+// 从本地存储加载状态的函数
+const loadStreamStateFromStorage = (projectId: string, stageType: StageType, taskType: TaskType): StreamState | null => {
+  try {
+    const storageKey = `${STREAM_STATE_STORAGE_KEY}_${projectId}_${stageType}_${taskType}`;
+    const savedState = localStorage.getItem(storageKey);
+    if (savedState) {
+      return JSON.parse(savedState);
+    }
+  } catch (error) {
+    console.error('Failed to load stream state from localStorage:', error);
+  }
+  return null;
+};
+
+// 保存状态到本地存储的函数
+const saveStreamStateToStorage = (
+  state: StreamState, 
+  projectId: string, 
+  stageType: StageType, 
+  taskType: TaskType
+) => {
+  try {
+    const storageKey = `${STREAM_STATE_STORAGE_KEY}_${projectId}_${stageType}_${taskType}`;
+    localStorage.setItem(storageKey, JSON.stringify(state));
+  } catch (error) {
+    console.error('Failed to save stream state to localStorage:', error);
+  }
+};
+
+
+
+
+
+// ========================== useStream 钩子主函数 ========================== 
+
 export const useStream = (projectId: string, stageType: StageType, taskType: TaskType) => {
   const queryClient = useQueryClient();
 
+  // 从本地存储加载初始状态
+  const initialState = useMemo(() => {
+    const savedState = loadStreamStateFromStorage(projectId, stageType, taskType);
+    return savedState || {
+      id: null,
+      content: '',
+      isStreaming: false,
+      error: null,
+      complete: false
+    };
+  }, [projectId, stageType, taskType]);
 
-  //  ------ 管理了流的完整生命周期 -------
-  // Stream state 
-  // const [streamId, setStreamId] = useState<string | null>(null);
-  // const [streamContent, setStreamContent] = useState<string>('');
-  // const [isStreaming, setIsStreaming] = useState<boolean>(false);
-  // const [streamError, setStreamError] = useState<string | null>(null);
-  // const [streamComplete, setStreamComplete] = useState<boolean>(false);
+  // 修改 useReducer 使用加载的初始状态
+  const [streamState, dispatchStreamState] = useReducer(streamReducer, initialState);
   
-  // 以上生命周期管理的状态值，被打包到一起，用reducer管理； reducer意思是"降维" 
-  // 而之前的streamReducer 定义了这些值变化的场景。 
-  // streamState值得修改，我们命名为dispatch, 因为是dispatch（发送）一个指令给reducer 去修改。 
-  const [streamState, dispatchStreamState] = useReducer(streamReducer, {
-    id: null,  //stream_id
-    content: '',
-    isStreaming: false,
-    error: null,
-    complete: false
-  });
+  // 当状态变化时保存到本地存储
+  useEffect(() => {
+    saveStreamStateToStorage(streamState, projectId, stageType, taskType);
+  }, [streamState, projectId, stageType, taskType]);
   
-  // Destructure for convenience in the hook
+  // 为了在Query里方便使用，将streamState的值解构出来。 
   const { id: streamId, content: streamContent, isStreaming, error: streamError, complete: streamComplete } = streamState;
   
-  // 轮询控制
-  const [shouldPoll, setShouldPoll] = useState<boolean>(true);
-
-  // 存储终止流式请求的函数， 在需要的时候调用
-  const abortStreamRef = useRef<(() => void) | null>(null);
 
 
-  // Content buffer for batching updates
-  // contentBufferRef 是用于缓存流式数据的， 当有数据时，先缓存到contentBufferRef
-  // contentUpdateTimeoutRef 是用于定时发送缓存数据， 每隔100ms（在后面有设定），将缓存的数据一次性倒出。 
-  // 这两个得配合使用在后面得BatchContentUpdate函数里。
-  const contentBufferRef = useRef<string>('');
-  const contentUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Memoize parameters to prevent unnecessary effect triggers 
-  // 将参数打包成一个对象，如果没有值变化，则返回之前缓存得对象，从而避免不必要得计算，或者是组件重新渲染。
-  // 在后面得代码引用里，我们可以避免不必要得查询。
-  const streamParams = useMemo(() => ({
-    projectId,
-    stageType,
-    taskType,
-    streamId
-  }), [projectId, stageType, taskType, streamId]);
-
-
-  // Batch content updates function
-  const flushContentBuffer = useCallback(() => {
-    if (contentBufferRef.current) {
-      // 发送指令给reducer，更新数据，从contentBufferRef得角度，是将缓存的数据一次性倒出。 
-      dispatchStreamState({ type: 'STREAM_DATA', payload: contentBufferRef.current });
-      contentBufferRef.current = '';
-    }
-    contentUpdateTimeoutRef.current = null;
-  }, []);
-
-
-  // -------- 启动流失分析任务 --------
-  const startStreamMutation = useMutation({
-    mutationFn: async () => {
-      if (!projectId || !stageType || !taskType) {
-        throw new Error('Project ID and Stage Type and Task Type are required');
-      }
-      return TaskSteamingApi.startStream(projectId, stageType, taskType);
-    },
-
-    // 启动成功的处理
-    onSuccess: (data: StreamStartResponse) => {
-      console.log('✅ 流式分析任务启动成功:', data);
-      
-      // Fix: Use data.streamId instead of data.stream_id
-      dispatchStreamState({ type: 'STREAM_STARTED', payload: data.streamId });
-
-      // 检查状态初始化后
-      console.log('成功启动分析，流状态初始化完毕:', {
-        streamId: data.streamId,
-        isStreaming: true
-      });
-      
-      // 使之前的缓存数据时效，促使数据更新。
-      queryClient.invalidateQueries({
-        queryKey: ['streamStatus', projectId, stageType, taskType, streamId]
-      });
-    },
-
-    // 启动失败的处理
-    onError: (error: any) => {
-      console.error('❌ 启动流式分析任务失败:', error);
-      // setStreamError(error.message || '启动流式分析任务失败');
-      // setIsStreaming(false);
-      dispatchStreamState({ 
-        type: 'STREAM_ERROR', 
-        payload: error.message || 'Failed to start stream analysis task'
-      });
-    }
-  });
-  
-
-  
   // -------- 监听流状态（轮询） -------- 
-  // 虽然有useEffect, 但比如网络突然中断，useEffect无法监听到，需要streamStatusQuery来监听。
-  // enable条件要求在整个生命周期都监听，直到流状态为COMPLETED, FAILED, CANCELLED时（由shouldPoll控制），才停止轮询。
+  // 如果第一次查询返回 'PENDING' 而非 'PROCESSING'，轮询不启动，即使后来变为 'PROCESSING' 也不自动开始轮询。startStreamMutation里，手动触发更新，来解决这个问题。 
   const streamStatusQuery = useQuery<StreamStatusResponse>({
-    queryKey: ['streamStatus', streamParams.projectId, streamParams.stageType, streamParams.taskType, streamParams.streamId],
+    // 当queryKey变化时，会重新查询。  
+    queryKey: ['streamStatus', projectId, stageType, taskType, streamId],
     queryFn: async () => {
       if (!projectId || !stageType || !taskType || !streamId) {
         throw new Error('Missing required parameters');
       }
       return TaskSteamingApi.getStreamStatus(projectId, stageType, taskType, streamId);
     },
-    // enabled 控制是否启用查询， 只有当项目id，阶段类型，流id都存在，并且流没有在运行，并且需要轮询时，才启用查
-    enabled: Boolean(projectId) && Boolean(stageType) && Boolean(taskType) && Boolean(streamId) && shouldPoll,
-    // 轮询间隔
-    refetchInterval: shouldPoll ? 2000 : false,
-    // 窗口重新获得焦点时是否重新请求 
+    // 当useStream首次加载时，由于streamId为空，所以不会查询。  
+    enabled: Boolean(projectId) && Boolean(stageType) && Boolean(taskType) && Boolean(streamId),
+    // 仅在任务处于分析中状态时进行轮询
+
+    // 当然了，我们可以看到这个轮询是2s一次，而在之后的useEffect, 会手动轮询， 之间存在重叠。 
+    // 我暂时保留它，但将间隔改为5s,以覆盖边缘情况。（虽然可能不需要）
+    refetchInterval: (query) => {
+      if (query.state.error) return false;
+      return query.state.data?.status === 'PROCESSING' as StreamStatus ? 2000 : false;
+    },
     refetchOnWindowFocus: false,
   });
-  
+
 
 
 
   // -------- 获取完整的流结果 --------
+  // 当useStream首次加载时，由于streamId为空，所以不会查询,当streamId有了，由于enabled=false, 也不会查询
+  // 当streamComplete=true时，enabled从false转为true, 会触发查询。 （enable变动触发查询时内置的机制）   
   const streamResultQuery = useQuery<StreamResultResponse>({
-    queryKey: ['streamResult', streamParams.projectId, streamParams.stageType, streamParams.taskType, streamParams.streamId],
+    queryKey: ['streamResult', projectId, stageType, taskType, streamId],
     queryFn: async () => {
       if (!projectId || !stageType || !taskType || !streamId) {
         throw new Error('Missing required parameters');
@@ -209,12 +192,64 @@ export const useStream = (projectId: string, stageType: StageType, taskType: Tas
     // Only fetch once when stream is complete
     staleTime: Infinity,
   });
+
+
+
+
+// ========================== 流生命周期的管理 ========================== 
+  // -------- 启动流失分析任务 --------
+  const startStreamMutation = useMutation({
+    mutationFn: async () => {
+      // 检查参数是否存在 
+      if (!projectId || !stageType || !taskType) {throw new Error('Project ID||Stage Type||Task Type 是必须的');}
+      // 启动流式分析任务
+      return TaskSteamingApi.startStream(projectId, stageType, taskType);
+    },
+
+    // 启动成功后： 1）状态机更新 2）数据重新刷新
+    onSuccess: (data: StreamStartResponse) => {
+      // 更新状态机（payload=streamId）
+      dispatchStreamState({ type: 'START_STREAM', payload: data.streamId });
+      
+      // 手动更新数据更新
+      queryClient.invalidateQueries({
+        queryKey: ['streamStatus', projectId, stageType, taskType, streamId]
+      });
+    },
+
+    // 启动失败时： 捕捉错误，更新状态机
+    onError: (error: any) => {
+      // 更新状态机, 捕捉错误 （payload=错误信息）
+      dispatchStreamState({ type: 'CATCH_ERROR', payload: error.message || '启动流式分析任务失败！'});
+    }
+  });
   
 
+  // -------- 接收流式数据（fetchStreamChunks，未使用query） ------
+  // 接受流式数据没有使用tanstack query， 因为流式数据的获取需要更精细颗粒的控制，reducer的控制更合适。  
+  // 定义缓存容器 和 倾倒定时器， 这两个在后面BatchContentUpdate函数里配合使用， 但可以看到流的启动(startStreamMutation)，我们使用了tanstack query。  
+  const contentBufferRef = useRef<string>('');   // 缓存的容器
+  const contentUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);  // 数据倾倒的定时器， 后面定义每100ms倾倒一次。 
 
-  // ----------- 接收流式数据 -----------
-  // 这里监听的只是数据，而不是流状态。
+  // 定义流终止函数存储器
+  const abortStreamRef = useRef<(() => void) | null>(null);  // 终止流的函数
 
+  // 定义flushContentBuffer函数, 用于倾倒数据， 后面手动调用。 
+  // 先检查contentBufferRef是否存在数据，如果存在，则发送指令给reducer，更新数据，然后清空, 从contentBufferRef的角度，是将缓存的数据一次性倒出。 
+  const flushContentBuffer = useCallback(() => {
+    if (contentBufferRef.current) {
+
+      // 更新状态机
+      // 发送指令给reducer，更新数据，从contentBufferRef得角度，是将缓存的数据一次性倒出。 
+      dispatchStreamState({ type: 'ACCEPT_DATA', payload: contentBufferRef.current });
+
+      // 清空缓存
+      contentBufferRef.current = '';
+    }
+    contentUpdateTimeoutRef.current = null;
+  }, []); //依赖为空，这样这个函数不受外部因素影响而变化。 
+
+  // 接收流数据
   useEffect(() => {
     
     if (projectId && stageType && taskType && streamId && isStreaming) {
@@ -230,7 +265,7 @@ export const useStream = (projectId: string, stageType: StageType, taskType: Tas
         contentUpdateTimeoutRef.current = null;
       }
 
-      // Batch stream data updates
+      // 流数据的批量处理 （避免频繁的请求，减少网络压力）
       const batchContentUpdate = (data: string) => {
         contentBufferRef.current += data;
         
@@ -242,8 +277,8 @@ export const useStream = (projectId: string, stageType: StageType, taskType: Tas
         }
       };
 
-      
-      // 开始新的流 
+      // 开始新的流（abort发起流，同时也提供终止流的方法，这个方法来自fectch技术本身）
+      // 在streamingApi.ts里，fetchStreamChunks返回了controller.abort(); 所以abort本身就是终止函数。 
       const abort = TaskSteamingApi.fetchStreamChunks(
         projectId,
         stageType,
@@ -256,10 +291,9 @@ export const useStream = (projectId: string, stageType: StageType, taskType: Tas
           },
           onError: (error) => {
             console.error('❌ 流式数据错误:', error);
-              // setStreamError(error);   // 记录错误
-              // setIsStreaming(false);   // 停止流 （设置停止状态）
 
-            dispatchStreamState({ type: 'STREAM_ERROR', payload: error });
+            // 更新状态机, 捕捉错误
+            dispatchStreamState({ type: 'CATCH_ERROR', payload: error });
 
             // Flush any remaining content  （把剩下在buffer里的数据一次性倒出）
             flushContentBuffer(); 
@@ -277,7 +311,8 @@ export const useStream = (projectId: string, stageType: StageType, taskType: Tas
             // Flush any remaining content （把剩下在buffer里的数据一次性倒出）
             flushContentBuffer();
 
-            dispatchStreamState({ type: 'STREAM_COMPLETE' });
+            // 更新状态机, 流完成 
+            dispatchStreamState({ type: 'COMPLETE_STREAM' });
 
             // 重新请求数据，确保前端同步最新状态
             queryClient.invalidateQueries({
@@ -307,55 +342,64 @@ export const useStream = (projectId: string, stageType: StageType, taskType: Tas
   // projectId 项目切换， streamID 流任务切换， isStreaming 流的开启和关闭， 导出动作发生时， 都会触发这个useEffect
 
 
+
   // -------- 手动停止流式分析 --------
   const stopStreaming = useCallback(() => {
     if (abortStreamRef.current) {
       abortStreamRef.current();
       abortStreamRef.current = null;
     }
-    // No dispatch needed here as the abort will trigger onError or onComplete
-    // which will update the streaming state
-    //dispatchStreamState({ type: 'STREAM_RESET' });
+    // 可以选择是否在停止时重置状态
+    // resetStreamStorage();
   }, []);
 
 
 
-    // 监听查询结果，根据状态控制shouldPoll, 从而控制 streamStatusQuery 是否继续轮询
-  useEffect(() => {
-    const status = streamStatusQuery.data?.status;
-    if (status === 'COMPLETED' || status === 'FAILED' || status === 'CANCELLED') {
-      if(shouldPoll) {
-        setShouldPoll(false);
-      }
+  // -------- 重置本地存储 --------
+  const resetStreamStorage = useCallback(() => {
+    try {
+      const storageKey = `${STREAM_STATE_STORAGE_KEY}_${projectId}_${stageType}_${taskType}`;
+      localStorage.removeItem(storageKey);
+      dispatchStreamState({ type: 'RESET_STREAM' });
+    } catch (error) {
+      console.error('Failed to reset stream storage:', error);
     }
-  }, [streamStatusQuery.data, shouldPoll]);
+  }, [projectId, stageType, taskType]);
 
 
-  // Return hook interface
 
-  // Memoize the returned object to prevent unnecessary re-renders
+  // Return hook interface with added resetStreamStorage
   return useMemo(() => ({
-    // Stream state
-    streamId,
-    streamContent,
-    isStreaming,    // 正在分析中
-    streamError,
-    streamComplete,
+    // 流的输出
+    // Streamstate, 提供了在UI组件里进行生命周期管理苏需要的数据。 
+    streamId,  // streamId 返回给UI组件其实没有什么用，它在useStreaming的其他查询时用到。 
+    isStreaming,    // 启动后， isStreaming=true,  但未CatchError, CompleteStream, ResetSteam时，都是false. 
+    streamContent,  // 然后，开始有streamContent,  (以打包的方式倾倒出来)
+    streamError,    // 如果发生错误，则streamError=错误信息
+    streamComplete, // 如果流完成，则streamComplete=true
+
+
+    // StreamStatus Query 返回的信息
     streamStatus: streamStatusQuery.data,
+    isLoadingStatus: streamStatusQuery.isLoading,
+    statusError: streamStatusQuery.error,
+
+
+    // StreamResult Query 返回的信息
     streamResult: streamResultQuery.data,
-    
+    isLoadingResult: streamResultQuery.isLoading,
+    resultError: streamResultQuery.error,
+
     // Actions
     startStream: startStreamMutation.mutateAsync,
-    stopStreaming,
     isStartingStream: startStreamMutation.isPending,  // 正在启动分析
     
-    // Status queries
-    isLoadingStatus: streamStatusQuery.isLoading,
-    isLoadingResult: streamResultQuery.isLoading,
+    // 手动停止流分析
+    stopStreaming,
     
-    // Errors
-    statusError: streamStatusQuery.error,
-    resultError: streamResultQuery.error,
+    // 添加重置存储的方法
+    resetStreamStorage,
+    
   }), [
     streamId,
     streamContent,
@@ -370,6 +414,7 @@ export const useStream = (projectId: string, stageType: StageType, taskType: Tas
     streamStatusQuery.isLoading,
     streamResultQuery.isLoading,
     streamStatusQuery.error,
-    streamResultQuery.error
+    streamResultQuery.error,
+    resetStreamStorage
   ]);
 };
