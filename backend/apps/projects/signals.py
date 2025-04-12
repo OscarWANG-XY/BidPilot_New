@@ -291,7 +291,7 @@ def initialize_project_stages(sender, instance, created, **kwargs):
             # 为招标文件分析阶段创建相关任务
             if stage_type == StageType.TENDER_ANALYSIS:
                 # 创建招标文件上传任务
-                Task.objects.create(
+                upload_file_task = Task.objects.create(
                     stage=stage,
                     name='招标文件上传',
                     description='上传招标文件',
@@ -300,7 +300,7 @@ def initialize_project_stages(sender, instance, created, **kwargs):
                     lock_status=TaskLockStatus.UNLOCKED,
                 )
                 # 创建文档提取任务
-                Task.objects.create(
+                docx_extraction_task = Task.objects.create(
                     stage=stage,
                     name='招标文件信息提取',
                     description='从招标文件中提取结构化信息',
@@ -311,7 +311,7 @@ def initialize_project_stages(sender, instance, created, **kwargs):
                 )
 
                 # 创建文档结构分析任务
-                Task.objects.create(
+                outline_analysis_task = Task.objects.create(
                     stage=stage,
                     name='文档结构分析',
                     description='分析文档结构',
@@ -320,6 +320,11 @@ def initialize_project_stages(sender, instance, created, **kwargs):
                     lock_status=TaskLockStatus.UNLOCKED,
                 )
                 
+
+                # 设置任务依赖关系
+                docx_extraction_task.dependencies.add(upload_file_task)
+                outline_analysis_task.dependencies.add(docx_extraction_task)
+
                 # logger.info(f"为阶段 {stage_name} 创建了文档提取和文档树构建任务")
 
 

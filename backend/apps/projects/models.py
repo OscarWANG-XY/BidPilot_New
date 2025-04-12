@@ -278,10 +278,8 @@ class Task(models.Model):
         help_text='存储错误信息'
     )
     
-
-
-
-
+    # 用于存储 任务依赖 (在signals.py初始化所有任务时，定义任务间依赖关系，而依赖的逻辑在services.py中定义can_process_task实现）
+    dependencies = models.ManyToManyField('self', symmetrical=False, related_name='dependents', blank=True)
 
 
 
