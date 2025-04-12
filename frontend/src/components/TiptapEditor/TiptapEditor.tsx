@@ -167,8 +167,8 @@ const generateSlug = (text: string): string => {
 type TiptapEditorProps = {
   initialContent?: string;          // 初始内容
   onChange?: (content: string) => void;  // 内容变化回调
-  maxHeight?: number;               // 编辑器最大高度
-  minHeight?: number;               // 编辑器最小高度
+  maxHeight?: number | string;               // 编辑器最大高度
+  minHeight?: number | string;               // 编辑器最小高度
   maxWidth?: number | string;       // 编辑器最大宽度
   minWidth?: number | string;       // 编辑器最小宽度
   showToc?: boolean;                // 是否显示目录
@@ -178,7 +178,7 @@ type TiptapEditorProps = {
 const TiptapEditor: React.FC<TiptapEditorProps> = ({ 
   initialContent = '',
   onChange,
-  maxHeight = 400,
+  maxHeight = 300,
   minHeight = 200,       // 默认最小高度
   maxWidth = '100%',     // 默认最大宽度
   minWidth = '300px',    // 默认最小宽度
@@ -447,6 +447,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
       }}
     >
       <div className="mb-5">
+        {/* 顶部目录工具栏 */}
         <div className="flex justify-between items-center mb-2">
           {showToc && tocItems.length > 0 && (
             <button 
@@ -497,6 +498,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
           
           {/* 内容编辑区域容器 */}
           <div className={`relative border border-gray-200 rounded-md flex-1 ${showToc && tocVisible ? 'w-3/4' : 'w-full'}`}>
+          
             {/* 顶部固定工具栏 - 仅在非只读模式下显示 */}
             {!readOnly && (
               <div className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200 rounded-t-md p-2 flex flex-wrap">
@@ -699,8 +701,8 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
             <div 
               className="overflow-y-auto bg-white rounded-b-md"
               style={{ 
-                maxHeight: `${maxHeight}px`,
-                minHeight: `${minHeight}px`
+                maxHeight: typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight,
+                minHeight: typeof minHeight === 'number' ? `${minHeight}px` : minHeight
               }}
             >
               <div className="p-4">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTasks } from './hook&APIs.tsx/useTasks';
 import { useStream } from './hook&APIs.tsx/useStreaming';
 import { TaskStatus } from './hook&APIs.tsx/tasksApi';
@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button'; // Assuming you have a UI butto
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon} from 'lucide-react'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Upload, Lock } from 'lucide-react';
 
 // 引入状态特定组件
 import ConfigurationPanel from './ConfigurationPanel/ConfigurationPanel';
@@ -159,7 +161,6 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
         // Start streaming after analysis begins
         if (projectId && stageType && taskType) {
             try {
-
                 await startStream();
             } catch (error) {
                 console.error('Failed to start streaming:', error);
@@ -291,6 +292,28 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
         }
     }, [taskData, projectId, stageType, taskType]);
 
+
+    // 根据任务状态获取卡片样式 - 使用useMemo缓存结果
+    const cardStyle = useMemo(() => {
+        if (!taskData) return "border-gray-200";
+        
+        switch(taskData.status) {
+            case TaskStatus.NOT_STARTED:
+                return "border-gray-200";
+            case TaskStatus.PROCESSING:
+                return "border-blue-400 border-2 bg-blue-50";
+            case TaskStatus.COMPLETED:
+                return "border-green-400 border-2 bg-green-50";
+            case TaskStatus.FAILED:
+                return "border-red-400 border-2 bg-red-50";
+            case TaskStatus.CONFIGURING:
+                return "border-amber-400 border-2 bg-amber-50";
+            case TaskStatus.REVIEWING:
+                return "border-purple-400 border-2 bg-purple-50";
+            default:
+                return "border-gray-200";
+        }
+    }, [taskData]);
 
     // ------------ 根据当前任务状态和UI状态渲染相应组件 ------------
     const renderContent = () => {
@@ -428,53 +451,62 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <Card className={`mb-6 ${cardStyle}`}>
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center">
+          <Upload className="h-5 w-5 mr-2" />
+          {taskData?.name || "任务"}
+          {taskData?.status === TaskStatus.COMPLETED && (
+            <span title="此任务已锁定">
+              <Lock className="h-4 w-4 ml-2 text-gray-500" />
+            </span>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col h-full w-full">
+          {!isEnabled && (
+            <Alert variant="default">
+              <AlertCircleIcon className="h-4 w-4" />
+              <AlertTitle>任务未激活</AlertTitle>
+              <AlertDescription>
+                请先完成上一个任务
+              </AlertDescription>
+            </Alert>
+          )}
 
-        {!isEnabled && (
-                      <Alert variant="default">
-                      <AlertCircleIcon className="h-4 w-4" />
-                      <AlertTitle>任务未激活</AlertTitle>
-                      <AlertDescription>
-                        请先完成上一个任务
-                    </AlertDescription>
-                </Alert>
-        )}
+          {/* 状态栏展示当前任务状态和基本信息 */}
+          {isEnabled && <StatusBar task={taskData} isLoading={isLoading} isError={isError} />}
 
-
-        {/* 状态栏展示当前任务状态和基本信息 */}
-        {isEnabled && <StatusBar task={taskData} isLoading={isLoading} isError={isError} />}
-
-        {/* 当任务已配置且不在配置阶段时，显示配置信息预览 */}
-        {isEnabled && taskData && taskData.status !== TaskStatus.CONFIGURING && taskData.status !== TaskStatus.NOT_STARTED && taskData.status !== TaskStatus.FAILED && (
-        <ConfigurationPreview 
-            context={taskData.context}
-            prompt={taskData.prompt}
-            relatedCompanyInfo={taskData.relatedCompanyInfo}
-        />
-        )}
-
-        {/* 当任务已经完成分析时，显示配置信息预览 */}
-        {isEnabled && taskData && taskData.status !== TaskStatus.FAILED &&
-                taskData.status !== TaskStatus.CONFIGURING && 
-                taskData.status !== TaskStatus.NOT_STARTED && 
-                taskData.status !== TaskStatus.PROCESSING && 
-                taskData.status !== TaskStatus.REVIEWING && (
-            <ResultPreview 
-                finalResult={taskData.finalResult || ''}
+          {/* 当任务已配置且不在配置阶段时，显示配置信息预览 */}
+          {!isEnabled && taskData && taskData.status !== TaskStatus.CONFIGURING && taskData.status !== TaskStatus.NOT_STARTED && taskData.status !== TaskStatus.FAILED && (
+            <ConfigurationPreview 
+              context={taskData.context}
+              prompt={taskData.prompt}
+              relatedCompanyInfo={taskData.relatedCompanyInfo}
             />
-        )}
+          )}
 
-        {/* 主要内容区域 */}
-        {isEnabled && (
+          {/* 当任务已经完成分析时，显示配置信息预览 */}
+          {!isEnabled && taskData && taskData.status !== TaskStatus.FAILED &&
+            taskData.status !== TaskStatus.CONFIGURING && 
+            taskData.status !== TaskStatus.NOT_STARTED && 
+            taskData.status !== TaskStatus.PROCESSING && 
+            taskData.status !== TaskStatus.REVIEWING && (
+            <ResultPreview 
+              finalResult={taskData.finalResult || ''}
+            />
+          )}
+
+          {/* 主要内容区域 */}
+          {isEnabled && (
             <div className="flex-1 overflow-auto">
-                {renderContent()}
+              {renderContent()}
             </div>
-        )}
-
-
-
-
-    </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

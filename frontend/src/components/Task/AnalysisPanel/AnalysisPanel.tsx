@@ -39,6 +39,12 @@ const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   // Determine if content is being updated
   const isContentStreaming = isStreaming || isStartingStream;
 
+
+  console.log('isContentStreaming', isContentStreaming);
+  console.log('isAnalysisRunning', isAnalysisRunning);
+  console.log('streamError', streamError);
+  console.log('streamComplete', streamComplete);
+  
   return (
     <div className="flex flex-col space-y-4 w-full">
       {/* Error message display */}
@@ -83,27 +89,35 @@ const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
             </button>
           )}
           
+          {/* Show restart button when error occurs or analysis is complete */}
+          {(streamError || streamComplete) && !isAnalysisRunning && onRestartAnalysis && (
+            <button
+              onClick={onRestartAnalysis}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            >
+              重新分析
+            </button>
+          )}
+          
           {/* Show action buttons when analysis is complete */}
           {streamComplete && !isAnalysisRunning && (
             <>
-              <button
-                onClick={onRestartAnalysis}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-              >
-                重新分析
-              </button>
-              <button
-                onClick={onAcceptResult}
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-              >
-                接受结果
-              </button>
-              <button
-                onClick={onStartResultEditing}
-                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
-              >
-                人工核审
-              </button>
+              {onAcceptResult && (
+                <button
+                  onClick={onAcceptResult}
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                >
+                  接受结果
+                </button>
+              )}
+              {onStartResultEditing && (
+                <button
+                  onClick={onStartResultEditing}
+                  className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+                >
+                  人工核审
+                </button>
+              )}
             </>
           )}
         </div>

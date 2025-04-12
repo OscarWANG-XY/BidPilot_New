@@ -80,9 +80,9 @@ export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectI
       <div id="extraction-task-section">
         <TaskContainer
           projectId={projectId}
+          isEnabled={true}
           stageType={StageType.TENDER_ANALYSIS}
           taskType={TaskType.OUTLINE_ANALYSIS_TASK}
-          isEnabled={true}
           // isEnabled={fileUploadStatus === TaskStatus.COMPLETED}  // 文件上传任务完成后，让该组件渲染启动，这样就显示手动启动的按钮
           // onStatusChange={handleExtractionStateChange}
           // onNavigateToNextTask={handleNavigateToOutlineAnalysisTask}     // 回调让页面滑动到下一个任务

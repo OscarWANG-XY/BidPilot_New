@@ -17,9 +17,9 @@ if(isEditingConfig)
 
 import React from 'react';
 import type { Type_TaskDetail } from '../hook&APIs.tsx/tasksApi';
-import TiptapEditor_lite from '@/components/shared/TiptapEditor_lite2' // Assuming TiptapEditor is in this location
+import TiptapEditor from '@/components/TiptapEditor/TiptapEditor' // Assuming TiptapEditor is in this location
 import { Button } from '@/components/ui/button'; // Assuming you have a UI button component
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+//import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import {
   Accordion,
@@ -81,52 +81,36 @@ import {
   
     // 设置 TiptapEditor 的基本配置
     const editorConfig = {
-      maxHeight: 400, // 固定高度
       showToc: true
     };
   
     return (
-      <Card className="max-w-5xl mx-auto w-full shadow-sm">
-        <CardHeader className="pb-4">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-xl font-semibold">配置任务</CardTitle>
-            
-            {!isEditing && (
-              <div className="flex space-x-2">
-                {/*刷新配置按钮*/}
-                {/* <Button 
-                  variant="outline"
-                  size="sm"
-                  onClick={handleLoadTemplateClick}
-                  disabled={isUpdating}
-                >
-                  刷新配置
-                </Button> */}
-                {/*编辑配置按钮*/}
-                <Button 
-                  size="sm"
-                  onClick={() => onStartEditing()}
-                  disabled={isUpdating}
-                >
-                  编辑配置
-                </Button>
-              </div>
-            )}
-          </div>
-        </CardHeader>
+      <div className="w-full space-y-4">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-medium">配置任务</h3>
+        </div>
   
-        <CardContent className="pt-4">
-          {/* 编辑区域 - 纵向排列 */}
-          <Accordion type="multiple" defaultValue={["context", "prompt", "companyInfo"]} className="w-full">
+        <div>    
+          <Accordion 
+            type="multiple" 
+            defaultValue={["context"]}  // 默认展开第一个区域
+            className="w-full">
+  
             {/* 上下文编辑区域 */}
-            <AccordionItem value="context" className="focus-within:ring-2 ring-blue-500">
-              <AccordionTrigger className="text-sm font-medium">上下文 (Context)</AccordionTrigger>
-              <AccordionContent>
-                <div className="border rounded-md overflow-hidden h-[400px]">
-                  <TiptapEditor_lite
+            <AccordionItem value="context" className="border-b">
+              <AccordionTrigger className="hover:no-underline py-3">
+                <span className="text-sm font-medium">上下文 (Context)</span>
+              </AccordionTrigger>
+              <AccordionContent className="pt-1 pb-3">
+                <div className="border rounded-md overflow-hidden">
+                  <TiptapEditor
                     initialContent={isEditing ? editingContext : task.context || ''}
                     onChange={onEditingContextChange}
                     readOnly={!isEditing}
+                    maxWidth="100%"
+                    minWidth="100%"
+                    maxHeight="100%"
+                    minHeight="100%"
                     {...editorConfig}
                   />
                 </div>
@@ -134,14 +118,20 @@ import {
             </AccordionItem>
   
             {/* 提示词编辑区域 */}
-            <AccordionItem value="prompt" className="focus-within:ring-2 ring-blue-500">
-              <AccordionTrigger className="text-sm font-medium">提示词 (Prompt)</AccordionTrigger>
-              <AccordionContent>
-                <div className="border rounded-md overflow-hidden h-[400px]">
-                  <TiptapEditor_lite
+            <AccordionItem value="prompt" className="border-b">
+              <AccordionTrigger className="hover:no-underline py-3">
+                <span className="text-sm font-medium">提示词 (Prompt)</span>
+              </AccordionTrigger>
+              <AccordionContent className="pt-1 pb-3">
+                <div className="border rounded-md overflow-hidden">
+                  <TiptapEditor
                     initialContent={isEditing ? editingPrompt : task.prompt || ''}
                     onChange={onEditingPromptChange}
                     readOnly={!isEditing}
+                    maxWidth="100%"
+                    minWidth="100%"
+                    maxHeight="100%"
+                    minHeight="100%"
                     {...editorConfig}
                   />
                 </div>
@@ -149,25 +139,41 @@ import {
             </AccordionItem>
   
             {/* 公司信息编辑区域 */}
-            <AccordionItem value="companyInfo" className="focus-within:ring-2 ring-blue-500">
-              <AccordionTrigger className="text-sm font-medium">公司信息 (Company Info)</AccordionTrigger>
-              <AccordionContent>
-                <div className="border rounded-md overflow-hidden h-[400px]">
-                  <TiptapEditor_lite
+            <AccordionItem value="companyInfo" className="border-b">
+              <AccordionTrigger className="hover:no-underline py-3">
+                <span className="text-sm font-medium">公司信息 (Company Info)</span>
+              </AccordionTrigger>
+              <AccordionContent className="pt-1 pb-3">
+                <div className="border rounded-md overflow-hidden">
+                  <TiptapEditor
                     initialContent={isEditing ? editingRelatedCompanyInfo : task.relatedCompanyInfo || ''}
                     onChange={onEditingRelatedCompanyInfoChange}
                     readOnly={!isEditing}
+                    maxWidth="100%"
+                    minWidth="100%"
+                    maxHeight="100%"
+                    minHeight="100%"
                     {...editorConfig}
                   />
                 </div>
               </AccordionContent>
             </AccordionItem>
           </Accordion>
-        </CardContent>
+        </div>
   
-        <CardFooter className="flex justify-end pt-4">
+        <div className="flex justify-between pt-4 border-t">
+          {!isEditing && (
+            <Button 
+              size="sm"
+              onClick={() => onStartEditing()}
+              disabled={isUpdating}
+            >
+              编辑配置
+            </Button>
+          )}
+          
           {isEditing ? (
-            <div className="flex gap-x-2">
+            <div className="flex gap-x-2 ml-auto">
               {/*取消编辑的按钮*/}
               <Button 
                 variant="outline" 
@@ -199,6 +205,7 @@ import {
               size="sm"
               onClick={onStartAnalysis}
               disabled={isUpdating || !task.context || !task.prompt}
+              className="ml-auto"
             >
               {isUpdating ? (
                 <>
@@ -210,8 +217,8 @@ import {
               )}
             </Button>
           )}
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     );
   };
   
