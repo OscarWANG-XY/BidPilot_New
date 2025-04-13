@@ -64,9 +64,9 @@ export const TaskApi = {
     // 获取项目阶段下的文档提取任务
     //get(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/get_task/`)
     getTask: async (projectId: string, stageType: StageType, taskType: TaskType): Promise<Type_TaskDetail> => {
-        console.log('📤 获取文档提取任务:', { projectId, stageType });
+        console.log('📤 获取任务详情:', { projectId, stageType, taskType });
         const response = await axiosInstance.get(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/`);
-        console.log('📥 获取文档提取任务成功:', response.data);
+        console.log('📥 TaskApi-getTask 任务详情获取成功:', response.data);
         return response.data;
     },
 
@@ -83,7 +83,7 @@ export const TaskApi = {
         `/projects/${projectId}/stages/${stageType}/tasks/${taskType}/update_task/`, 
         taskData
         );
-        console.log('📥 更新文档提取任务成功:', response.data);
+        console.log('📥 TaskApi-updateTask 更新任务成功:', response.data);
         return response.data;
     },
 
@@ -95,7 +95,7 @@ export const TaskApi = {
       taskType: TaskType
   ): Promise<Type_TaskDetail> => {
       const response = await axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/load_config/`);
-      console.log('📥 加载配置成功:', response.data);
+      console.log('📥 TaskApi-loadConfig 加载配置成功:', response.data);
       return response.data;
   },
 
@@ -108,7 +108,7 @@ export const TaskApi = {
       taskData: Partial<Type_TaskUpdate>  //在useTasks中，传入了匿名对象 {context, prompt, relatedCompanyInfo}， 这是通过位置与taskData匹配上的。 
   ): Promise<Type_TaskDetail> => {
       const response = await axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/save_config/`, taskData);
-      console.log('📥 保存配置成功:', response.data);
+      console.log('📥 TaskApi-saveConfig 保存配置成功:', response.data);
       return response.data;
   },
 
@@ -120,7 +120,7 @@ export const TaskApi = {
       taskType: TaskType
   ): Promise<Type_TaskDetail> => {
       const response = await axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/start_analysis/`);
-      console.log('📥 开始分析成功:', response.data);
+      console.log('📥 TaskApi-startAnalysis 开始分析成功:', response.data);
       return response.data;
   },
 
@@ -132,7 +132,7 @@ export const TaskApi = {
       taskType: TaskType
   ): Promise<Type_TaskDetail> => {
       const response = await axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/start_review/`);
-      console.log('📥 开始审核成功:', response.data);
+      console.log('📥 TaskApi-startReview 开始审核成功:', response.data);
       return response.data;
   },
 
@@ -144,7 +144,7 @@ export const TaskApi = {
       taskType: TaskType
   ): Promise<Type_TaskDetail> => {
       const response = await axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/accept_result/`);
-      console.log('📥 接受结果成功:', response.data);
+      console.log('📥 TaskApi-acceptResult 接受结果成功:', response.data);
       return response.data;
   },
 
@@ -157,7 +157,7 @@ export const TaskApi = {
       taskData: Partial<Type_TaskUpdate>
   ): Promise<Type_TaskDetail> => {
       const response = await axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/save_edited_result/`, taskData);
-      console.log('📥 保存编辑结果成功:', response.data);
+      console.log('📥 TaskApi-saveEditedResult 保存编辑结果成功:', response.data);
       return response.data;
   },
 
@@ -169,7 +169,7 @@ export const TaskApi = {
       taskType: TaskType
   ): Promise<Type_TaskDetail> => {
       const response = await axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/reset_task/`);
-      console.log('📥 重置任务成功:', response.data);
+      console.log('📥 TaskApi-resetTask 重置任务成功:', response.data);
       return response.data;
   },
 

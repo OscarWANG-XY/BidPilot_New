@@ -44,6 +44,7 @@ const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   console.log('isAnalysisRunning', isAnalysisRunning);
   console.log('streamError', streamError);
   console.log('streamComplete', streamComplete);
+  console.log('displayContent', displayContent);
   
   return (
     <div className="flex flex-col space-y-4 w-full">

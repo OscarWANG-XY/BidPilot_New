@@ -69,6 +69,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
         startStream,
         stopStreaming,
         isStartingStream,   // 正在启动分析
+        resetStreamStorage
     } = useStream(projectId, stageType, taskType);
 
 
@@ -178,9 +179,11 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
 
     // 处理重启分析, 先重置任务到配置状态，然后立即启动分析, 不包括重新编辑配置。会直接采用上一个阶段编辑并保存的配置结果。 
     const handleRestartAnalysis = async () => {
+        await resetStreamStorage();
         await resetTask();
         setTimeout(async () => {
             await startAnalysis();
+            await startStream();
         }, 300);
             
     };

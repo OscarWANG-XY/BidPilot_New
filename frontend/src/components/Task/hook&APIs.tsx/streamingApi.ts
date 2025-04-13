@@ -53,12 +53,12 @@ export const TaskSteamingApi = {
       stageType: StageType,
       taskType: TaskType
     ): Promise<StreamStartResponse> => {
-      console.log('📤 启动流式大纲分析:', { projectId, stageType, taskType });
+      console.log('📤 streamingApi-startStream 启动流式大纲分析:', { projectId, stageType, taskType });
       const response = await axiosInstance.post(
         //`/projects/${projectId}/stages/${stageType}/analyze-outline-streaming/`
         `/projects/${projectId}/stages/${stageType}/tasks/${taskType}/start-stream/`
       );
-      console.log('📥 流式大纲分析启动成功:', response.data);
+      console.log('📥 streamingApi-startStream 流式大纲分析启动成功:', response.data);
       return response.data;
     },
 
@@ -70,12 +70,12 @@ export const TaskSteamingApi = {
       taskType: TaskType,
       streamId: string
     ): Promise<StreamStatusResponse> => {
-      console.log('📤 获取流状态:', { projectId, stageType, streamId });
+      console.log('📤 streamingApi-getStreamStatus 开始获取流状态:', { projectId, stageType, taskType, streamId });
       const response = await axiosInstance.get(
         //`/projects/${projectId}/stages/${stageType}/outline-analysis-status/${streamId}/`
         `/projects/${projectId}/stages/${stageType}/tasks/${taskType}/stream-status/${streamId}/`
       );
-      console.log('📥 获取流状态成功:', response.data);
+      console.log('📥 streamingApi-getStreamStatus 成功获取流状态:', response.data);
       return response.data;
     },
 
@@ -87,12 +87,12 @@ export const TaskSteamingApi = {
       taskType: TaskType,
       streamId: string
     ): Promise<StreamResultResponse> => {
-      console.log('📤 获取完整流结果:', { projectId, stageType, streamId });
+      console.log('📤 streamingApi-getStreamResult 开始获取完整流结果:', { projectId, stageType, taskType, streamId });
       const response = await axiosInstance.get(
         //`/projects/${projectId}/stages/${stageType}/outline-analysis-result/${streamId}/`
         `/projects/${projectId}/stages/${stageType}/tasks/${taskType}/stream-result/${streamId}/`
       );
-      console.log('📥 获取完整流结果成功:', response.data);
+      console.log('📥 streamingApi-getStreamResult 成功获取完整流结果:', response.data);
       return response.data;
     },
 
@@ -113,7 +113,7 @@ export const TaskSteamingApi = {
 
       const { onMessage, onError, onComplete } = callbacks;
       
-      console.log('🔄 开始获取流式数据:', { projectId, stageType, streamId });
+      console.log('🔄 streamingApi-fetchStreamChunks 开始获取流式数据:', { projectId, stageType, taskType, streamId });
       
       // Create AbortController to allow cancellation
       // AbortController 是一个浏览器API，允许我们在请求进行时取消请求。 

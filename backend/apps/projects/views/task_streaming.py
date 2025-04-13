@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from django.http import StreamingHttpResponse
 from ..models import Task, TaskType, TaskStatus
 from ..utils.redis_manager import RedisManager
-from ..tasks import process_outline_analysis_streaming
+from ..tasks import process_task_analysis_streaming
 from drf_spectacular.utils import extend_schema, OpenApiTypes, OpenApiParameter
 import logging
 import time
@@ -31,8 +31,8 @@ class StreamingViewMixin:
     def start_stream(self, request, project_pk=None, stage_pk=None, pk=None):
         """
         启动流式任务
+        (完成检查~)
         """
-
         # 传参 project_pk = None, stage_pk = None, pk = None, stream_id = None 设定了默认值。
         # 而实际project_pk, stage_pk, pk的值会由DRF通过嵌套参数提取，而stream_id的值会由上面的url_path中提取。
         # 如果自动提取的内容不存在，由于有默认的None值，不会报错。 
@@ -43,6 +43,7 @@ class StreamingViewMixin:
         
         # 文档提取任务是否完成
         if not can_process_task(task):
+
             return Response(
                 {"detail": "任务依赖未完成，无法进行当前任务"},
                 status=status.HTTP_400_BAD_REQUEST
@@ -55,8 +56,8 @@ class StreamingViewMixin:
         # 调用Celery任务的.delay()方法，Celery会创建一个实例并分配一个UUID， 返回一个AsyncResult对象（因为用了.delay()方法）。
         # 而process_outline_analysis_streaming函数本身我们看到return stream_id，但因为ignore_result=True，所以不会返回。
         # 
-        print(f"启动大纲分析任务: project_id={project.id}")
-        celery_task = process_outline_analysis_streaming.delay(project.id)
+        print(f"启动{task.type}任务: project_id={project.id}")
+        celery_task = process_task_analysis_streaming.delay(project.id, stage.stage_type, task.type)
         celery_task_id = celery_task.id
         
         # 返回任务信息
@@ -65,7 +66,8 @@ class StreamingViewMixin:
             'task_name': task.get_type_display(),
             'stream_id': celery_task_id,  # 用于获取流式输出的ID (与Celery任务ID相同)
             'status': task.status,
-            'message': '任务已启动'
+            'message': '任务已启动',
+            'dependent_task': [dep.get_type_display() for dep in task.dependencies.all()]
         })
     
     @extend_schema(
@@ -84,7 +86,8 @@ class StreamingViewMixin:
     @action(detail=True, methods=['GET'], url_path='stream-status/(?P<stream_id>[^/.]+)')
     def get_stream_status(self, request, project_pk=None, stage_pk=None, pk=None, stream_id=None):
         """
-        获取大纲分析任务状态 
+        获取任务分析状态 
+        (完成检查~)
         """
         # 在以下的使用过程中，我实际只使用到了stream_id， UUID能保障唯一性，也与RedisManager使用stream_id为键一致。
 
@@ -122,17 +125,12 @@ class StreamingViewMixin:
     @action(detail=True, methods=['GET'], url_path='stream-chunks/(?P<stream_id>[^/.]+)')
     def get_stream_chunks(self, request, project_pk=None, stage_pk=None, pk=None, stream_id=None):
         """
-        流式获取大纲分析结果
-        
-        Args:
-            request: HTTP请求
-            project_pk: 项目ID
-            pk: 阶段ID
-            stream_id: 流ID
-            
-        Returns:
-            StreamingHttpResponse: 流式响应
+        流式获取流内容
+        (完成检查~)
         """
+
+        # 在以下的使用过程中，我实际只使用到了stream_id， UUID能保障唯一性，也与RedisManager使用stream_id为键一致。
+
         if not stream_id:
             return Response(
                 {"detail": "缺少流ID参数"},
@@ -177,17 +175,11 @@ class StreamingViewMixin:
     @action(detail=True, methods=['GET'], url_path='stream-result/(?P<stream_id>[^/.]+)')
     def get_stream_result(self, request, project_pk=None, stage_pk=None, pk=None, stream_id=None):
         """
-        获取完整的大纲分析结果
-        
-        Args:
-            request: HTTP请求
-            project_pk: 项目ID
-            pk: 阶段ID
-            stream_id: 流ID
-            
-        Returns:
-            Response: 包含完整分析结果的响应
+        获取完整分析结果
+        (完成检查~)
         """
+        # 在以下的使用过程中，我实际只使用到了stream_id， UUID能保障唯一性，也与RedisManager使用stream_id为键一致。
+
         if not stream_id:
             return Response(
                 {"detail": "缺少流ID参数"},

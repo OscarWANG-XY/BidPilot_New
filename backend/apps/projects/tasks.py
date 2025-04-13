@@ -141,11 +141,11 @@ def process_outline_analysis_streaming(self, project_id, stream_id=None):
 
 # 以下为测试中的任务.... 
 @shared_task(bind=True, ignore_result=True)
-def process_task_analysis_streaming(self, project_id, stage_type, task_type, stream_id=None):
+def process_task_analysis_streaming(self, project_id=None, stage_type=None, task_type=None, stream_id=None):
     """
     流式处理任务分析
-    
     这是一个同步函数，内部使用事件循环来执行异步代码
+    注意：celery的参数必须是可序列化的，不能传递Project, Stage, Task对象进来，只能传递id. 
     """
     
     
@@ -159,19 +159,20 @@ def process_task_analysis_streaming(self, project_id, stage_type, task_type, str
 
         task = Task.objects.get(
             stage__project=project,
-            stage__type=stage_type,
             type=task_type
         )
         
-        print(f"outline_task.status: {outline_task.status}")
+        print(f"outline_task.status: {task.status}")
         if task.status != TaskStatus.PROCESSING:
             print(f"任务分析未启用，无法启动分析")
             #logger.error(f"任务分析未启用，无法启动分析")
             return 
 
 
+
+        analyzer = DocxOutlineAnalyzerStep(project)
         # 初始化分析器 （TODO:需要替换为general的分析器）
-        analyzer = LLMTaskAnalysisStep(project)
+        #analyzer = LLMTaskAnalysisStep(project)
 
         # 初始化Redis管理器
         redis_manager = RedisManager()
@@ -187,7 +188,7 @@ def process_task_analysis_streaming(self, project_id, stage_type, task_type, str
                 "celery_task_id": self.request.id,
                 "project_id": str(project_id),
                 "stage_type": str(stage_type),
-                "task_type": str(task.type)
+                "task_type": str(task_type)
             }
         )
         
@@ -195,43 +196,42 @@ def process_task_analysis_streaming(self, project_id, stage_type, task_type, str
         redis_manager.add_stream_chunk(stream_id, "正在准备分析文档大纲...\n")
 
         # 执行流式分析 
-        # asyncio.run(analyzer.process_streaming(stream_id))
+        asyncio.run(analyzer.process_streaming(stream_id))
         
 
-        # 初始化LLM服务
-        from apps._tools.LLM_services._llm_data_types import LLMConfig
-        from apps._tools.LLM_services.llm_service import LLMService
-        llm_service = LLMService(
-            config=self.llm_config,
-            prompt_template=self.prompt_template,
-            output_format=self.output_format
-        )
+        # # 初始化LLM服务
+        # from apps._tools.LLM_services._llm_data_types import LLMConfig
+        # from apps._tools.LLM_services.llm_service import LLMService
+        # llm_service = LLMService(
+        #     config=self.llm_config,
+        #     prompt_template=self.prompt_template,
+        #     output_format=self.output_format
+        # )
         
-        # 准备元数据
-        metadata = {
-            "model": self.llm_config.llm_model_name,
-            "index_path_map": self.index_path_map
-        }
+        # # 准备元数据
+        # metadata = {
+        #     "model": self.llm_config.llm_model_name,
+        #     "index_path_map": self.index_path_map
+        # }
         
-        # 执行流式分析
-        # 返回的是ID，不是分析的内容，因为内容直接存储在Redis中.
-        asyncio.run(
-            llm_service.analyze_streaming(
-                data_input=self.data_input,
-                stream_id = stream_id,
-                metadata=metadata
-            )
-        )
+        # # 执行流式分析
+        # # 返回的是ID，不是分析的内容，因为内容直接存储在Redis中.
+        # asyncio.run(
+        #     llm_service.analyze_streaming(
+        #         data_input=self.data_input,
+        #         stream_id = stream_id,
+        #         metadata=metadata
+        #     )
+        # )
 
 
 
 
 
-        outline_task.status = TaskStatus.COMPLETED
-        outline_task.save()
+        # task.status = TaskStatus.COMPLETED
+        # task.save()
         
-        print(f"流式文档大纲分析完成: project_id={project_id}, stream_id={stream_id}")
-        
+        print(f"流式文档大纲分析完成: project_id={project_id},stage_type={stage_type}, task_type={task_type}, stream_id={stream_id}")
         return stream_id
         
     except Exception as e:
@@ -239,12 +239,12 @@ def process_task_analysis_streaming(self, project_id, stage_type, task_type, str
         
         # 更新任务状态
         try:
-            outline_task = Task.objects.get(
+            task = Task.objects.get(
                 stage__project_id=project_id,
-                type=TaskType.OUTLINE_ANALYSIS_TASK
+                type=task_type  # 使用传入的task_type参数
             )
-            outline_task.status = TaskStatus.FAILED
-            outline_task.save()
+            task.status = TaskStatus.FAILED
+            task.save()
         except Exception as inner_e:
             print(f"更新任务状态失败: {str(inner_e)}")
             #logger.error(f"更新任务状态失败: {str(inner_e)}")
