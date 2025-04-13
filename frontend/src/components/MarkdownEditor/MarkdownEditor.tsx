@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import MarkdownIt from 'markdown-it';
 import TextareaAutosize from 'react-textarea-autosize';
-
+// import { preprocessMarkdown } from './preprocess_tool';
 // 定义组件接收的 props 类型
 interface MarkdownEditorProps {
   content: string;                         // 初始内容
@@ -53,6 +53,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   // 如果外部传入的 content 变化，则更新 markdown 内容（适用于流式输出或外部修改）
   useEffect(() => {
     if (isStreaming || content !== markdown) {
+      // setMarkdown(preprocessMarkdown(content));
       setMarkdown(content);
     }
   }, [content, isStreaming, markdown]);
@@ -64,6 +65,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     // 如果预览区的DOM元素已经挂载，并且处于 非编辑 状态 （即预览状态）
     if (previewRef.current && !isEditing) {
       // 使用 markdown-it 渲染 HTML  (渲染在这里发生)
+      console.log("Editor 渲染前的 markdown:", markdown);
       previewRef.current.innerHTML = md.current.render(markdown);
 
       // 以上的渲染，在代码上会像如下：

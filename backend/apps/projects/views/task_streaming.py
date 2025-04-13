@@ -148,6 +148,8 @@ class StreamingViewMixin:
                 status=status.HTTP_404_NOT_FOUND
             )
         
+        
+
         # 设置响应头
         response = StreamingHttpResponse(
             streaming_content=redis_manager.stream_chunks_generator(stream_id),
@@ -189,6 +191,8 @@ class StreamingViewMixin:
         # 获取所有块
         redis_manager = RedisManager()
         chunks = redis_manager.get_stream_chunks(stream_id)
+
+        print(f"Redis输出的 流式数据块（完整内容）: {chunks}")
         
         if not chunks:
             return Response(

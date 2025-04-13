@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MarkdownEditor from './MarkdownEditor';
 import testData from './MD_testData';
 
@@ -35,6 +35,10 @@ const MarkdownEditorTest: React.FC = () => {
       }
     }, 30); // 每30毫秒添加一个字符
   };
+
+  useEffect(() => {
+    console.log("状态更新后的streamContent:", streamContent);
+  }, [streamContent]);
 
   return (
     <div className="container mx-auto p-6">

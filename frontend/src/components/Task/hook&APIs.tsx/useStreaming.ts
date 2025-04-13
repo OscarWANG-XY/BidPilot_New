@@ -286,7 +286,8 @@ export const useStream = (projectId: string, stageType: StageType, taskType: Tas
         streamId,
         {
           onMessage: (data) => {
-            console.log('📥  收到流式数据:', data);
+            console.log('📥  收到流式数据（原始）:', JSON.stringify(data));
+            console.log('📥  收到流式数据（显示）:', data);
             batchContentUpdate(data); // 当定时器被触发时，将缓存的数据通过flushContentBuffer一次性倒出给reducer
           },
           onError: (error) => {

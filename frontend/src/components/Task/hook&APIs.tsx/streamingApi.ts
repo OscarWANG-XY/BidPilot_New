@@ -162,39 +162,32 @@ export const TaskSteamingApi = {
           // 将数据块（Uint8Array类型）解码为文本 
           const chunk = new TextDecoder().decode(value);
           console.log('接收到原始数据块:', chunk);
+          console.log('接收到原始数据块(字节长度):', chunk.length);
+          console.log('接收到原始数据块(转义显示):', JSON.stringify(chunk));
           
-          // 将数据块按双换行符分割成多个消息
-          const messages = chunk.split('\n\n').filter(msg => msg.trim());
-          console.log('解析后的消息数量:', messages.length);
+          // 检查是否包含特殊事件
+          if (chunk.includes('event: error')) {
+            const errorMatch = chunk.match(/event: error\s*\ndata: (.*)/);
+            const errorData = errorMatch?.[1] || 'Unknown error';
+            console.error('❌ 流式数据错误:', errorData);
+            onError(errorData);
+            return reader.read().then(processStream);
+          }
           
-          for (const message of messages) {
-            // Skip empty messages
-            if (!message.trim()) continue;
-            
-            console.log('处理消息:', message);
-            
-            // 检查是否为特殊事件类型（错误，完成）
-            if (message.startsWith('event: error')) {
-              const errorData = message.match(/data: (.*)/)?.[1] || 'Unknown error';
-              console.error('❌ 流式数据错误:', errorData);
-              onError(errorData);
-              continue;
-            }
-            
-            if (message.startsWith('event: done')) {
-              console.log('✅ 流式数据传输完成');
-              onComplete();
-              continue;
-            }
-            
-            // Regular data message
-            const dataMatch = message.match(/data: (.*)/);
-            if (dataMatch && dataMatch[1]) {
-              console.log('提取的数据:', dataMatch[1]);
-              onMessage(dataMatch[1]);
-            } else {
-              console.log('无法从消息中提取数据');
-            }
+          if (chunk.includes('event: done')) {
+            console.log('✅ 流式数据传输完成');
+            onComplete();
+            return reader.read().then(processStream);
+          }
+          
+          // 处理常规数据，保留原始格式
+          // 我们发现，在SSE传输到前端API的过程中，chunk的内容会多出两个换行符，因此以下需要.replace(/\n\n$/, '')
+          const content = chunk.replace(/^data: /gm, '').replace(/\n\n$/, '');
+          if (content.trim()) {
+            console.log('提取的数据(完整内容):', content);
+            console.log('提取的数据(字节长度):', content.length);
+            console.log('提取的数据(转义显示):', JSON.stringify(content));
+            onMessage(content);
           }
           
           // 递归读取流数据，不断解析新数据直到流结束
