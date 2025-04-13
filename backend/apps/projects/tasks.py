@@ -148,7 +148,6 @@ def process_task_analysis_streaming(self, project_id=None, stage_type=None, task
     注意：celery的参数必须是可序列化的，不能传递Project, Stage, Task对象进来，只能传递id. 
     """
     
-    
     try:
         # 记录任务开始
         print(f"开始流式处理任务分析: project_id={project_id}, stage_type={stage_type}, task_type={task_type}, celery_task_id={self.request.id}")
@@ -177,8 +176,7 @@ def process_task_analysis_streaming(self, project_id=None, stage_type=None, task
         # 初始化Redis管理器
         redis_manager = RedisManager()
         stream_id = self.request.id   # 使用Celery任务的ID作为stream_id
-        print(f"在Celery任务中，有通过Context取得stream_id么: {stream_id}")
-        print(f"尝试另一种写法: {self.request.id}")
+
             
         # 记录Celery任务ID与Redis任务ID的映射关系
         redis_manager.update_stream_status(
@@ -197,7 +195,53 @@ def process_task_analysis_streaming(self, project_id=None, stage_type=None, task
 
         # 执行流式分析 
         asyncio.run(analyzer.process_streaming(stream_id))
+
+
+        # 获取流式完整结果， get_stream_result() 默认的start=0, end=-1, 表示从头到尾的完整内容。 
+        chunks = redis_manager.get_stream_chunks(stream_id)
+        # 过滤掉特殊标记块
+        content_chunks = [
+            chunk for chunk in chunks 
+            if chunk.get('content') != 'DONE' and not chunk.get('content', '').startswith('ERROR:')
+        ]
+        # 合并内容
+        full_content = ''.join([chunk.get('content', '') for chunk in content_chunks])
+
+        # 使用docx_to_tiptap_json函数提取文档元素   - Approach 2 (微服务版本)
+        from apps.projects.tiptap import TiptapClient
+        tiptap_client = TiptapClient()
+        tiptap_content = tiptap_client.markdown_to_json(full_content)
+
+        # 更新任务结果
+        task.final_result = tiptap_content
+        task.save()
+
+
+        print(f"流式分析的最终结果: {full_content}")
+        print(f"流式文档大纲分析完成: project_id={project_id},stage_type={stage_type}, task_type={task_type}, stream_id={stream_id}")
         
+        return stream_id
+        
+    except Exception as e:
+        print(f"流式文档大纲分析失败: {str(e)}, project_id={project_id}")
+        
+        # 更新任务状态
+        try:
+            task = Task.objects.get(
+                stage__project_id=project_id,
+                type=task_type  # 使用传入的task_type参数
+            )
+            task.status = TaskStatus.FAILED
+            task.save()
+        except Exception as inner_e:
+            print(f"更新任务状态失败: {str(inner_e)}")
+            #logger.error(f"更新任务状态失败: {str(inner_e)}")
+        if stream_id:
+            redis_manager.mark_stream_failed(stream_id, str(e))
+        
+        # 重新引发异常以便Celery可以记录
+        raise
+
 
         # # 初始化LLM服务
         # from apps._tools.LLM_services._llm_data_types import LLMConfig
@@ -223,33 +267,3 @@ def process_task_analysis_streaming(self, project_id=None, stage_type=None, task
         #         metadata=metadata
         #     )
         # )
-
-
-
-
-
-        # task.status = TaskStatus.COMPLETED
-        # task.save()
-        
-        print(f"流式文档大纲分析完成: project_id={project_id},stage_type={stage_type}, task_type={task_type}, stream_id={stream_id}")
-        return stream_id
-        
-    except Exception as e:
-        print(f"流式文档大纲分析失败: {str(e)}, project_id={project_id}")
-        
-        # 更新任务状态
-        try:
-            task = Task.objects.get(
-                stage__project_id=project_id,
-                type=task_type  # 使用传入的task_type参数
-            )
-            task.status = TaskStatus.FAILED
-            task.save()
-        except Exception as inner_e:
-            print(f"更新任务状态失败: {str(inner_e)}")
-            #logger.error(f"更新任务状态失败: {str(inner_e)}")
-        if stream_id:
-            redis_manager.mark_stream_failed(stream_id, str(e))
-        
-        # 重新引发异常以便Celery可以记录
-        raise

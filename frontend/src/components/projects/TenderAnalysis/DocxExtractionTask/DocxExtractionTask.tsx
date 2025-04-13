@@ -77,7 +77,7 @@ export const DocxExtractionTask: React.FC<DocxExtractionTaskProps> = ({
       
       if (taskData.docxTiptap) {
         // 将tiptapContent转换为JSON字符串
-        setEditorContent(JSON.stringify(taskData.docxTiptap));
+        setEditorContent(taskData.docxTiptap);
         
         // 如果有内容且状态为COMPLETED，确保进度为100%
         if (taskData.status === TaskStatus.COMPLETED) {
@@ -99,7 +99,7 @@ export const DocxExtractionTask: React.FC<DocxExtractionTaskProps> = ({
       
       // 如果状态从ACTIVE变为COMPLETED，并且有内容，则更新编辑器内容
       if (pollTaskData.status === TaskStatus.COMPLETED && pollTaskData.docxTiptap) {
-        setEditorContent(JSON.stringify(pollTaskData.docxTiptap));
+        setEditorContent(pollTaskData.docxTiptap);
         
         // 提取完成通知
         if (isExtracting) {
@@ -203,7 +203,7 @@ export const DocxExtractionTask: React.FC<DocxExtractionTaskProps> = ({
   };
   
   // 处理编辑器内容变化 (将内容设置到本地状态, 不连接后端)
-  const handleEditorContentChange = (content: string) => {
+  const handleEditorContentChange = (content: any) => {
     setEditorContent(content);
   }
 
@@ -214,7 +214,7 @@ export const DocxExtractionTask: React.FC<DocxExtractionTaskProps> = ({
       await DocxExtractionUpdate({
         projectId,
         stageType: StageType.TENDER_ANALYSIS,
-        docxTiptap: JSON.parse(editorContent)  //与上面加载的tiptapContent的JSON.stringify正好相反
+        docxTiptap: editorContent  //与上面加载的tiptapContent的JSON.stringify正好相反
       })
       
       toast({
@@ -242,7 +242,7 @@ export const DocxExtractionTask: React.FC<DocxExtractionTaskProps> = ({
       await DocxExtractionUpdate({
         projectId,
         stageType: StageType.TENDER_ANALYSIS,
-        docxTiptap: JSON.parse(editorContent),
+        docxTiptap: editorContent,
         status: TaskStatus.COMPLETED,
         lockStatus: TaskLockStatus.LOCKED,
       });

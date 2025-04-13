@@ -166,7 +166,7 @@ const generateSlug = (text: string): string => {
 // ------------     组件接口定义 + 组件实现 ------------
 type TiptapEditorProps = {
   initialContent?: string;          // 初始内容
-  onChange?: (content: string) => void;  // 内容变化回调
+  onChange?: (content: any) => void;  // 内容变化回调
   maxHeight?: number | string;               // 编辑器最大高度
   minHeight?: number | string;               // 编辑器最小高度
   maxWidth?: number | string;       // 编辑器最大宽度
@@ -321,10 +321,10 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
               .replace(/False/g, 'false');
             
             // console.log('Converted to JSON string:', jsonString);
-            return JSON.parse(jsonString);
+            return jsonString;
           } else {
             // 常规JSON字符串
-            return JSON.parse(initialContent);
+            return initialContent;
           }
         }
         return '';
@@ -340,7 +340,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
       
       // 如果提供了onChange回调，传递编辑器内容
       if (onChange) {
-        onChange(JSON.stringify(editor.getJSON()));
+        onChange(editor.getJSON());
       }
     },
   });
@@ -381,10 +381,10 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
               .replace(/False/g, 'false');
             
             // console.log('Converted to JSON string:', jsonString);
-            parsedContent = JSON.parse(jsonString);
+            parsedContent = jsonString;
           } else {
             // 常规JSON字符串
-            parsedContent = JSON.parse(initialContent);
+            parsedContent = initialContent;
           }
         }
         

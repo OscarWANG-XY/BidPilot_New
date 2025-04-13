@@ -190,6 +190,8 @@ class StreamingViewMixin:
         
         # 获取所有块
         redis_manager = RedisManager()
+
+        # 获取流式完整结果， get_stream_result() 默认的start=0, end=-1, 表示从头到尾的完整内容。 
         chunks = redis_manager.get_stream_chunks(stream_id)
 
         print(f"Redis输出的 流式数据块（完整内容）: {chunks}")
