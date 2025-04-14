@@ -239,6 +239,11 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
         }
     };
 
+    const handleConfirmedReview = async () => {
+        await acceptResult();
+    };
+
+
     // ------------ 处理 COMPLETED 状态 ------------
     // 重置任务
     const handleResetTask = async () => {
@@ -432,6 +437,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
                     onEditingResultChange={setEditingResult}
                     onCancelEditing={handleCancelResultEditing}
                     onSaveEditedResult={handleSaveEditedResult}
+                    onCompleteReview={handleConfirmedReview}
                 />
                 );
 
@@ -491,7 +497,7 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
           )}
 
           {/* 当任务已经完成分析时，显示配置信息预览 */}
-          {!isEnabled && taskData && taskData.status !== TaskStatus.FAILED &&
+          {isEnabled && taskData && taskData.status !== TaskStatus.FAILED &&
             taskData.status !== TaskStatus.CONFIGURING && 
             taskData.status !== TaskStatus.NOT_STARTED && 
             taskData.status !== TaskStatus.PROCESSING && 

@@ -11,6 +11,7 @@ interface ReviewPanelProps {
   onEditingResultChange: (value: string) => void;
   onCancelEditing: () => void;
   onSaveEditedResult: () => Promise<void>;
+  onCompleteReview?: () => void;
 }
 
 const ReviewPanel: React.FC<ReviewPanelProps> = ({
@@ -21,7 +22,8 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({
   onStartEditing,
   onEditingResultChange,
   onCancelEditing,
-  onSaveEditedResult
+  onSaveEditedResult,
+  onCompleteReview
 }) => {
   return (
     <div className="p-4 space-y-4">
@@ -45,12 +47,24 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({
               </Button>
             </>
           ) : (
-            <Button 
-              onClick={onStartEditing}
-              disabled={isUpdating}
-            >
-              开始编辑
-            </Button>
+            <>
+              <Button 
+                onClick={onStartEditing}
+                disabled={isUpdating}
+              >
+                开始编辑
+              </Button>
+              {onCompleteReview && (
+                <Button 
+                  variant="default"
+                  onClick={onCompleteReview}
+                  disabled={isUpdating}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  完成审核
+                </Button>
+              )}
+            </>
           )}
         </div>
       </div>
