@@ -208,12 +208,13 @@ def process_task_analysis_streaming(self, project_id=None, stage_type=None, task
         full_content = ''.join([chunk.get('content', '') for chunk in content_chunks])
 
         # 使用docx_to_tiptap_json函数提取文档元素   - Approach 2 (微服务版本)
+        # 提取的tiptap_content 是微服务返回的response，包含data, metadata, 和sucess; 我们需要通过data来更新task.final_result
         from apps.projects.tiptap import TiptapClient
         tiptap_client = TiptapClient()
         tiptap_content = tiptap_client.markdown_to_json(full_content)
 
         # 更新任务结果
-        task.final_result = tiptap_content
+        task.final_result = tiptap_content['data']
         task.save()
 
 
