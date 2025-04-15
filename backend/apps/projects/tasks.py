@@ -4,7 +4,8 @@ from apps.projects.models import Project, Task, TaskType, TaskStatus
 from apps.projects.services._01_extract_tiptap_docx import DocxExtractorStep
 from apps.projects.services._02_outline_analysis import DocxOutlineAnalyzerStep  
 from apps.projects.utils.redis_manager import RedisManager, RedisStreamStatus
-from apps.projects.services.llm_task_analysis import LLMTaskAnalysisStep  # 测试中...
+from apps.projects.services.LLM_server.LLM_task_container import LLMService  # 测试中...
+from apps.projects.services.tasks_preparation.outline_analysis import OutlineAnalysis  # 测试中...
 
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,10 @@ def process_docx_extraction(project_id: int):
             import json
             docx_extraction_task.docx_tiptap = tiptap_content
             docx_extraction_task.save()
+
+            # 更新项目中的tender_docx_tiptap字段
+            project.tender_docx_tiptap = tiptap_content
+            project.save()
         
         # 更新任务状态为完成
         # docx_extraction_task.status = TaskStatus.COMPLETED
@@ -168,15 +173,13 @@ def process_task_analysis_streaming(self, project_id=None, stage_type=None, task
             return 
 
 
-
-        analyzer = DocxOutlineAnalyzerStep(project)
-        # 初始化分析器 （TODO:需要替换为general的分析器）
-        #analyzer = LLMTaskAnalysisStep(project)
+        # 任务前准备（初始化context, instruction, supplement, output_format, prompt_template, llm_config, index_path_map）
+        # OutlineAnalysis(project_id).prepare_for_task()
+        
 
         # 初始化Redis管理器
         redis_manager = RedisManager()
         stream_id = self.request.id   # 使用Celery任务的ID作为stream_id
-
             
         # 记录Celery任务ID与Redis任务ID的映射关系
         redis_manager.update_stream_status(
@@ -193,8 +196,14 @@ def process_task_analysis_streaming(self, project_id=None, stage_type=None, task
         # 添加初始内容块，确保流内容键存在
         redis_manager.add_stream_chunk(stream_id, "正在准备分析文档大纲...\n")
 
+
+        analyzer = DocxOutlineAnalyzerStep(project)
+        # 初始化分析器 （TODO:需要替换为general的分析器）
+        #analyzer = LLMService(project_id, stage_type, task_type, stream_id)
+
         # 执行流式分析 
         asyncio.run(analyzer.process_streaming(stream_id))
+        #asyncio.run(analyzer.processing())
 
 
         # 获取流式完整结果， get_stream_result() 默认的start=0, end=-1, 表示从头到尾的完整内容。 
