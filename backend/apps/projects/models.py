@@ -101,6 +101,12 @@ class Project(models.Model):
     )
     create_time = models.DateTimeField('创建时间', auto_now_add=True)
     last_update_time = models.DateTimeField('最后更新时间', auto_now=True)
+    tender_file_extraction = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='招标文件提取的内容',
+        help_text='存储招标文件提取的内容'
+    )
 
     class Meta:
         verbose_name = '项目'
@@ -135,14 +141,6 @@ class ProjectStage(models.Model):
 
     description = models.TextField('描述', blank=True)
 
-    # 用于项目全局使用
-    tender_file_extration = models.JSONField(
-        null=True,
-        blank=True,
-        verbose_name='招标文件提取的内容',
-        help_text='存储招标文件提取的内容'
-    )
-
     # 可选字段，根据不同阶段类型可能存在
     progress = models.IntegerField('进度', default=0)
     created_at = models.DateTimeField('创建时间', auto_now_add=True)
@@ -161,7 +159,6 @@ class ProjectStage(models.Model):
     
     def __str__(self):
         return f"{self.project.id} - {self.name}"
-
 
 
 # 统一的任务模型，替代原来的基于抽象类的多个任务模型
@@ -198,7 +195,6 @@ class Task(models.Model):
     )
     
      ######TODO 待将tiptap_content改为 docx_content, 移到ProjectStage里。 
-    # 添加特定任务类型的字段，用于存储文档提取任务的内容
     
 
 
@@ -221,6 +217,15 @@ class Task(models.Model):
 
     context_description = models.TextField('上下文描述', blank=True)
 
+    context_tokens = models.IntegerField(             # Type_TaskDetail
+        null=True,
+        blank=True,
+        verbose_name='上下文token',
+        help_text='存储上下文token'
+    )
+
+
+    # 用于存储 大模型分析的 指令
     instruction = models.JSONField(             # Type_TaskDetail
         null=True,
         blank=True,
@@ -230,21 +235,115 @@ class Task(models.Model):
 
     instruction_description = models.TextField('指令描述', blank = True)
 
+    instruction_tokens = models.IntegerField(             # Type_TaskDetail
+        null=True,
+        blank=True,
+        verbose_name='指令token',
+        help_text='存储指令token'
+    )
+
+
+    # 用于存储 大模型分析的 补充信息    
     supplement = models.JSONField(             # Type_TaskDetail
         null=True,
         blank=True,
         verbose_name='补充信息',
         help_text='存储补充信息'
     )
-    
+
     supplement_description = models.TextField('补充描述', blank=True)
 
+    supplement_tokens = models.IntegerField(             # Type_TaskDetail
+        null=True,
+        blank=True,
+        verbose_name='补充token',
+        help_text='存储补充token'
+    )
+
+
+    # 用于存储 大模型分析的 输出格式
+    output_format = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='输出格式',
+        help_text='存储输出格式'
+    )
+
+    output_format_description = models.TextField('输出格式描述', blank=True)
+
+    output_format_tokens = models.IntegerField(             # Type_TaskDetail
+        null=True,
+        blank=True,
+        verbose_name='输出格式token',
+        help_text='存储输出格式token'
+    )
+
+
+    # 用于存储 大模型分析的 prompt 模板
+    prompt_template = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='prompt模板',
+        help_text='存储prompt模板'
+    )
+
+    prompt_template_description = models.TextField('prompt模板描述', blank=True)
+
+    prompt_template_tokens = models.IntegerField(             # Type_TaskDetail
+        null=True,
+        blank=True,
+        verbose_name='prompt模板token',
+        help_text='存储prompt模板token'
+    )
+
+
+
+    # 用于存储 大模型分析的 索引路径映射
+    index_path_map = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='索引路径映射',
+        help_text='存储索引路径映射'
+    )
+
+    index_path_map_description = models.TextField('索引路径映射描述', blank=True)
+
+    # 用于存储 大模型分析的 的模型配置
+    llm_config = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='模型配置',
+        help_text='存储模型配置'
+    )
+
+    llm_config_description = models.TextField('模型配置描述', blank=True)
+
+
+    # 用于存储 大模型分析的 结果原始数据
+    result_raw = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='结果原始数据',
+        help_text='存储结果原始数据'
+    )
+
+    out_tokens = models.IntegerField(             # Type_TaskDetail
+        null=True,
+        blank=True,
+        verbose_name='输出token',
+        help_text='存储输出token'
+    )
+    
+
+    # 用于存储 大模型分析的 审核过的 最终结果
     final_result = models.JSONField(             # Type_TaskDetail
         null=True,
         blank=True,
         verbose_name='最终结果',
         help_text='存储最终结果'
     )
+
+    final_result_description = models.TextField('最终结果描述', blank=True)
 
 
 
@@ -320,47 +419,8 @@ class Task(models.Model):
         help_text='存储补充输入'
     )
 
-    # 用于存储 大模型分析的 输出格式
-    output_format = models.JSONField(
-        null=True,
-        blank=True,
-        verbose_name='输出格式',
-        help_text='存储输出格式'
-    )
 
-    # 用于存储 大模型分析的 prompt 模板
-    prompt_template = models.JSONField(
-        null=True,
-        blank=True,
-        verbose_name='prompt模板',
-        help_text='存储prompt模板'
-    )
-
-    # 用于存储 大模型分析的 索引路径映射
-    index_path_map = models.JSONField(
-        null=True,
-        blank=True,
-        verbose_name='索引路径映射',
-        help_text='存储索引路径映射'
-    )
     
-
-    # 用于存储 大模型分析的 的模型配置
-    llm_config = models.JSONField(
-        null=True,
-        blank=True,
-        verbose_name='模型配置',
-        help_text='存储模型配置'
-    )
-
-    # 用于存储 大模型分析的 结果原始数据
-    result_raw = models.JSONField(
-        null=True,
-        blank=True,
-        verbose_name='结果原始数据',
-        help_text='存储结果原始数据'
-    )
-
     # 用于存储 大模型分析的 结果的 Tiptap JSON
     result_Tiptapjson = models.JSONField(
         null=True,
