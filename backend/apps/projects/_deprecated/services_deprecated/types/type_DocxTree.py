@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
-from apps.projects.services.types.base_TypesAndHelpers import ModelData, count_tokens
+from apps.projects._deprecated.services_deprecated.types.base_TypesAndHelpers import ModelData, count_tokens
 from apps.projects.models import Project
 from datetime import datetime
 
@@ -86,7 +86,7 @@ class DocxTree:
     @classmethod
     def from_model(cls, data: Dict) -> 'DocxTree':
         """从字典创建DocTree实例"""
-        from ..models import DocumentAnalysis
+        from apps.projects.models import DocumentAnalysis
         
         # 创建树实例
         tree = cls(

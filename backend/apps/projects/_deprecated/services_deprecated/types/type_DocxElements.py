@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Dict, Optional
 from apps.projects.models import Project
-from apps.projects.services.types.base_TypesAndHelpers import ModelData
+from apps.projects._deprecated.services_deprecated.types.base_TypesAndHelpers import ModelData
 
 
 # _01_extrac_docx_elements的输出，数据存储在模型DocumentAnalysis的extracted_elements字段
