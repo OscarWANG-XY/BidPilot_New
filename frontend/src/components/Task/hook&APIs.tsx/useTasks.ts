@@ -44,26 +44,26 @@ export const useTasks = (
     mutationFn: async ({
       status,
       context,
-      prompt,
-      relatedCompanyInfo,
+      instruction,
+      supplement,
       finalResult
     }: {
       status?: TaskStatus;
-      context?: string;
-      prompt?: string;
-      relatedCompanyInfo?: string;
-      finalResult?: string;
+      context?: any;
+      instruction?: any;
+      supplement?: any;
+      finalResult?: any;
     }) => {
       const taskData: Partial<Type_TaskUpdate> = {status};
       
       if (context !== undefined) {
         taskData.context = typeof context === 'string' ? context : JSON.stringify(context);
       }
-      if (prompt !== undefined) {
-        taskData.prompt = typeof prompt === 'string' ? prompt : JSON.stringify(prompt);
+      if (instruction !== undefined) {
+        taskData.instruction = typeof instruction === 'string' ? instruction : JSON.stringify(instruction);
       }
-      if (relatedCompanyInfo !== undefined) {
-        taskData.relatedCompanyInfo = typeof relatedCompanyInfo === 'string' ? relatedCompanyInfo : JSON.stringify(relatedCompanyInfo);
+      if (supplement !== undefined) {
+        taskData.supplement = typeof supplement === 'string' ? supplement : JSON.stringify(supplement);
       }
       if (finalResult !== undefined) {
         taskData.finalResult = typeof finalResult === 'string' ? finalResult : JSON.stringify(finalResult);
@@ -91,14 +91,14 @@ export const useTasks = (
 
   // 保存当前配置
   const saveConfig = useCallback((
-    context: string,
-    prompt: string,
-    relatedCompanyInfo: any,
+    context: any,
+    instruction: any,
+    supplement: any,
   ) => {
     return TaskApi.saveConfig(projectId, stageType, taskType, {
       context,
-      prompt,
-      relatedCompanyInfo
+      instruction,
+      supplement
     }).then(() => {
       queryClient.invalidateQueries({
         queryKey: ['tasks', projectId, stageType, taskType]

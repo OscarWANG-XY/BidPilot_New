@@ -26,13 +26,13 @@ export interface Type_TaskDetail {
   type: TaskType;              
   status: TaskStatus;
   // 配置数据       
-  context?: string;            
-  prompt?: string;             
-  relatedCompanyInfo?: string;        
+  context?: any;            
+  instruction?: any;             
+  supplement?: any;        
   // 结果数据
   //streamingResult?: string;   //只读    
   //originalResult?: string;    不再增加originalResult, 结果的编辑直接在finalResult中进行。 
-  finalResult?: string;
+  finalResult?: any;
   // 统计数据
   taskStartedAt?: string;      //只读
   taskCompletedAt?: string;    //只读
@@ -47,10 +47,10 @@ export interface Type_TaskDetail {
 export interface Type_TaskUpdate {         
   status: TaskStatus;          
   //docxTiptap?: string;         
-  context?: string;            
-  prompt?: string;             
-  relatedCompanyInfo?: string;         
-  finalResult?: string;
+  context?: any;            
+  instruction?: any;             
+  supplement?: any;         
+  finalResult?: any;
 }
   
 
@@ -105,7 +105,7 @@ export const TaskApi = {
       projectId: string, 
       stageType: StageType, 
       taskType: TaskType,
-      taskData: Partial<Type_TaskUpdate>  //在useTasks中，传入了匿名对象 {context, prompt, relatedCompanyInfo}， 这是通过位置与taskData匹配上的。 
+      taskData: Partial<Type_TaskUpdate>  //在useTasks中，传入了匿名对象 {context, instruction, supplement}， 这是通过位置与taskData匹配上的。 
   ): Promise<Type_TaskDetail> => {
       const response = await axiosInstance.patch(`/projects/${projectId}/stages/${stageType}/tasks/${taskType}/save_config/`, taskData);
       console.log('📥 TaskApi-saveConfig 保存配置成功:', response.data);

@@ -135,6 +135,14 @@ class ProjectStage(models.Model):
 
     description = models.TextField('描述', blank=True)
 
+    # 用于项目全局使用
+    tender_file_extration = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='招标文件提取的内容',
+        help_text='存储招标文件提取的内容'
+    )
+
     # 可选字段，根据不同阶段类型可能存在
     progress = models.IntegerField('进度', default=0)
     created_at = models.DateTimeField('创建时间', auto_now_add=True)
@@ -192,6 +200,9 @@ class Task(models.Model):
      ######TODO 待将tiptap_content改为 docx_content, 移到ProjectStage里。 
     # 添加特定任务类型的字段，用于存储文档提取任务的内容
     
+
+
+    # ---------------------------
     # 用于存储 招标文件提取的 tiptap JSON 内容 
     docx_tiptap = models.JSONField(
         null=True,
@@ -208,20 +219,26 @@ class Task(models.Model):
         help_text='存储上下文'
     )
 
-    prompt = models.JSONField(             # Type_TaskDetail
+    context_description = models.TextField('上下文描述', blank=True)
+
+    instruction = models.JSONField(             # Type_TaskDetail
         null=True,
         blank=True,
-        verbose_name='prompt',
-        help_text='存储prompt'
+        verbose_name='指令',
+        help_text='存储指令'
     )
 
-    related_company_info = models.JSONField(             # Type_TaskDetail
+    instruction_description = models.TextField('指令描述', blank = True)
+
+    supplement = models.JSONField(             # Type_TaskDetail
         null=True,
         blank=True,
-        verbose_name='公司信息',
-        help_text='存储公司信息'
+        verbose_name='补充信息',
+        help_text='存储补充信息'
     )
     
+    supplement_description = models.TextField('补充描述', blank=True)
+
     final_result = models.JSONField(             # Type_TaskDetail
         null=True,
         blank=True,
@@ -229,6 +246,9 @@ class Task(models.Model):
         help_text='存储最终结果'
     )
 
+
+
+    # -----------------------------
     task_started_at = models.DateTimeField(             # Type_TaskDetail
         null=True,
         blank=True,
@@ -283,6 +303,7 @@ class Task(models.Model):
 
 
 
+    # -----------------------------
     # 用于存储 大模型分析的 数据输入
     data_input = models.JSONField(
         null=True,
@@ -323,7 +344,6 @@ class Task(models.Model):
         help_text='存储索引路径映射'
     )
     
-
 
     # 用于存储 大模型分析的 的模型配置
     llm_config = models.JSONField(

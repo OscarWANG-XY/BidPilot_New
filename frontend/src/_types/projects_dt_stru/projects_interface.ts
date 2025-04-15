@@ -43,6 +43,7 @@ export enum ProjectType {
     };
     createTime: Date;                // 创建时间
     lastUpdateTime: Date;            // 最后更新时间
+    tenderFileExtration?: any;    // 招标文件提取
   
     // 关联数据
     stages?: ProjectStage[];         // 项目阶段

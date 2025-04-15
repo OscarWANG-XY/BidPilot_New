@@ -9,15 +9,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import TiptapEditor_lite from '@/components/shared/TiptapEditor_lite2';
 
 interface ConfigurationPreviewProps {
-  context?: string;
-  prompt?: string;
-  relatedCompanyInfo?: any;
+  context?: any;
+  instruction?: any;
+  supplement?: any;
 }
 
 const ConfigurationPreview: React.FC<ConfigurationPreviewProps> = ({
   context,
-  prompt,
-  relatedCompanyInfo
+  instruction,
+  supplement
 }) => {
   // 设置 TiptapEditor 的基本配置
   const editorConfig = {
@@ -32,7 +32,7 @@ const ConfigurationPreview: React.FC<ConfigurationPreviewProps> = ({
       </CardHeader>
 
       <CardContent className="pt-4">
-        <Accordion type="multiple" defaultValue={["context", "prompt", "relatedCompanyInfo"]} className="w-full">
+        <Accordion type="multiple" defaultValue={["context", "instruction", "supplement"]} className="w-full">
           {/* 上下文预览区域 */}
           <AccordionItem value="context" className="focus-within:ring-2 ring-blue-500">
             <AccordionTrigger className="text-sm font-medium">上下文 (Context)</AccordionTrigger>
@@ -48,12 +48,12 @@ const ConfigurationPreview: React.FC<ConfigurationPreviewProps> = ({
           </AccordionItem>
 
           {/* 提示词预览区域 */}
-          <AccordionItem value="prompt" className="focus-within:ring-2 ring-blue-500">
-            <AccordionTrigger className="text-sm font-medium">提示词 (Prompt)</AccordionTrigger>
+          <AccordionItem value="instruction" className="focus-within:ring-2 ring-blue-500">
+            <AccordionTrigger className="text-sm font-medium">指令 (instruction)</AccordionTrigger>
             <AccordionContent>
               <div className="border rounded-md overflow-hidden h-[400px]">
                 <TiptapEditor_lite
-                  initialContent={prompt || ''}
+                  initialContent={instruction || ''}
                   readOnly={true}
                   {...editorConfig}
                 />
@@ -61,13 +61,13 @@ const ConfigurationPreview: React.FC<ConfigurationPreviewProps> = ({
             </AccordionContent>
           </AccordionItem>
 
-          {/* 公司信息预览区域 */}
-          <AccordionItem value="relatedCompanyInfo" className="focus-within:ring-2 ring-blue-500">
-            <AccordionTrigger className="text-sm font-medium">公司信息 (Company Info)</AccordionTrigger>
+          {/* 补充信息预览区域 */}
+          <AccordionItem value="supplement" className="focus-within:ring-2 ring-blue-500">
+            <AccordionTrigger className="text-sm font-medium">补充信息 (supplement)</AccordionTrigger>
             <AccordionContent>
               <div className="border rounded-md overflow-hidden h-[400px]">
                 <TiptapEditor_lite
-                  initialContent={relatedCompanyInfo || ''}
+                  initialContent={supplement || ''}
                   readOnly={true}
                   {...editorConfig}
                 />

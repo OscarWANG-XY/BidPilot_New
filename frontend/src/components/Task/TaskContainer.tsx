@@ -91,11 +91,11 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
     const [editingContext, setEditingContext] = useState<string>(() => {
         return localStorage.getItem('editingContext') || '';
     });
-    const [editingPrompt, setEditingPrompt] = useState<string>(() => {
-        return localStorage.getItem('editingPrompt') || '';
+    const [editingInstruction, setEditingInstruction] = useState<string>(() => {
+        return localStorage.getItem('editingInstruction') || '';
     });
-    const [editingRelatedCompanyInfo, setEditingRelatedCompanyInfo] = useState<any>(() => {
-        const saved = localStorage.getItem('editingRelatedCompanyInfo');
+    const [editingSupplement, setEditingSupplement] = useState<any>(() => {
+        const saved = localStorage.getItem('editingSupplement');
         return saved ? JSON.parse(saved) : null;
     });
 
@@ -116,17 +116,17 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
         // 当任务进入编辑模式时，会从当前任务中复制初始值 
         if (taskData) {
             const context = taskData.context || '';
-            const prompt = taskData.prompt || '';
-            const relatedCompanyInfo = taskData.relatedCompanyInfo || null;
+            const instruction = taskData.instruction || '';
+            const supplement = taskData.supplement || null;
             
             setEditingContext(context);
-            setEditingPrompt(prompt);
-            setEditingRelatedCompanyInfo(relatedCompanyInfo);
+            setEditingInstruction(instruction);
+            setEditingSupplement(supplement);
             setIsEditingConfig(true);
             
             localStorage.setItem('editingContext', context);
-            localStorage.setItem('editingPrompt', prompt);
-            localStorage.setItem('editingRelatedCompanyInfo', relatedCompanyInfo ? JSON.stringify(relatedCompanyInfo) : '');
+            localStorage.setItem('editingInstruction', instruction);
+            localStorage.setItem('editingSupplement', supplement ? JSON.stringify(supplement) : '');
             localStorage.setItem('isEditingConfig', 'true');
         }
     };
@@ -136,23 +136,23 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
         // 取消编辑时，当编辑未保存，恢复到编辑前的原始值； 但编辑已保存，现实编辑保存后的最新值。 
         if (taskData) {
             setEditingContext(taskData.context || '');
-            setEditingPrompt(taskData.prompt || '');
-            setEditingRelatedCompanyInfo(taskData.relatedCompanyInfo || null);
+            setEditingInstruction(taskData.instruction || '');
+            setEditingSupplement(taskData.supplement || null);
             }
             setIsEditingConfig(false);
             localStorage.setItem('isEditingConfig', 'false');
     };
 
     // 保存配置
-    const handleSaveConfig = async (context: string, prompt: string, relatedCompanyInfo: any) => {
-        await saveConfig(context, prompt, relatedCompanyInfo);
+    const handleSaveConfig = async (context: string, instruction: string, supplement: any) => {
+        await saveConfig(context, instruction, supplement);
         
             // 由于上面保存配置后，取消编辑的重置，会使用最新的配置内容 （在useTasks.ts中，向后端保存数据后，会手动invalidate缓存，导致重新获取任务数据，以保持最新状态）
         if (isEditingConfig) {
             handleCancelConfigEditing(); // 保存成功后退出编辑模式
             localStorage.removeItem('editingContext');
-            localStorage.removeItem('editingPrompt');
-            localStorage.removeItem('editingRelatedCompanyInfo');
+            localStorage.removeItem('editingInstruction');
+            localStorage.removeItem('editingSupplement');
         }
     };
 
@@ -263,12 +263,12 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
     useEffect(() => {
         if (isEditingConfig) {
         localStorage.setItem('editingContext', editingContext || '');
-        localStorage.setItem('editingPrompt', editingPrompt || '');
-        if (editingRelatedCompanyInfo) {
-            localStorage.setItem('editingRelatedCompanyInfo', JSON.stringify(editingRelatedCompanyInfo));
+        localStorage.setItem('editingInstruction', editingInstruction || '');
+        if (editingSupplement) {
+            localStorage.setItem('editingSupplement', JSON.stringify(editingSupplement));
         }
         }
-    }, [isEditingConfig, editingContext, editingPrompt, editingRelatedCompanyInfo]);
+    }, [isEditingConfig, editingContext, editingInstruction, editingSupplement]);
 
     // 同步编辑内容到localStorage
     useEffect(() => {
@@ -294,8 +294,8 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
                 localStorage.removeItem('editingResult');
                 localStorage.removeItem('isEditingConfig');
                 localStorage.removeItem('editingContext');
-                localStorage.removeItem('editingPrompt');
-                localStorage.removeItem('editingRelatedCompanyInfo');
+                localStorage.removeItem('editingInstruction');
+                localStorage.removeItem('editingSupplement');
             }
         }
     }, [taskData, projectId, stageType, taskType]);
@@ -389,11 +389,11 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
                     isEditing={isEditingConfig}  // 表示面板处于编辑模式
 
                     editingContext={editingContext}   // 向子组件传递当前编辑的内容，初始化时，直接从当前任务中复制
-                    editingPrompt={editingPrompt}
-                    editingRelatedCompanyInfo={editingRelatedCompanyInfo}
+                    editingInstruction={editingInstruction}
+                    editingSupplement={editingSupplement}
                     onEditingContextChange={setEditingContext}  // 用户更改文本框或受控组件的值时，回调，更新编辑内容
-                    onEditingPromptChange={setEditingPrompt}
-                    onEditingRelatedCompanyInfoChange={setEditingRelatedCompanyInfo}
+                    onEditingInstructionChange={setEditingInstruction}
+                    onEditingSupplementChange={setEditingSupplement}
 
                     onCancelEditing={handleCancelConfigEditing}  // 点击取消编辑按钮，退出编辑模式
                     onSaveConfig={handleSaveConfig}    //点击保存，保存当前编辑的配置到后端
@@ -491,8 +491,8 @@ const TaskContainer: React.FC<TaskContainerProps> = ({
           {!isEnabled && taskData && taskData.status !== TaskStatus.CONFIGURING && taskData.status !== TaskStatus.NOT_STARTED && taskData.status !== TaskStatus.FAILED && (
             <ConfigurationPreview 
               context={taskData.context}
-              prompt={taskData.prompt}
-              relatedCompanyInfo={taskData.relatedCompanyInfo}
+              instruction={taskData.instruction}
+              supplement={taskData.supplement}
             />
           )}
 

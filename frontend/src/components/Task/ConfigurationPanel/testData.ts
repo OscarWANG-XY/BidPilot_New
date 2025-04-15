@@ -9,7 +9,7 @@ export const mockTask: Type_TaskDetail = {
   type: 'DOCX_EXTRACTION_TASK' as TaskType,
   status: 'NOT_STARTED' as TaskStatus,
   taskStartedAt: '2025-04-01T08:00:00Z',
-  // 测试数据里，我们需要确保context, prompt, companyInfo 是 TiptapJSON 转化成的string类型。 
+  // 测试数据里，我们需要确保context, instruction, supplement 是 TiptapJSON 转化成的string类型。 
   context: JSON.stringify({
     type: 'doc',
     content: [
@@ -49,7 +49,7 @@ export const mockTask: Type_TaskDetail = {
       }
     ]
   }),
-  prompt: JSON.stringify({
+  instruction: JSON.stringify({
     type: 'doc',
     content: [
       {
@@ -88,7 +88,7 @@ export const mockTask: Type_TaskDetail = {
       }
     ]
   }),
-  relatedCompanyInfo: JSON.stringify({
+  supplement: JSON.stringify({
     type: 'doc',
     content: [
       {
@@ -156,8 +156,8 @@ export const useConfigurationPanelTest = () => {
   
   // 编辑状态下的内容
   const [editingContext, setEditingContext] = useState(task.context || '');
-  const [editingPrompt, setEditingPrompt] = useState(task.prompt || '');
-  const [editingRelatedCompanyInfo, setEditingRelatedCompanyInfo] = useState(task.relatedCompanyInfo || '');
+  const [editingInstruction, setEditingInstruction] = useState(task.instruction || '');
+  const [editingSupplement, setEditingSupplement] = useState(task.supplement || '');
 
   // 模拟加载配置的函数
   const handleLoadConfig = async () => {
@@ -208,7 +208,7 @@ export const useConfigurationPanelTest = () => {
           }
         ]
       }),
-      prompt: JSON.stringify({
+      instruction: JSON.stringify({
         type: 'doc',
         content: [
           {
@@ -247,7 +247,7 @@ export const useConfigurationPanelTest = () => {
           }
         ]
       }),
-      companyInfo: JSON.stringify({
+      supplement: JSON.stringify({
         type: 'doc',
         content: [
           {
@@ -309,8 +309,8 @@ export const useConfigurationPanelTest = () => {
     
     setTask(updatedTask);
     setEditingContext(updatedTask.context || '');
-    setEditingPrompt(updatedTask.prompt || '');
-    setEditingRelatedCompanyInfo(updatedTask.relatedCompanyInfo || '');
+    setEditingInstruction(updatedTask.instruction || '');
+    setEditingSupplement(updatedTask.supplement || '');
     
     setIsUpdating(false);
   };
@@ -337,14 +337,14 @@ export const useConfigurationPanelTest = () => {
   const handleCancelEditing = () => {
     // 恢复到任务原始数据
     setEditingContext(task.context || '');
-    setEditingPrompt(task.prompt || '');
-    setEditingRelatedCompanyInfo(task.relatedCompanyInfo || '');
+    setEditingInstruction(task.instruction || '');
+    setEditingSupplement(task.supplement || '');
     
     setIsEditing(false);
   };
 
   // 保存配置
-  const handleSaveConfig = async (context: string, prompt: string, relatedCompanyInfo: string) => {
+  const handleSaveConfig = async (context: string, instruction: string, supplement: string) => {
     setIsUpdating(true);
     
     // 模拟API调用延迟
@@ -354,8 +354,8 @@ export const useConfigurationPanelTest = () => {
     const updatedTask = {
       ...task,
       context,
-      prompt,
-      relatedCompanyInfo,
+      instruction,
+      supplement,
     };
     
     setTask(updatedTask);
@@ -371,16 +371,16 @@ export const useConfigurationPanelTest = () => {
     isUpdating,
     isEditing,
     editingContext,
-    editingPrompt,
-    editingRelatedCompanyInfo,
+    editingInstruction,
+    editingSupplement,
     handleLoadConfig,
     handleStartAnalysis,
     handleStartEditing,
     handleCancelEditing,
     handleSaveConfig,
     setEditingContext,
-    setEditingPrompt,
-    setEditingRelatedCompanyInfo,
+    setEditingInstruction,
+    setEditingSupplement,
   };
 };
 
@@ -391,16 +391,16 @@ export const ConfigurationPanelTestProps = () => {
     isUpdating,
     isEditing,
     editingContext,
-    editingPrompt,
-    editingRelatedCompanyInfo,
+    editingInstruction,
+    editingSupplement,
     handleLoadConfig,
     handleStartAnalysis,
     handleStartEditing,
     handleCancelEditing,
     handleSaveConfig,
     setEditingContext,
-    setEditingPrompt,
-    setEditingRelatedCompanyInfo,
+    setEditingInstruction,
+    setEditingSupplement,
   } = useConfigurationPanelTest();
 
   // 返回配置面板所需的所有属性
@@ -412,11 +412,11 @@ export const ConfigurationPanelTestProps = () => {
     onStartEditing: handleStartEditing,
     isEditing,
     editingContext,
-    editingPrompt,
-    editingRelatedCompanyInfo,
+    editingInstruction,
+    editingSupplement,
     onEditingContextChange: setEditingContext,
-    onEditingPromptChange: setEditingPrompt,
-    onEditingRelatedCompanyInfoChange: setEditingRelatedCompanyInfo,
+    onEditingInstructionChange: setEditingInstruction,
+    onEditingSupplementChange: setEditingSupplement,
     onCancelEditing: handleCancelEditing,
     onSaveConfig: handleSaveConfig,
   };

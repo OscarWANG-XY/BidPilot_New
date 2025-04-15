@@ -38,7 +38,9 @@ class TaskDetailSerializer(serializers.ModelSerializer):
             'id', 'name', 
             'type', 'type_display',
             'status', 'status_display', 
-            'context', 'prompt', 'related_company_info',
+            'context', 'context_description',
+            'instruction', 'instruction_description',
+            'supplement', 'supplement_description',
             'final_result',
             'task_started_at', 'task_completed_at', 'analysis_duration',
             'in_tokens', 'out_tokens', 'total_tokens', 'error_message',
@@ -51,8 +53,10 @@ class TaskUpdateSerializer(serializers.ModelSerializer):
         model = Task
         fields = [
             'status', 
-            'context', 'prompt', 'related_company_info',
-            'final_result'
+            'context', 'context_description',
+            'instruction', 'instruction_description',
+            'supplement', 'supplement_description',
+            'final_result',
         ]
         read_only_fields = []
 

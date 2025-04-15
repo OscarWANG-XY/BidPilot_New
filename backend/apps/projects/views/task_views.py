@@ -227,7 +227,7 @@ class TaskViewSet(
     def save_config(self, request, *args, **kwargs):
         """
         保存任务配置
-        保存context、prompt和companyInfo，确保状态为CONFIGURING
+        保存context、instruction和supplement，确保状态为CONFIGURING
         （改好了）
         """
         task = self.get_object()

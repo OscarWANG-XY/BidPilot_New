@@ -272,8 +272,8 @@ export const MOCK_REVIEW_TASK: Type_TaskDetail = {
   type: 'DOCX_EXTRACTION_TASK' as TaskType,
   status: TaskStatus.REVIEWING,
   context: '分析公司在当前市场中的竞争优势和面临的挑战',
-  prompt: '请对公司的市场定位进行深入分析，并提出未来发展建议',
-  relatedCompanyInfo: JSON.stringify({
+  instruction: '请对公司的市场定位进行深入分析，并提出未来发展建议',
+  supplement: JSON.stringify({
     name: '示例科技有限公司',
     industry: '人工智能',
     founded: 2015,

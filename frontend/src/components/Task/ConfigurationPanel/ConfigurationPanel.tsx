@@ -1,14 +1,14 @@
 /*
 ### 2.1 ConfigurationPanel
-- 初次渲染该组件时，自动加载Context, Prompt, CompanyInfo模板内容
+- 初次渲染该组件时，自动加载Context, Instruction, Supplement模板内容
 只读模式
-- Context, Prompt, CompanyInfo 分别在共享组件 TiptapEditorLite 只读展示
-- 加载模板按钮 -> 回调handleLoadConfig ->更新Context, Prompt, CompanyInfo的内容
+- Context, Instruction, Supplement 分别在共享组件 TiptapEditorLite 只读展示
+- 加载模板按钮 -> 回调handleLoadConfig ->更新Context, Instruction, Supplement的内容
 - 开始编辑按钮 -> 回调handleStartConfigEditing -> Panel 切换到 编辑模式
 - 开始分析按钮 -> 回调handleStartAnlaysis -> 离开当前Panel, 进入AnalysisProgressPanel  
 编辑模式
 if(isEditingConfig) 
-- TiptapEditorLite 可编辑被触发，Context,Prompt,CompanyInfo 进入可编辑状态 
+- TiptapEditorLite 可编辑被触发，Context,Instruction,Supplement 进入可编辑状态 
 - 取消编辑按钮 -> 回调handleStartConfigEDITING, Panel 退回 只读模式
 - 保存编辑按钮 -> 回调handelSavConfig, Panel退回 只读模式
 */
@@ -41,15 +41,15 @@ import {
     // UI编辑状态控制
     isEditing: boolean;
     
-    editingContext: string;
-    editingPrompt: string;
-    editingRelatedCompanyInfo: any;
-    onEditingContextChange: (context: string) => void;
-    onEditingPromptChange: (prompt: string) => void;
-    onEditingRelatedCompanyInfoChange: (relatedCompanyInfo: any) => void;
+    editingContext: any;
+    editingInstruction: any;
+    editingSupplement: any;
+    onEditingContextChange: (context: any) => void;
+    onEditingInstructionChange: (instruction: any) => void;
+    onEditingSupplementChange: (supplement: any) => void;
   
     onCancelEditing: () => void;
-    onSaveConfig: (context: string, prompt: string, companyInfo: any) => Promise<void>;
+    onSaveConfig: (context: any, instruction: any, supplement: any) => Promise<void>;
   }
   
   const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
@@ -60,11 +60,11 @@ import {
     onStartEditing,
     isEditing,
     editingContext,
-    editingPrompt,
-    editingRelatedCompanyInfo,
+    editingInstruction,
+    editingSupplement,
     onEditingContextChange,
-    onEditingPromptChange,
-    onEditingRelatedCompanyInfoChange,
+    onEditingInstructionChange,
+    onEditingSupplementChange,
     onCancelEditing,
     onSaveConfig
   }) => {
@@ -76,7 +76,7 @@ import {
   
     // 处理保存配置的函数
     const handleSaveConfig = async () => {
-      await onSaveConfig(editingContext, editingPrompt, editingRelatedCompanyInfo);
+      await onSaveConfig(editingContext, editingInstruction, editingSupplement);
     };
   
     // 设置 TiptapEditor 的基本配置
@@ -118,15 +118,15 @@ import {
             </AccordionItem>
   
             {/* 提示词编辑区域 */}
-            <AccordionItem value="prompt" className="border-b">
+            <AccordionItem value="instruction" className="border-b">
               <AccordionTrigger className="hover:no-underline py-3">
-                <span className="text-sm font-medium">提示词 (Prompt)</span>
+                <span className="text-sm font-medium">指令 (instruction)</span>
               </AccordionTrigger>
               <AccordionContent className="pt-1 pb-3">
                 <div className="border rounded-md overflow-hidden">
                   <TiptapEditor
-                    initialContent={isEditing ? editingPrompt : task.prompt || ''}
-                    onChange={onEditingPromptChange}
+                    initialContent={isEditing ? editingInstruction : task.instruction || ''}
+                    onChange={onEditingInstructionChange}
                     readOnly={!isEditing}
                     maxWidth="100%"
                     minWidth="100%"
@@ -139,15 +139,15 @@ import {
             </AccordionItem>
   
             {/* 公司信息编辑区域 */}
-            <AccordionItem value="companyInfo" className="border-b">
+            <AccordionItem value="supplement" className="border-b">
               <AccordionTrigger className="hover:no-underline py-3">
-                <span className="text-sm font-medium">公司信息 (Company Info)</span>
+                <span className="text-sm font-medium">补充信息 (supplement)</span>
               </AccordionTrigger>
               <AccordionContent className="pt-1 pb-3">
                 <div className="border rounded-md overflow-hidden">
                   <TiptapEditor
-                    initialContent={isEditing ? editingRelatedCompanyInfo : task.relatedCompanyInfo || ''}
-                    onChange={onEditingRelatedCompanyInfoChange}
+                    initialContent={isEditing ? editingSupplement : task.supplement || ''}
+                    onChange={onEditingSupplementChange}
                     readOnly={!isEditing}
                     maxWidth="100%"
                     minWidth="100%"
@@ -204,7 +204,7 @@ import {
             <Button 
               size="sm"
               onClick={onStartAnalysis}
-              disabled={isUpdating || !task.context || !task.prompt}
+              disabled={isUpdating || !task.context || !task.instruction}
               className="ml-auto"
             >
               {isUpdating ? (

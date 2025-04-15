@@ -22,8 +22,8 @@ const ConfigurationPanelTest: React.FC = () => {
   const emptyTask = {
     ...props.task,
     context: '',
-    prompt: '',
-    companyInfo: ''
+    instruction: '',
+    supplement: ''
   };
   
   // 用于测试的修改后props
@@ -115,8 +115,8 @@ const ConfigurationPanelTest: React.FC = () => {
               <h3 className="text-lg font-medium mb-2">任务内容长度</h3>
               <ul className="list-disc pl-5 space-y-1">
                 <li>上下文(Context): <span className="font-mono">{props.task.context?.length || 0} 字符</span></li>
-                <li>提示词(Prompt): <span className="font-mono">{props.task.prompt?.length || 0} 字符</span></li>
-                <li>公司信息: <span className="font-mono">{props.task.relatedCompanyInfo?.length || 0} 字符</span></li>
+                <li>指令(Instruction): <span className="font-mono">{props.task.instruction?.length || 0} 字符</span></li>
+                <li>补充信息(Supplement): <span className="font-mono">{props.task.supplement?.length || 0} 字符</span></li>
               </ul>
             </div>
           </div>
