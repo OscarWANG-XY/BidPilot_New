@@ -19,7 +19,7 @@ from apps.projects.services.task_service import count_tokens
 # llm_config 配置模型参数 （对用户不可见）
 
 
-class OutlineAnalysis():
+class OutlineAnalysisL1():
     """文档大纲分析器，用于比较和分析文档的目录(TOC)和大纲(Outline)结构"""
 
     def __init__(self, project_id: str):
@@ -58,10 +58,11 @@ class OutlineAnalysis():
         """
         准备请求数据
         """ 
-        docx_extraction_task = Task.objects.get(stage__project=project, type=TaskType.DOCX_EXTRACTION_TASK)
+        # docx_extraction_task = Task.objects.get(stage__project=project, type=TaskType.DOCX_EXTRACTION_TASK)
         
         from apps.projects.tiptap.helpers import TiptapUtils
-        data_input, index_path_map = TiptapUtils.extract_indexed_paragraphs(docx_extraction_task.docx_tiptap, 50)
+        data_input, index_path_map = TiptapUtils.extract_indexed_paragraphs(project.tender_file_extraction, 50)
+
         return data_input, index_path_map
 
 
@@ -77,16 +78,10 @@ class OutlineAnalysis():
         return """
 你是一个擅长文档结构分析的AI助手， 我会提供一些文本内容（见材料A）， 每条数据包含 content（文本内容）和 index（索引）。
 你的任务是：
-1) 识别标题：根据上下文判识别章节标题和它的合适层级
+1) 识别文本中最高层级的标题
 2) 请仅识别正文中的标题，忽略目录、封面页和附件中的重复章节名称。
-
-（例如"第X章"、"X.X"、"X.X.X" 等， 也可能是其他格式）。
-"第X章" → 1
-"X.X" → 2
-"X.X.X" → 3
 如果不是标题，则忽略
 如果内容是目录、封面页和附件中的重复章节名称，则忽略
-
 """
 
 
@@ -109,8 +104,6 @@ class OutlineAnalysis():
 JSON输出示例：
 
 {"index": 484, "level": 1, "title": "第六章 投标文件格式"}
-{"index": 512, "level": 2, "title": "6.1 评标方法"}
-{"index": 530, "level": 3, "title": "6.1.1 资格审查"}
         
         """
 
@@ -183,7 +176,8 @@ JSON输出示例：
                 )
     
 
-    def simulate_prompt(self) -> str:
+#    def simulate_prompt(self) -> str:
+    def simulate_prompt(self,context, instruction, supplement, output_format, prompt_template) -> Tuple[str, List[Dict[str, Any]]]:
         """
         模拟生成完整的 prompt
         
@@ -199,7 +193,8 @@ JSON输出示例：
                 "你是一个专业的招标文档分析助手，帮助用户分析文档的结构和内容。"
             ),
             HumanMessagePromptTemplate.from_template(
-                self.task.prompt_template,
+                # self.task.prompt_template,
+                prompt_template,
                 input_variables=[
                     "context", 
                     "instruction"
@@ -211,10 +206,15 @@ JSON输出示例：
         
         # 格式化模板
         simulated_prompt = prompt.format_messages(
-            context=self.task.context,
-            instruction=self.task.instruction,
-            supplement=self.task.supplement,
-            output_format=self.task.output_format
+            # context=self.task.context,
+            # instruction=self.task.instruction,
+            # supplement=self.task.supplement,
+            # output_format=self.task.output_format
+            context=context,
+            instruction=instruction,
+            supplement=supplement,
+            output_format=output_format
+
         )
 
         # 转换为易读的格式

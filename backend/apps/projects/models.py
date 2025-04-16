@@ -108,6 +108,63 @@ class Project(models.Model):
         help_text='存储招标文件提取的内容'
     )
 
+    outline_L1 = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='大纲L1',
+        help_text='存储大纲L1'
+    )   
+    index_path_map_L1 = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='大纲L1索引路径映射',
+        help_text='存储大纲L1索引路径映射'
+    )
+    tender_file_extraction_L1 = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='招标文件更新L1',
+        help_text='存储招标文件更新L1'
+    )
+    
+    outline_L2 = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='大纲L2',
+        help_text='存储大纲L2'
+    )
+    index_path_map_L2 = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='大纲L2索引路径映射',
+        help_text='存储大纲L2索引路径映射'
+    )
+    tender_file_extraction_L2 = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='招标文件更新L2',
+        help_text='存储招标文件更新L2'
+    )
+    
+    outline_L3 = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='大纲L3',
+        help_text='存储大纲L3'
+    )
+    index_path_map_L3 = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='大纲L3索引路径映射',
+        help_text='存储大纲L3索引路径映射'
+    )
+    tender_file_extraction_L3 = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='招标文件更新L3',
+        help_text='存储招标文件更新L3'
+    )
+
     class Meta:
         verbose_name = '项目'
         verbose_name_plural = '项目'

@@ -1,5 +1,6 @@
 from typing import Any, List, Union, Optional
-from .LLMchain_with_redis_callback import GenericLLMService, LLMRequest, LLMConfig, RedisStreamingCallbackHandler
+from .LLMchain_with_redis_callback import GenericLLMService,RedisStreamingCallbackHandler
+from ._llm_data_types import LLMRequest, LLMConfig
 from apps.projects.utils.redis_manager import RedisManager, RedisStreamStatus
 from apps.projects.models import Project, ProjectStage, StageType, Task, TaskType
 
@@ -49,11 +50,11 @@ class LLMService:
         logger.info(f"使用的stream_id: {self.stream_id}")
 
         # 初始化任务状态
-        metadata = metadata or {}
+        metadata = {}
         metadata.update({
-            "model": self.llm_config.llm_model_name,
-            "temperature": self.llm_config.temperature,
-            "top_p": self.llm_config.top_p
+            "model": self.llm_config["llm_model_name"],
+            "temperature": self.llm_config["temperature"],
+            "top_p": self.llm_config["top_p"]
         })
 
         self.redis_manager.initialize_stream(self.stream_id, metadata) # 这会设置状态为 PENDING
@@ -74,6 +75,7 @@ class LLMService:
             context=self.context,
             instruction=self.instruction,
             supplement=self.supplement,
+            output_format=self.output_format
         )
         
         # 异步执行分析
