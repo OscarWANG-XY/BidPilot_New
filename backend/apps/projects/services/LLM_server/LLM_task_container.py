@@ -37,7 +37,7 @@ class LLMService:
         self.llm_config = self.task.llm_config
     
     
-    async def processing(self) -> str:
+    async def process(self) -> str:
         """执行流式分析"""
 
         logger.info(f"开始流式分析: stream_id={self.stream_id}")

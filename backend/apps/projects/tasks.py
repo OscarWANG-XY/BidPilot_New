@@ -313,14 +313,14 @@ def process_task_analysis_streaming_v2(self, project_id=None, stage_type=None, t
 
         # 执行流式分析 
         # 执行流式分析 - 确保所有异步资源在函数内部正确关闭
-        async def run_processing():
+        async def run_process():
             try:
-                await analyzer.processing()
+                await analyzer.process()
             finally:
                 # 确保所有异步资源都被正确关闭
                 if hasattr(analyzer, 'close') and callable(analyzer.close):
                     await analyzer.close()
-        asyncio.run(run_processing())
+        asyncio.run(run_process())
 
 
         # 获取流式完整结果， get_stream_result() 默认的start=0, end=-1, 表示从头到尾的完整内容。 
