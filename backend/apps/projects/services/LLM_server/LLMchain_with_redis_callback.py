@@ -85,13 +85,13 @@ class GenericLLMService:
     def _init_llm(self):
         """初始化LLM模型"""
         self.llm = ChatOpenAI(
-            model_name=self.config["llm_model_name"],
-            temperature=self.config["temperature"],
-            top_p=self.config["top_p"],
-            streaming=self.config["streaming"],
-            api_key=self.config["api_key"] or os.getenv("ALIBABA_API_KEY"),
-            base_url=self.config["base_url"],
-            timeout=self.config["timeout"],
+            model_name=self.config.llm_model_name,
+            temperature=self.config.temperature,
+            top_p=self.config.top_p,
+            streaming=self.config.streaming,
+            api_key=self.config.api_key or os.getenv("ALIBABA_API_KEY"),
+            base_url=self.config.base_url,
+            timeout=self.config.timeout,
         )
 
     async def process(self, request: LLMRequest, streaming_callback=None) -> Any:

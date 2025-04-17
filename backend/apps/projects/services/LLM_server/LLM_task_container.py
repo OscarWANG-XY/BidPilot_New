@@ -34,7 +34,8 @@ class LLMService:
         self.supplement = self.task.supplement
         self.output_format = self.task.output_format
         self.prompt_template = self.task.prompt_template
-        self.llm_config = self.task.llm_config
+        # 注意llm_config是LLMConfig自定义类型
+        self.llm_config = LLMConfig().from_model(self.task.llm_config)
     
     
     async def process(self) -> str:
@@ -52,9 +53,9 @@ class LLMService:
         # 初始化任务状态
         metadata = {}
         metadata.update({
-            "model": self.llm_config["llm_model_name"],
-            "temperature": self.llm_config["temperature"],
-            "top_p": self.llm_config["top_p"]
+            "model": self.llm_config.llm_model_name,
+            "temperature": self.llm_config.temperature,
+            "top_p": self.llm_config.top_p
         })
 
         self.redis_manager.initialize_stream(self.stream_id, metadata) # 这会设置状态为 PENDING
