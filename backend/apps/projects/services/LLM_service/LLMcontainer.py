@@ -33,7 +33,7 @@ class LLMService:
         """创建LLM服务实例"""
         return GenericLLMService(config=self.llm_config, prompt_template=self.prompt_template)
     
-    async def analyze(self) -> Any:
+    async def process(self) -> Any:
         """执行分析"""
         service = self.create_service()
         request = LLMRequest.create(

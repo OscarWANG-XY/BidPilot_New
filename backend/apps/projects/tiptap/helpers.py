@@ -219,6 +219,7 @@ class TiptapUtils:
         """
         return json.dumps(doc, ensure_ascii=False, indent=indent)
     
+    # 提取带有索引的段落
     @staticmethod
     def extract_indexed_paragraphs(doc: Dict[str, Any], max_length: Optional[int] = None) -> tuple[List[Dict[str, str]], Dict[int, List[int]]]:
         """
@@ -308,6 +309,130 @@ class TiptapUtils:
         
         return "".join(text_parts)
     
+    # 按章节分块并提取带索引的段落
+    @staticmethod
+    def extract_chapters(doc: Dict[str, Any], max_length: Optional[int] = None, heading_types: List[str] = None) -> Dict[str, Any]:
+        """
+        从 TipTap 文档中提取章节和段落，并按章节分组
+        
+        Args:
+            doc: TipTap 文档对象
+            max_length: 内容最大长度，超过此长度将被截断并添加省略号，默认为 None（不截断）
+            heading_types: 作为章节标题的节点类型列表，默认为 ["heading"]
+            
+        Returns:
+            按章节分组的内容字典，格式为:
+            {
+                "chapters": [
+                    {
+                        "title": "章节标题",
+                        "level": 1,  # 标题级别
+                        "path": [0, 1],  # 标题节点在文档中的路径
+                        "paragraphs": "content: 段落内容1 | index: 0\ncontent: 段落内容2 | index: 1"
+                    },
+                    ...
+                ],
+                "index_path_map": {
+                    0: [0, 2, 0],
+                    1: [0, 3, 0],
+                    ...
+                }
+            }
+            
+        Note:
+            - 如果文档开头没有标题，将创建一个标题为"引言"的默认章节
+            - 表格内的段落不会被提取
+            - 只提取文本内容，不包含格式信息
+            - 可以通过 index_path_map 和 locate_paragraph_by_path 方法定位原始段落
+            - 当设置 max_length 时，超长内容将被截断并添加省略号
+        """
+        if heading_types is None:
+            heading_types = ["heading"]
+            
+        chapters = []
+        index_path_map = {}
+        paragraph_index = 0
+        
+        # 初始化默认章节（如果文档开头没有标题）
+        current_chapter = {
+            "title": "引言",
+            "level": 0,
+            "path": [],
+            "paragraphs": [] # 临时存储段落对象列表
+        }
+        
+        def process_node(node, path=None, in_table=False):
+            nonlocal paragraph_index, current_chapter
+            if path is None:
+                path = []
+                
+            # 处理标题节点（章节分隔符）
+            if node.get("type") in heading_types:
+                # 如果当前章节不为空且不是默认章节或者有内容，则添加到章节列表
+                if current_chapter["paragraphs"] or current_chapter["level"] > 0:
+                    # 将段落列表转换为字符串格式
+                    paragraphs_str = "\n".join(f"content: {p['content']} | index: {p['index']}" for p in current_chapter["paragraphs"])
+                    current_chapter["paragraphs"] = paragraphs_str
+                    chapters.append(current_chapter)
+                
+                # 创建新章节
+                title_text = TiptapUtils._extract_text_from_node(node)
+                level = node.get("attrs", {}).get("level", 1)
+                
+                current_chapter = {
+                    "title": title_text,
+                    "level": level,
+                    "path": path.copy(),
+                    "paragraphs": [] # 临时存储段落对象列表
+                }
+                return
+                
+            # 如果是表格节点，标记在表格内
+            if node.get("type") == "table":
+                for i, child in enumerate(node.get("content", [])):
+                    process_node(child, path + [i], in_table=True)
+                return
+                
+            # 如果是段落节点且不在表格内，提取文本
+            if node.get("type") == "paragraph" and not in_table:
+                text_content = TiptapUtils._extract_text_from_node(node)
+                if text_content.strip():  # 只添加非空段落
+                    # 如果设置了最大长度且内容超过最大长度，则截断并添加省略号
+                    if max_length and len(text_content) > max_length:
+                        text_content = text_content[:max_length] + "..."
+                        
+                    paragraph_data = {
+                        "index": paragraph_index,
+                        "content": text_content
+                    }
+                    
+                    # 添加到当前章节
+                    current_chapter["paragraphs"].append(paragraph_data)
+                    
+                    # 记录索引到路径的映射
+                    index_path_map[paragraph_index] = path.copy()
+                    paragraph_index += 1
+            
+            # 递归处理子节点
+            for i, child in enumerate(node.get("content", [])):
+                process_node(child, path + [i], in_table)
+        
+        # 从文档根节点开始处理
+        process_node(doc)
+        
+        # 添加最后一个章节
+        if current_chapter["paragraphs"] or current_chapter["level"] > 0:
+            # 将最后一个章节的段落列表转换为字符串格式
+            paragraphs_str = "\n".join(f"content: {p['content']} | index: {p['index']}" for p in current_chapter["paragraphs"])
+            current_chapter["paragraphs"] = paragraphs_str
+            chapters.append(current_chapter)
+            
+        return {
+            "chapters": chapters,
+            "index_path_map": index_path_map
+        }
+
+
     @staticmethod
     def locate_paragraph_by_index(doc: Dict[str, Any], index: int, index_path_map: Dict[int, List[int]]) -> Optional[Dict[str, Any]]:
         """
@@ -348,6 +473,8 @@ class TiptapUtils:
             current = current["content"][index]
         return current
     
+
+    # 更新标题
     @staticmethod
     def update_titles_from_list(doc: Dict[str, Any], title_list: List[Dict[str, Any]], index_path_map: Dict[int, List[int]]) -> Dict[str, Any]:
         """
@@ -440,9 +567,8 @@ class TiptapUtils:
                     parent_node["content"][current_path_index] = heading_node
             
         return updated_doc
-    
 
-
+    # 查找所有标题
     @staticmethod
     def find_all_headings(doc: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
@@ -496,6 +622,7 @@ class TiptapUtils:
         process_node(doc)
         return headings
     
+    # 打印所有标题 
     @staticmethod
     def print_headings(doc: Dict[str, Any], indent: bool = True) -> str:
         """
