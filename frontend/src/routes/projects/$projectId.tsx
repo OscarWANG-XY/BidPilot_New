@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router'
-import { ProjectLayout } from '@/components/projects/_04_ProjectLayout'
+// import { ProjectLayout } from '@/components/projects/_04_ProjectLayout'
+import { ProjectLayout } from '@/components/projects/ProjectLayout/ProjectLayout'
 
 // 这个文件作为 $projectId 下所有子路由的父级布局
 export const Route = createFileRoute('/projects/$projectId')({

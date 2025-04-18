@@ -11,6 +11,7 @@ from .history_serializers import (
 from .project_serializers import (
     ProjectListSerializer, ProjectDetailSerializer, ProjectCreateSerializer, 
     ProjectUpdateSerializer, ProjectStatusUpdateSerializer, ProjectActiveStageUpdateSerializer,
+    ProjectTenderFileExtractionSerializer
 )
 from .stage_serializers import (
     ProjectStageDetailSerializer, ProjectStageUpdateSerializer,

@@ -75,3 +75,11 @@ class ProjectActiveStageUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = ['current_active_stage', 'remarks']
+
+class ProjectTenderFileExtractionSerializer(serializers.ModelSerializer):
+    """项目招标文件提取信息序列化器"""
+    
+    class Meta:
+        model = Project
+        fields = ['id', 'tender_file_extraction']
+        read_only_fields = ['id']

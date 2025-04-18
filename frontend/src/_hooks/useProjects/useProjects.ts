@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';  // 引用react-query的钩子函数
 import { projectsApi} from '@/_api/projects_api/projects_api';   // 引用项目API模块
 import type { 
@@ -159,8 +160,45 @@ export const useProjects = () => {
     }
   });
 
-  
-  return {
+  // --------------- 查询项目招标文件提取信息 --------------- 
+  const projectTenderFileExtractionQuery = (projectId: string) => useQuery({
+    queryKey: ['projectTenderFileExtraction', projectId],
+    queryFn: async () => {
+      console.log('🔍 [useProjects] 查询项目招标文件提取信息, id:', projectId);
+      const result = await projectsApi.getTenderFileExtraction(projectId);
+      console.log('📥 [useProjects] 查询项目招标文件提取信息:', result);
+      return result;
+    },
+    refetchOnWindowFocus: false,
+    staleTime: 60 * 1000,  // 1分钟后数据变为陈旧
+    gcTime: 5 * 60 * 1000, // 5分钟后清除缓存
+  });
+
+  // --------------- 更新项目招标文件提取信息 --------------- 
+  const updateProjectTenderFileExtraction = useMutation({
+    mutationFn: async ({ projectId, extractionData }: { projectId: string; extractionData: any }) => {
+      console.log('📤 [useProjects] 更新项目招标文件提取信息:', { projectId, extractionData });
+      const result = await projectsApi.updateTenderFileExtraction(projectId, extractionData);
+      console.log('✅ [useProjects] 更新项目招标文件提取信息成功:', result);
+      return result;
+    },
+    onSuccess: (_, variables) => {
+      console.log('🔄 [useProjects] 更新项目招标文件提取信息后, 更新缓存数据:', variables.projectId);
+      queryClient.invalidateQueries({ queryKey: ['projectTenderFileExtraction', variables.projectId] });
+      queryClient.invalidateQueries({ queryKey: ['SingleProjectKey', variables.projectId] });
+    }
+  });
+
+  // --------------- 手动刷新项目招标文件提取信息缓存 --------------- 
+  const refreshTenderFileExtraction = (projectId: string) => {
+    console.log('🔄 [useProjects] 手动刷新项目招标文件提取信息缓存:', projectId);
+    return queryClient.invalidateQueries({ 
+      queryKey: ['projectTenderFileExtraction', projectId] 
+    });
+  };
+
+  return useMemo(() => ({
+    // 使用useMemo避免在值没有变的情况下触发组件的不必要更新。 
     // .mutate() 本身不返回promise对象, 如果需要返回promise对象，则需要使用.mutateAsync()
     // 这里建议使用.mutateAsync() 更符合现代JavaScript的异步编程风格。 
     // 这样的好处是：调用者可以选择是否等待操作完成，可再调用处使用try/catch来处理错误; 可获取到操作返回的数据
@@ -174,6 +212,21 @@ export const useProjects = () => {
     updateProjectStatus: updateProjectStatus.mutateAsync,  
     deleteProject: deleteProject.mutateAsync,
 
-
-  };
+    // 招标文件提取信息相关
+    projectTenderFileExtractionQuery,
+    updateProjectTenderFileExtraction: updateProjectTenderFileExtraction.mutateAsync,
+    refreshTenderFileExtraction,
+  }), [
+    projectsQuery,
+    sidebarProjectsQuery,
+    singleProjectQuery,
+    createProject.mutateAsync,
+    updateProject.mutateAsync,
+    updateProjectActiveStage.mutateAsync,
+    updateProjectStatus.mutateAsync,
+    deleteProject.mutateAsync,
+    projectTenderFileExtractionQuery,
+    updateProjectTenderFileExtraction.mutateAsync,
+    refreshTenderFileExtraction
+  ]);
 };
