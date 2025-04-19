@@ -41,12 +41,15 @@ function AuthenticatedLayout() {
   // 场景3:（一般是加载成功后）
   // 如果当前路径不是认证相关的页面，则返回布局（带侧边栏），并渲染子路由。 
   return (
-    <SidebarProvider>
+    <SidebarProvider className="
+      h-screen  /*屏幕高度*/ 
+      overflow-hidden /*最外围显示滚条*/
+    "> 
       {/* 应用侧边栏组件 */}
       <AppSidebar />
       
       {/* 侧边栏内容区域 */}
-      <SidebarInset>
+      <SidebarInset className="flex flex-col h-screen overflow-hidden">
         {/* 顶部导航栏 */}
         <header className="
           flex               /* 使用flex布局 */
@@ -118,8 +121,8 @@ function AuthenticatedLayout() {
           gap-4          /* 子元素间距16px */
           p-6            /* 内边距16px */
           pt-0           /* 顶部内边距0（与header无缝连接） */
-          // overflow-auto   /* 内容溢出时显示滚动条 */
-          // h-full         /* 占满高度 */
+          overflow-auto   /* 内容溢出时显示滚动条 */
+          h-full         /* 占满高度 */
         ">
           {/* 路由出口（渲染子路由内容） */}
           <Outlet />

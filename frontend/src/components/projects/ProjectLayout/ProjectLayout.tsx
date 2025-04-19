@@ -159,10 +159,11 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, childre
         }
         isRightPanelOpen={docDrawerOpen}
         initialRightPanelWidth={rightPanelWidth} //在SplitLayout中，加了一个useEffect,确保props变化进行传递，屏幕大小不会变化
-        className={docDrawerOpen ? 
-          'h-[calc(100vh-9rem)]' :  /* 当抽屉打开时，高度为视口高度减去9rem（144px） */
-          ''                          /* 默认高度 */
-        }
+        className='h-[calc(100vh-9rem)]'
+        // className={docDrawerOpen ? 
+        //   'h-[calc(100vh-9rem)]' :  /* 当抽屉打开时，高度为视口高度减去9rem（144px） */
+        //   ''                          /* 默认高度 */
+        // }
         onWidthChange={(width) => {
           console.log("SplitLayout width changed to:", width);
           setRightPanelWidth(width);
