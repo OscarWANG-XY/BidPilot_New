@@ -13,7 +13,7 @@ class TaskListSerializer(serializers.ModelSerializer):
     """任务列表序列化器"""
     type_display = serializers.CharField(source='get_type_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
-    lock_status_display = serializers.CharField(source='get_lock_status_display', read_only=True)
+    # lock_status_display = serializers.CharField(source='get_lock_status_display', read_only=True)
     
     class Meta:
         model = Task
@@ -21,7 +21,8 @@ class TaskListSerializer(serializers.ModelSerializer):
             'id', 'name', 
             'type', 'type_display',
             'status', 'status_display', 
-            'lock_status', 'lock_status_display',
+            'task_level',
+            # 'lock_status', 'lock_status_display',
             'updated_at', 
         ]
         read_only_fields = fields
@@ -38,6 +39,7 @@ class TaskDetailSerializer(serializers.ModelSerializer):
             'id', 'name', 
             'type', 'type_display',
             'status', 'status_display', 
+            'task_level',
             'context', 'context_description',
             'instruction', 'instruction_description',
             'supplement', 'supplement_description',

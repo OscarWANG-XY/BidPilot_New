@@ -298,6 +298,7 @@ def initialize_project_stages(sender, instance, created, **kwargs):
                     type=TaskType.UPLOAD_TENDER_FILE,
                     status=TaskStatus.PROCESSING,
                     lock_status=TaskLockStatus.UNLOCKED,
+                    task_level=1
                 )
                 # 创建文档提取任务
                 docx_extraction_task = Task.objects.create(
@@ -308,6 +309,7 @@ def initialize_project_stages(sender, instance, created, **kwargs):
                     status=TaskStatus.NOT_STARTED,
                     lock_status=TaskLockStatus.UNLOCKED,
                     docx_tiptap=None,
+                    task_level=1
                 )
 
                 # 创建文档结构分析任务
@@ -318,6 +320,7 @@ def initialize_project_stages(sender, instance, created, **kwargs):
                     type=TaskType.OUTLINE_ANALYSIS_TASK,
                     status=TaskStatus.NOT_STARTED,
                     lock_status=TaskLockStatus.UNLOCKED,
+                    task_level=1
                 )
                 
 

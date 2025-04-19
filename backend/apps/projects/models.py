@@ -242,6 +242,10 @@ class Task(models.Model):
         choices=TaskStatus.choices,
         default=TaskStatus.NOT_STARTED
     )
+    task_level = models.IntegerField(    # 强调任务层级关系，有助于前端渲染树状结构。 
+        '任务层级',
+        default=0
+    )
     created_at = models.DateTimeField('创建时间', auto_now_add=True)
     updated_at = models.DateTimeField('更新时间', auto_now=True)
     lock_status = models.CharField(

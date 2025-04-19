@@ -36,6 +36,16 @@ logger = logging.getLogger(__name__)
             404: OpenApiTypes.OBJECT
         }
     ),
+    get_L1_tasks=extend_schema(
+        tags=['project-stages'],
+        summary='获取项目阶段下的所有任务',
+        description='获取指定项目阶段下的所有任务',
+        responses={
+            200: TaskListSerializer,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
 )
 class ProjectStageViewSet(
                                 mixins.RetrieveModelMixin,
@@ -115,10 +125,10 @@ class ProjectStageViewSet(
 
 
     @action(detail=True, methods=['get'])
-    def tasks(self, request, project_pk=None, pk=None):
+    def get_L1_tasks(self, request, project_pk=None, pk=None):
         """获取项目阶段下的所有任务"""
         stage = self.get_object()
-        tasks = stage.tasks.all()
+        tasks = stage.tasks.filter(task_level=1)
         serializer = TaskListSerializer(tasks, many=True)
         return Response(serializer.data)
 
