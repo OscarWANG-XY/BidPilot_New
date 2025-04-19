@@ -1,5 +1,6 @@
+import { useMemo} from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';  // 引用react-query的钩子函数
-import { projectStageApi } from '@/_api/projects_api/projectStages_api';
+import { projectStageApi} from '@/_api/projects_api/projectStages_api';
 import type { StageType } from '@/_types/projects_dt_stru/projectStage_interface';
 import { TaskType, TaskStatus, TaskLockStatus} from '@/_types/projects_dt_stru/projectTasks_interface';
 
@@ -17,7 +18,7 @@ export const useProjectStages = () => {
 
 //====================== ProjectStage 相关的 查询 和 操作  =====================
 
-    // --------------- 查询项目阶段详情 (包含任务) --------------- 
+    // --------------- 查询项目阶段详情 (包含TaskList) --------------- 
     const projectStageQuery = (projectId: string, stageType: StageType) => useQuery({
       queryKey: ['projectStage', projectId, stageType],
       queryFn: async () => {
@@ -30,32 +31,6 @@ export const useProjectStages = () => {
       staleTime: 30 * 1000,         // 30秒后数据变为陈旧
       gcTime: 5 * 60 * 1000,        // 5分钟后清除缓存
     });
-
-    // // --------------- 查询项目阶段任务状态 --------------- 
-    // const projectStageTaskMetaDataQuery = (projectId: string, stageType: StageType) => useQuery({
-    //   queryKey: ['projectStageTaskMetaData', projectId, stageType],
-    //   queryFn: async () => {
-    //     console.log('🔍 [useProjects] 查询项目阶段任务状态:', { projectId, stageType });
-    //     const stageData = await projectStageApi.getProjectStage(projectId, stageType);
-        
-    //     // 提取所有任务的状态信息，对齐BaseTask接口
-    //     const taskMetaData: TaskMetaData[] = stageData.tasks?.map((task: AnyTask) => ({
-    //       id: task.id,
-    //       name: task.name,
-    //       description: task.description,
-    //       type: task.type,
-    //       status: task.status,
-    //       lockStatus: task.lockStatus,
-    //     })) || [];
-    //     console.log('📥 [useProjects] 查询项目阶段任务状态成功:', taskMetaData);
-    //     return taskMetaData;
-    //   },
-    //   refetchOnWindowFocus: false,
-    //   staleTime: 30 * 1000,
-    //   gcTime: 5 * 60 * 1000,
-    //   // 只有当projectId和stageType都存在时才启用查询
-    //   enabled: Boolean(projectId) && Boolean(stageType),
-    // });
 
     // --------------更新任务状态
     const updateStageTaskStatus = useMutation({
@@ -99,13 +74,12 @@ export const useProjectStages = () => {
     
 
   
-  return {
+  return useMemo(() => ({
     // 关于项目阶段的UR，没有CD
     projectStageQuery,  
-    // projectStageTaskMetaDataQuery,  
     updateStageTaskStatus: updateStageTaskStatus.mutateAsync,
-
-    
-
-  };
+  }), [
+    projectStageQuery,
+    updateStageTaskStatus.mutateAsync,
+  ]);
 };

@@ -22,7 +22,7 @@ class TaskListSerializer(serializers.ModelSerializer):
             'type', 'type_display',
             'status', 'status_display', 
             'task_level',
-            # 'lock_status', 'lock_status_display',
+            # 'lock_status', 'lock_status_display'
             'updated_at', 
         ]
         read_only_fields = fields

@@ -1,8 +1,5 @@
 import axiosInstance from '../axios_instance';
-import type { 
-  ProjectStage,
-  StageType,
-} from '@/_types/projects_dt_stru/projectStage_interface';
+import { StageType, ProjectStage } from '@/_types/projects_dt_stru/projectStage_interface';
 
 
 // ================================ ProjectStage API 模块 =================================== 

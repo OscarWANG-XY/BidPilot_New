@@ -1,5 +1,5 @@
 // 导入任务相关的接口和类型
-import { Task} from './projectTasks_interface';
+import { TaskType, TaskStatus } from './projectTasks_interface';
 
 // ============================== 基础模型 ==============================
 
@@ -22,6 +22,17 @@ import { Task} from './projectTasks_interface';
   
   // ============================== 项目阶段模型 ==============================
   
+
+  export interface TaskList {
+    id: string;
+    name: string;                  // 任务名称
+    type: TaskType;                // 任务类型
+    status: TaskStatus;            // 状态
+    taskLevel: number;             // 任务层级
+    updatedAt: Date;               // 更新时间
+  }
+
+
   // 项目阶段接口 - 对齐后端模型
   export interface ProjectStage {
     id: string;
@@ -34,7 +45,7 @@ import { Task} from './projectTasks_interface';
     createdAt: Date;                // 创建时间
     updatedAt: Date;                // 更新时间
     metadata: Record<string, any>;  // 元数据
-    tasks?: Task[];                 // 关联任务
+    tasks?: TaskList[];                 // 关联任务
   }
   
 

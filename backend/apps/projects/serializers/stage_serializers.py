@@ -20,10 +20,15 @@ class ProjectStageDetailSerializer(serializers.ModelSerializer):
     """项目阶段读取专用序列化器"""
 
     # 额外定义序列化字段
-    tasks = TaskListSerializer(many=True, read_only=True)
+    tasks_l1 = serializers.SerializerMethodField()
 
     stage_type_display = serializers.CharField(source='get_stage_type_display', read_only=True)
     stage_status_display = serializers.CharField(source='get_stage_status_display', read_only=True)
+    
+    def get_tasks_l1(self, obj):
+        """只返回task_level=1的任务"""
+        tasks_l1 = obj.tasks.filter(task_level=1)
+        return TaskListSerializer(tasks_l1, many=True).data
     
     class Meta:
         model = ProjectStage
@@ -32,7 +37,7 @@ class ProjectStageDetailSerializer(serializers.ModelSerializer):
             'stage_status', 'stage_status_display', 'description', 
             'progress', 'created_at', 
             'updated_at', 'metadata', 
-            'tasks'  # 任务列表，定义使用TaskListSerializer(many=True, read_only=True)
+            'tasks_l1'  # 任务列表，现在只包含task_level=1的任务
         ]
         read_only_fields = fields  # 所有字段都是只读的
 
