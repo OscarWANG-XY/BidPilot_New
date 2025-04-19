@@ -10,7 +10,10 @@ import { TaskType, TaskStatus, TaskLockStatus} from '@/_types/projects_dt_stru/p
 
 
 
-export const useProjectStages = () => {
+export const useProjectStages = (
+  projectId: string,
+  stageType: StageType
+) => {
 
   // 获取react-query的客户端实例，用于管理和操作缓存数据， 上传成功时会用到
   // 缓存数据是 queryClient.data
@@ -19,20 +22,26 @@ export const useProjectStages = () => {
 //====================== ProjectStage 相关的 查询 和 操作  =====================
 
     // --------------- 查询项目阶段详情 (包含TaskList) --------------- 
-    const projectStageQuery = (projectId: string, stageType: StageType) => useQuery({
+    const projectStageQuery =  useQuery({
       queryKey: ['projectStage', projectId, stageType],
       queryFn: async () => {
-        console.log('🔍 [useProjects] 查询项目阶段详情:', { projectId, stageType });
-        const result = await projectStageApi.getProjectStage(projectId, stageType);
-        console.log('📥 [useProjects] 查询项目阶段详情成功:', result);
-        return result;
+        try{
+          console.log('🔍 [useProjects] 查询项目阶段详情:', { projectId, stageType });
+          const result = await projectStageApi.getProjectStage(projectId, stageType);
+          console.log('📥 [useProjects] 查询项目阶段详情成功:', result);
+          return result;
+        }catch(error){
+          console.error('项目阶段详情查询出错', error)
+          throw error;
+        }
       },
+
       refetchOnWindowFocus: false,  // 窗口获得焦点时不重新获取
       staleTime: 30 * 1000,         // 30秒后数据变为陈旧
       gcTime: 5 * 60 * 1000,        // 5分钟后清除缓存
     });
 
-    // --------------更新任务状态
+    // --------------更新任务状态  (注意，这个钩子目前不在使用， 对应后端的接口也没有使用)  -----------
     const updateStageTaskStatus = useMutation({
       mutationFn: async ({ 
         projectId, 
@@ -76,10 +85,16 @@ export const useProjectStages = () => {
   
   return useMemo(() => ({
     // 关于项目阶段的UR，没有CD
-    projectStageQuery,  
+    stageData: projectStageQuery.data,  
+    isLoading: projectStageQuery.isLoading,
+    isError: projectStageQuery.isError,
+    Error: projectStageQuery.error,
     updateStageTaskStatus: updateStageTaskStatus.mutateAsync,
   }), [
-    projectStageQuery,
+    projectStageQuery.data,  
+    projectStageQuery.isLoading,
+    projectStageQuery.isError,
+    projectStageQuery.error,
     updateStageTaskStatus.mutateAsync,
   ]);
 };

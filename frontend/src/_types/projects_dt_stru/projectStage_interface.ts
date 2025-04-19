@@ -45,7 +45,7 @@ import { TaskType, TaskStatus } from './projectTasks_interface';
     createdAt: Date;                // 创建时间
     updatedAt: Date;                // 更新时间
     metadata: Record<string, any>;  // 元数据
-    tasks?: TaskList[];                 // 关联任务
+    tasksL1?: TaskList[];                 // 关联任务
   }
   
 

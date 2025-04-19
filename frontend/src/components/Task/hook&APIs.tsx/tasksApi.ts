@@ -6,7 +6,7 @@ import type {
 } from '@/_types/projects_dt_stru/projectTasks_interface';
 
 
-// 任务状态枚举 - 与后端对齐
+// 任务状态枚举 - 与后端对齐  (这里定义的Task)
 export enum TaskStatus {
   NOT_STARTED = 'NOT_STARTED',   
   CONFIGURING = 'CONFIGURING',             
