@@ -42,30 +42,95 @@ function AuthenticatedLayout() {
   // 如果当前路径不是认证相关的页面，则返回布局（带侧边栏），并渲染子路由。 
   return (
     <SidebarProvider>
+      {/* 应用侧边栏组件 */}
       <AppSidebar />
+      
+      {/* 侧边栏内容区域 */}
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
+        {/* 顶部导航栏 */}
+        <header className="
+          flex               /* 使用flex布局 */
+          h-12              /* 固定高度64px */
+          shrink-0          /* 禁止收缩 */
+          items-center      /* 垂直居中 */
+          gap-2            /* 子元素间距8px */
+          transition-[width,height] /* 对宽度和高度添加过渡效果 */
+          ease-linear       /* 线性过渡（匀速动画） */
+          group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 
+                            /* 当侧边栏折叠为图标模式时，高度变为48px */
+        ">
+          {/* 导航栏内部容器 */}
+          <div className="
+            flex             /* flex布局 */
+            items-center    /* 垂直居中 */
+            gap-2          /* 子元素间距8px */
+            px-4           /* 水平内边距16px */
+          ">
+            {/* 侧边栏触发器按钮 */}
+            <SidebarTrigger className="
+              -ml-1         /* 左外边距-4px（微调按钮位置） */
+            " />
+            
+            {/* 垂直分隔线 */}
+            <Separator 
+              orientation="vertical"  /* 垂直方向 */
+              className="
+                mr-2       /* 右外边距8px */
+                h-4        /* 高度16px */
+              " 
+            />
+            
+            {/* 面包屑导航 */}
             <Breadcrumb>
               <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="#">执智者</BreadcrumbLink>
+                {/* 首页面包屑（中屏以上显示） */}
+                <BreadcrumbItem className="
+                  hidden      /* 默认隐藏 */
+                  md:block    /* 中屏（768px）及以上显示 */
+                ">
+                  <BreadcrumbLink href="#">
+                    执智者
+                  </BreadcrumbLink>
                 </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
+                
+                {/* 面包屑分隔符（中屏以上显示） */}
+                <BreadcrumbSeparator className="
+                  hidden      /* 默认隐藏 */
+                  md:block   /* 中屏及以上显示 */
+                " />
+                
+                {/* 当前页面面包屑 */}
                 <BreadcrumbItem>
-                  <BreadcrumbPage>招投标项目</BreadcrumbPage>
+                  <BreadcrumbPage>
+                    招投标项目
+                  </BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
           </div>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+        
+        {/* 主内容区域 */}
+        <div className="
+          flex             /* flex布局 */
+          flex-1          /* 占据剩余空间 */
+          flex-col        /* 垂直排列 */
+          gap-4          /* 子元素间距16px */
+          p-6            /* 内边距16px */
+          pt-0           /* 顶部内边距0（与header无缝连接） */
+          // overflow-auto   /* 内容溢出时显示滚动条 */
+          // h-full         /* 占满高度 */
+        ">
+          {/* 路由出口（渲染子路由内容） */}
           <Outlet />
         </div>
       </SidebarInset>
-      <TanStackRouterDevtools initialIsOpen={false} position="bottom-right" />
+      
+      {/* TanStack Router开发工具 */}
+      <TanStackRouterDevtools 
+        initialIsOpen={false}  /* 默认关闭 */
+        position="bottom-right"  /* 定位在右下角 */
+      />
     </SidebarProvider>
   )
 }

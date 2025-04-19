@@ -60,7 +60,7 @@ export const DocumentDrawer: React.FC<DocumentDrawerProps> = ({
           border-b        /* 底部边框线 */
           sticky          /* 粘性定位 */
           top-0          /* 固定在顶部 */
-          bg-white       /* 白色背景 */
+          bg-gray-50       /* 白色背景 */
           z-10           /* 确保显示在最上层 */
           shadow-sm      /* 轻微底部阴影，增加层次感 */
           flex           /* flex布局 */

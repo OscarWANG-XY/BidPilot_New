@@ -115,7 +115,12 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, childre
   
   // === 渲染 ===
   return (
-    <div className="w-full mx-auto py-6">
+    <div className="
+      w-full      /* 宽度100%占满父容器 */
+      mx-auto     /* 水平居中（需父容器有明确宽度时生效） */
+      py-0        /* 垂直内边距为0（保持紧凑布局） */
+      h-full      /* 高度100%占满父容器 */
+    ">
       {/* 1. 项目导航组件 */}
       <ProjectNavigation 
         tabs={TABS}
@@ -133,7 +138,10 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, childre
       {/* 3. 使用 SplitLayout 组件管理左右分栏 */}
       <SplitLayout
         leftContent={
-          <div className="min-h-full p-6">
+          <div className="
+            min-h-full  /* 最小高度撑满容器 */
+            p-0       /* 内边距0*4px 紧凑风格 */
+          ">
             {children}
           </div>
         }
@@ -151,7 +159,10 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, childre
         }
         isRightPanelOpen={docDrawerOpen}
         initialRightPanelWidth={rightPanelWidth} //在SplitLayout中，加了一个useEffect,确保props变化进行传递，屏幕大小不会变化
-        className={docDrawerOpen ? 'h-[calc(100vh-16rem)]' : ''}
+        className={docDrawerOpen ? 
+          'h-[calc(100vh-9rem)]' :  /* 当抽屉打开时，高度为视口高度减去9rem（144px） */
+          ''                          /* 默认高度 */
+        }
         onWidthChange={(width) => {
           console.log("SplitLayout width changed to:", width);
           setRightPanelWidth(width);

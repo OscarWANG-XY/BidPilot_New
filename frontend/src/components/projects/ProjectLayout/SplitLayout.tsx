@@ -170,7 +170,7 @@ export const SplitLayout: React.FC<SplitLayoutProps> = ({
           ${isResizing ? '' : 'transition-all duration-300'} /* 同步主容器的动画控制逻辑 */
           ease-in-out          /* 相同的缓动函数保证动画一致性 */
           overflow-auto        /* 内容溢出时显示滚动条 */
-          bg-white             /* 纯白背景（与右侧面板形成对比） */
+          bg-gray-50             /* 纯白背景（与右侧面板形成对比） */
         `}
         style={{ 
           width: isRightPanelOpen 
@@ -191,7 +191,7 @@ export const SplitLayout: React.FC<SplitLayoutProps> = ({
         className={`
           ${isResizing ? '' : 'transition-all duration-300'} /* 同步动画控制 */
           ease-in-out          /* 相同缓动函数 */
-          bg-gray-50           /* 浅灰色背景（与左侧形成视觉区分） */
+          bg-gray-100           /* 浅灰色背景（与左侧形成视觉区分） */
           border-l             /* 左侧边框线 */
           border-gray-200      /* 浅灰色边框（与背景协调） */
         `}
