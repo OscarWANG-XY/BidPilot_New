@@ -3,7 +3,7 @@ import {
     Outlet,
     useRouter,
   } from '@tanstack/react-router'
-  import { ProjectManager } from '@/components/projects/_ProjectManager'
+  import { ProjectManager } from '@/components/projects/Project/_ProjectManager'
   
   export const Route = createFileRoute('/projects/')({
     component: ProjectsComponent,

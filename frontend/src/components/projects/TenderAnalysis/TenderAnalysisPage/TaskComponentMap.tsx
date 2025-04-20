@@ -6,7 +6,7 @@ import { TaskType } from '@/_types/projects_dt_stru/projectTasks_interface';
 import { StageType, TaskList } from '@/_types/projects_dt_stru/projectStage_interface';
 import { TenderFileUpload } from '@/components/projects/TenderAnalysis/TenderFileUpload/TenderFileupload';
 import { DocxExtractionTask } from '@/components/projects/TenderAnalysis/DocxExtractionTask/DocxExtractionTask';
-import TaskContainer from '@/components/Task/TaskContainer';
+import TaskContainer from '@/components/projects/Task/TaskContainer';
 
 
 // 组件映射类型

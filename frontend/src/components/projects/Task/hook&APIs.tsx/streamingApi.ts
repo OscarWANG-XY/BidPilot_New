@@ -1,4 +1,4 @@
-import axiosInstance from '../../../_api/axios_instance';
+import axiosInstance from '@/_api/axios_instance';
 import type { StageType } from '@/_types/projects_dt_stru/projectStage_interface';
 import type { TaskType } from '@/_types/projects_dt_stru/projectTasks_interface';
 

@@ -6,7 +6,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import TiptapEditor_lite from '@/components/shared/TiptapEditor_lite2';
+import TiptapEditor_lite from '@/__deprecated/shared/TiptapEditor_lite2';
 
 interface ConfigurationPreviewProps {
   context?: any;

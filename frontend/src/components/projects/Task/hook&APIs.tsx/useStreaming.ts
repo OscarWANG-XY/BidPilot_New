@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { TaskSteamingApi } from '@/components/Task/hook&APIs.tsx/streamingApi';
+import { TaskSteamingApi } from '@/components/projects/Task/hook&APIs.tsx/streamingApi';
 import type { StageType } from '@/_types/projects_dt_stru/projectStage_interface';
 import type { TaskType } from '@/_types/projects_dt_stru/projectTasks_interface';
 import type {
@@ -7,7 +7,7 @@ import type {
   StreamStatusResponse,
   StreamResultResponse,
   StreamStatus
-} from '@/components/Task/hook&APIs.tsx/streamingApi';
+} from '@/components/projects/Task/hook&APIs.tsx/streamingApi';
 import { useEffect, useCallback, useRef, useMemo, useReducer } from 'react';
 
 

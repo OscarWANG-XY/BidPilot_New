@@ -159,25 +159,10 @@ export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectI
   }
 
   return (
-    <div className="
-      container    /* 设置容器最大宽度（响应式断点） */
-      mx-auto     /* 水平自动外边距实现居中 */
-      py-6        /* 垂直方向内边距6个单位（1.5rem/24px） */
-    ">
-      <h1 className="
-        text-2xl    /* 字体大小2xl（24px） */ 
-        font-bold   /* 字体加粗 */
-        mb-6        /* 底部外边距6个单位 */
-      ">招标文件分析任务</h1>
+    <div className="container mx-auto py-6">  {/* 设置容器最大宽度（响应式断点） 水平自动外边距实现居中 垂直方向内边距6个单位（1.5rem/24px） */}
+      <h1 className="text-2xl font-bold mb-6">招标文件分析任务</h1>  {/* 字体大小2xl（24px） 字体加粗 底部外边距6个单位 */}
       
-      <div className="
-        mb-4        /* 底部外边距4个单位 */
-        bg-blue-50  /* 浅蓝色背景（50色调） */
-        p-3         /* 内边距3个单位 */
-        rounded-md  /* 中等圆角半径 */
-        text-blue-800 /* 深蓝色文字 */
-        text-sm     /* 小号字体（14px） */
-      ">
+      <div className="mb-4 bg-blue-50 p-3 rounded-md text-blue-800 text-sm"> {/* 底部外边距4个单位 浅蓝色背景（50色调） 内边距3个单位 中等圆角半径 深蓝色文字 小号字体（14px） */}
         页面加载完成后将自动打开并滚动到"处理中"的任务
       </div>
       
@@ -185,9 +170,7 @@ export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectI
         type="multiple" 
         value={openItems}
         onValueChange={(value) => setOpenItems(value as string[])}
-        className="
-          w-full    /* 宽度100%占满父容器 */
-        "
+        className="w-full" // 宽度100%占满父容器
       >
         {sortedTasks.map((task) => (
           <AccordionItem 
@@ -198,43 +181,21 @@ export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectI
                 processingTaskRefs.current[task.id] = element;
               }
             }}
-            className={`
-              ${task.status === 'PROCESSING' ? 'border-l-4 border-blue-500' : ''}
-              /* 处理中状态时添加4px蓝色左边框 */
-            `}
+            className={`${task.status === 'PROCESSING' ? 'border-l-4 border-blue-500' : ''}`} // 处理中状态时添加4px蓝色左边框 
           >
-            <AccordionTrigger className="
-              px-4       /* 水平内边距4个单位 */
-              py-2       /* 垂直内边距2个单位 */
-              hover:bg-gray-50  /* 悬停时浅灰色背景 */
-            ">
-              <div className="
-                flex        /* flex布局 */
-                items-center  /* 垂直居中对齐 */
-                justify-between  /* 两端对齐 */
-                w-full      /* 宽度100% */
-              ">
+            <AccordionTrigger className="px-4 py-2 hover:bg-gray-50"> {/* 水平内边距4个单位 垂直内边距2个单位 悬停时浅灰色背景 */}
+              <div className="flex items-center justify-between w-full"> {/* flex布局 垂直居中对齐 两端对齐 宽度100% */}
                 {/* 任务名称 */ }
-                <div className="
-                  font-medium  /* 中等字体粗细 */
-                ">{task.name}</div>
-
+                <div className="font-medium">{task.name}</div> {/* 中等字体粗细 */}
+  
                 {/* 任务状态 */}
-                <Badge className={`
-                  ml-4       /* 左外边距4个单位 */
-                  ${statusConfig[task.status]?.color || 'bg-gray-100 text-gray-800'}
-                  /* 动态类名：优先使用状态配置中的颜色，默认灰色 */
-                `}>
+                <Badge className={`ml-4 ${statusConfig[task.status]?.color || 'bg-gray-100 text-gray-800'}`}> {/* 左外边距4个单位 动态类名：优先使用状态配置中的颜色，默认灰色 */}
                   {statusConfig[task.status]?.label || '未知状态'}
                 </Badge>
               </div>
             </AccordionTrigger>
             
-            <AccordionContent className="
-              px-4       /* 水平内边距4个单位 */
-              py-3       /* 垂直内边距3个单位 */
-              bg-gray-50 /* 浅灰色背景 */
-            ">
+            <AccordionContent className="px-4 py-3 bg-gray-50"> {/* 水平内边距4个单位 垂直内边距3个单位 浅灰色背景 */}
                 {/* 使用动态任务组件 */}
                 <div className="mt-4 border-t pt-4">
                   <TaskContent 

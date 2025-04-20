@@ -4,7 +4,7 @@ import { DocxExtractionTask } from './DocxExtractionTask/DocxExtractionTask'
 // import { DocOutlineAnalysisTask } from './_03_OutlineAnalysisTask'
 import { TaskStatus, TaskLockStatus } from '@/_types/projects_dt_stru/projectTasks_interface'
 import { OutlineAnalysisStreamingView } from '@/components/projects/TenderAnalysis/OutlineAnalysisTask/OutlineAnalysisStreamingView'
-import TaskContainer from '@/components/Task/TaskContainer'
+import TaskContainer from '@/components/projects/Task/TaskContainer'
 import { StageType } from '@/_types/projects_dt_stru/projectStage_interface'
 import { TaskType } from '@/_types/projects_dt_stru/projectTasks_interface'
 interface TenderAnalysisPageProps {

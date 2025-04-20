@@ -1,5 +1,5 @@
 import React from 'react';
-import MarkdownEditor from '../../MarkdownEditor/MarkdownEditor';
+import MarkdownEditor from '@/components/MarkdownEditor/MarkdownEditor';
 
 export interface AnalysisPanelProps {
   // Streaming related props

@@ -17,7 +17,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 
-import { CreateProjectDialog } from "@/components/projects/_01_ProjectCreate"
+import { CreateProjectDialog } from "@/components/projects/Project/_01_ProjectCreate"
 import { ProjectsSidebarItem } from "@/_types/projects_dt_stru/projects_interface"
 
 export function NavProjects({
