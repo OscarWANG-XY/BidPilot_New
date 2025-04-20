@@ -5,7 +5,7 @@
   export enum TaskType {
     UPLOAD_TENDER_FILE = 'UPLOAD_TENDER_FILE',     //'上传招标文件'
     DOCX_EXTRACTION_TASK = 'DOCX_EXTRACTION_TASK', //'提取文档信息'
-    DOCX_TREE_BUILD_TASK = 'DOCX_TREE_BUILD_TASK',  //'构建文档树'
+    OUTLINE_ANALYSIS_TASK = 'OUTLINE_ANALYSIS_TASK',          // 大纲分析
     // AI_STRUCTURE_ANALYSIS = 'AI_STRUCTURE_ANALYSIS',        // AI分析层级结构
     // BIDDER_INSTRUCTION_ANALYSIS = 'BIDDER_INSTRUCTION_ANALYSIS', // 分析投标人须知
     // SCORING_CRITERIA_ANALYSIS = 'SCORING_CRITERIA_ANALYSIS',     // 分析评分标准
@@ -17,7 +17,7 @@
     // DOCUMENT_REVIEW = 'DOCUMENT_REVIEW',                    // 文档审核
     // DOCUMENT_REVISION = 'DOCUMENT_REVISION',                // 文档修订
     // DOCUMENT_PRODUCTION = 'DOCUMENT_PRODUCTION',            // 文档生产
-    OUTLINE_ANALYSIS_TASK = 'OUTLINE_ANALYSIS_TASK',          // 大纲分析
+    
     OTHER = 'OTHER'                                         // 其他
   }
   

@@ -102,13 +102,21 @@ export const useDocxExtraction = () => {
         projectId, 
         stageType, taskData as Type_DocxExtractionTaskUpdate);
       console.log('✅ 成功更新文档提取的任务数据:', result);
-      return result as Type_DocxExtractionTaskDetail;
+      return { result, projectId, stageType, status };
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       // Invalidate the query to trigger a refetch
       queryClient.invalidateQueries({
         queryKey: ['docxExtractionTask', variables.projectId, variables.stageType]
       });
+
+      // 如果任务状态变为完成，则刷新项目阶段数据
+      if (data.status === 'COMPLETED' || variables.status === 'COMPLETED') {
+        console.log('🔄 [useProjectTasks] 文档提取任务完成，刷新项目阶段数据');
+        queryClient.invalidateQueries({
+          queryKey: ['projectStage', variables.projectId, variables.stageType]
+        });
+      }
     }
   });
 

@@ -83,6 +83,15 @@ export const useProjectStages = (
     
 
   
+  // --------------手动刷新项目阶段数据---------------
+  const refreshProjectStage = () => {
+    console.log('🔄 [useProjects] 手动刷新项目阶段数据:', { projectId, stageType });
+    queryClient.invalidateQueries({ 
+      queryKey: ['projectStage', projectId, stageType] 
+    });
+  };
+  
+  
   return useMemo(() => ({
     // 关于项目阶段的UR，没有CD
     stageData: projectStageQuery.data,  
@@ -90,11 +99,13 @@ export const useProjectStages = (
     isError: projectStageQuery.isError,
     Error: projectStageQuery.error,
     updateStageTaskStatus: updateStageTaskStatus.mutateAsync,
+    refreshProjectStage, // 添加手动刷新函数
   }), [
     projectStageQuery.data,  
     projectStageQuery.isLoading,
     projectStageQuery.isError,
     projectStageQuery.error,
     updateStageTaskStatus.mutateAsync,
+    refreshProjectStage, // 添加到依赖数组
   ]);
 };
