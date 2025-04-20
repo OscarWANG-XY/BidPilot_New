@@ -11,7 +11,7 @@ from .history_serializers import (
 from .project_serializers import (
     ProjectListSerializer, ProjectDetailSerializer, ProjectCreateSerializer, 
     ProjectUpdateSerializer, ProjectStatusUpdateSerializer, ProjectActiveStageUpdateSerializer,
-    ProjectTenderFileExtractionSerializer
+    ProjectTenderFileUpdateSerializer
 )
 from .stage_serializers import (
     ProjectStageDetailSerializer, ProjectStageUpdateSerializer,
@@ -44,7 +44,8 @@ __all__ = [
     # 项目序列化器
     'ProjectListSerializer', 'ProjectDetailSerializer', 'ProjectCreateSerializer',
     'ProjectUpdateSerializer', 'ProjectStatusUpdateSerializer', 'ProjectActiveStageUpdateSerializer',
-    
+    'ProjectTenderFileUpdateSerializer',
+
     # 阶段序列化器
     'ProjectStageDetailSerializer', 'ProjectStageUpdateSerializer',
     

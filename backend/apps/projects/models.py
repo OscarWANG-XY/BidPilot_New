@@ -227,7 +227,6 @@ class Task(models.Model):
         related_name='tasks',
         verbose_name='所属阶段'
     )
-    
     name = models.CharField('任务名称', max_length=100)   # Type_TaskDetail
     description = models.TextField('描述', blank=True)
     type = models.CharField(

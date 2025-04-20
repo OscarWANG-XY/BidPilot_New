@@ -10,7 +10,7 @@ from ..serializers import (
     ProjectListSerializer, ProjectDetailSerializer, ProjectCreateSerializer, 
     ProjectUpdateSerializer, ProjectStatusUpdateSerializer, ProjectActiveStageUpdateSerializer,
     ProjectChangeHistorySerializer, 
-    ProjectTenderFileExtractionSerializer
+    ProjectTenderFileUpdateSerializer
 )
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiTypes
 import logging
@@ -107,23 +107,13 @@ logger = logging.getLogger(__name__)
             404: OpenApiTypes.OBJECT
         }
     ),
-    get_tender_file_extraction=extend_schema(
-        tags=['projects'],
-        summary='获取项目招标文件提取信息',
-        description='获取指定项目的招标文件提取信息',
-        responses={
-            200: ProjectTenderFileExtractionSerializer,
-            401: OpenApiTypes.OBJECT,
-            404: OpenApiTypes.OBJECT
-        }
-    ),
     update_tender_file_extraction=extend_schema(
         tags=['projects'],
         summary='更新项目招标文件提取信息',
         description='更新指定项目的招标文件提取信息',
-        request=ProjectTenderFileExtractionSerializer,
+        request=ProjectTenderFileUpdateSerializer,
         responses={
-            200: ProjectTenderFileExtractionSerializer,
+            200: ProjectTenderFileUpdateSerializer,
             400: OpenApiTypes.OBJECT,
             401: OpenApiTypes.OBJECT,
             404: OpenApiTypes.OBJECT
@@ -165,8 +155,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
             return ProjectActiveStageUpdateSerializer
         elif self.action == 'update_status':
             return ProjectStatusUpdateSerializer
-        elif self.action in ['get_tender_file_extraction', 'update_tender_file_extraction']:
-            return ProjectTenderFileExtractionSerializer
+        elif self.action in ['update_tender_file_extraction']:
+            return ProjectTenderFileUpdateSerializer
         return ProjectDetailSerializer
     
     def create(self, request, *args, **kwargs):
@@ -248,12 +238,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
 
     # 以下是自定义的两个方法：获取项目招标文件提取信息 和 更新项目招标文件提取信息
-    @action(detail=True, methods=['get'])
-    def get_tender_file_extraction(self, request, pk=None):
-        """ 获取项目招标文件提取信息 """
-        project = self.get_object()
-        serializer = self.get_serializer(project)
-        return Response(serializer.data)
 
     @action(detail=True, methods=['patch'])
     def update_tender_file_extraction(self, request, pk=None):

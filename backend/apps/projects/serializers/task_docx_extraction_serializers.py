@@ -39,6 +39,22 @@ class DocxExtractionTaskUpdateSerializer(ChangeTrackingModelSerializer):
             raise ValidationError(f"此序列化器只能用于 文档提取任务 的更新")
         return super().validate(data)
     
+    def update(self, instance, validated_data):
+        task = super().update(instance, validated_data)
+        
+        # 如果任务完成，将docx_tiptap存储到project.tender_file_extraction
+        if task.status == 'COMPLETED':  # 使用TaskStatus.COMPLETED的值
+            try:
+                # 通过stage获取project
+                project = task.stage.project
+                if project.tender_file_extraction is None and task.docx_tiptap:
+                    project.tender_file_extraction = task.docx_tiptap
+                    project.save(update_fields=['tender_file_extraction'])
+                    logger.info(f"已将任务ID:{task.id}的docx_tiptap存储到项目ID:{project.id}的tender_file_extraction")
+            except Exception as e:
+                logger.error(f"存储docx_tiptap到project.tender_file_extraction失败: {str(e)}")
+        
+        return task
 
 class DocxExtractionStartSerializer(ChangeTrackingModelSerializer):
     """文档提取任务更新专用序列化器"""

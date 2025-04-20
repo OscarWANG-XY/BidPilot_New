@@ -78,14 +78,6 @@ export const projectsApi = {
     console.log('✅ 删除项目成功:', projectId);
   },
 
-  // 获取项目招标文件提取信息
-  getTenderFileExtraction: async (projectId: string): Promise<Project> => {
-    console.log('📤 获取项目招标文件提取信息:', projectId);
-    const response = await axiosInstance.get(`/projects/${projectId}/get_tender_file_extraction/`);
-    console.log('📥 获取项目招标文件提取信息成功:', response.data);
-    return response.data;
-  },
-
   // 更新项目招标文件提取信息
   updateTenderFileExtraction: async (projectId: string, extractionData: any): Promise<Project> => {
     console.log('📤 更新项目招标文件提取信息:', { projectId, extractionData });

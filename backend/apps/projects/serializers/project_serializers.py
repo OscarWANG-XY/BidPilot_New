@@ -35,7 +35,7 @@ class ProjectListSerializer(serializers.ModelSerializer):
 class ProjectDetailSerializer(ProjectListSerializer):
     """项目详情序列化器"""
     class Meta(ProjectListSerializer.Meta):
-        fields = ProjectListSerializer.Meta.fields
+        fields = ProjectListSerializer.Meta.fields + ['tender_file_extraction']
 
 
 class ProjectCreateSerializer(serializers.ModelSerializer):
@@ -76,8 +76,8 @@ class ProjectActiveStageUpdateSerializer(serializers.ModelSerializer):
         model = Project
         fields = ['current_active_stage', 'remarks']
 
-class ProjectTenderFileExtractionSerializer(serializers.ModelSerializer):
-    """项目招标文件提取信息序列化器"""
+class ProjectTenderFileUpdateSerializer(serializers.ModelSerializer):
+    """项目招标文件提取信息更新序列化器"""
     
     class Meta:
         model = Project

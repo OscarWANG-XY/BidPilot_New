@@ -1,10 +1,10 @@
 // ProjectLayout.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from '@tanstack/react-router';
 import { toast } from '@/_hooks/use-toast';
 import { ProjectStatus } from '@/_types/projects_dt_stru/projects_interface';
 import { useProjects } from '@/_hooks/useProjects/useProjects';
-
+import { useUnsavedChangesWarning } from '../../../_hooks/useUnsavedChangeWarning';
 // 导入子组件
 import { ProjectNavigation } from './ProjectNavigation';
 import { ProjectStatusAlert } from './ProjectStatusAlert';
@@ -25,29 +25,17 @@ const TABS = [
   },
 ];
 
-// 示例文档内容
-const sampleDocContent = {
-  "type": "doc",
-  "content": [
-    {
-      "type": "heading",
-      "attrs": { "level": 1 },
-      "content": [{ "type": "text", "text": "招标文件示例" }]
-    },
-    {
-      "type": "paragraph",
-      "content": [
-        { "type": "text", "text": "本文档包含项目招标的详细信息和要求。" }
-      ]
-    },
-    // ... 其他文档内容
-  ]
-};
-
 interface ProjectLayoutProps {
   projectId: string;
   children: React.ReactNode;
 }
+
+// 在 SplitLayout 组件中，使用 React.memo 包装左侧内容，防止不必要的重渲染
+const MemoizedLeftContent = React.memo(({ children }: { children: React.ReactNode }) => (
+  <div className="min-h-full p-0">
+    {children}
+  </div>
+));
 
 export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, children }) => {
   // === 状态管理 ===
@@ -61,16 +49,29 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, childre
     location.pathname.endsWith(tab.value)
   )?.value || TABS[0].value;
   
-  const { singleProjectQuery, updateProjectStatus, projectTenderFileExtractionQuery, updateProjectTenderFileExtraction } = useProjects();
-  const { data: project } = singleProjectQuery(projectId);
+  const { singleProjectQuery, updateProjectStatus, updateProjectTenderFileExtraction, isUpdating } = useProjects();
+  const { data: project} = singleProjectQuery(projectId);
   const projectStatus = project?.status || ProjectStatus.IN_PROGRESS;
-    // 获取招标文件提取信息
-  const { data: tenderFileData, isLoading: isTenderFileLoading, refetch: refetchTenderFile } = projectTenderFileExtractionQuery(projectId);
+  console.log('project查询结果', project);
+
+  // 获取招标文件提取信息
+  const tenderFileData = project?.tenderFileExtraction;
+  console.log('tenderFileData查询结果', tenderFileData);
+
+  // 创建带项目ID前缀的本地存储键
+  const getStorageKey = (key: string) => `project_${projectId}_${key}`;
 
   // 招标文件内容状态
-  const [docContent, setDocContent] = useState<any>(tenderFileData?.tenderFileExtration);
-  const [isDocContentChanged, setIsDocContentChanged] = useState(false);
-  // 
+  const [isEditing, setIsEditing] = useState<boolean>(() => {
+    const saved = localStorage.getItem(getStorageKey('isEditing'));
+    return saved === 'true';
+  });
+
+  const [editingContent, setEditingContent] = useState<any>(() => {
+    return localStorage.getItem(getStorageKey('editingContent')) || '';
+  });
+  
+
   
   // === 处理函数 ===
   // 1. 文档抽屉控制
@@ -112,7 +113,74 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, childre
   const handleRightPanelWidthChange = (newWidth: number) => {
     setRightPanelWidth(newWidth);
   };
+
+  const handleStartEditing = async() => {
+    if (tenderFileData) {
+      setEditingContent(tenderFileData);
+      setIsEditing(true);
+      localStorage.setItem(getStorageKey('editingContent'), tenderFileData);
+      localStorage.setItem(getStorageKey('isEditing'), 'true');
+    }
+  };
+
+  const handleCancelEditing = async() => {
+    if(tenderFileData) {
+      setEditingContent(tenderFileData);
+    }
+    setIsEditing(false);
+    localStorage.setItem(getStorageKey('isEditing'), 'false');
+    localStorage.removeItem(getStorageKey('editingContent'));
+  };
+
+  const handleSaveEditingContent = async() => {
+    try {
+      await updateProjectTenderFileExtraction({
+        projectId: projectId,
+        extractionData: editingContent
+      });
+      
+      setIsEditing(false);
+      localStorage.removeItem(getStorageKey('isEditing'));
+      localStorage.removeItem(getStorageKey('editingContent'));
+      
+      toast({
+        title: "保存成功",
+        description: "招标文件内容已更新",
+      });
+    } catch (error: any) {
+      toast({
+        title: "保存失败",
+        description: error?.response?.data?.message || error.message || "更新招标文件内容时出错",
+        variant: "destructive",
+      });
+    }
+  };
   
+  // 同步编辑内容到localStorage 
+  useEffect(() => {
+    if(isEditing) {
+      localStorage.setItem(getStorageKey('editingContent'), editingContent || '');
+    }
+  }, [isEditing, editingContent, projectId]);
+
+  // 当项目变更时，清理无关的编辑状态
+  useEffect(() => {
+    if(projectId) {
+      // 不再需要单独存储currentProject，因为我们现在使用项目ID作为键前缀
+      // 检查是否有编辑状态，如果没有则重置
+      if(!tenderFileData) {
+        setIsEditing(false);
+        localStorage.removeItem(getStorageKey('editingContent'));
+        localStorage.removeItem(getStorageKey('isEditing'));
+      }
+    }
+  }, [tenderFileData, projectId]);
+
+    // 使用自定义Hook来处理未保存更改的提醒
+    useUnsavedChangesWarning(isEditing, '您有未保存的编辑内容，确定要离开吗？');
+
+
+
   // === 渲染 ===
   return (
     <div className="
@@ -138,23 +206,27 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, childre
       {/* 3. 使用 SplitLayout 组件管理左右分栏 */}
       <SplitLayout
         leftContent={
-          <div className="
-            min-h-full  /* 最小高度撑满容器 */
-            p-0       /* 内边距0*4px 紧凑风格 */
-          ">
-            {children}
-          </div>
+          <MemoizedLeftContent children={children} />
         }
         rightContent={
           <DocumentDrawer 
+            // 关于抽屉效果的props
             isOpen={true} // SplitLayout 已经处理显示逻辑
             rightPanelWidth={rightPanelWidth}   // 传递给DocumentDrawer，为了配合toggleMaximize使用。 改变不是右侧的宽度。  
-            content={sampleDocContent}
             onClose={handleDocDrawerToggle}
             onWidthChange={(width) => {
               console.log("DocumentDrawer requested width change to:", width);
               handleRightPanelWidthChange(width);
             }}
+            // 关于文档内容和编辑的props
+            content={tenderFileData}
+            isupdating={isUpdating}
+            editingContent={editingContent}
+            isEditing={isEditing}
+            onStartEditing={handleStartEditing}
+            onEditingContent={setEditingContent}
+            onCancelEditing={handleCancelEditing}
+            onSaveEditing={handleSaveEditingContent}
           />
         }
         isRightPanelOpen={docDrawerOpen}

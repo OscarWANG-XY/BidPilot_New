@@ -75,7 +75,10 @@ export const useProjects = () => {
       const result = await projectsApi.getProjectById(projectId);
       console.log('📥 [useProjects] 查询单个项目:', result);
       return result;
-    }
+    },
+    refetchOnWindowFocus: false,
+    staleTime: 0,
+    gcTime: 5 * 60 * 1000,
   });
 
   // --------------- 创建项目 done check--------------- 
@@ -160,19 +163,6 @@ export const useProjects = () => {
     }
   });
 
-  // --------------- 查询项目招标文件提取信息 --------------- 
-  const projectTenderFileExtractionQuery = (projectId: string) => useQuery({
-    queryKey: ['projectTenderFileExtraction', projectId],
-    queryFn: async () => {
-      console.log('🔍 [useProjects] 查询项目招标文件提取信息, id:', projectId);
-      const result = await projectsApi.getTenderFileExtraction(projectId);
-      console.log('📥 [useProjects] 查询项目招标文件提取信息:', result);
-      return result;
-    },
-    refetchOnWindowFocus: false,
-    staleTime: 60 * 1000,  // 1分钟后数据变为陈旧
-    gcTime: 5 * 60 * 1000, // 5分钟后清除缓存
-  });
 
   // --------------- 更新项目招标文件提取信息 --------------- 
   const updateProjectTenderFileExtraction = useMutation({
@@ -184,7 +174,6 @@ export const useProjects = () => {
     },
     onSuccess: (_, variables) => {
       console.log('🔄 [useProjects] 更新项目招标文件提取信息后, 更新缓存数据:', variables.projectId);
-      queryClient.invalidateQueries({ queryKey: ['projectTenderFileExtraction', variables.projectId] });
       queryClient.invalidateQueries({ queryKey: ['SingleProjectKey', variables.projectId] });
     }
   });
@@ -211,9 +200,9 @@ export const useProjects = () => {
     updateProjectActiveStage: updateProjectActiveStage.mutateAsync,
     updateProjectStatus: updateProjectStatus.mutateAsync,  
     deleteProject: deleteProject.mutateAsync,
+    isUpdating: updateProjectTenderFileExtraction.isPending,
 
     // 招标文件提取信息相关
-    projectTenderFileExtractionQuery,
     updateProjectTenderFileExtraction: updateProjectTenderFileExtraction.mutateAsync,
     refreshTenderFileExtraction,
   }), [
@@ -225,8 +214,8 @@ export const useProjects = () => {
     updateProjectActiveStage.mutateAsync,
     updateProjectStatus.mutateAsync,
     deleteProject.mutateAsync,
-    projectTenderFileExtractionQuery,
     updateProjectTenderFileExtraction.mutateAsync,
-    refreshTenderFileExtraction
+    refreshTenderFileExtraction,
+    updateProjectTenderFileExtraction.isPending,
   ]);
 };

@@ -34,7 +34,7 @@ def process_docx_extraction(project_id: int):
             docx_extraction_task.save()
 
             # 更新项目中的tender_docx_tiptap字段
-            project.tender_docx_tiptap = tiptap_content
+            project.tender_file_extraction = tiptap_content
             project.save()
         
         # 更新任务状态为完成
