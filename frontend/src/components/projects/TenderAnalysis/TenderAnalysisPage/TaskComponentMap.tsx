@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { TaskType } from '@/_types/projects_dt_stru/projectTasks_interface';
-import { TaskList } from '@/_types/projects_dt_stru/projectStage_interface';
+import { StageType, TaskList } from '@/_types/projects_dt_stru/projectStage_interface';
 import { TenderFileUpload } from '@/components/projects/TenderAnalysis/TenderFileUpload/TenderFileupload';
 import { DocxExtractionTask } from '@/components/projects/TenderAnalysis/DocxExtractionTask/DocxExtractionTask';
 import TaskContainer from '@/components/Task/TaskContainer';
@@ -46,10 +46,21 @@ export const TaskContent: React.FC<TaskContentProps> = (props) => {
     return <div className="text-gray-500">未知任务类型: {task.type}</div>;
   }
   
+  // 为OUTLINE_ANALYSIS_TASK类型添加默认taskType参数
+  if (task.type === TaskType.OUTLINE_ANALYSIS_TASK) {
+    return <TaskComponent 
+      task={task}
+      projectId={projectId}
+      isEnabled={isEnabled}
+      stageType={StageType.TENDER_ANALYSIS}
+      taskType={TaskType.OUTLINE_ANALYSIS_TASK}
+      {...restProps} />;
+  }
+  
   // 将task组件和其所需属性 作为完成的组件输出， 传递给需要调用的组件
   return <TaskComponent 
     task={task}
     projectId={projectId}
-    isEnabled = {isEnabled}
+    isEnabled={isEnabled}
     {...restProps} />;
 };
