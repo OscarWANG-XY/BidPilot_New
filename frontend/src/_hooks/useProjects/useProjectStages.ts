@@ -37,7 +37,7 @@ export const useProjectStages = (
       },
 
       refetchOnWindowFocus: false,  // 窗口获得焦点时不重新获取
-      staleTime: 30 * 1000,         // 30秒后数据变为陈旧
+      staleTime: 0,         // 30秒后数据变为陈旧
       gcTime: 5 * 60 * 1000,        // 5分钟后清除缓存
     });
 
