@@ -22,11 +22,11 @@ from apps.projects.services.task_service import count_tokens
 class OutlineAnalysisL1():
     """文档大纲分析器，用于提取OutlineL1"""
 
-    def __init__(self, project_id: str):
+    def __init__(self, data_input: Any):
         # 类的传参都一定会经过__init__方法， 基本它写在类后面的（）里。  
         # 想让对象记住一个变量，都需要在变量前加self. 
-        self.project = Project.objects.get(id=project_id)
-        self.context, self.index_path_map = self._prepare_context(self.project)
+        self.data_input = data_input
+        self.context, self.index_path_map = self._prepare_context()
         self.instruction = self._prepare_instruction()
         self.supplement = self._prepare_supplement()
         self.output_format = self._prepare_output_format()
@@ -40,33 +40,41 @@ class OutlineAnalysisL1():
         self.prompt_template_tokens = count_tokens(self.prompt_template)
         self.in_tokens = self.context_tokens + self.instruction_tokens + self.supplement_tokens + self.output_format_tokens + self.prompt_template_tokens
 
-        #存储 index_path_map
-        self.project.index_path_map_L1 = self.index_path_map
-        self.project.save()
-
-    def output_params(self) -> Dict[str,any]:
+    def output_params(self) -> Tuple[Dict[str,any], Dict[str,any], Dict[str,any]]:
         # 
         model_params = {
+            "llm_config": self.llm_config,
+            "prompt_template": self.prompt_template,
+        }
+
+        task = {
             "context": self.context,
-            "index_path_map": self.index_path_map,
             "instruction": self.instruction,
             "supplement": self.supplement,
             "output_format": self.output_format,
-            "prompt_template": self.prompt_template,
-            "llm_config": self.llm_config,
-            "in_tokens" : self.in_tokens
         }
-        return model_params
+
+        meta = {
+            "index_path_map": self.index_path_map,
+            "in_tokens" : self.in_tokens,
+            "context_tokens": self.context_tokens,
+            "instruction_tokens": self.instruction_tokens,
+            "supplment_tokens":self.supplement_tokens,
+            "output_format_tokens": self.output_format_tokens,
+            "prompt_template_tokens": self.prompt_template_tokens
+        }
+
+        return model_params, task, meta
 
 
-    def _prepare_context(self, project: Project) -> Tuple[List[str], Dict[str, str]]:
+    def _prepare_context(self) -> Tuple[List[str], Dict[str, str]]:
         """
         准备请求数据
         """ 
         # docx_extraction_task = Task.objects.get(stage__project=project, type=TaskType.DOCX_EXTRACTION_TASK)
         
         from apps.projects.tiptap.helpers import TiptapUtils
-        data_input, index_path_map = TiptapUtils.extract_indexed_paragraphs(project.tender_file_extraction, 50)
+        data_input, index_path_map = TiptapUtils.extract_indexed_paragraphs(self.data_input, 50)
 
         return data_input, index_path_map
 
@@ -91,14 +99,6 @@ class OutlineAnalysisL1():
 
 """
 
-#         return """
-# 你是一个擅长文档结构分析的AI助手， 我会提供一些文本内容（见材料A）， 每条数据包含 content（文本内容）和 index（索引）。
-# 你的任务是：
-# 1) 识别文本中最高层级的标题, 注意只识别最高的一个层级。
-# 2) 请仅识别正文中的标题，忽略目录、封面页和附件中的重复章节名称。
-# 如果不是标题，则忽略
-# 如果内容是目录、封面页和附件中的重复章节名称，则忽略
-# """
 
 
     def _prepare_output_format(self) -> str:
@@ -114,28 +114,6 @@ class OutlineAnalysisL1():
 - 一个标题一条数据， 只输出最高层级的标题。
 
 """
-
-#         return """
-# 生成 JSON：
-# - 结果按以下输出示例格式输出：
-# - 只输出最高层级的标题
-# - 非标题内容完全忽略，不生成任何输出
-
-# 输入示例： 
-
-# [
-#   {"content": "第六章 投标文件格式", "index": 484},
-#   {"content": "6.1 评标方法", "index": 512},
-#   {"content": "6.1.1 资格审查", "index": 530},
-#   {"content": "本项目采用综合评分法", "index": 540}
-# ]
-
-
-# JSON输出示例：
-
-# {"index": 484, "level": 1, "title": "第六章 投标文件格式"}
-        
-#         """
 
 
     def _build_prompt_template(self) -> str:

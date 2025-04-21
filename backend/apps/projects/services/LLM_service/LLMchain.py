@@ -7,7 +7,8 @@ from langchain_core.output_parsers import StrOutputParser
 from concurrent.futures import ThreadPoolExecutor
 from openai import RateLimitError, APIError
 from requests.exceptions import Timeout
-import os, logging, tiktoken
+from ..task_service import count_tokens
+import os, logging
 
 
 logger = logging.getLogger(__name__)
@@ -70,19 +71,19 @@ class GenericLLMService:
             # 处理请求, 构建prompt模板的输入
             request_dict = request.dict()   #将LLMRequest对象转换为字典
 
-            # 查看最终的 prompt
-            formatted_prompt = await prompt.ainvoke(request_dict)
-            logger.info(f"Final prompt:\n{formatted_prompt}")
+            # # 查看最终的 prompt
+            # formatted_prompt = await prompt.ainvoke(request_dict)
+            # logger.info(f"Final prompt:\n{formatted_prompt}")
 
-            input_tokens = self._count_tokens(str(formatted_prompt))
-            logger.info(f"Input tokens: {input_tokens}")
+            # input_tokens = count_tokens(str(formatted_prompt))
+            # logger.info(f"Input tokens: {input_tokens}")
 
             # 直接使用配置中的streaming设置
             chain_config = {"callbacks": [StreamingStdOutCallbackHandler()]} if self.config.streaming else {}
             result = await chain.ainvoke(request_dict, config=chain_config)
 
-            output_tokens = self._count_tokens(str(result))
-            logger.info(f"Output tokens: {output_tokens}")
+            # output_tokens = count_tokens(str(result))
+            # logger.info(f"Output tokens: {output_tokens}")
 
             return result
 
@@ -103,10 +104,4 @@ class GenericLLMService:
         except Exception as e:
             logger.error(f"未预期的错误: {str(e)}")
             raise
-
-
-    def _count_tokens(self, text: str) -> int:
-        """计算文本的token数量"""
-        encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
-        return len(encoding.encode(text))
 

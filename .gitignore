@@ -64,3 +64,6 @@ yarn-error.log*
 upload-server/uploads/
 
 backend/uploads/
+
+
+backend/apps/projects/notebook/cache/

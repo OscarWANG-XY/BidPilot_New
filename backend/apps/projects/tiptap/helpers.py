@@ -547,9 +547,13 @@ class TiptapUtils:
                 
                 # 如果是最后一个路径索引，更新节点
                 if i == len(path) - 1:
-                    # 创建标题节点
+
+                    # 创建 Tiptap 格式的标题节点
                     heading_node = {
-                        "type": f"heading{title_level}",
+                        "type": "heading",
+                        "attrs": {
+                            "level": title_level
+                        },
                         "content": [
                             {
                                 "type": "text",
@@ -558,9 +562,14 @@ class TiptapUtils:
                         ]
                     }
                     
-                    # 保留原节点的属性（如果有）
-                    for key, value in current_node.items():
-                        if key not in ["type", "content"]:
+                # 正确合并原节点的属性
+                for key, value in current_node.items():
+                    if key not in ["type", "content"]:
+                        if key == "attrs":
+                            # 合并attrs对象而不是替换
+                            for attr_key, attr_value in value.items():
+                                heading_node["attrs"][attr_key] = attr_value
+                        else:
                             heading_node[key] = value
                             
                     # 更新父节点中的内容
@@ -568,7 +577,6 @@ class TiptapUtils:
             
         return updated_doc
 
-    # 查找所有标题
     @staticmethod
     def find_all_headings(doc: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
@@ -597,7 +605,22 @@ class TiptapUtils:
                 
             # 检查节点类型是否为标题
             node_type = node.get("type", "")
-            if node_type.startswith("heading") and len(node_type) > 7:
+            
+            # 处理新的heading格式：type为"heading"，level存储在attrs.level中
+            if node_type == "heading":
+                # 从attrs中获取level
+                level = node.get("attrs", {}).get("level", 0)
+                if 1 <= level <= 6:  # 确保level在有效范围内
+                    # 提取标题文本
+                    title_text = TiptapUtils._extract_text_from_node(node)
+                    headings.append({
+                        "path": path.copy(),
+                        "level": level,
+                        "title": title_text,
+                        "node": node
+                    })
+            # 保留对旧格式的兼容性（如果需要）
+            elif node_type.startswith("heading") and len(node_type) > 7:
                 try:
                     # 提取标题级别
                     level = int(node_type[7:])
@@ -646,3 +669,73 @@ class TiptapUtils:
             result.append(f"{prefix}[H{heading['level']}] {heading['title']}")
         
         return "\n".join(result)
+    
+
+
+    @staticmethod
+    def extract_tables_to_markdown(doc: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        从 TipTap 文档中提取所有表格，并转换为 Markdown 格式
+        
+        Args:
+            doc: TipTap 文档对象
+            tiptap_client: TiptapClient 实例，用于调用 json_to_markdown 方法
+            
+        Returns:
+            表格列表，格式为:
+            [
+                {
+                    "index": 0,           # 表格在文档中的索引
+                    "path": [0, 3, 0],    # 表格节点在文档中的路径
+                    "markdown": "| 表头1 | 表头2 |\n|-----|-----|\n| 内容1 | 内容2 |",  # 表格的 Markdown 格式
+                    "node": {...}         # 原始表格节点对象
+                },
+                ...
+            ]
+            
+        Note:
+            - 需要传入 TiptapClient 实例以调用 json_to_markdown 方法
+            - 索引按照表格在文档中出现的顺序从0开始编号
+        """
+        tables = []
+        table_index = 0
+        index_path_map = {}
+        
+        def process_node(node, path=None):
+            nonlocal table_index
+            if path is None:
+                path = []
+                
+            # 检查节点类型是否为表格
+            if node.get("type") == "table":
+                # 创建一个包含表格的临时文档
+                table_doc = {
+                    "type": "doc",
+                    "content": [node]
+                }
+                
+                # 使用 TiptapClient 将表格转换为 Markdown
+                try:
+                    from apps.projects.tiptap.client import TiptapClient
+                    tiptap_client = TiptapClient()
+                    markdown_result = tiptap_client.json_to_markdown(table_doc)
+                    markdown_text = markdown_result["data"]
+                    
+                    tables.append({
+                        "index": table_index,
+                        "markdown": markdown_text.strip(),
+                        # "node": node
+                    })
+                    index_path_map[table_index] = path.copy()
+                    
+                    table_index += 1
+                except Exception as e:
+                    logger.error(f"表格转换为 Markdown 失败: {e}")
+            
+            # 递归处理子节点
+            for i, child in enumerate(node.get("content", [])):
+                process_node(child, path + [i])
+        
+        # 从文档根节点开始处理
+        process_node(doc)
+        return tables, index_path_map

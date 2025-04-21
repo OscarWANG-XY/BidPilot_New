@@ -19,26 +19,26 @@ from apps.projects.services.task_service import count_tokens
 # llm_config 配置模型参数 （对用户不可见）
 
 
-class OutlineAnalysisL2():
+class OutlineAnalysisTb():
     """文档大纲分析器，用于提取OutlineL1"""
 
     def __init__(self, data_input: Any):
         # 类的传参都一定会经过__init__方法， 基本它写在类后面的（）里。  
         # 想让对象记住一个变量，都需要在变量前加self. 
         self.data_input = data_input
-        self.chapters, self.index_path_map = self._prepare_context()
+        self.tables, self.index_path_map = self._prepare_context()
         self.instruction = self._prepare_instruction()
         self.supplement = self._prepare_supplement()
         self.output_format = self._prepare_output_format()
         self.prompt_template = self._build_prompt_template()
         self.llm_config = self._build_llm_config().to_model()
 
-        self.chapters_tokens = sum([count_tokens(chapter["paragraphs"]) for chapter in self.chapters])
+        self.tables_tokens = sum([count_tokens(table["markdown"]) for table in self.tables])
         self.instruction_tokens = count_tokens(self.instruction)
         self.supplement_tokens = count_tokens(self.supplement)
         self.output_format_tokens = count_tokens(self.output_format)
         self.prompt_template_tokens = count_tokens(self.prompt_template)
-        self.in_tokens = self.chapters_tokens + self.instruction_tokens + self.supplement_tokens + self.output_format_tokens + self.prompt_template_tokens
+        self.in_tokens = self.tables_tokens + self.instruction_tokens + self.supplement_tokens + self.output_format_tokens + self.prompt_template_tokens
 
     def output_params(self) -> Tuple[Dict[str,any], List[Dict[str,any]], Dict[str,any]]:
 
@@ -48,9 +48,9 @@ class OutlineAnalysisL2():
         }
 
         tasks = []
-        for chapter in self.chapters:
+        for table in self.tables:
             task_params = {
-                "context": chapter["paragraphs"],
+                "context": table["markdown"],
                 "instruction": self.instruction,
                 "supplement": self.supplement,
                 "output_format": self.output_format,
@@ -60,7 +60,7 @@ class OutlineAnalysisL2():
         meta = {
             "index_path_map": self.index_path_map,
             "in_tokens" : self.in_tokens,
-            "chapters_tokens": self.chapters_tokens,
+            "tables_tokens": self.tables_tokens,
             "instruction_tokens": self.instruction_tokens,
             "supplment_tokens":self.supplement_tokens,
             "output_format_tokens": self.output_format_tokens,
@@ -75,14 +75,10 @@ class OutlineAnalysisL2():
         """ 
 
         from apps.projects.tiptap.helpers import TiptapUtils
-        result = TiptapUtils.extract_chapters(
-            doc = self.data_input, 
-            max_length = None,
-            )
-        chapters = result["chapters"]
-        index_path_map = result["index_path_map"]
 
-        return chapters, index_path_map
+        tables, index_path_map = TiptapUtils.extract_tables_to_markdown(self.data_input)
+
+        return tables, index_path_map
 
 
     def _prepare_supplement(self) -> str:
@@ -96,7 +92,7 @@ class OutlineAnalysisL2():
     def _prepare_instruction(self) -> str:
 
         return """
-我会提供某章节的正文文本（材料A），每条数据包含 content（文本）和 index（位置索引）。
+我会提供表格的markdown文本（材料A）。
 
 请完成以下任务：
 1. 识别正文中的标题，最多两个层级。
@@ -104,8 +100,6 @@ class OutlineAnalysisL2():
 3. 请注意区分列表和正文的标题，不要将列表项作为正文的标题。
 
 """
-
-
 
     def _prepare_output_format(self) -> str:
         return """
@@ -120,25 +114,6 @@ class OutlineAnalysisL2():
 - 如未识别到标题，返回空列表。
 
 """
-
-# """
-
-# 输入示例： 
-
-# [
-#   {"content": "第六章 投标文件格式", "index": 484},
-#   {"content": "6.1 评标方法", "index": 512},
-#   {"content": "6.1.1 资格审查", "index": 530},
-#   {"content": "本项目采用综合评分法", "index": 540}
-# ]
-
-
-# JSON输出示例：
-
-# {"index": 512, "level": 2, "title": "6.1 评标方法"}
-# {"index": 530, "level": 3, "title": "6.1.1 资格审查"}
-        
-# """
 
 
     def _build_prompt_template(self) -> str:
@@ -210,9 +185,9 @@ class OutlineAnalysisL2():
         # 格式化模板
         simulated_prompt_set = []
         formatted_prompt_set = []
-        for chapter in self.chapters:
+        for table in self.tables:
             simulated_prompt = prompt.format_messages(
-                context=chapter["paragraphs"],
+                context=table["markdown"],
                 instruction=self.instruction,
                 supplement=self.supplement,
                 output_format=self.output_format
