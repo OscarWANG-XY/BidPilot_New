@@ -219,7 +219,7 @@ class TiptapUtils:
         """
         return json.dumps(doc, ensure_ascii=False, indent=indent)
     
-    # 提取带有索引的段落
+    # 提取带有索引的段落 （用于LLM分析）
     @staticmethod
     def extract_indexed_paragraphs(doc: Dict[str, Any], max_length: Optional[int] = None) -> tuple[List[Dict[str, str]], Dict[int, List[int]]]:
         """
@@ -309,7 +309,7 @@ class TiptapUtils:
         
         return "".join(text_parts)
     
-    # 按章节分块并提取带索引的段落
+    # 按章节分块并提取带索引的段落 （用于LLM分析）
     @staticmethod
     def extract_chapters(doc: Dict[str, Any], max_length: Optional[int] = None, heading_types: List[str] = None) -> Dict[str, Any]:
         """
@@ -387,7 +387,7 @@ class TiptapUtils:
                 }
                 return
                 
-            # 如果是表格节点，标记在表格内
+            # 如果是表格节点，标记在表格内，process_node时不处理。 
             if node.get("type") == "table":
                 for i, child in enumerate(node.get("content", [])):
                     process_node(child, path + [i], in_table=True)
@@ -427,54 +427,10 @@ class TiptapUtils:
             current_chapter["paragraphs"] = paragraphs_str
             chapters.append(current_chapter)
             
-        return {
-            "chapters": chapters,
-            "index_path_map": index_path_map
-        }
-
-
-    @staticmethod
-    def locate_paragraph_by_index(doc: Dict[str, Any], index: int, index_path_map: Dict[int, List[int]]) -> Optional[Dict[str, Any]]:
-        """
-        根据段落索引在 TipTap 文档中定位段落节点
+        return chapters, index_path_map
         
-        Args:
-            doc: TipTap 文档对象
-            index: 段落索引
-            index_path_map: 索引到路径的映射
-            
-        Returns:
-            找到的段落节点，如果索引无效则返回 None
-        """
-        if index not in index_path_map:
-            return None
-        
-        path = index_path_map[index]
-        return TiptapUtils.locate_paragraph_by_path(doc, path)
-    
-    @staticmethod
-    def locate_paragraph_by_path(doc: Dict[str, Any], path: List[int]) -> Optional[Dict[str, Any]]:
-        """
-        根据路径在 TipTap 文档中定位段落节点
-        
-        Args:
-            doc: TipTap 文档对象
-            path: 段落在文档中的路径
-            
-        Returns:
-            找到的段落节点，如果路径无效则返回 None
-        """
-        current = doc
-        for index in path:
-            if "content" not in current or not isinstance(current["content"], list):
-                return None
-            if index >= len(current["content"]):
-                return None
-            current = current["content"][index]
-        return current
-    
 
-    # 更新标题
+    # 将段落节点改为标题
     @staticmethod
     def update_titles_from_list(doc: Dict[str, Any], title_list: List[Dict[str, Any]], index_path_map: Dict[int, List[int]]) -> Dict[str, Any]:
         """
@@ -577,6 +533,7 @@ class TiptapUtils:
             
         return updated_doc
 
+    # 打印所有标题 
     @staticmethod
     def find_all_headings(doc: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
@@ -671,7 +628,7 @@ class TiptapUtils:
         return "\n".join(result)
     
 
-
+    # 提取表格，并转为markdown （用于LLM分析）
     @staticmethod
     def extract_tables_to_markdown(doc: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
@@ -679,30 +636,31 @@ class TiptapUtils:
         
         Args:
             doc: TipTap 文档对象
-            tiptap_client: TiptapClient 实例，用于调用 json_to_markdown 方法
             
         Returns:
-            表格列表，格式为:
+            tuple 包含两个元素:
+            1. 表格列表，格式为:
             [
                 {
                     "index": 0,           # 表格在文档中的索引
-                    "path": [0, 3, 0],    # 表格节点在文档中的路径
                     "markdown": "| 表头1 | 表头2 |\n|-----|-----|\n| 内容1 | 内容2 |",  # 表格的 Markdown 格式
-                    "node": {...}         # 原始表格节点对象
                 },
                 ...
             ]
-            
+            2. 索引到路径的映射: 
+                
         Note:
-            - 需要传入 TiptapClient 实例以调用 json_to_markdown 方法
             - 索引按照表格在文档中出现的顺序从0开始编号
+            - 会自动合并跨页拆分的表格（如果两个表格的路径是连续的）
         """
         tables = []
+        tables_str = []
         table_index = 0
         index_path_map = {}
+        last_table_path = None
         
         def process_node(node, path=None):
-            nonlocal table_index
+            nonlocal table_index, last_table_path
             if path is None:
                 path = []
                 
@@ -719,16 +677,43 @@ class TiptapUtils:
                     from apps.projects.tiptap.client import TiptapClient
                     tiptap_client = TiptapClient()
                     markdown_result = tiptap_client.json_to_markdown(table_doc)
-                    markdown_text = markdown_result["data"]
+                    markdown_text = markdown_result["data"].strip()
                     
-                    tables.append({
-                        "index": table_index,
-                        "markdown": markdown_text.strip(),
-                        # "node": node
-                    })
-                    index_path_map[table_index] = path.copy()
+                    # 检查是否需要合并表格（判断路径是否连续）
+                    is_continuous = False
+                    if last_table_path and len(tables) > 0:
+                        # 判断路径是否连续
+                        # 两个路径除了最后一个元素外应该相同，且最后一个元素应该相差1
+                        if (len(path) == len(last_table_path) and 
+                            path[:-1] == last_table_path[:-1] and 
+                            path[-1] == last_table_path[-1] + 1):
+                            is_continuous = True
                     
-                    table_index += 1
+                    if is_continuous:
+                        # 合并表格：将当前表格的markdown内容追加到上一个表格
+                        # 移除markdown表格头部（如果存在）
+                        markdown_lines = markdown_text.split('\n')
+                        if len(markdown_lines) >= 2 and '|' in markdown_lines[0] and '---' in markdown_lines[1]:
+                            markdown_text = '\n'.join(markdown_lines[2:])
+                        
+                        # 追加到上一个表格
+                        tables[-1]["markdown"] += "\n" + markdown_text
+                        tables_str[-1]["markdown"] += "\n" + markdown_text
+                    else:
+                        # 添加新表格
+                        tables.append({
+                            "index": table_index,
+                            # "path": path.copy(),
+                            "markdown": markdown_text,
+                        })
+                        tables_str.append({"markdown": f"index:{table_index}\n {markdown_text} "})
+
+                        index_path_map[table_index] = path.copy()
+                        table_index += 1
+                    
+                    # 更新最后一个表格的路径
+                    last_table_path = path.copy()
+                    
                 except Exception as e:
                     logger.error(f"表格转换为 Markdown 失败: {e}")
             
@@ -738,4 +723,344 @@ class TiptapUtils:
         
         # 从文档根节点开始处理
         process_node(doc)
-        return tables, index_path_map
+        return tables_str, index_path_map
+    
+
+    # 给节点添加“字幕说明”信息
+    @staticmethod
+    def add_captions_to_nodes(doc: Dict[str, Any], captions: List[Dict[str, Any]], 
+                                 index_path_map: Dict[int, List[int]]) -> Dict[str, Any]:
+        """
+        为 TipTap 文档中的节点添加说明信息
+        
+        Args:
+            doc: TipTap 文档对象
+            explanations: 说明信息列表，格式为:
+                [
+                    {"index": 0, "caption": "这是第一段的说明"},
+                    {"index": 1, "caption": "这是第二段的说明"},
+                    ...
+                ]
+            index_path_map: 索引到路径的映射
+            
+        Returns:
+            更新后的 TipTap 文档对象
+            
+        Note:
+            - 说明信息将被添加到节点的 attrs.explanation 属性中
+            - 如果节点已有 attrs，将保留原有属性并添加 explanation
+            - 如果节点没有 attrs，将创建新的 attrs 对象
+        """
+        # 创建文档的深拷贝，避免修改原始文档
+        updated_doc = json.loads(json.dumps(doc))
+        
+        for caption_info in captions:
+            paragraph_index = caption_info.get("index")
+            caption_text = caption_info.get("caption", "")
+            
+            # 查找节点路径
+            # 尝试同时匹配字符串和整数索引
+            str_index = str(paragraph_index)
+            int_index = paragraph_index
+            
+            path = None
+            if str_index in index_path_map:
+                path = index_path_map[str_index]
+            elif int_index in index_path_map:
+                path = index_path_map[int_index]
+            
+            if not path:
+                logger.warning(f"索引 {paragraph_index} 不存在于索引路径映射中，跳过此说明")
+                continue
+            
+            # 获取节点
+            current_node = updated_doc
+            for i, path_index in enumerate(path):
+                if "content" not in current_node or not isinstance(current_node["content"], list):
+                    logger.warning(f"路径 {path} 在索引 {i} 处无效，跳过此说明")
+                    break
+                    
+                if path_index >= len(current_node["content"]):
+                    logger.warning(f"路径 {path} 在索引 {i} 处越界，跳过此说明")
+                    break
+                
+                if i == len(path) - 1:
+                    # 找到目标节点，添加说明信息
+                    node = current_node["content"][path_index]
+                    
+                    # 确保节点有 attrs 属性
+                    if "attrs" not in node:
+                        node["attrs"] = {}
+                    
+                    # 添加说明信息
+                    node["attrs"]["caption"] = caption_text
+                else:
+                    current_node = current_node["content"][path_index]
+        
+        return updated_doc
+
+
+    # 打印“增强型”目录框架
+    @staticmethod
+    def print_enhanced_toc(doc: Dict[str, Any]) -> str:
+        """
+        打印增强型目录框架，显示完整目录结构，包括标题和图表的说明信息
+        
+        Args:
+            doc: TipTap 文档对象
+            
+        Returns:
+            格式化的增强型目录字符串，包含标题层级和图表说明
+        """
+        # 查找所有标题
+        headings = TiptapUtils.find_all_headings(doc)
+        
+        # 按文档顺序排序（根据路径）
+        headings.sort(key=lambda h: h["path"])
+        
+        # 查找所有带有caption的节点（图表、表格等）
+        captions = []
+        
+        def find_captions(node, path=None):
+            if path is None:
+                path = []
+                
+            # 检查节点是否有caption属性
+            if isinstance(node, dict) and "attrs" in node and "caption" in node.get("attrs", {}):
+                node_type = node.get("type", "unknown")
+                caption_text = node["attrs"]["caption"]
+                
+                # 提取节点内容的简短描述
+                content_preview = ""
+                if node_type == "table":
+                    content_preview = "表格"
+                elif node_type == "image":
+                    content_preview = "图片"
+                else:
+                    # 尝试提取内容预览
+                    content_preview = TiptapUtils._extract_text_from_node(node)
+                    if len(content_preview) > 30:
+                        content_preview = content_preview[:30] + "..."
+                
+                captions.append({
+                    "path": path.copy(),
+                    "type": node_type,
+                    "caption": caption_text,
+                    "preview": content_preview
+                })
+            
+            # 递归处理子节点
+            for i, child in enumerate(node.get("content", [])):
+                find_captions(child, path + [i])
+        
+        # 从文档根节点开始查找caption
+        find_captions(doc)
+        
+        # 按文档顺序排序（根据路径）
+        captions.sort(key=lambda c: c["path"])
+        
+        # 合并标题和caption，按照在文档中的顺序排序
+        toc_items = []
+        
+        # 添加标题
+        for heading in headings:
+            toc_items.append({
+                "path": heading["path"],
+                "type": "heading",
+                "level": heading["level"],
+                "content": heading["title"]
+            })
+        
+        # 添加caption
+        for caption in captions:
+            toc_items.append({
+                "path": caption["path"],
+                "type": caption["type"],
+                "level": 0,  # 将在后续处理中确定
+                "content": caption["caption"],
+                "preview": caption["preview"]
+            })
+        
+        # 按文档顺序排序
+        toc_items.sort(key=lambda item: item["path"])
+        
+        # 确定caption的级别（基于前一个标题的级别）
+        current_level = 1
+        for i, item in enumerate(toc_items):
+            if item["type"] == "heading":
+                current_level = item["level"]
+            else:
+                # 非标题项的级别比当前标题级别高一级
+                item["level"] = current_level + 1
+        
+        # 生成格式化的目录
+        result = []
+        for item in toc_items:
+            prefix = "  " * (item["level"] - 1)
+            
+            if item["type"] == "heading":
+                result.append(f"{prefix}[H{item['level']}] {item['content']}")
+            elif item["type"] == "table":
+                result.append(f"{prefix}[表] {item['content']}")
+            elif item["type"] == "image":
+                result.append(f"{prefix}[图] {item['content']}")
+            else:
+                type_label = item["type"].capitalize() if item["type"] != "unknown" else ""
+                result.append(f"{prefix}[{type_label}] {item['content']} ({item['preview']})")
+        
+        return "\n".join(result)
+    
+
+    # 添加 “前言” 标题
+    @staticmethod
+    def add_introduction_headings(doc: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        检查文档标题节点，为带有子标题但缺少前言部分的标题添加前言标题节点
+        
+        Args:
+            doc: TipTap 文档对象
+            
+        Returns:
+            更新后的 TipTap 文档对象
+            
+        Note:
+            - 当一个标题后面紧跟着子标题（而非段落内容）时，会在它们之间添加一个"前言"标题
+            - 添加的前言标题级别将比父标题高一级
+            - 前言标题的文本默认为"前言"
+        """
+        # 创建文档的深拷贝，避免修改原始文档
+        updated_doc = json.loads(json.dumps(doc))
+        
+        # 查找所有标题及其路径
+        headings = TiptapUtils.find_all_headings(updated_doc)
+        
+        # 按文档顺序排序（根据路径）
+        headings.sort(key=lambda h: h["path"])
+        
+        # 需要添加前言标题的位置列表
+        intro_positions = []
+        
+        # 检查每个标题
+        for i in range(len(headings) - 1):
+            current = headings[i]
+            next_heading = headings[i + 1]
+            
+            # 检查当前标题是否有子标题（下一个标题级别更高）
+            if next_heading["level"] > current["level"]:
+                # 检查两个标题之间是否有内容
+                current_path = current["path"]
+                next_path = next_heading["path"]
+                
+                # 检查两个标题是否紧邻（中间没有其他内容）
+                has_content_between = False
+                
+                # 获取当前标题的父节点
+                parent_node = updated_doc
+                for idx in current_path[:-1]:
+                    parent_node = parent_node["content"][idx]
+                
+                # 获取当前标题和下一个标题在父节点中的索引
+                current_idx = current_path[-1]
+                
+                # 如果下一个标题与当前标题在同一父节点下
+                if current_path[:-1] == next_path[:-1]:
+                    next_idx = next_path[-1]
+                    
+                    # 检查两个标题之间是否有其他节点
+                    if next_idx - current_idx > 1:
+                        # 检查中间节点是否为段落且包含文本
+                        for idx in range(current_idx + 1, next_idx):
+                            middle_node = parent_node["content"][idx]
+                            if middle_node.get("type") == "paragraph":
+                                text = TiptapUtils._extract_text_from_node(middle_node)
+                                if text.strip():
+                                    has_content_between = True
+                                    break
+                
+                # 如果没有内容，添加前言标题
+                if not has_content_between:
+                    # 创建前言标题的插入位置
+                    insert_path = current_path[:-1] + [current_path[-1] + 1]
+                    intro_positions.append({
+                        "path": insert_path,
+                        "level": next_heading["level"],  # 与子标题同级
+                        "title": "前言"
+                    })
+        
+        # 从后向前添加前言标题（避免路径变化）
+        intro_positions.sort(key=lambda p: p["path"], reverse=True)
+        
+        for position in intro_positions:
+            # 创建前言标题节点
+            intro_heading = {
+                "type": "heading",
+                "attrs": {
+                    "level": position["level"]
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": position["title"]
+                    }
+                ]
+            }
+            
+            # 插入前言标题
+            parent_path = position["path"][:-1]
+            insert_idx = position["path"][-1]
+            
+            # 获取父节点
+            parent_node = updated_doc
+            for idx in parent_path:
+                parent_node = parent_node["content"][idx]
+            
+            # 插入前言标题
+            parent_node["content"].insert(insert_idx, intro_heading)
+        
+        return updated_doc
+    
+
+
+    
+    @staticmethod
+    def locate_paragraph_by_index(doc: Dict[str, Any], index: int, index_path_map: Dict[int, List[int]]) -> Optional[Dict[str, Any]]:
+        """
+        根据段落索引在 TipTap 文档中定位段落节点
+        
+        Args:
+            doc: TipTap 文档对象
+            index: 段落索引
+            index_path_map: 索引到路径的映射
+            
+        Returns:
+            找到的段落节点，如果索引无效则返回 None
+        """
+        if index not in index_path_map:
+            return None
+        
+        path = index_path_map[index]
+        return TiptapUtils.locate_paragraph_by_path(doc, path)
+    
+
+    
+    @staticmethod
+    def locate_paragraph_by_path(doc: Dict[str, Any], path: List[int]) -> Optional[Dict[str, Any]]:
+        """
+        根据路径在 TipTap 文档中定位段落节点
+        
+        Args:
+            doc: TipTap 文档对象
+            path: 段落在文档中的路径
+            
+        Returns:
+            找到的段落节点，如果路径无效则返回 None
+        """
+        current = doc
+        for index in path:
+            if "content" not in current or not isinstance(current["content"], list):
+                return None
+            if index >= len(current["content"]):
+                return None
+            current = current["content"][index]
+        return current
+    

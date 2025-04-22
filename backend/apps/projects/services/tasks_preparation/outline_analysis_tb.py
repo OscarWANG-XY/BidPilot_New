@@ -83,7 +83,7 @@ class OutlineAnalysisTb():
 
     def _prepare_supplement(self) -> str:
         """
-        准备补充 (对用户可见和修改) 
+        准备补充 (对用户可见和修改) ===
         """
 
         return "此任务无补充内容"
@@ -92,14 +92,14 @@ class OutlineAnalysisTb():
     def _prepare_instruction(self) -> str:
 
         return """
-我会提供表格的markdown文本（材料A）。
-
-请完成以下任务：
-1. 识别正文中的标题，最多两个层级。
-2. 请注意区分章节开头的目录和正文的标题，不要将目录的标题作为正文的标题。
-3. 请注意区分列表和正文的标题，不要将列表项作为正文的标题。
+我提供了表格的markdown文本（材料A），每个表格有一个index（位置索引）。
+任务要求：
+1. 请根据表格的内容，制定表格的caption。
+2. 请将我提供的markdown文本视为完整的一个表格，不要将表格拆分。
 
 """
+
+
 
     def _prepare_output_format(self) -> str:
         return """
@@ -107,11 +107,9 @@ class OutlineAnalysisTb():
 - 只输出符合JSON格式的数据，不要添加解释、注释或 Markdown 标记。
 - 示例：
 [
-    {"index": int, "level": int, "title": str}, 
-    {"index": int, "level": int, "title": str}
+    {"index": int, "caption": str}
 ]
-- 一个标题一条数据， 如果只有一个层级的标题，则只输出一个层级。
-- 如未识别到标题，返回空列表。
+- 如果表格为空，则返回空列表。
 
 """
 

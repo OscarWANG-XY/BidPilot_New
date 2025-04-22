@@ -75,12 +75,10 @@ class OutlineAnalysisL2():
         """ 
 
         from apps.projects.tiptap.helpers import TiptapUtils
-        result = TiptapUtils.extract_chapters(
+        chapters, index_path_map = TiptapUtils.extract_chapters(
             doc = self.data_input, 
             max_length = None,
             )
-        chapters = result["chapters"]
-        index_path_map = result["index_path_map"]
 
         return chapters, index_path_map
 
@@ -120,25 +118,6 @@ class OutlineAnalysisL2():
 - 如未识别到标题，返回空列表。
 
 """
-
-# """
-
-# 输入示例： 
-
-# [
-#   {"content": "第六章 投标文件格式", "index": 484},
-#   {"content": "6.1 评标方法", "index": 512},
-#   {"content": "6.1.1 资格审查", "index": 530},
-#   {"content": "本项目采用综合评分法", "index": 540}
-# ]
-
-
-# JSON输出示例：
-
-# {"index": 512, "level": 2, "title": "6.1 评标方法"}
-# {"index": 530, "level": 3, "title": "6.1.1 资格审查"}
-        
-# """
 
 
     def _build_prompt_template(self) -> str:
