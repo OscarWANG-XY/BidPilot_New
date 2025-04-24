@@ -427,7 +427,7 @@ class TiptapUtils:
             current_chapter["paragraphs"] = paragraphs_str
             chapters.append(current_chapter)
             
-        return chapters, index_path_map
+        return chapters,index_path_map
         
 
     # 将段落节点改为标题
@@ -728,8 +728,7 @@ class TiptapUtils:
 
     # 给节点添加“字幕说明”信息
     @staticmethod
-    def add_captions_to_nodes(doc: Dict[str, Any], captions: List[Dict[str, Any]], 
-                                 index_path_map: Dict[int, List[int]]) -> Dict[str, Any]:
+    def add_captions_to_nodes(doc: Dict[str, Any], captions: List[Dict[str, Any]], index_path_map: Dict[int, List[int]]) -> Dict[str, Any]:
         """
         为 TipTap 文档中的节点添加说明信息
         
@@ -897,16 +896,17 @@ class TiptapUtils:
         result = []
         for item in toc_items:
             prefix = "  " * (item["level"] - 1)
+            path_str = f"path:{item['path']}"
             
             if item["type"] == "heading":
-                result.append(f"{prefix}[H{item['level']}] {item['content']}")
+                result.append(f"{prefix}[H{item['level']}] {item['content']} ({path_str})")
             elif item["type"] == "table":
-                result.append(f"{prefix}[表] {item['content']}")
+                result.append(f"{prefix}[表] {item['content']} ({path_str})")
             elif item["type"] == "image":
-                result.append(f"{prefix}[图] {item['content']}")
+                result.append(f"{prefix}[图] {item['content']} ({path_str})")
             else:
                 type_label = item["type"].capitalize() if item["type"] != "unknown" else ""
-                result.append(f"{prefix}[{type_label}] {item['content']} ({item['preview']})")
+                result.append(f"{prefix}[{type_label}] {item['content']} ({item['preview']}) ({path_str})")
         
         return "\n".join(result)
     
@@ -1064,3 +1064,82 @@ class TiptapUtils:
             current = current["content"][index]
         return current
     
+
+
+
+    
+    
+    
+    @staticmethod
+    def extract_content_under_heading(doc: Dict[str, Any], heading_path: List[int], tiptap_client=None) -> str:
+        """
+        提取指定标题下的所有内容，并转换为Markdown格式
+        
+        Args:
+            doc: TipTap 文档对象
+            heading_path: 标题节点在文档中的路径
+            tiptap_client: TiptapClient实例，如果为None则会创建新实例
+            
+        Returns:
+            标题下内容的Markdown格式字符串
+            
+        Note:
+            - 提取的内容包括标题下直到下一个同级或更高级标题之前的所有内容
+            - 包含表格、图片等所有内容
+            - 使用TiptapClient的json_to_markdown方法进行转换
+        """
+        # 如果未提供TiptapClient实例，创建一个新的
+        if tiptap_client is None:
+            from apps.projects.tiptap.client import TiptapClient
+            tiptap_client = TiptapClient()
+        
+        # 定位标题节点
+        heading_node = TiptapUtils.locate_paragraph_by_path(doc, heading_path)
+        if not heading_node or heading_node.get("type") != "heading":
+            logger.warning(f"在路径 {heading_path} 处未找到标题节点")
+            return ""
+        
+        # 获取标题级别
+        heading_level = heading_node.get("attrs", {}).get("level", 1)
+        
+        # 获取标题所在的父节点
+        parent_node = doc
+        for i in range(len(heading_path) - 1):
+            parent_node = parent_node["content"][heading_path[i]]
+        
+        # 标题在父节点中的索引
+        heading_index = heading_path[-1]
+        
+        # 查找下一个同级或更高级标题的索引
+        next_heading_index = None
+        for i in range(heading_index + 1, len(parent_node.get("content", []))):
+            node = parent_node["content"][i]
+            if (node.get("type") == "heading" and 
+                node.get("attrs", {}).get("level", 6) <= heading_level):
+                next_heading_index = i
+                break
+        
+        # 提取标题下的内容
+        content_nodes = []
+        # 添加标题本身
+        content_nodes.append(heading_node)
+        
+        # 添加标题后到下一个同级或更高级标题之前的所有内容
+        if next_heading_index is not None:
+            content_nodes.extend(parent_node["content"][heading_index + 1:next_heading_index])
+        else:
+            content_nodes.extend(parent_node["content"][heading_index + 1:])
+        
+        # 创建包含提取内容的临时文档
+        temp_doc = {
+            "type": "doc",
+            "content": content_nodes
+        }
+        
+        # 使用TiptapClient将内容转换为Markdown
+        try:
+            markdown_result = tiptap_client.json_to_markdown(temp_doc)
+            return markdown_result.get("data", "")
+        except Exception as e:
+            logger.error(f"将内容转换为Markdown失败: {e}")
+            return ""

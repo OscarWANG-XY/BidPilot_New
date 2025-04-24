@@ -3,6 +3,10 @@ import sys
 import django
 from pathlib import Path
 import logging
+import nest_asyncio
+nest_asyncio.apply()
+from pprint import pprint
+import json
 
 
 #=================auth_tests.ipynb测试是引入的setup项========================= 
@@ -66,10 +70,10 @@ from django.core.files.storage import default_storage
 # =============== setup关键结果打印 便于检查调试 =========================  
 
 # 打印关键配置信息，便于调试
-print(f"Settings从哪里加载？: {os.environ['DJANGO_SETTINGS_MODULE']}")
-print(f"项目根目录对么？: {PROJECT_ROOT}")
-print(f"文件存储settings对么？: {settings.DEFAULT_FILE_STORAGE}")
-print(f"文件default_storage对么？: {default_storage.__class__.__name__}")
-print("\n已经安装的应用 Installed Apps 完整了么？:")
-for app in settings.INSTALLED_APPS:
-    print(f"- {app}")
+# print(f"Settings从哪里加载？: {os.environ['DJANGO_SETTINGS_MODULE']}")
+# print(f"项目根目录对么？: {PROJECT_ROOT}")
+# print(f"文件存储settings对么？: {settings.DEFAULT_FILE_STORAGE}")
+# print(f"文件default_storage对么？: {default_storage.__class__.__name__}")
+# print("\n已经安装的应用 Installed Apps 完整了么？:")
+# for app in settings.INSTALLED_APPS:
+#     print(f"- {app}")

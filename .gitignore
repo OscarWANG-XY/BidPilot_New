@@ -66,4 +66,7 @@ upload-server/uploads/
 backend/uploads/
 
 
-backend/apps/projects/notebook/cache/
+backend/apps/projects/notebook/cache_e1/
+backend/apps/projects/notebook/cache_e2/
+backend/apps/projects/notebook/cache_e3/
+

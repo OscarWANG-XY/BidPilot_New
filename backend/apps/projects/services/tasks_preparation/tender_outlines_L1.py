@@ -19,68 +19,64 @@ from apps.projects.services.task_service import count_tokens
 # llm_config 配置模型参数 （对用户不可见）
 
 
-class OutlineAnalysisL2():
+class TenderOutlinesL1():
     """文档大纲分析器，用于提取OutlineL1"""
 
     def __init__(self, data_input: Any):
         # 类的传参都一定会经过__init__方法， 基本它写在类后面的（）里。  
         # 想让对象记住一个变量，都需要在变量前加self. 
         self.data_input = data_input
-        self.chapters, self.index_path_map = self._prepare_context()
+        self.context, self.index_path_map = self._prepare_context()
         self.instruction = self._prepare_instruction()
         self.supplement = self._prepare_supplement()
         self.output_format = self._prepare_output_format()
         self.prompt_template = self._build_prompt_template()
         self.llm_config = self._build_llm_config().to_model()
 
-        self.chapters_tokens = sum([count_tokens(chapter["paragraphs"]) for chapter in self.chapters])
+        self.context_tokens = count_tokens(self.context)
         self.instruction_tokens = count_tokens(self.instruction)
         self.supplement_tokens = count_tokens(self.supplement)
         self.output_format_tokens = count_tokens(self.output_format)
         self.prompt_template_tokens = count_tokens(self.prompt_template)
-        self.in_tokens = self.chapters_tokens + self.instruction_tokens + self.supplement_tokens + self.output_format_tokens + self.prompt_template_tokens
+        self.in_tokens = self.context_tokens + self.instruction_tokens + self.supplement_tokens + self.output_format_tokens + self.prompt_template_tokens
 
-    def output_params(self) -> Tuple[Dict[str,any], List[Dict[str,any]], Dict[str,any]]:
-
+    def output_params(self) -> Tuple[Dict[str,any], Dict[str,any], Dict[str,any]]:
+        # 
         model_params = {
             "llm_config": self.llm_config,
             "prompt_template": self.prompt_template,
         }
 
-        tasks = []
-        for chapter in self.chapters:
-            task_params = {
-                "context": chapter["paragraphs"],
-                "instruction": self.instruction,
-                "supplement": self.supplement,
-                "output_format": self.output_format,
-            }
-            tasks.append(task_params)
+        task = {
+            "context": self.context,
+            "instruction": self.instruction,
+            "supplement": self.supplement,
+            "output_format": self.output_format,
+        }
 
         meta = {
             "index_path_map": self.index_path_map,
             "in_tokens" : self.in_tokens,
-            "chapters_tokens": self.chapters_tokens,
+            "context_tokens": self.context_tokens,
             "instruction_tokens": self.instruction_tokens,
             "supplment_tokens":self.supplement_tokens,
             "output_format_tokens": self.output_format_tokens,
             "prompt_template_tokens": self.prompt_template_tokens
         }
 
-        return model_params, tasks, meta
+        return model_params, task, meta
+
 
     def _prepare_context(self) -> Tuple[List[str], Dict[str, str]]:
         """
         准备请求数据
         """ 
-
+        # docx_extraction_task = Task.objects.get(stage__project=project, type=TaskType.DOCX_EXTRACTION_TASK)
+        
         from apps.projects.tiptap.helpers import TiptapUtils
-        chapters, index_path_map = TiptapUtils.extract_chapters(
-            doc = self.data_input, 
-            max_length = None,
-            )
+        data_input, index_path_map = TiptapUtils.extract_indexed_paragraphs(self.data_input, 50)
 
-        return chapters, index_path_map
+        return data_input, index_path_map
 
 
     def _prepare_supplement(self) -> str:
@@ -93,19 +89,20 @@ class OutlineAnalysisL2():
 
     def _prepare_instruction(self) -> str:
 
+# 以下版本有比较稳定的输出
         return """
-我会提供某章节的正文文本（材料A），每条数据包含 content（文本）和 index（位置索引）。
+我会提供某文档的完整文本（材料A），每条数据包含 content（文本）和 index（位置索引）。
 
 请完成以下任务：
-1. 识别正文中的标题，最多两个层级。
-2. 请注意区分章节开头的目录和正文的标题，不要将目录的标题作为正文的标题。
-3. 请注意区分列表和正文的标题，不要将列表项作为正文的标题。
+1. 识别文档最高层级的标题。
+2. 请仅识别正文中的标题，忽略目录、封面页的标题，忽略附件中的重复章节名称。
 
 """
 
 
 
     def _prepare_output_format(self) -> str:
+
         return """
         
 - 只输出符合JSON格式的数据，不要添加解释、注释或 Markdown 标记。
@@ -114,8 +111,7 @@ class OutlineAnalysisL2():
     {"index": int, "level": int, "title": str}, 
     {"index": int, "level": int, "title": str}
 ]
-- 一个标题一条数据， 如果只有一个层级的标题，则只输出一个层级。
-- 如未识别到标题，返回空列表。
+- 一个标题一条数据， 只输出最高层级的标题。
 
 """
 
@@ -146,14 +142,14 @@ class OutlineAnalysisL2():
     def _build_llm_config(self) -> LLMConfig:
         """构建LLM配置， temperature = 0.2 和 top_p = 0.6, qwen-max-0125 模型 有较为稳定的输出"""
         return LLMConfig(
-                    llm_model_name = "qwen-max-0125",  
+                    llm_model_name = "qwen-max-0125",  # qwen-plus
                     temperature = 0.2,
                     top_p =  0.6,
                     streaming = True,
                     api_key = os.getenv("ALIBABA_API_KEY"),
                     base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1",
                     max_workers = 4,
-                    timeout = 60,
+                    timeout = 30,
                     retry_times = 3
                 )
     
@@ -187,26 +183,21 @@ class OutlineAnalysisL2():
         ])
         
         # 格式化模板
-        simulated_prompt_set = []
-        formatted_prompt_set = []
-        for chapter in self.chapters:
-            simulated_prompt = prompt.format_messages(
-                context=chapter["paragraphs"],
-                instruction=self.instruction,
-                supplement=self.supplement,
-                output_format=self.output_format
+        simulated_prompt = prompt.format_messages(
+            context=self.context,
+            instruction=self.instruction,
+            supplement=self.supplement,
+            output_format=self.output_format
 
-            )
+        )
 
-            # 转换为易读的格式
-            formatted_prompt = [
-                {
-                    "role": message.type,
-                    "content": message.content
-                }
-                for message in simulated_prompt
-            ]
-            simulated_prompt_set.append(simulated_prompt)
-            formatted_prompt_set.append(formatted_prompt)
+        # 转换为易读的格式
+        formatted_messages = [
+            {
+                "role": message.type,
+                "content": message.content
+            }
+            for message in simulated_prompt
+        ]
         
-        return simulated_prompt_set, formatted_prompt_set
+        return simulated_prompt, formatted_messages

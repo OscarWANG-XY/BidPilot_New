@@ -172,8 +172,8 @@ JSON输出示例：
         """构建LLM配置"""
         return LLMConfig(
                     llm_model_name = "qwen-max-0125",  # qwen-plus
-                    temperature = 0.7,
-                    top_p =  0.8,
+                    temperature = 0.2,
+                    top_p =  0.6,
                     streaming = True,
                     api_key = os.getenv("ALIBABA_API_KEY"),
                     base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1",
