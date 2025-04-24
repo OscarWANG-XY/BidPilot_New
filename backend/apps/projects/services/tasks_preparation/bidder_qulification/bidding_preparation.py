@@ -19,14 +19,14 @@ from apps.projects.services.task_service import count_tokens
 # llm_config 配置模型参数 （对用户不可见）
 
 
-class QualificationAnalysis():
+class BiddingPreparation():
     """投标人资格要求分析器，用于提取投标人资格要求"""
 
-    def __init__(self, data_input: Any, paths: List[List[int]]):
+    def __init__(self, data_input: str, supplement: str):
         # 类的传参都一定会经过__init__方法， 基本它写在类后面的（）里。  
         # 想让对象记住一个变量，都需要在变量前加self. 
         self.data_input = data_input
-        self.paths = paths
+        self.supplement = supplement
         self.context, self.index_path_map = self._prepare_context()
         self.instruction = self._prepare_instruction()
         self.supplement = self._prepare_supplement()
@@ -72,15 +72,7 @@ class QualificationAnalysis():
         """
         准备请求数据
         """ 
-        
-        from apps.projects.tiptap.helpers import TiptapUtils
-
-        parts = []
-        for path in self.paths:
-            part = TiptapUtils.extract_content_under_heading(self.data_input, path)
-            parts.append(part)
-
-        context = "\n\n\n".join(parts)
+        context = self.data_input
         
         index_path_map = {}
 
@@ -91,19 +83,32 @@ class QualificationAnalysis():
         """
         准备补充 (对用户可见和修改) 
         """
-
         return "此任务无补充内容"
+        # return self.supplement
     
 
     def _prepare_instruction(self) -> str:
 
 
         return """
-材料A提供了招标文件里关于 投标人资格要求的 详细说明。
+材料A是招标文件里，关于投标人资格要求的分析结果。
 
-请为我逐条整理，输出要求要点、所需证明材料、指定模板、准备工作建议。
+请以材料A里的每一项，确认是否需在投标文件里提交内容。
+
+对于需要提交的内容，请提供目录标题和内容模板。
+
+如果招标文件已经提供了模板，告知用户使用已有模板。
 
 """
+
+#         return """
+# 材料A是招标文件里，关于投标人资格要求的分析结果， 而材料B是招标文件里关于投标人资格的详细说明。
+
+# 请以材料A为主要框架，构建投标文件里关于投标人资格的目录，制定合适标题。
+
+# 请参考材料B，为每个目录制作内容模板。如果招标文件已经提供了模板，请直接使用。
+
+# """
 
 
 
@@ -113,12 +118,13 @@ class QualificationAnalysis():
 
         return """
         
-- 以Markdown表格格式输出，不要添加解释、注释或 Markdown 标记。。
-- 表头分别为：编号、要求要点、所需证明材料、指定模板、准备工作建议、 我方是否满足。
-- 一个要求一条数据。 
-- 我方是否满足 一栏留空，作为用户后期填写。
-- 加粗关键字或词组
-
+- 只输出符合JSON格式的数据，不要添加解释、注释或 Markdown 标记。
+- 示例：
+[
+    {"标题": str, "模板内容": str, "已有模板": str}, 
+    {"标题": str, "模板内容": str, "已有模板": str}
+]
+如果招标文件未提供模板，请填无。
 """
 
 

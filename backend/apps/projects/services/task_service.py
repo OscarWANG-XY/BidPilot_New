@@ -125,3 +125,31 @@ def merge_JSON_outputs(outputs: list, flatten: bool = True) -> str:
     # 合并后的结果是Json Dict格式。
     # 如果 将合并后的结果转换为JSON字符串，可return json.dumps(merged_data, ensure_ascii=False, indent=2)
     return merged_data
+
+
+
+def deduplicate_paths(paths: list) -> list:
+    """
+    对路径列表进行去重，保留每个路径的首次出现位置
+    
+    例如将:
+    [[53], [602], [595], [352], [296], [602], [595]]
+    
+    转换为:
+    [[53], [602], [595], [352], [296]]
+    
+    :param paths: 路径列表，每个元素是一个列表
+    :return: 去重后的路径列表
+    """
+    seen = set()
+    result = []
+    
+    for path in paths:
+        # 将列表转换为元组以便哈希
+        path_tuple = tuple(path)
+        
+        if path_tuple not in seen:
+            seen.add(path_tuple)
+            result.append(path)
+    
+    return result
