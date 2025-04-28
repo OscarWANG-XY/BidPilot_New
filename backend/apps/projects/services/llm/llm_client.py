@@ -1,21 +1,14 @@
-from .LLMchain import GenericLLMService, LLMRequest, LLMConfig
-from apps.doc_analysis.pipeline.types import OutlineAnalysisResult
-from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
-from typing import Any, List, Union, Dict
+from .llm_service import LLMService
+from .llm_models import LLMConfigModel, LLMRequestModel
+from typing import Any, List, Dict
 import asyncio
 
 
-class LLMService:
+class LLMClient:
     """大纲分析专用步骤"""
 
     def __init__(self, 
-                 model_params: Dict,
-                #  llm_config: LLMConfig,
-                #  prompt_template: str,
-                #  context: str,
-                #  instruction: str,
-                #  supplement: str,
-                #  output_format: str
+                 prompt_config: Dict,
                  ):
         """
         初始化分析器
@@ -24,35 +17,25 @@ class LLMService:
             llm_config: LLM配置参数字典
             output_format: 输出格式规范
         """
+        self.prompt_config = prompt_config
 
-        self.model_params = model_params
 
-        # llm_config + prompt_template用来构建 服务实例
-        # self.prompt_template = prompt_template
-        # self.llm_config = llm_config
-
-        # # 以下四个参数用来构建分析的输入
-        # self.output_format = output_format
-        # self.context = context
-        # self.instruction = instruction
-        # self.supplement = supplement
-
-    def create_service(self, ) -> GenericLLMService:
+    def create_service(self, ) -> LLMService:
         """创建LLM服务实例"""
-        # return GenericLLMService(config=self.llm_config, prompt_template=self.prompt_template)
-        return GenericLLMService(
-            config=LLMConfig().from_model(self.model_params['llm_config']), 
-            prompt_template=self.model_params['prompt_template']
+        return LLMService(
+            config=LLMConfigModel().from_model(self.prompt_config['llm_config']), 
+            prompt_template=self.prompt_config['prompt_template'],
+            system_role = self.prompt_config['system_role']
             )
     
-    async def process(self, task: Dict) -> Any:
+    async def process(self, task_input: Dict) -> Any:
         """执行分析"""
         service = self.create_service()
-        request = LLMRequest.create(
-            context=task["context"],
-            instruction=task["instruction"],
-            supplement=task["supplement"],
-            output_format=task["output_format"]
+        request = LLMRequestModel.create(
+            context=task_input["context"],
+            instruction=task_input["instruction"],
+            supplement=task_input["supplement"],
+            output_format=task_input["output_format"]
         )
         return await service.process(request)
     
@@ -62,7 +45,7 @@ class LLMService:
         
         # 创建所有请求
         requests = [
-            LLMRequest.create(
+            LLMRequestModel.create(
                 context=task["context"],
                 instruction=task["instruction"],
                 supplement=task["supplement"],
@@ -81,7 +64,7 @@ class LLMService:
         
         async def process_task(task):
             async with semaphore:
-                request = LLMRequest.create(
+                request = LLMRequestModel.create(
                     context=task["context"],
                     instruction=task["instruction"],
                     supplement=task["supplement"],

@@ -1,5 +1,5 @@
 from typing import Optional, Any
-from ._llm_data_types import LLMRequest, LLMConfig
+from .llm_models import LLMRequestModel, LLMConfigModel
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from langchain.callbacks import StreamingStdOutCallbackHandler
@@ -16,19 +16,19 @@ import random
 logger = logging.getLogger(__name__)
 
 
-class GenericLLMService:
+class LLMService:
     """通用LLM服务实现"""
     def __init__(
         self,
-        config: Optional[LLMConfig] = None,
-        prompt_template: Optional[str] = None,
-        output_parser: Optional[StrOutputParser] = None
+        config: LLMConfigModel,
+        prompt_template: str,
+        system_role: str,
     ):
-        self.config = config or LLMConfig()
+        self.config = config
         self.prompt_template = prompt_template
-        self.output_parser = output_parser or StrOutputParser()
+        self.system_role = system_role
+        self.output_parser = StrOutputParser()
         self._init_llm()
-        #self.executor = ThreadPoolExecutor(max_workers=self.config.max_workers)
 
     def _init_llm(self):
         """初始化LLM模型"""
@@ -42,7 +42,7 @@ class GenericLLMService:
             timeout=self.config.timeout,
         )
 
-    async def process(self, request: LLMRequest) -> Any:
+    async def process(self, request: LLMRequestModel) -> Any:
         """
         处理LLM请求
         :param request: LLM请求对象
@@ -59,7 +59,7 @@ class GenericLLMService:
                 # 创建聊天提示模板
                 prompt = ChatPromptTemplate.from_messages([
                     SystemMessagePromptTemplate.from_template(
-                        "你是一个专业的招标文档分析助手，帮助用户分析文档的结构和内容。"
+                        self.system_role
                     ),
                     HumanMessagePromptTemplate.from_template(
                         self.prompt_template,

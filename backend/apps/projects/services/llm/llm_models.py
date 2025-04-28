@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from collections import Counter
 import json
 
-class LLMConfig(BaseModel):
+class LLMConfigModel(BaseModel):
     """LLM配置模型"""
     llm_model_name: str = "qwen-plus"
     temperature: float = 0.7
@@ -22,12 +22,12 @@ class LLMConfig(BaseModel):
         return self.model_dump()
     
     @classmethod
-    def from_model(cls, data: Dict[str, Any]) -> "LLMConfig":
+    def from_model(cls, data: Dict[str, Any]) -> "LLMConfigModel":
         """从数据库JSONField中恢复LLMConfig实例
         """
         return cls(**data)
 
-class LLMRequest(BaseModel):
+class LLMRequestModel(BaseModel):
     """通用LLM请求模型"""
     context: str
     instruction: str
@@ -35,7 +35,7 @@ class LLMRequest(BaseModel):
     output_format: str
 
     @classmethod
-    def create(cls, context: str, instruction: str, supplement: str, output_format: str) -> "LLMRequest":
+    def create(cls, context: str, instruction: str, supplement: str, output_format: str) -> "LLMRequestModel":
         """创建单个LLM请求实例
         """
         if not context or not instruction or not supplement or not output_format:

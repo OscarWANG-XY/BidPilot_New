@@ -19,13 +19,13 @@ from apps.projects.services.task_service import count_tokens
 # llm_config 配置模型参数 （对用户不可见）
 
 
-class TenderOutlinesL1():
+class GetAppendixList():
     """文档大纲分析器，用于提取OutlineL1"""
 
-    def __init__(self, data_input: Any):
+    def __init__(self, data_input: any):
         # 类的传参都一定会经过__init__方法， 基本它写在类后面的（）里。  
         # 想让对象记住一个变量，都需要在变量前加self. 
-        self.data_input = data_input
+        self.doc = data_input
         self.context, self.index_path_map = self._prepare_context()
         self.instruction = self._prepare_instruction()
         self.supplement = self._prepare_supplement()
@@ -67,16 +67,15 @@ class TenderOutlinesL1():
         return model_params, task, meta
 
 
-    def _prepare_context(self) -> Tuple[List[str], Dict[str, str]]:
+    def _prepare_context(self) -> Tuple[str, Dict[str, str]]:
         """
         准备请求数据
         """ 
-        # docx_extraction_task = Task.objects.get(stage__project=project, type=TaskType.DOCX_EXTRACTION_TASK)
-        
         from apps.projects.tiptap.helpers import TiptapUtils
-        data_input, index_path_map = TiptapUtils.extract_indexed_paragraphs(self.data_input, 50)
+        toc_context = TiptapUtils.print_enhanced_toc(doc=self.doc, include_captions=False)
+        index_path_map = {}
 
-        return data_input, index_path_map
+        return toc_context, index_path_map
 
 
     def _prepare_supplement(self) -> str:
@@ -91,11 +90,7 @@ class TenderOutlinesL1():
 
 # 以下版本有比较稳定的输出
         return """
-我会提供某文档的完整文本（材料A），每条数据包含 content（文本）和 index（位置索引）。
-
-请完成以下任务：
-1. 识别文档最高层级的标题。
-2. 请仅识别正文中的标题，忽略目录、封面页的标题，忽略附件中的重复章节名称。
+请从目录列表（材料A）中，根据语义，为我识别并提取所有的附件章节。
 
 """
 
@@ -108,10 +103,8 @@ class TenderOutlinesL1():
 - 只输出符合JSON格式的数据，不要添加解释、注释或 Markdown 标记。
 - 示例：
 [
-    {"index": int, "level": int, "title": str}, 
-    {"index": int, "level": int, "title": str}
+    {"type": "附件", "title": str, "level": int, 'path': [int]}, 
 ]
-- 一个标题一条数据， 只输出最高层级的标题。
 
 """
 

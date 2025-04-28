@@ -19,48 +19,49 @@ from apps.projects.services.task_service import count_tokens
 # llm_config 配置模型参数 （对用户不可见）
 
 
-class TenderOutlinesL2():
-    """文档大纲分析器，用于提取OutlineL1"""
+class AppendixAnalysis():
+    """附件模板分析器，用于提取附件模板"""
 
-    def __init__(self, data_input: Any):
+    def __init__(self, doc: Any, paths: List[List[int]]):
         # 类的传参都一定会经过__init__方法， 基本它写在类后面的（）里。  
         # 想让对象记住一个变量，都需要在变量前加self. 
-        self.data_input = data_input
-        self.chapters, self.index_path_map = self._prepare_context()
+        self.doc = doc
+        self.paths = paths
+        self.contexts, self.index_path_map = self._prepare_context()
         self.instruction = self._prepare_instruction()
         self.supplement = self._prepare_supplement()
         self.output_format = self._prepare_output_format()
         self.prompt_template = self._build_prompt_template()
         self.llm_config = self._build_llm_config().to_model()
 
-        self.chapters_tokens = sum([count_tokens(chapter["paragraphs"]) for chapter in self.chapters])
+        self.context_tokens = sum(count_tokens(context) for context in self.contexts)
         self.instruction_tokens = count_tokens(self.instruction)
         self.supplement_tokens = count_tokens(self.supplement)
         self.output_format_tokens = count_tokens(self.output_format)
         self.prompt_template_tokens = count_tokens(self.prompt_template)
-        self.in_tokens = self.chapters_tokens + self.instruction_tokens + self.supplement_tokens + self.output_format_tokens + self.prompt_template_tokens
+        self.in_tokens = self.context_tokens + self.instruction_tokens + self.supplement_tokens + self.output_format_tokens + self.prompt_template_tokens
 
-    def output_params(self) -> Tuple[Dict[str,any], List[Dict[str,any]], Dict[str,any]]:
 
+    def output_params(self) -> Tuple[Dict[str,any], Dict[str,any], Dict[str,any]]:
+        # 
         model_params = {
             "llm_config": self.llm_config,
             "prompt_template": self.prompt_template,
         }
 
         tasks = []
-        for chapter in self.chapters:
-            task_params = {
-                "context": chapter["paragraphs"],
+        for context in self.contexts:
+            task = {
+                "context": context,
                 "instruction": self.instruction,
                 "supplement": self.supplement,
                 "output_format": self.output_format,
             }
-            tasks.append(task_params)
-
+            tasks.append(task)
         meta = {
             "index_path_map": self.index_path_map,
             "in_tokens" : self.in_tokens,
-            "chapters_tokens": self.chapters_tokens,
+            "context_tokens": self.context_tokens,
             "instruction_tokens": self.instruction_tokens,
             "supplment_tokens":self.supplement_tokens,
             "output_format_tokens": self.output_format_tokens,
@@ -69,18 +70,22 @@ class TenderOutlinesL2():
 
         return model_params, tasks, meta
 
-    def _prepare_context(self) -> Tuple[List[str], Dict[str, str]]:
+
+    def _prepare_context(self) -> Tuple[str, Dict[str, str]]:
         """
         准备请求数据
         """ 
-
+        
         from apps.projects.tiptap.helpers import TiptapUtils
-        chapters, index_path_map = TiptapUtils.extract_chapters(
-            doc = self.data_input, 
-            max_length = None,
-            )
 
-        return chapters, index_path_map
+        contexts=[]
+        for path in self.paths:
+            context = TiptapUtils.extract_content_under_heading(self.doc, path, format="markdown")
+            contexts.append(context)
+        
+        index_path_map = {}
+
+        return contexts, index_path_map
 
 
     def _prepare_supplement(self) -> str:
@@ -88,36 +93,53 @@ class TenderOutlinesL2():
         准备补充 (对用户可见和修改) 
         """
 
-        return "此任务无补充内容"
+        return "暂无补充内容"
     
 
     def _prepare_instruction(self) -> str:
 
-        return """
-我会提供某章节的正文文本（材料A），每条数据包含 content（文本）和 index（位置索引）。
+#         return """
+# 你是招投标领域的投标文件编写专家。  
+# 请根据附件的内容（材料A）分析： 在投标文件里，我们应该如何回应 （假设所需材料都已准备完毕）？
 
-请完成以下任务：
-1. 识别正文中的标题，最多两个层级。
-2. 请注意区分章节开头的目录和正文的标题，不要将目录的标题作为正文的标题。
-3. 请注意区分列表和正文的标题，不要将列表项作为正文的标题。
+# """
+
+
+
+
+        return """
+你是招投标领域的投标文件编写专家。  
+现有两份材料：
+
+材料A：招标文件中的一个附件，通常为资格审查表或响应性检查表，包含评审项目、合格标准及具体要求。  
+材料B：是投标人提供的企业基础资料，用于支撑响应内容。
+
+假设所需材料都已经线下准备完毕，
+请结合材料A和B，为我编写投标文件中对应附件的【完整响应内容】，便于直接使用或稍加修改后提交。
 
 """
-
 
 
     def _prepare_output_format(self) -> str:
-        return """
-        
-- 只输出符合JSON格式的数据，不要添加解释、注释或 Markdown 标记。
-- 示例：
-[
-    {"index": int, "level": int, "title": str}, 
-    {"index": int, "level": int, "title": str}
-]
-- 一个标题一条数据， 如果只有一个层级的标题，则只输出一个层级。
-- 如未识别到标题，返回空列表。
 
+        # return""" 无特定要求 """
+
+
+        return """
+输出格式：
+- 如附件提供了模板，请按模板格式输出
+- 如附件没有提供模板，请参考行业标准，编写完整响应内容
 """
+
+#         return """
+        
+# - 只输出符合JSON格式的数据，不要添加解释、注释或 Markdown 标记。
+# - 示例：
+# [
+#     {"标题": str, "是否为模板": bool,"是否在投标文件里引用": bool, "响应内容": str}, 
+# ]
+
+# """
 
 
     def _build_prompt_template(self) -> str:
@@ -146,14 +168,14 @@ class TenderOutlinesL2():
     def _build_llm_config(self) -> LLMConfig:
         """构建LLM配置， temperature = 0.2 和 top_p = 0.6, qwen-max-0125 模型 有较为稳定的输出"""
         return LLMConfig(
-                    llm_model_name = "qwen-max-0125",  
+                    llm_model_name = "qwen-max-0125",  # qwen-plus
                     temperature = 0.2,
                     top_p =  0.6,
                     streaming = True,
                     api_key = os.getenv("ALIBABA_API_KEY"),
                     base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1",
                     max_workers = 4,
-                    timeout = 60,
+                    timeout = 30,
                     retry_times = 3
                 )
     
@@ -189,9 +211,9 @@ class TenderOutlinesL2():
         # 格式化模板
         simulated_prompt_set = []
         formatted_prompt_set = []
-        for chapter in self.chapters:
+        for context in self.contexts:
             simulated_prompt = prompt.format_messages(
-                context=chapter["paragraphs"],
+                context=context,
                 instruction=self.instruction,
                 supplement=self.supplement,
                 output_format=self.output_format

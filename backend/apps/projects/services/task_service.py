@@ -1,4 +1,5 @@
 from apps.projects.models import Task, TaskStatus
+from typing import List, Dict, Any 
 import tiktoken
 import re
 import json
@@ -31,7 +32,7 @@ def count_tokens(text: str) -> int:
     return len(encoding.encode(text))
 
 
-def clean_llm_JSON_output(output: str) -> str:
+def _clean_llm_JSON_output(output: str) -> str:
     """
     清洗大模型输出结果，移除可能的Markdown代码块标记
     并输出json.load格式
@@ -62,7 +63,7 @@ def clean_llm_JSON_output(output: str) -> str:
     return output_json
 
 
-def process_concurrent_JSON_outputs(outputs: list) -> str:
+def merge_outputs_(outputs: List[str]) -> List[Dict]:
     """
     处理并发模型的多个输出，清洗标记并合并为一个JSON数组
     
@@ -75,7 +76,7 @@ def process_concurrent_JSON_outputs(outputs: list) -> str:
         # 清洗每个输出
         try:
             # 尝试解析JSON
-            cleaned_parsed_output = clean_llm_JSON_output(output)  #json.load已经在clean_llm_JSON_output中完成了
+            cleaned_parsed_output = _clean_llm_JSON_output(output)  #json.load已经在clean_llm_JSON_output中完成了
             
             # 如果解析结果是列表，扩展到结果列表
             if isinstance(cleaned_parsed_output, list):
@@ -102,6 +103,9 @@ def merge_JSON_outputs(outputs: list, flatten: bool = True) -> str:
     :param outputs: JSON字符串列表
     :param flatten: 是否将嵌套列表扁平化，默认为True
     :return: 合并后的JSON字符串
+
+    说明： a=[1,2,3] b=[4,5],  a.append(b) = [1,2,3,[4,5]] 非扁平化,  a.extend(b) = [1,2,3,4,5] 扁平化
+
     """
     merged_data = []
     
@@ -109,7 +113,7 @@ def merge_JSON_outputs(outputs: list, flatten: bool = True) -> str:
          
         
         try:
-            cleaned_parsed_output = clean_llm_JSON_output(output) #json.load已经在clean_llm_JSON_output中完成了
+            cleaned_parsed_output = _clean_llm_JSON_output(output) #json.load已经在clean_llm_JSON_output中完成了
             
             if flatten and isinstance(cleaned_parsed_output, list):
                 # 扁平化处理 - 将列表元素添加到主列表
