@@ -28,7 +28,7 @@ SECRET_KEY = 'django-insecure-eue96xem5j9v0-sj$@blb(bh56es614w@_o7gmq$q15!xfnjfk
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['115.159.6.83', 'localhost', '127.0.0.1','testserver']
+ALLOWED_HOSTS = ['115.159.6.83', 'localhost', '127.0.0.1','testserver','*']
 
 
 # Application definition
@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'storages',  # 用于存储文件对象
+    'channels',
     'apps.authentication',
     'apps.files',
     'apps.projects',
@@ -97,7 +98,10 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            # 添加你的模板目录
+            os.path.join(BASE_DIR, 'apps/testground/templates'),
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -111,6 +115,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+
 
 
 # Database
@@ -213,6 +218,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Vite 开发服务器
     "http://115.159.6.83:5173",  # Vite 开发服务器 
     #"http://115.159.6.83:3000",  # React 开发服务器 
+    # "http://localhost:8000",    
+    # "http://127.0.0.1:8000"
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True  # 允许所有来源 (生产环境不要开启)
@@ -240,7 +247,11 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
-
+# 添加这个设置
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False
+CSRF_USE_SESSIONS = False
+CSRF_COOKIE_SAMESITE = None
 
 
 
@@ -294,6 +305,20 @@ CACHES = {
             "IGNORE_EXCEPTIONS": True,
         }
     }
+}
+
+# ------------------------------ Channels Configuration ------------------------------
+# 添加 Channels 配置
+ASGI_APPLICATION = 'config.asgi.application'
+
+# 配置 Channel Layers (使用 Redis 作为后端)
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [REDIS_URL],
+        },
+    },
 }
 
 

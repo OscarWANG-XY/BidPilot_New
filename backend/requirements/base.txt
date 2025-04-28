@@ -66,4 +66,11 @@ mammoth==1.9.0
 python-docx==1.1.2
 
 
+
+# Channels for WebSocket support
+channels==4.2.2
+daphne==4.1.2
+channels-redis==4.2.1
+websockets==15.0.1
+
 # pypandoc 3.6.4

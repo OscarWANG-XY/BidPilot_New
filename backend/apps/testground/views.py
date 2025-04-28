@@ -65,3 +65,6 @@ def test_sse(request):
     #response['Connection'] = 'keep-alive'
     
     return response 
+
+async def websocket_test(request):
+    return render(request, 'testground/websocket_test.html') 

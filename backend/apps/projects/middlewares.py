@@ -1,15 +1,15 @@
-# middlewares.py
 import json
 import logging
 import time
+import asyncio
 from django.utils.deprecation import MiddlewareMixin
+from django.utils.decorators import sync_and_async_middleware
 
 logger = logging.getLogger(__name__)
 
-class APILoggingMiddleware(MiddlewareMixin):
+@sync_and_async_middleware
+class APILoggingMiddleware:
     """API调用日志中间件"""
-
-    async_mode = False
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -66,8 +66,20 @@ class APILoggingMiddleware(MiddlewareMixin):
             )
         return response
 
+    # 同步路径
     def __call__(self, request):
         response = self.process_request(request)
         if response is None:
             response = self.get_response(request)
+        return self.process_response(request, response)
+    
+    # 异步路径 - 这是之前缺少的部分
+    async def __acall__(self, request):
+        # 异步处理请求
+        self.process_request(request)
+        
+        # 获取异步响应
+        response = await self.get_response(request)
+        
+        # 处理响应
         return self.process_response(request, response)
