@@ -7,6 +7,8 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain.callbacks.base import BaseCallbackHandler
 from openai import RateLimitError, APIError
 from requests.exceptions import Timeout
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 import os, logging, tiktoken
 
 
@@ -68,6 +70,96 @@ class RedisStreamingCallbackHandler(BaseCallbackHandler):
         self.redis_manager.mark_stream_failed(self.stream_id, error_msg)
 
 
+class WebSocketStreamingCallbackHandler(BaseCallbackHandler):
+    """
+    将LLM流式输出直接发送到WebSocket的回调处理器
+    """
+    
+    def __init__(self, channel_layer, room_group_name):
+        """
+        初始化回调处理器
+        
+        Args:
+            channel_layer: Channels层实例
+            room_group_name: WebSocket房间组名
+        """
+        self.channel_layer = channel_layer
+        self.room_group_name = room_group_name
+        self.current_token_buffer = ""
+        self.token_count = 0
+        self.chunk_size = 10  # 每收集10个token发送一次
+    
+    def on_llm_start(self, serialized, prompts, **kwargs):
+        """LLM开始生成时的回调"""
+        logger.info(f"开始LLM WebSocket流式生成: room={self.room_group_name}")
+        async_to_sync(self.channel_layer.group_send)(
+            self.room_group_name,
+            {
+                'type': 'llm_response',
+                'message': '',
+                'status': 'PROCESSING',
+                'is_final': False
+            }
+        )
+    
+    def on_llm_new_token(self, token: str, **kwargs):
+        """接收到新token时的回调"""
+        self.current_token_buffer += token
+        self.token_count += 1
+        
+        # 当积累了足够的token或遇到换行符时发送
+        if self.token_count >= self.chunk_size or "\n" in token:
+            async_to_sync(self.channel_layer.group_send)(
+                self.room_group_name,
+                {
+                    'type': 'llm_response',
+                    'message': self.current_token_buffer,
+                    'is_final': False
+                }
+            )
+            self.current_token_buffer = ""
+            self.token_count = 0
+    
+    def on_llm_end(self, response, **kwargs):
+        """LLM生成结束时的回调"""
+        # 发送剩余的buffer
+        if self.current_token_buffer:
+            async_to_sync(self.channel_layer.group_send)(
+                self.room_group_name,
+                {
+                    'type': 'llm_response',
+                    'message': self.current_token_buffer,
+                    'is_final': False
+                }
+            )
+        
+        # 标记流完成
+        async_to_sync(self.channel_layer.group_send)(
+            self.room_group_name,
+            {
+                'type': 'llm_response',
+                'message': '',
+                'status': 'COMPLETED',
+                'is_final': True
+            }
+        )
+        logger.info(f"完成LLM WebSocket流式生成: room={self.room_group_name}")
+    
+    def on_llm_error(self, error, **kwargs):
+        """LLM生成出错时的回调"""
+        error_msg = str(error)
+        logger.error(f"LLM WebSocket流式生成错误: {error_msg}, room={self.room_group_name}")
+        async_to_sync(self.channel_layer.group_send)(
+            self.room_group_name,
+            {
+                'type': 'llm_response',
+                'message': f"错误: {error_msg}",
+                'status': 'ERROR',
+                'is_final': True
+            }
+        )
+
+
 class GenericLLMService:
     """通用LLM服务实现"""
     def __init__(
@@ -94,11 +186,12 @@ class GenericLLMService:
             timeout=self.config.timeout,
         )
 
-    async def process(self, request: LLMRequest, streaming_callback=None) -> Any:
+    async def process(self, request: LLMRequest, streaming_callback=None, websocket_callback=None) -> Any:
         """
         处理LLM请求
         :param request: LLM请求对象
-        :param streaming_callback: 流式处理回调
+        :param streaming_callback: Redis流式处理回调
+        :param websocket_callback: WebSocket流式处理回调
         :return: 处理结果
         """
         try:
@@ -138,7 +231,9 @@ class GenericLLMService:
             callbacks = []
             if streaming_callback:
                 callbacks.append(streaming_callback)
-            elif self.config.streaming:
+            if websocket_callback:
+                callbacks.append(websocket_callback)
+            elif self.config.streaming and not (streaming_callback or websocket_callback):
                 callbacks.append(StreamingStdOutCallbackHandler())
             
             # 执行链 （callbacks 在这里通过chain_config传递给chain，被调用）

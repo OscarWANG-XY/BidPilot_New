@@ -1,8 +1,9 @@
 from typing import Any, List, Union, Optional
-from .LLMchain_with_redis_callback import GenericLLMService,RedisStreamingCallbackHandler
+from .LLMchain_with_redis_callback import GenericLLMService, RedisStreamingCallbackHandler, WebSocketStreamingCallbackHandler
 from ._llm_data_types import LLMRequest, LLMConfig
 from apps.projects.utils.redis_manager import RedisManager, RedisStreamStatus
 from apps.projects.models import Project, ProjectStage, StageType, Task, TaskType
+from channels.layers import get_channel_layer
 
 import logging
 logger = logging.getLogger(__name__)
@@ -95,6 +96,43 @@ class LLMService:
             # 标记任务失败
             logger.error(f"流式分析失败: {str(e)}, stream_id={self.stream_id}")
             self.redis_manager.mark_stream_failed(self.stream_id, str(e))
+            raise
+
+    async def process_websocket(self, room_group_name: str) -> str:
+        """执行WebSocket流式分析"""
+        logger.info(f"开始WebSocket流式分析: room={room_group_name}")
+        
+        # 获取channel layer
+        channel_layer = get_channel_layer()
+        
+        # 创建WebSocket流式回调处理器
+        websocket_callback = WebSocketStreamingCallbackHandler(
+            channel_layer=channel_layer,
+            room_group_name=room_group_name
+        )
+        
+        # 创建服务和请求
+        service = GenericLLMService(config=self.llm_config, prompt_template=self.prompt_template)
+        
+        request = LLMRequest.create(
+            context=self.context,
+            instruction=self.instruction,
+            supplement=self.supplement,
+            output_format=self.output_format
+        )
+        
+        # 异步执行分析
+        try:
+            # 执行分析
+            logger.info(f"执行LLM WebSocket分析: room={room_group_name}")
+            await service.process(request, websocket_callback=websocket_callback)
+            logger.info(f"LLM WebSocket分析完成: room={room_group_name}")
+            
+            # 返回房间名
+            return room_group_name
+        except Exception as e:
+            # 处理错误
+            logger.error(f"WebSocket流式分析失败: {str(e)}, room={room_group_name}")
             raise
 
 
