@@ -2,20 +2,21 @@ import json
 import logging
 import time
 import asyncio
-from django.utils.deprecation import MiddlewareMixin
 from django.utils.decorators import sync_and_async_middleware
+from asgiref.sync import sync_to_async, async_to_sync
 
 logger = logging.getLogger(__name__)
 
-@sync_and_async_middleware
 class APILoggingMiddleware:
     """API调用日志中间件"""
 
     def __init__(self, get_response):
         self.get_response = get_response
+        # 确定 get_response 是同步还是异步函数
+        self.is_async = asyncio.iscoroutinefunction(get_response)
 
-    def process_request(self, request):
-        """处理请求前的日志记录"""
+    def log_request(self, request):
+        """记录请求信息"""
         # 保存请求开始时间
         request.start_time = time.time()
         
@@ -44,10 +45,9 @@ class APILoggingMiddleware:
                 f"请求体: {body}\n"
                 f"用户: {request.user.username if request.user.is_authenticated else '未认证'}"
             )
-        return None
 
-    def process_response(self, request, response):
-        """处理响应后的日志记录"""
+    def log_response(self, request, response):
+        """记录响应信息"""
         if hasattr(request, 'start_time') and request.path.startswith('/api/'):
             # 计算处理时间
             duration = time.time() - request.start_time
@@ -68,18 +68,35 @@ class APILoggingMiddleware:
 
     # 同步路径
     def __call__(self, request):
-        response = self.process_request(request)
-        if response is None:
-            response = self.get_response(request)
-        return self.process_response(request, response)
+        if self.is_async:
+            # 如果 get_response 是异步的，但我们在同步上下文中
+            # 使用 async_to_sync 转换
+            return async_to_sync(self.__acall__)(request)
+        
+        # 记录请求
+        self.log_request(request)
+        
+        # 获取响应
+        response = self.get_response(request)
+        
+        # 记录并返回响应
+        return self.log_response(request, response)
     
-    # 异步路径 - 这是之前缺少的部分
+    # 异步路径
     async def __acall__(self, request):
-        # 异步处理请求
-        self.process_request(request)
+        # 记录请求
+        self.log_request(request)
         
-        # 获取异步响应
-        response = await self.get_response(request)
+        # 获取响应
+        if self.is_async:
+            response = await self.get_response(request)
+        else:
+            # 如果 get_response 是同步的，但我们在异步上下文中
+            response = await sync_to_async(self.get_response)(request)
         
-        # 处理响应
-        return self.process_response(request, response)
+        # 记录并返回响应
+        return self.log_response(request, response)
+    
+
+
+    
