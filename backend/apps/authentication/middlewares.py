@@ -12,19 +12,29 @@ User = get_user_model()
 
 class JWTAuthMiddleware(BaseMiddleware):
     async def __call__(self, scope, receive, send):
-
-        # 解析 query string
+        print("=" * 50)
+        print("JWT中间件开始处理")
+        
         query_string = scope.get('query_string', b'').decode()
         query_params = parse_qs(query_string)
+        # print(f"WebSocket查询参数: {query_params}")
+        
         token_list = query_params.get('token')
-
         if token_list:
             token = token_list[0]
+            # print("找到token，尝试验证")
             user = await self.get_user_from_token(token)
+            if user:
+                print(f"认证成功: 用户ID={user.id}")
+            else:
+                print("Token验证失败")
             scope['user'] = user if user else AnonymousUser()
         else:
+            # print("未提供token")
             scope['user'] = AnonymousUser()
-
+        
+        print("JWT中间件处理完成")
+        # print("=" * 50)
         return await super().__call__(scope, receive, send)
 
     @database_sync_to_async
