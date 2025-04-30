@@ -41,7 +41,12 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
 
 from .structuring_agent import DocumentStructureAgent
-from .state import StructuringState
+from .state import (
+    AgentState, 
+    InitialStateMessage, ErrorMessage,
+    UserActionRequest,
+    UserAction
+)
 
 # 设置日志记录器
 logger = logging.getLogger(__name__)
@@ -103,19 +108,23 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
             # 获取当前项目状态
             current_state = await sync_to_async(self._get_current_state)()
             
+            # 创建标准格式的初始状态消息
+            initial_message = InitialStateMessage(
+                message='已连接到服务器',
+                state=current_state['state'],
+                data=current_state['data'],
+                requires_input=current_state['requires_input']
+            )
+            
             # 发送状态信息
-            await self.send(text_data=json.dumps({
-                'message': '已连接到服务器',
-                'state': current_state['state'],
-                'data': current_state['data'],
-                'requires_input': current_state['requires_input']
-            }, ensure_ascii=False))
+            await self.send(text_data=json.dumps(initial_message.__dict__, ensure_ascii=False))
         except Exception as e:
             logger.error(f"发送初始状态失败: {str(e)}")
-            await self.send(text_data=json.dumps({
-                'status': 'error',
-                'message': '无法获取当前状态'
-            }, ensure_ascii=False))
+            error_message = ErrorMessage(
+                status='error',
+                message='无法获取当前状态'
+            )
+            await self.send(text_data=json.dumps(error_message.__dict__, ensure_ascii=False))
     
 
     def _get_current_state(self) -> Dict[str, Any]:
@@ -124,7 +133,7 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
         """
         try:
             # 初始化Agent实例
-            agent = DocumentStructureAgent(self.project_id)
+            agent = DocumentStructureAgent(self.project_id, lazy_init=True)
             current_state = agent.current_state
             
             # 准备返回数据
@@ -142,7 +151,7 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
             logger.error(f"获取状态失败: {str(e)}")
             # 返回默认状态
             return {
-                'state': StructuringState.AWAITING_UPLOAD.value,
+                'state': AgentState.AWAITING_UPLOAD.value,
                 'requires_input': True,
                 'data': {}
             }
@@ -164,33 +173,43 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
         try:
             # 解析消息
             data = json.loads(text_data)
-            action = data.get('action')
-            payload = data.get('payload', {})
+            
+            # 创建标准格式的用户请求
+            user_request = UserActionRequest(
+                action=data.get('action'),
+                payload=data.get('payload', {})
+            )
             
             # 记录操作
-            logger.info(f"用户 {self.user.id} 请求操作: {action}, 项目 {self.project_id}")
+            logger.info(f"receive 收到用户请求操作: {user_request.action}, 项目 {self.project_id}")
             
             # 处理不同类型的操作
-            if action in ['upload_document', 'complete_editing', 'retry', 'rollback']:
-                await self.handle_user_action(action, payload)
-            elif action == 'get_status':
+            if user_request.action in [UserAction.DOCUMENT_UPLOADED.value, 
+                                      UserAction.COMPLETE_EDITING.value, 
+                                      UserAction.RETRY.value, 
+                                      UserAction.ROLLBACK.value]:
+                await self.handle_user_action(user_request.action, user_request.payload)
+            elif user_request.action == UserAction.GET_STATUS.value:
                 await self._send_initial_state()
             else:
-                await self.send(text_data=json.dumps({
-                    'status': 'error',
-                    'message': f'未知操作: {action}'
-                }, ensure_ascii=False))
+                error_message = ErrorMessage(
+                    status='error',
+                    message=f'未知操作: {user_request.action}'
+                )
+                await self.send(text_data=json.dumps(error_message.__dict__, ensure_ascii=False))
         except json.JSONDecodeError:
-            await self.send(text_data=json.dumps({
-                'status': 'error',
-                'message': '无效的JSON格式'
-            }, ensure_ascii=False))
+            error_message = ErrorMessage(
+                status='error',
+                message='无效的JSON格式'
+            )
+            await self.send(text_data=json.dumps(error_message.__dict__, ensure_ascii=False))
         except Exception as e:
             logger.error(f"处理消息异常: {str(e)}\n{traceback.format_exc()}")
-            await self.send(text_data=json.dumps({
-                'status': 'error',
-                'message': f'服务器处理异常: {str(e)}'
-            }, ensure_ascii=False))
+            error_message = ErrorMessage(
+                status='error',
+                message=f'服务器处理异常: {str(e)}'
+            )
+            await self.send(text_data=json.dumps(error_message.__dict__, ensure_ascii=False))
 
 
 
@@ -211,14 +230,30 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
     async def handle_user_action(self, action, payload):
         """
         处理用户操作并调用Agent相应方法
+        注意，用户传入的action是枚举对象的字符串值，如"document_uploaded"
+        在structuring_agent.py的handle_user_input里，使用了UserAction(action)转为了枚举值。 
         """
+
+
         try:
+            logger.info(f"handle_user_action 开始处理用户请求， action: {action}, payload: {payload}")
+
             # 使用sync_to_async包装同步方法
             result = await sync_to_async(self._process_user_action)(action, payload)
             
             # 将结果发送回客户端
-            await self.send(text_data=json.dumps(result))
-            logger.info(f"操作 {action} 已处理完成，状态: {result.get('status')}")
+            if isinstance(result, dict):
+                await self.send(text_data=json.dumps(result, ensure_ascii=False))
+            else:
+                # 确保结果是可序列化的
+                await self.send(text_data=json.dumps({
+                    'status': 'success',
+                    'message': '操作已处理',
+                    'data': result
+                }, ensure_ascii=False))
+
+            logger.info(f"handle_user_action 操作 {action} 已处理完成，状态: {result.get('status', 'unknown')}")
+
         except Exception as e:
             logger.error(f"处理用户操作失败: {str(e)}\n{traceback.format_exc()}")
             # 发送错误响应
@@ -231,6 +266,8 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
         """
         同步处理用户操作
         """
+        logger.info(f"_process_user_action: 完成DocumentStructureAgent的实例化， 项目为{self.project_id}")
+
         # 获取Agent实例
         agent = DocumentStructureAgent(self.project_id)
         

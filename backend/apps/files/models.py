@@ -107,7 +107,7 @@ class FileRecord(BaseModel):
             logging.warning(f"文件不存在: id={self.id}, name={self.name}")
             return None
         
-        logging.info(f"开始生成预签名URL: id={self.id}, name={self.name}, file_path={self.file.name}")
+        logging.info(f"Files.models.get_presigned_url:开始生成预签名URL: id={self.id}, name={self.name}, file_path={self.file.name[0:30]}...")
         
         try:
             s3_client = boto3.client(
@@ -129,7 +129,7 @@ class FileRecord(BaseModel):
                 'ResponseContentType': self.mime_type or 'application/octet-stream'
             }
             
-            logging.debug(f"生成预签名URL参数: {params}")
+            logging.debug(f"Files.models.get_presigned_url: 生成预签名URL参数: {params}")
             
             url = s3_client.generate_presigned_url(
                 'get_object',
@@ -137,7 +137,7 @@ class FileRecord(BaseModel):
                 ExpiresIn=expires
             )
             
-            logging.info(f"预签名URL生成成功: id={self.id}, url={url}")
+            logging.info(f"Files.models.get_presigned_url:预签名URL生成成功: id={self.id}, url={url[0:30]}...")
             return url
         
         except Exception as e:

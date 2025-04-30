@@ -4,31 +4,44 @@ import tempfile
 import requests
 import logging
 from typing import Dict, Any
+from apps.projects.models import Project
+from django.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
 class DocxExtractor:
     """文档内容提取模块，用于大模型agent"""
 
-    def __init__(self, file_url=None, file_path=None):
+    def __init__(self, project_id):
         """
         初始化文档提取器
         :param file_url: 文件URL，可以是预签名URL
         :param file_path: 本地文件路径，与file_url二选一
         """
-        self.file_url = file_url
-        self.file_path = file_path
-        if not (file_url or file_path):
-            raise ValueError("必须提供文件URL或本地文件路径")
+        self.project_id = project_id
+
+        logger.info(f"DocxExtractor: 初始化, project_id={self.project_id}")
+        self.file_url = self.get_url()
+
+    def get_url(self):
+
+        project = Project.objects.get(id=self.project_id)
+        presigned_url = project.files.first().get_presigned_url()
+        if not presigned_url:
+            raise ValidationError("无法获取文件访问地址")
+        return presigned_url
+        
+
 
     def extract_content(self) -> Dict[str, Any]:
         """提取文档内容并返回TipTap JSON格式的内容"""
+
         temp_file_path = None
         
         try:
             # 如果提供了URL，下载文件到临时位置
             if self.file_url:
-                logger.info(f"开始下载文件: url={self.file_url}")
+                logger.info(f"docx_extractor: 开始下载文件")
                 temp_file_path = os.path.join(tempfile.gettempdir(), f"doc_analysis_{uuid.uuid4()}.docx")
                 response = requests.get(self.file_url, timeout=30)
                 response.raise_for_status()
@@ -41,7 +54,7 @@ class DocxExtractor:
                 # 使用本地文件
                 file_to_process = self.file_path
             
-            logger.info(f"开始提取文档内容: file={file_to_process}")
+            logger.info(f"DocxExtractor: 开始提取文档内容, file={file_to_process}")
             
             # 导入转换函数
             from apps.projects.tiptap import docx_to_tiptap_json
@@ -53,7 +66,7 @@ class DocxExtractor:
                 logger.error(error_msg)
                 raise ValueError(error_msg)
             
-            logger.info(f"文档内容提取成功: content_size={len(str(tiptap_content))}")
+            logger.info(f"DocxExtractor: 文档内容提取成功, content_size={len(str(tiptap_content))}")
             
             # 返回提取结果，由agent处理持久化
             return tiptap_content

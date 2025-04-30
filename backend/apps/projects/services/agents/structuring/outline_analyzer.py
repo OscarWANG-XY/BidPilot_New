@@ -18,7 +18,7 @@ from apps.projects.services.llm.llm_output_processor import LLMOutputProcessor
 
 logger = logging.getLogger(__name__)
 
-class TenderOutlineAnalyzer:
+class OutlineAnalyzer:
     """
     招标文档大纲分析器，使用LLM分析实现文档结构化
     
@@ -37,8 +37,10 @@ class TenderOutlineAnalyzer:
         """
         self.llm_limit = llm_limit
         self.output_processor = LLMOutputProcessor()
+
+        logger.info("OutlineAnalyzer: 初始化完成")
     
-    async def analyze_document_structure(self, tender_document: Dict) -> Dict:
+    async def analyze(self, tender_document: Dict) -> Dict:
         """
         完整的招标文档结构分析流程
         
@@ -51,12 +53,16 @@ class TenderOutlineAnalyzer:
         logger.info("开始招标文档结构分析")
         
         # 步骤1：分析一级标题(H1)
+
+        logger.info("OutlineAnalyzer: 开始分析一级标题(H1)")
         document_h1 = await self.analyze_l1_headings(tender_document)
         
         # 步骤2：分析二级/三级标题
+        logger.info("OutlineAnalyzer: 开始分析二级/三级标题")
         document_h2 = await self.analyze_l2_l3_headings(document_h1)
         
         # 步骤3：添加引言标题
+        logger.info("OutlineAnalyzer: 开始添加引言标题")
         document_final = self.add_introduction_headings(document_h2)
         
         # 打印增强后的目录结构用于验证
