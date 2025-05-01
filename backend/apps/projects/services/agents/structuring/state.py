@@ -39,9 +39,12 @@ class AgentState(str, Enum):
     AWAITING_UPLOAD = "awaiting_upload"
     EXTRACTING_DOCUMENT = "extracting_document"
     DOCUMENT_EXTRACTED = "document_extracted"
-    ANALYZING_OUTLINE = "analyzing_outline"
-    OUTLINE_ANALYZED = "outline_analyzed"  # 分析完成后直接进入注入步骤，不需要用户确认
-    # INJECTING_OUTLINE = "injecting_outline"
+    ANALYZING_OUTLINE_H1 = "analyzing_outline_h1"
+    OUTLINE_H1_ANALYZED = "outline_h1_analyzed"
+    ANALYZING_OUTLINE_H2H3 = "analyzing_outline_h2h3"
+    OUTLINE_H2H3_ANALYZED = "outline_h2h3_analyzed"
+    ADDING_INTRODUCTION = "adding_introduction"
+    INTRODUCTION_ADDED = "introduction_added"
     AWAITING_EDITING = "awaiting_editing"
     COMPLETED = "completed"
     FAILED = "failed"
@@ -53,9 +56,12 @@ class AgentState(str, Enum):
             cls.AWAITING_UPLOAD,
             cls.EXTRACTING_DOCUMENT,
             cls.DOCUMENT_EXTRACTED,
-            cls.ANALYZING_OUTLINE,
-            cls.OUTLINE_ANALYZED,
-            # cls.INJECTING_OUTLINE,
+            cls.ANALYZING_OUTLINE_H1,
+            cls.OUTLINE_H1_ANALYZED,
+            cls.ANALYZING_OUTLINE_H2H3,
+            cls.OUTLINE_H2H3_ANALYZED,
+            cls.ADDING_INTRODUCTION,
+            cls.INTRODUCTION_ADDED,
             cls.AWAITING_EDITING,
             cls.COMPLETED
         ]
@@ -103,25 +109,43 @@ STATE_CONFIG: Dict[AgentState, StateConfig] = {
         can_retry=True,
         persist=True
     ),
-    AgentState.ANALYZING_OUTLINE: StateConfig(
+    AgentState.ANALYZING_OUTLINE_H1: StateConfig(
         requires_input=False,
         notification_type="loading",
-        default_message="正在分析文档大纲...",
+        default_message="正在分析一级标题...",
         persist=True
     ),
-    AgentState.OUTLINE_ANALYZED: StateConfig(
-        requires_input=False,  # 修改：不需要用户输入
+    AgentState.OUTLINE_H1_ANALYZED: StateConfig(
+        requires_input=False,
         notification_type="success",
-        default_message="大纲分析完成，正在准备注入...",
-        can_retry=True,
+        default_message="一级标题分析完成，准备分析二级标题...",
         persist=True
     ),
-    # AgentState.INJECTING_OUTLINE: StateConfig(
-    #     requires_input=False,
-    #     notification_type="loading",
-    #     default_message="正在将大纲注入文档...",
-    #     persist=True
-    # ),
+    AgentState.ANALYZING_OUTLINE_H2H3: StateConfig(
+        requires_input=False,
+        notification_type="loading",
+        default_message="正在分析二级标题...",
+        persist=True
+    ),
+    AgentState.OUTLINE_H2H3_ANALYZED: StateConfig(
+        requires_input=False,
+        notification_type="success",
+        default_message="二级标题分析完成，准备添加引言...",
+        persist=True
+    ),
+    AgentState.ADDING_INTRODUCTION: StateConfig(
+        requires_input=False,
+        notification_type="loading",
+        default_message="正在添加引言...",
+        persist=True
+    ),
+    AgentState.INTRODUCTION_ADDED: StateConfig(
+        requires_input=False,
+        notification_type="success",
+        default_message="引言添加完成，准备完成编辑...",
+        persist=True
+    ),
+    
     AgentState.AWAITING_EDITING: StateConfig(
         requires_input=True,
         notification_type="success",
@@ -208,8 +232,9 @@ ACTION_CONFIG: Dict[UserAction, ActionConfig] = {
 class ProcessStep(str, Enum):
     """系统内部处理步骤枚举"""
     EXTRACT = "extract"
-    ANALYZE = "analyze"
-    # INJECT = "inject"
+    ANALYZE_OUTLINE_H1 = "analyze_outline_h1"
+    ANALYZE_OUTLINE_H2H3 = "analyze_outline_h2h3"
+    ADD_INTRODUCTION = "add_introduction"
     COMPLETE = "complete"
 
 @dataclass
@@ -225,22 +250,28 @@ STEP_CONFIG: Dict[ProcessStep, StepConfig] = {
     ProcessStep.EXTRACT: StepConfig(
         description="提取文档内容",
         requires_user_action=True,
-        next_automatic_step=ProcessStep.ANALYZE,
+        next_automatic_step=ProcessStep.ANALYZE_OUTLINE_H1,
         valid_from_states=[AgentState.AWAITING_UPLOAD]
     ),
-    ProcessStep.ANALYZE: StepConfig(
-        description="分析文档大纲",
+    ProcessStep.ANALYZE_OUTLINE_H1: StepConfig(
+        description="分析一级标题",
         requires_user_action=False,
-        # next_automatic_step=ProcessStep.INJECT,
-        next_automatic_step=None,
+        next_automatic_step=ProcessStep.ANALYZE_OUTLINE_H2H3,
         valid_from_states=[AgentState.DOCUMENT_EXTRACTED]
     ),
-    # ProcessStep.INJECT: StepConfig(
-    #     description="注入大纲到文档",
-    #     requires_user_action=False,
-    #     next_automatic_step=None,
-    #     valid_from_states=[AgentState.OUTLINE_ANALYZED]
-    # ),
+    ProcessStep.ANALYZE_OUTLINE_H2H3: StepConfig(
+        description="分析二级标题",
+        requires_user_action=False,
+        next_automatic_step=ProcessStep.ADD_INTRODUCTION,
+        valid_from_states=[AgentState.OUTLINE_H1_ANALYZED]
+    ),
+    ProcessStep.ADD_INTRODUCTION: StepConfig(
+        description="添加引言",
+        requires_user_action=False,
+        next_automatic_step=ProcessStep.COMPLETE,
+        valid_from_states=[AgentState.OUTLINE_H2H3_ANALYZED]
+    ),
+
     ProcessStep.COMPLETE: StepConfig(
         description="完成编辑",
         requires_user_action=True,
@@ -258,8 +289,9 @@ ACTION_TO_STEP: Dict[UserAction, ProcessStep] = {
 # 状态到处理步骤的映射
 STATE_TO_STEP: Dict[AgentState, ProcessStep] = {
     AgentState.AWAITING_UPLOAD: ProcessStep.EXTRACT,
-    AgentState.DOCUMENT_EXTRACTED: ProcessStep.ANALYZE,
-    # AgentState.OUTLINE_ANALYZED: ProcessStep.INJECT,
+    AgentState.DOCUMENT_EXTRACTED: ProcessStep.ANALYZE_OUTLINE_H1,
+    AgentState.OUTLINE_H1_ANALYZED: ProcessStep.ANALYZE_OUTLINE_H2H3,
+    AgentState.OUTLINE_H2H3_ANALYZED: ProcessStep.ADD_INTRODUCTION,
     AgentState.AWAITING_EDITING: ProcessStep.COMPLETE
 }
 
@@ -351,9 +383,12 @@ STATE_DATA_TYPES = {
     AgentState.AWAITING_UPLOAD: None or UploadDocumentPayload,  # 无需特定数据, 这里UploadDocumentPayload为空
     AgentState.EXTRACTING_DOCUMENT: None,  # 无需特定数据
     AgentState.DOCUMENT_EXTRACTED: None,  # 可以包含文档元数据
-    AgentState.ANALYZING_OUTLINE: None,  # 无需特定数据
-    AgentState.OUTLINE_ANALYZED: None,  # 无需特定数据
-    # AgentState.INJECTING_OUTLINE: None,  # 无需特定数据
+    AgentState.ANALYZING_OUTLINE_H1: None,  # 无需特定数据
+    AgentState.OUTLINE_H1_ANALYZED: None,  # 无需特定数据
+    AgentState.ANALYZING_OUTLINE_H2H3: None,  # 无需特定数据
+    AgentState.OUTLINE_H2H3_ANALYZED: None,  # 无需特定数据
+    AgentState.ADDING_INTRODUCTION: None,  # 无需特定数据
+    AgentState.INTRODUCTION_ADDED: None,  # 无需特定数据
     AgentState.AWAITING_EDITING: DocumentData,  # 包含注入大纲后的文档
     AgentState.COMPLETED: DocumentData,  # 包含最终文档
     AgentState.FAILED: Dict[str, Any]  # 包含错误信息

@@ -1,6 +1,3 @@
-
-
-
 # 说明： 
 # 下面使用的channel_layer 是django channels 自动注入到每个consumer中的一个属性，代表后端通信系统，比如Redis, 
 # 允许你给一个group发送消息， 或者发给某个单独的channel
@@ -45,7 +42,8 @@ from .state import (
     AgentState, 
     InitialStateMessage, ErrorMessage,
     UserActionRequest,
-    UserAction
+    UserAction,
+    ProcessStep
 )
 
 # 设置日志记录器
@@ -56,6 +54,7 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
     专门服务 StructuringAgent 的 WebSocket 通道 - 简化版
     """
 
+    # 连接尝试
     async def connect(self):
         try:
             print("=" * 50)
@@ -70,10 +69,6 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
             print(f"用户认证状态: {self.user.is_authenticated}")
             if self.user.is_authenticated:
                 print(f"已认证用户ID: {self.user.id}")
-            
-            # 打印URL路由信息
-            # print(f"URL路由参数: {self.scope['url_route']['kwargs']}")
-            # print(f"完整路径: {self.scope.get('path', '未知')}")
             
             # 加入WebSocket组
             await self.channel_layer.group_add(self.group_name, self.channel_name)
@@ -157,6 +152,7 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
             }
 
 
+    # 断开连接时触发
     async def disconnect(self, close_code):
         """
         断开连接时触发
@@ -166,53 +162,7 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
         logger.info(f"StructuringAgent: 用户 {self.user.id} 断开连接，项目 {self.project_id}")
 
 
-    async def receive(self, text_data):
-        """
-        接收消息时触发，处理前端发来的操作请求
-        """
-        try:
-            # 解析消息
-            data = json.loads(text_data)
-            
-            # 创建标准格式的用户请求
-            user_request = UserActionRequest(
-                action=data.get('action'),
-                payload=data.get('payload', {})
-            )
-            
-            # 记录操作
-            logger.info(f"receive 收到用户请求操作: {user_request.action}, 项目 {self.project_id}")
-            
-            # 处理不同类型的操作
-            if user_request.action in [UserAction.DOCUMENT_UPLOADED.value, 
-                                      UserAction.COMPLETE_EDITING.value, 
-                                      UserAction.RETRY.value, 
-                                      UserAction.ROLLBACK.value]:
-                await self.handle_user_action(user_request.action, user_request.payload)
-            elif user_request.action == UserAction.GET_STATUS.value:
-                await self._send_initial_state()
-            else:
-                error_message = ErrorMessage(
-                    status='error',
-                    message=f'未知操作: {user_request.action}'
-                )
-                await self.send(text_data=json.dumps(error_message.__dict__, ensure_ascii=False))
-        except json.JSONDecodeError:
-            error_message = ErrorMessage(
-                status='error',
-                message='无效的JSON格式'
-            )
-            await self.send(text_data=json.dumps(error_message.__dict__, ensure_ascii=False))
-        except Exception as e:
-            logger.error(f"处理消息异常: {str(e)}\n{traceback.format_exc()}")
-            error_message = ErrorMessage(
-                status='error',
-                message=f'服务器处理异常: {str(e)}'
-            )
-            await self.send(text_data=json.dumps(error_message.__dict__, ensure_ascii=False))
-
-
-
+    # 发送消失（来自 StructuringAgent 的消息）
     async def agent_message(self, event):
         """
         处理来自 StructuringAgent 的消息
@@ -226,32 +176,103 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
         }, ensure_ascii=False))
 
 
+    #  --------  接收消息时触发，处理前端发来的操作请求
+    # 说明： 前端输入的数据格式要求：
+    # receive -> handle_user_action -> _process_user_action -> agent.handle_user_input -> agent.process_step (用户操作)
+    #                               -> _process_next_step -> _process_system_step -> agent.process_step (系统操作作为用户操作的补充链路)
+    # 无论是_process_user_action 还是 _process_system_step 都有 agent的初始化，
+    # 在agent里需要有状态持久化 确保每次初始化后状态到之前的状态， 这个是 用户驱动的agent的基础。 
+    async def receive(self, text_data):
+        """
+        接收消息时触发，处理前端发来的操作请求
+        """
+        try:
+            # 解析消息 格式要求：
+            # {
+            # "action": "action_value",
+            # "payload": { // Optional payload data depending on the action}
+            # }
+            data = json.loads(text_data)
+            
+            # 创建标准格式的用户请求
+            user_request = UserActionRequest(
+                action=data.get('action'),
+                payload=data.get('payload', {})
+            )
+            
+            # 记录操作
+            logger.info(f"receive 收到用户请求操作: {user_request.action}, 项目 {self.project_id}")
+            
+            # 处理 需要agent执行的 操作
+            if user_request.action in [UserAction.DOCUMENT_UPLOADED.value, 
+                                      UserAction.COMPLETE_EDITING.value, 
+                                      UserAction.RETRY.value, 
+                                      UserAction.ROLLBACK.value]:
+                await self.handle_user_action(user_request.action, user_request.payload)
 
+            # 处理 关于agent的 状态请求 
+            elif user_request.action == UserAction.GET_STATUS.value:
+                await self._send_initial_state()
+
+            # 处理 未知操作，以错误消息返回 
+            else:
+                error_message = ErrorMessage(
+                    status='error',
+                    message=f'未知操作: {user_request.action}'
+                )
+                await self.send(text_data=json.dumps(error_message.__dict__, ensure_ascii=False))
+
+        # 处理 消息格式 异常， 将异常信息返回给前端 
+        except json.JSONDecodeError:
+            error_message = ErrorMessage(
+                status='error',
+                message='无效的JSON格式'
+            )
+            await self.send(text_data=json.dumps(error_message.__dict__, ensure_ascii=False))
+
+        # 处理 其他异常， 将异常信息返回给前端 
+        except Exception as e:
+            logger.error(f"处理消息异常: {str(e)}\n{traceback.format_exc()}")
+            error_message = ErrorMessage(
+                status='error',
+                message=f'服务器处理异常: {str(e)}'
+            )
+            await self.send(text_data=json.dumps(error_message.__dict__, ensure_ascii=False))
+
+
+    # 处理 需要Agent执行的 用户操作请求
     async def handle_user_action(self, action, payload):
-        """
-        处理用户操作并调用Agent相应方法
-        注意，用户传入的action是枚举对象的字符串值，如"document_uploaded"
-        在structuring_agent.py的handle_user_input里，使用了UserAction(action)转为了枚举值。 
-        """
-
+        """处理用户操作并调用Agent相应方法"""
 
         try:
             logger.info(f"handle_user_action 开始处理用户请求， action: {action}, payload: {payload}")
 
-            # 使用sync_to_async包装同步方法
+            # 调用agent响应用户操作并返回结果， 在_process_user_action中实现调用，包括：agent初始化 和 用户操作处理 
             result = await sync_to_async(self._process_user_action)(action, payload)
             
-            # 将结果发送回客户端
-            if isinstance(result, dict):
-                await self.send(text_data=json.dumps(result, ensure_ascii=False))
-            else:
-                # 确保结果是可序列化的
+            # 确保结果是字典格式
+            if not isinstance(result, dict):
+                logger.error(f"Agent返回了非字典格式的结果: {result}")
                 await self.send(text_data=json.dumps({
-                    'status': 'success',
-                    'message': '操作已处理',
-                    'data': result
+                    'status': 'error',
+                    'message': f'Agent返回了无效的结果格式: {type(result).__name__}'
                 }, ensure_ascii=False))
-
+                return
+            
+            # 发送结果给客户端
+            await self.send(text_data=json.dumps(result, ensure_ascii=False))
+            
+            # 如果有下一步，自动处理
+            if result.get('status') == 'success' and result.get('next_step'):
+                # 给前端一点时间处理当前消息
+                import asyncio
+                await asyncio.sleep(0.5)
+                
+                # 自动处理下一步
+                next_step = result.get('next_step')
+                logger.info(f"自动处理下一步: {next_step}")
+                await self._process_next_step(next_step)
+                
             logger.info(f"handle_user_action 操作 {action} 已处理完成，状态: {result.get('status', 'unknown')}")
 
         except Exception as e:
@@ -261,6 +282,7 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
                 'status': 'error',
                 'message': f'操作处理失败: {str(e)}'
             }, ensure_ascii=False))
+
     
     def _process_user_action(self, action, payload):
         """
@@ -274,4 +296,59 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
         # 调用Agent的处理方法
         return agent.handle_user_input(action, payload)
     
-    
+    # 处理下一个系统步骤 - 这是内部方法，不是用户操作，作为用户操作的辅助 
+    async def _process_next_step(self, step_name):
+        """处理下一个系统步骤 - 这是内部方法，不是用户操作"""
+        try:
+            logger.info(f"process_next_step: 开始处理步骤 {step_name}")
+            
+            # 使用sync_to_async包装同步方法
+            result = await sync_to_async(self._process_system_step)(step_name)
+            
+            # 将结果发送回客户端
+            if isinstance(result, dict):
+                await self.send(text_data=json.dumps(result, ensure_ascii=False))
+                
+                # 如果有下一步，继续处理
+                if result.get('status') == 'success' and result.get('next_step'):
+                    # 给前端一点时间处理当前消息
+                    import asyncio
+                    await asyncio.sleep(0.5)
+                    
+                    # 递归处理下一步
+                    next_step = result.get('next_step')
+                    logger.info(f"继续处理下一步: {next_step}")
+                    await self._process_next_step(next_step)
+            else:
+                await self.send(text_data=json.dumps({
+                    'status': 'success',
+                    'message': '步骤已处理',
+                    'data': result
+                }, ensure_ascii=False))
+                
+            logger.info(f"process_next_step 步骤 {step_name} 已处理完成")
+        except Exception as e:
+            logger.error(f"处理系统步骤失败: {str(e)}\n{traceback.format_exc()}")
+            await self.send(text_data=json.dumps({
+                'status': 'error',
+                'message': f'步骤处理失败: {str(e)}'
+            }, ensure_ascii=False))
+
+
+    def _process_system_step(self, step_name):
+        """同步处理系统步骤"""
+        logger.info(f"_process_system_step: 处理步骤 {step_name}, 项目 {self.project_id}")
+        
+        # 获取Agent实例
+        agent = DocumentStructureAgent(self.project_id)
+        
+        try:
+            # 尝试将步骤名称转换为枚举
+            step = ProcessStep(step_name)
+            # 调用Agent的处理步骤方法
+            return agent.process_step(step)
+        except ValueError:
+            return {
+                "status": "error",
+                "message": f"无效的处理步骤: {step_name}"
+            }
