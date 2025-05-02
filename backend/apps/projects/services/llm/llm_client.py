@@ -74,4 +74,39 @@ class LLMClient:
         
         return await asyncio.gather(*[process_task(task) for task in tasks])
 
+    async def process_parallel_stream(self, tasks, channel_layer=None, group_name=None, limit=5) -> List[Any]:
+        """
+        并行执行多个分析任务，支持流式输出
+        
+        参数:
+            tasks: 包含(task_id, task_input)元组的列表
+            channel_layer: Channels层用于WebSocket通信
+            group_name: WebSocket组名称
+            limit: 最大并行数
+        
+        返回:
+            处理结果的列表
+        """
+        service = self.create_service()
+        semaphore = asyncio.Semaphore(limit)
+        
+        async def process_task(task_id, task_input):
+            async with semaphore:
+                request = LLMRequestModel.create(
+                    context=task_input["context"],
+                    instruction=task_input["instruction"],
+                    supplement=task_input["supplement"],
+                    output_format=task_input["output_format"]
+                )
+                # 传递任务ID以区分不同任务的流式输出
+                return await service.process(
+                    request, 
+                    channel_layer=channel_layer, 
+                    group_name=group_name,
+                    task_id=task_id
+                )
+        
+        # 并行执行所有任务
+        return await asyncio.gather(*[process_task(task_id, task_input) for task_id, task_input in tasks])
+    
 

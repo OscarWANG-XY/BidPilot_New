@@ -259,13 +259,24 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=json.dumps(error_message.__dict__, ensure_ascii=False))
 
 
+
+    async def llm_stream(self, event):
+        """处理大模型的流式输出"""
+        await self.send(text_data=json.dumps({
+            'type': 'llm_stream',
+            'token': event.get('token', ''),
+            'content': event.get('content', ''),
+            'task_id': event.get('task_id', None),
+            'state': self.current_state.value if hasattr(self, 'current_state') else None,
+            'finished': event.get('finished', False)
+        }, ensure_ascii=False))
+
+
+
     # 处理 需要Agent执行的 用户操作请求
     async def handle_user_action(self, action, payload):
-        """处理用户操作并调用Agent相应方法"""
-
+        """处理用户操作"""
         try:
-            logger.info(f"handle_user_action 开始处理用户请求， action: {action}, payload: {payload}")
-
             # 1. 处理用户操作
             result = await sync_to_async(self._process_user_action)(action, payload)
             
@@ -274,22 +285,17 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
             
             # 3. 如果有下一步，自动处理
             if result.get('status') == 'success' and result.get('next_step'):
-                # 给前端一点时间处理当前消息
-                import asyncio
-                await asyncio.sleep(0.5)
-                
                 # 自动处理下一步
                 next_step = result.get('next_step')
                 await self._process_next_step(next_step)
                 
-            logger.info(f"handle_user_action 操作 {action} 已处理完成，状态: {result.get('status', 'unknown')}")
-
         except Exception as e:
             logger.error(f"处理用户操作失败: {str(e)}\n{traceback.format_exc()}")
-            await self.send(text_data=json.dumps({
-                'status': 'error',
-                'message': f'操作处理失败: {str(e)}'
-            }, ensure_ascii=False))
+            error_message = ErrorMessage(
+                status='error',
+                message=f'处理操作失败: {str(e)}'
+            )
+            await self.send(text_data=json.dumps(error_message.__dict__, ensure_ascii=False))
 
     
     def _process_user_action(self, action, payload):
@@ -319,8 +325,6 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
                 
                 # 3. 如果有下一步，继续处理
                 if result.get('status') == 'success' and result.get('next_step'):
-                    import asyncio
-                    await asyncio.sleep(0.5)
                     await self._process_next_step(result.get('next_step'))
             else:
                 await self.send(text_data=json.dumps({
@@ -343,13 +347,14 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
         logger.info(f"_process_system_step: 处理步骤 {step_name}, 项目 {self.project_id}")
         
         # 获取Agent实例
-        agent = DocumentStructureAgent(self.project_id)
+        if not hasattr(self, '_agent'): # 检查是否已经创建了Agent实例 
+            self._agent = DocumentStructureAgent(self.project_id)  # 如果还没有创建，则创建一个
         
         try:
             # 尝试将步骤名称转换为枚举
             step = ProcessStep(step_name)
             # 调用Agent的处理步骤方法
-            return agent.process_step(step)
+            return self._agent.process_step(step) # 如果已经创建，直接使用。 
         except ValueError:
             return {
                 "status": "error",

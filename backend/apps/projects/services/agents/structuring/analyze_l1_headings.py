@@ -32,12 +32,14 @@ class OutlineL1Analyzer:
 
         logger.info("OutlineAnalyzer: 初始化完成")
     
-    async def analyze(self, tender_document: Dict) -> Dict:
+    async def analyze(self, tender_document: Dict, channel_layer=None, group_name=None) -> Dict:
         """
         分析文档中的一级标题(H1)
         
         参数：
             tender_document: Tiptap格式的招标文档
+            channel_layer: 可选的Channels层，用于WebSocket流式输出
+            group_name: 可选的组名称，用于WebSocket流式输出
             
         返回：
             更新了一级标题的文档
@@ -55,7 +57,25 @@ class OutlineL1Analyzer:
         
         # 使用LLM处理
         analyzer = LLMClient(prompt_config)
-        raw_results = await analyzer.process_with_limit(task_inputs, limit=self.llm_limit)
+
+        if channel_layer and group_name:
+            # 创建并行任务，每个任务有唯一ID
+            tasks = []
+            for i, task_input in enumerate(task_inputs):
+                # 为每个任务添加ID
+                task_id = f"task_{i}"
+                tasks.append((task_id, task_input))
+                
+            # 并行处理并支持流式输出
+            raw_results = await analyzer.process_parallel_stream(
+                tasks,
+                channel_layer=channel_layer,
+                group_name=group_name,
+                limit=self.llm_limit
+            )
+        else:
+            # 原有的并行处理（不带流式输出）
+            raw_results = await analyzer.process_with_limit(task_inputs, limit=self.llm_limit)
         
         # 处理结果
         clean_parsed_results = self.output_processor.merge_outputs(raw_results)

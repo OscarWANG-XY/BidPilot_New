@@ -510,7 +510,7 @@ class DocumentStructureAgent:
                 
             # 完成编辑
             elif step == ProcessStep.COMPLETE:
-                self._process_complete(trace_id, user_input)
+                return self._process_complete(trace_id, user_input)  # 直接返回 _process_complete 的结果
                 
             return {"status": "success", "next_step": self.next_step}
                 
@@ -580,7 +580,11 @@ class DocumentStructureAgent:
         
         try:
             # 分析文档大纲 - 使用属性访问
-            self.H1_document = async_to_sync(self.outline_l1_analyzer.analyze)(self.document)
+            self.H1_document = async_to_sync(self.outline_l1_analyzer.analyze)(
+                self.document,
+                channel_layer=self.channel_layer,
+                group_name=self.group_name
+                )
             if not self.H1_document:
                 raise OutlineAnalysisError("H1大纲分析失败，结果为空")
                 
@@ -609,7 +613,11 @@ class DocumentStructureAgent:
         
         try:
             # 分析文档大纲 - 使用属性访问
-            self.H2H3_document = async_to_sync(self.outline_l2_l3_analyzer.analyze)(self.H1_document)
+            self.H2H3_document = async_to_sync(self.outline_l2_l3_analyzer.analyze)(
+                self.H1_document,
+                channel_layer=self.channel_layer,
+                group_name=self.group_name
+                )
             if not self.H2H3_document:
                 raise OutlineAnalysisError("H2/H3大纲分析失败，结果为空")
                 
@@ -679,6 +687,7 @@ class DocumentStructureAgent:
         self.update_state(AgentState.COMPLETED, "文档结构化完成！")
         
         logger.info(f"[{trace_id}] 文档结构化流程完成")
+        self.next_step = None
         return {
             "status": "success",
             "step": "complete",

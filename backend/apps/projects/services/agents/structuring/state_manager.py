@@ -35,6 +35,7 @@ class StateManager:
     def set_state(self, new_state: AgentState):
         """设置新状态并记录历史"""
         if new_state == self._current_state:
+            logger.debug(f"状态保持不变: {new_state.value}")
             return
             
         # 记录状态历史
@@ -55,6 +56,10 @@ class StateManager:
 
     def can_transition_to(self, new_state: AgentState) -> bool:
         """检查是否可以转换到新状态"""
+        # 允许转换到相同状态
+        if new_state == self.get_state():
+            return True
+            
         # 定义有效的状态转换
         valid_transitions = {
             AgentState.AWAITING_UPLOAD: [AgentState.EXTRACTING_DOCUMENT],  
@@ -68,7 +73,18 @@ class StateManager:
             AgentState.INTRODUCTION_ADDED: [AgentState.AWAITING_EDITING, AgentState.FAILED],
             AgentState.AWAITING_EDITING: [AgentState.COMPLETED, AgentState.FAILED],
             AgentState.COMPLETED: [], # 终止状态
-            AgentState.FAILED: [AgentState.AWAITING_UPLOAD], # 失败后可以重新开始
+            AgentState.FAILED: [
+                AgentState.AWAITING_UPLOAD,
+                AgentState.EXTRACTING_DOCUMENT,
+                AgentState.DOCUMENT_EXTRACTED,
+                AgentState.ANALYZING_OUTLINE_H1,
+                AgentState.OUTLINE_H1_ANALYZED,
+                AgentState.ANALYZING_OUTLINE_H2H3,
+                AgentState.OUTLINE_H2H3_ANALYZED,
+                AgentState.ADDING_INTRODUCTION,
+                AgentState.INTRODUCTION_ADDED,
+                AgentState.AWAITING_EDITING
+            ], # 失败后可以重新开始或继续。 
         }
         
         # 失败状态总是可以转换到
@@ -167,6 +183,7 @@ class StateManager:
         """
         from .state import InvalidStateTransitionError
         
+        # 检查是否可以转换
         if force or self.can_transition_to(new_state):
             # 更新状态, 记录历史, 并进行持久化处理
             self.set_state(new_state)  

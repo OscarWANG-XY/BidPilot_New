@@ -34,7 +34,7 @@ class OutlineL2L3Analyzer:
         logger.info("OutlineAnalyzer: 初始化完成")
 
     
-    async def analyze(self, document_h1: Dict) -> Dict:
+    async def analyze(self, document_h1: Dict, channel_layer=None, group_name=None ) -> Dict:
         """
         分析文档中的二级和三级标题
         
@@ -55,7 +55,25 @@ class OutlineL2L3Analyzer:
         
         # 使用LLM处理
         analyzer = LLMClient(prompt_config)
-        raw_results = await analyzer.process_with_limit(task_inputs, limit=self.llm_limit)
+
+        if channel_layer and group_name:
+            # 创建并行任务，每个任务有唯一ID
+            tasks = []
+            for i, task_input in enumerate(task_inputs):
+                # 为每个任务添加ID
+                task_id = f"task_{i}"
+                tasks.append((task_id, task_input))
+                
+            # 并行处理并支持流式输出
+            raw_results = await analyzer.process_parallel_stream(
+                tasks,
+                channel_layer=channel_layer,
+                group_name=group_name,
+                limit=self.llm_limit
+            )
+        else:
+            # 原有的并行处理（不带流式输出）
+            raw_results = await analyzer.process_with_limit(task_inputs, limit=self.llm_limit)
         
         # 处理结果
         clean_parsed_results = self.output_processor.merge_outputs(raw_results)
