@@ -123,7 +123,7 @@ class DocumentStructureAgent:
     
     def _try_restore_state(self):
         """尝试从缓存或数据库恢复状态"""
-        from backend.apps.projects.models import StructuringAgentState
+        from apps.projects.models import StructuringAgentState
         from django.core.cache import cache
         
         # 缓存键
@@ -157,19 +157,97 @@ class DocumentStructureAgent:
                     logger.info(f"已从数据库恢复项目 {self.project_id} 的状态并更新缓存")
                 except StructuringAgentState.DoesNotExist:
                     logger.info(f"项目 {self.project_id} 没有保存的状态记录，使用默认状态")
+                    # 这里不抛出异常，因为新项目本来就没有状态记录
                     return
+                except Exception as e:
+                    error_msg = f"从数据库恢复状态失败: {str(e)}"
+                    logger.error(error_msg)
+                    raise StateError(error_msg)
             
             # 恢复文档数据
             self._restore_documents()
             
+            # 处理中断状态的恢复
+            self._handle_interrupted_state()
+            
         except Exception as e:
-            logger.error(f"恢复状态时出错: {str(e)}")
-            # 使用默认状态继续
-            pass
+            if not isinstance(e, StateError):
+                error_msg = f"恢复状态时出错: {str(e)}"
+                logger.error(error_msg)
+                raise StateError(error_msg)
+            raise
+
+    def _handle_interrupted_state(self):
+        """
+        处理中断状态的恢复，确保状态机处于有效状态
+        
+        根据状态流转图，处理所有可能的中断状态：
+        1. 检查当前状态是否是中间状态（应该自动流转的状态）
+        2. 如果是中间状态，且数据完整，则自动流转到下一个状态
+        3. 如果数据不完整，保持当前状态不变
+        """
+        current = self.current_state
+        logger.info(f"检查中断状态: 当前状态为 {current.value}")
+        
+        # 处理文档提取后的状态
+        if current == AgentState.DOCUMENT_EXTRACTED:
+            if self.document:  # 确保有文档数据
+                self.update_state(
+                    AgentState.ANALYZING_OUTLINE_H1,
+                    "正在分析一级标题...",
+                    {}
+                )
+                logger.info(f"项目 {self.project_id} 从中断状态 DOCUMENT_EXTRACTED 恢复到 ANALYZING_OUTLINE_H1")
+        
+        # 处理一级标题分析后的状态
+        elif current == AgentState.OUTLINE_H1_ANALYZED:
+            if self.H1_document:  # 确保有H1文档数据
+                self.update_state(
+                    AgentState.ANALYZING_OUTLINE_H2H3,
+                    "正在分析二级/三级标题...",
+                    {}
+                )
+                logger.info(f"项目 {self.project_id} 从中断状态 OUTLINE_H1_ANALYZED 恢复到 ANALYZING_OUTLINE_H2H3")
+        
+        # 处理二级/三级标题分析后的状态
+        elif current == AgentState.OUTLINE_H2H3_ANALYZED:
+            if self.H2H3_document:  # 确保有H2H3文档数据
+                self.update_state(
+                    AgentState.ADDING_INTRODUCTION,
+                    "正在添加引言...",
+                    {}
+                )
+                logger.info(f"项目 {self.project_id} 从中断状态 OUTLINE_H2H3_ANALYZED 恢复到 ADDING_INTRODUCTION")
+        
+        # 处理引言添加后的状态
+        elif current == AgentState.INTRODUCTION_ADDED:
+            if self.Intro_document:  # 确保有引言文档数据
+                self.update_state(
+                    AgentState.AWAITING_EDITING,
+                    "请在编辑器中检查和调整大纲...",
+                    {"document": self.Intro_document}
+                )
+                logger.info(f"项目 {self.project_id} 从中断状态 INTRODUCTION_ADDED 恢复到 AWAITING_EDITING")
+        
+        # 处理正在进行中的状态（这些状态应该重试）
+        elif current in [
+            AgentState.EXTRACTING_DOCUMENT,
+            AgentState.ANALYZING_OUTLINE_H1,
+            AgentState.ANALYZING_OUTLINE_H2H3,
+            AgentState.ADDING_INTRODUCTION
+        ]:
+            logger.warning(f"项目 {self.project_id} 在进行中状态 {current.value} 被中断，需要用户重试")
+            self.update_state(
+                AgentState.FAILED,
+                f"处理在 {current.value} 状态被中断，请重试",
+                {"error_source": "interrupted"}
+            )
+        
+        return self.current_state
 
     def _restore_documents(self):
         """恢复文档数据"""
-        from backend.apps.projects.models import StructuringAgentDocument
+        from apps.projects.models import StructuringAgentDocument
         from django.core.cache import cache
         
         # 文档类型到属性名的映射
@@ -250,7 +328,10 @@ class DocumentStructureAgent:
                 notification_type=STATE_CONFIG[state].notification_type,
                 data=data or {},
                 requires_input=requires_input,
-                timestamp=datetime.now().isoformat()
+                timestamp=datetime.now().isoformat(),
+                status="success",
+                step=getattr(self, 'current_step', None),
+                next_step=getattr(self, 'next_step', None)
             )
             
             # 转换为字典以便JSON序列化
@@ -259,7 +340,7 @@ class DocumentStructureAgent:
                 **agent_message.__dict__
             }
             
-            # 推送消息到WebSocket
+            # 推送消息到WebSocket， 这时广播模式，发送给所有连接到同一项目的客户端 
             try:
                 async_to_sync(self.channel_layer.group_send)(
                     self.group_name,
@@ -283,7 +364,8 @@ class DocumentStructureAgent:
                 'notification_type': "error",
                 'data': {},
                 'requires_input': False,
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now().isoformat(),
+                'status': "error"
             }
             
             try:
@@ -412,29 +494,25 @@ class DocumentStructureAgent:
         try:
             # 提取文档
             if step == ProcessStep.EXTRACT:
-                return self._process_extract(user_input, trace_id)
+                self._process_extract(user_input, trace_id)
 
             # 分析一级标题  
             elif step == ProcessStep.ANALYZE_OUTLINE_H1:
-                return self._process_analyze_l1_headings(trace_id)
+                self._process_analyze_l1_headings(trace_id)
 
             # 分析二级/三级标题
             elif step == ProcessStep.ANALYZE_OUTLINE_H2H3:
-                return self._process_analyze_l2_l3_headings(trace_id)
+                self._process_analyze_l2_l3_headings(trace_id)
 
             # 添加引言标题
             elif step == ProcessStep.ADD_INTRODUCTION:
-                return self._process_add_intro_headings(trace_id)
+                self._process_add_intro_headings(trace_id)
                 
             # 完成编辑
             elif step == ProcessStep.COMPLETE:
-                return self._process_complete(trace_id, user_input)
+                self._process_complete(trace_id, user_input)
                 
-            else:
-                error_msg = f"无效的处理步骤: {step}，当前状态: {self.current_state.value}"
-                logger.error(f"[{trace_id}] {error_msg}")
-                self.update_state(AgentState.FAILED, error_msg)
-                return {"status": "error", "message": error_msg, "trace_id": trace_id}
+            return {"status": "success", "next_step": self.next_step}
                 
         except DocumentProcessingError as e:
             error_msg = f"文档处理失败: {str(e)}"
@@ -486,13 +564,8 @@ class DocumentStructureAgent:
             
             # 返回成功结果，而不是自动进入下一步
             logger.info(f"[{trace_id}] 文档提取成功，文档大小: {len(json.dumps(self.document))}")
-            return {
-                "status": "success", 
-                "step": "extract",
-                "message": "文档提取完成，准备分析大纲...",
-                "next_step": ProcessStep.ANALYZE_OUTLINE_H1.value,  # 告诉前端下一步是什么
-                "trace_id": trace_id
-            }
+            
+            self.next_step = ProcessStep.ANALYZE_OUTLINE_H1
             
         except Exception as e:
             logger.error(f"[{trace_id}] 文档提取异常: {str(e)}\n{traceback.format_exc()}")
@@ -520,13 +593,8 @@ class DocumentStructureAgent:
             logger.info(f"[{trace_id}] 大纲分析成功")
 
             # 返回成功结果，而不是自动进入下一步
-            return {
-                "status": "success", 
-                "step": "analyze_outline_h1",
-                "message": "H1大纲分析完成...",
-                "next_step": ProcessStep.ANALYZE_OUTLINE_H2H3.value,
-                "trace_id": trace_id
-            }
+            
+            self.next_step = ProcessStep.ANALYZE_OUTLINE_H2H3
             
         except Exception as e:
             logger.error(f"[{trace_id}] 大纲分析异常: {str(e)}\n{traceback.format_exc()}")
@@ -557,13 +625,7 @@ class DocumentStructureAgent:
             # 自动进入添加引言标题步骤，不等待用户确认
             # return self.process_step(ProcessStep.ADD_INTRODUCTION)
 
-            return {
-                "status": "success", 
-                "step": "analyze_outline_h2h3", 
-                "message": "H2/H3大纲分析完成...",
-                "next_step": ProcessStep.ADD_INTRODUCTION.value,
-                "trace_id": trace_id
-            }
+            self.next_step = ProcessStep.ADD_INTRODUCTION
             
         except Exception as e:
             logger.error(f"[{trace_id}] 大纲分析异常: {str(e)}\n{traceback.format_exc()}")
@@ -588,17 +650,18 @@ class DocumentStructureAgent:
                 "引言标题分析完成, 完整大纲结果请在编辑器中检查和调整...",
                 {"document": self.Intro_document}
             )
+
+            # 自动进入等待编辑状态
+            self.update_state(
+                AgentState.AWAITING_EDITING,
+                "请在编辑器中检查和调整大纲..."
+    )
             
             logger.info(f"[{trace_id}] 大纲分析成功")
 
             # 返回成功结果，而不是自动进入下一步
-            return {
-                "status": "success", 
-                "step": "add_introduction", 
-                "message": "引言标题分析完成, 完整大纲结果请在编辑器中检查和调整...",
-                "next_step": ProcessStep.COMPLETE.value,
-                "trace_id": trace_id
-            }
+            self.next_step = ProcessStep.COMPLETE
+            
             
         except Exception as e:
             logger.error(f"[{trace_id}] 大纲分析异常: {str(e)}\n{traceback.format_exc()}")

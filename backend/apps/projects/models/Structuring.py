@@ -34,7 +34,7 @@ class StructuringAgentDocument(models.Model):
         db_table = 'structuring_agent_document'
         verbose_name = '文档结构化内容'
         verbose_name_plural = '文档结构化内容'
-        unique_together = {('project_id', 'document_type')}
+        unique_together = ('project_id', 'document_type')
         indexes = [
             models.Index(fields=['project_id', 'document_type']),
         ]

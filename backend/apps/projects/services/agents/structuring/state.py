@@ -308,6 +308,9 @@ class AgentMessage:
     data: Dict[str, Any]  # 附加数据
     requires_input: bool  # 是否需要用户输入
     timestamp: str  # ISO格式的时间戳
+    status: str = "success"  # 处理状态
+    step: Optional[str] = None  # 当前步骤
+    next_step: Optional[str] = None  # 下一步
 
 @dataclass
 class DocumentData:

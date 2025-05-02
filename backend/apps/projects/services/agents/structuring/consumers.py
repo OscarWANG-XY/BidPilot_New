@@ -39,11 +39,12 @@ from asgiref.sync import sync_to_async
 
 from .structuring_agent import DocumentStructureAgent
 from .state import (
-    AgentState, 
+    AgentState, STATE_CONFIG,
     InitialStateMessage, ErrorMessage,
     UserActionRequest,
     UserAction,
-    ProcessStep
+    ProcessStep,
+    StateError
 )
 
 # 设置日志记录器
@@ -80,10 +81,16 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
             await self._send_initial_state()
             print("初始状态已发送")
             print("=" * 50)
+        except StateError as e:
+            # 状态相关错误，接受连接但发送错误信息
+            await self.accept()
+            await self.send(text_data=json.dumps({
+                'status': 'error',
+                'message': str(e)
+            }, ensure_ascii=False))
         except Exception as e:
             print(f"连接错误: {str(e)}")
-            import traceback
-            print(traceback.format_exc())
+            logger.error(f"连接错误: {str(e)}\n{traceback.format_exc()}")
             # 在异常情况下尝试接受连接但发送错误信息
             try:
                 await self.accept()
@@ -92,6 +99,7 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
                     'message': f'连接初始化失败: {str(e)}'
                 }, ensure_ascii=False))
             except:
+                # 如果连接已经关闭或发送失败，忽略错误
                 pass
 
 
@@ -125,31 +133,35 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
     def _get_current_state(self) -> Dict[str, Any]:
         """
         获取当前项目状态（同步方法）
+        
+        Returns:
+            Dict containing current state information
+            
+        Raises:
+            StateError: 当状态获取失败时
         """
         try:
             # 初始化Agent实例
             agent = DocumentStructureAgent(self.project_id, lazy_init=True)
             current_state = agent.current_state
             
-            # 准备返回数据
+            # 准备返回数据 - 从 STATE_CONFIG 获取 requires_input
             result = {
                 'state': current_state.value,
-                'requires_input': agent._state_requires_input(current_state.value),
+                'requires_input': STATE_CONFIG[current_state].requires_input,
                 'data': {}
             }
             
-        # 注意：OUTLINE_ANALYZED 是瞬态状态，会自动转换到 INJECTING_OUTLINE
-        # 用户只需要在 AWAITING_EDITING 状态下看到完整的 document 数据
-        
+            # 如果是等待编辑状态，需要返回文档数据
+            if current_state == AgentState.AWAITING_EDITING and agent.Intro_document:
+                result['data'] = {"document": agent.Intro_document}
+            
             return result
+            
         except Exception as e:
             logger.error(f"获取状态失败: {str(e)}")
-            # 返回默认状态
-            return {
-                'state': AgentState.AWAITING_UPLOAD.value,
-                'requires_input': True,
-                'data': {}
-            }
+            # 让错误向上传播，由调用者决定如何处理
+            raise StateError(f"无法获取当前状态: {str(e)}")
 
 
     # 断开连接时触发
@@ -188,10 +200,10 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
         """
         try:
             # 解析消息 格式要求：
-            # {
-            # "action": "action_value",
-            # "payload": { // Optional payload data depending on the action}
-            # }
+        # {
+        #     "action": "action_value",
+        #     "payload": { // Optional payload data depending on the action}
+        # }
             data = json.loads(text_data)
             
             # 创建标准格式的用户请求
@@ -230,7 +242,14 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
             )
             await self.send(text_data=json.dumps(error_message.__dict__, ensure_ascii=False))
 
-        # 处理 其他异常， 将异常信息返回给前端 
+        except StateError as e:
+            # 状态相关错误
+            error_message = ErrorMessage(
+                status='error',
+                message=str(e)
+            )
+            await self.send(text_data=json.dumps(error_message.__dict__, ensure_ascii=False))
+
         except Exception as e:
             logger.error(f"处理消息异常: {str(e)}\n{traceback.format_exc()}")
             error_message = ErrorMessage(
@@ -247,22 +266,13 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
         try:
             logger.info(f"handle_user_action 开始处理用户请求， action: {action}, payload: {payload}")
 
-            # 调用agent响应用户操作并返回结果， 在_process_user_action中实现调用，包括：agent初始化 和 用户操作处理 
+            # 1. 处理用户操作
             result = await sync_to_async(self._process_user_action)(action, payload)
             
-            # 确保结果是字典格式
-            if not isinstance(result, dict):
-                logger.error(f"Agent返回了非字典格式的结果: {result}")
-                await self.send(text_data=json.dumps({
-                    'status': 'error',
-                    'message': f'Agent返回了无效的结果格式: {type(result).__name__}'
-                }, ensure_ascii=False))
-                return
-            
-            # 发送结果给客户端
+            # 2. 发送结果给前端
             await self.send(text_data=json.dumps(result, ensure_ascii=False))
             
-            # 如果有下一步，自动处理
+            # 3. 如果有下一步，自动处理
             if result.get('status') == 'success' and result.get('next_step'):
                 # 给前端一点时间处理当前消息
                 import asyncio
@@ -270,14 +280,12 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
                 
                 # 自动处理下一步
                 next_step = result.get('next_step')
-                logger.info(f"自动处理下一步: {next_step}")
                 await self._process_next_step(next_step)
                 
             logger.info(f"handle_user_action 操作 {action} 已处理完成，状态: {result.get('status', 'unknown')}")
 
         except Exception as e:
             logger.error(f"处理用户操作失败: {str(e)}\n{traceback.format_exc()}")
-            # 发送错误响应
             await self.send(text_data=json.dumps({
                 'status': 'error',
                 'message': f'操作处理失败: {str(e)}'
@@ -305,20 +313,15 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
             # 使用sync_to_async包装同步方法
             result = await sync_to_async(self._process_system_step)(step_name)
             
-            # 将结果发送回客户端
+            # 2. 发送结果给前端 （这是点对点模式，只响应发起请求的特定客户端）
             if isinstance(result, dict):
                 await self.send(text_data=json.dumps(result, ensure_ascii=False))
                 
-                # 如果有下一步，继续处理
+                # 3. 如果有下一步，继续处理
                 if result.get('status') == 'success' and result.get('next_step'):
-                    # 给前端一点时间处理当前消息
                     import asyncio
                     await asyncio.sleep(0.5)
-                    
-                    # 递归处理下一步
-                    next_step = result.get('next_step')
-                    logger.info(f"继续处理下一步: {next_step}")
-                    await self._process_next_step(next_step)
+                    await self._process_next_step(result.get('next_step'))
             else:
                 await self.send(text_data=json.dumps({
                     'status': 'success',

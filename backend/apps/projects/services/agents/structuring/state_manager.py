@@ -4,7 +4,7 @@ from typing import Optional, Dict, Any
 from datetime import datetime
 from django.core.cache import cache
 
-from .state import AgentState, STATE_CONFIG
+from .state import AgentState, STATE_CONFIG, StateError
 
 # 设置日志
 logger = logging.getLogger(__name__)
@@ -83,7 +83,7 @@ class StateManager:
     
     def _persist_state(self, state: AgentState):
         """持久化状态到数据库和缓存"""
-        from backend.apps.projects.models import StructuringAgentState
+        from apps.projects.models import StructuringAgentState
         
         # 获取 DocumentStructureAgent 实例以访问文档数据
         agent = self._agent_reference
@@ -104,16 +104,18 @@ class StateManager:
             # 保存文档数据
             self._persist_documents(agent)
             
-            # 保存状态到缓存 (15分钟过期)， 这里缓存只存了状态，documents在_persist_documents中也有缓存处理。 
+            # 保存状态到缓存 (15分钟过期)
             cache.set(self._cache_key(), state_data, timeout=900)
             
             logger.info(f"项目 {self.project_id} 状态已更新为 {state.value} 并持久化")
         except Exception as e:
-            logger.error(f"持久化状态失败: {str(e)}")
+            error_msg = f"持久化状态失败: {str(e)}"
+            logger.error(error_msg)
+            raise StateError(error_msg)
     
     def _persist_documents(self, agent):
         """单独持久化文档数据"""
-        from backend.apps.projects.models import StructuringAgentDocument
+        from apps.projects.models import StructuringAgentDocument
         
         # 文档字段映射 - 属性名映射到文档类型
         document_mapping = {
@@ -124,6 +126,7 @@ class StateManager:
             'final_document': 'final'
         }
         
+        errors = []
         # 遍历所有文档，保存到数据库
         for attr_name, doc_type in document_mapping.items():
             document = getattr(agent, attr_name, None)  #python内置函数，从agent对象中取名为attr_name的属性值，不存在时返回None. 
@@ -141,7 +144,12 @@ class StateManager:
                     cache_key = f"structuring_agent:doc:{self.project_id}:{doc_type}"
                     cache.set(cache_key, document, timeout=900)
                 except Exception as e:
-                    logger.error(f"保存文档 {doc_type} 失败: {str(e)}")
+                    error_msg = f"保存文档 {doc_type} 失败: {str(e)}"
+                    logger.error(error_msg)
+                    errors.append(error_msg)
+        
+        if errors:
+            raise StateError(f"持久化文档数据失败: {'; '.join(errors)}")
     
     def transition_to(self, new_state: AgentState, force: bool = False) -> bool:
         """
