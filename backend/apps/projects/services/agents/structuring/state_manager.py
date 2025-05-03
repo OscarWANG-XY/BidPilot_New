@@ -3,6 +3,7 @@ import logging
 from typing import Optional, Dict, Any
 from datetime import datetime
 from django.core.cache import cache
+from asgiref.sync import sync_to_async
 
 from .state import AgentState, STATE_CONFIG, StateError
 
@@ -32,7 +33,7 @@ class StateManager:
         return self._current_state   #_下划线代表私有变量
     
     
-    def set_state(self, new_state: AgentState):
+    async def set_state(self, new_state: AgentState):
         """设置新状态并记录历史"""
         if new_state == self._current_state:
             logger.debug(f"状态保持不变: {new_state.value}")
@@ -49,7 +50,7 @@ class StateManager:
         
         # 持久化状态到数据库 （持久化处理， 虽然叫_persist_state, 它实际包括了状态和文档的持久化） 
         if STATE_CONFIG[new_state].persist:  #查看state, 发现所有state的config都被配置了persist = True. 
-            self._persist_state(new_state)
+            await self._persist_state(new_state)
             
         self._current_state = new_state
     
@@ -97,7 +98,7 @@ class StateManager:
         """获取缓存键"""
         return f"structuring_agent:state:{self.project_id}"
     
-    def _persist_state(self, state: AgentState):
+    async def _persist_state(self, state: AgentState):
         """持久化状态到数据库和缓存"""
         from apps.projects.models import StructuringAgentState
         
@@ -112,16 +113,16 @@ class StateManager:
         
         try:
             # 更新或创建状态记录
-            StructuringAgentState.objects.update_or_create(
+            await sync_to_async(StructuringAgentState.objects.update_or_create)(
                 project_id=self.project_id,
                 defaults=state_data
             )
             
             # 保存文档数据
-            self._persist_documents(agent)
+            await self._persist_documents(agent)
             
             # 保存状态到缓存 (15分钟过期)
-            cache.set(self._cache_key(), state_data, timeout=900)
+            await sync_to_async(cache.set)(self._cache_key(), state_data, timeout=900)
             
             logger.info(f"项目 {self.project_id} 状态已更新为 {state.value} 并持久化")
         except Exception as e:
@@ -129,7 +130,7 @@ class StateManager:
             logger.error(error_msg)
             raise StateError(error_msg)
     
-    def _persist_documents(self, agent):
+    async def _persist_documents(self, agent):
         """单独持久化文档数据"""
         from apps.projects.models import StructuringAgentDocument
         
@@ -149,7 +150,7 @@ class StateManager:
             if document is not None:
                 try:
                     # 更新或创建文档记录
-                    StructuringAgentDocument.objects.update_or_create(
+                    await sync_to_async(StructuringAgentDocument.objects.update_or_create)(
                         project_id=self.project_id,
                         document_type=doc_type,
                         defaults={'content': document}
@@ -158,7 +159,7 @@ class StateManager:
                     
                     # 也缓存文档
                     cache_key = f"structuring_agent:doc:{self.project_id}:{doc_type}"
-                    cache.set(cache_key, document, timeout=900)
+                    await sync_to_async(cache.set)(cache_key, document, timeout=900)
                 except Exception as e:
                     error_msg = f"保存文档 {doc_type} 失败: {str(e)}"
                     logger.error(error_msg)
@@ -167,7 +168,7 @@ class StateManager:
         if errors:
             raise StateError(f"持久化文档数据失败: {'; '.join(errors)}")
     
-    def transition_to(self, new_state: AgentState, force: bool = False) -> bool:
+    async def transition_to(self, new_state: AgentState, force: bool = False) -> bool:
         """
         尝试将状态转换到新状态
         
@@ -186,14 +187,14 @@ class StateManager:
         # 检查是否可以转换
         if force or self.can_transition_to(new_state):
             # 更新状态, 记录历史, 并进行持久化处理
-            self.set_state(new_state)  
+            await self.set_state(new_state)  
             return True
         
         raise InvalidStateTransitionError(
             f"无法从 {self.get_state().value} 转换到 {new_state.value}"
         )
     
-    def rollback(self) -> Optional[AgentState]:
+    async def rollback(self) -> Optional[AgentState]:
         """回退到上一个状态"""
         current_history = self.get_state_history()
 

@@ -278,7 +278,7 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
         """处理用户操作"""
         try:
             # 1. 处理用户操作
-            result = await sync_to_async(self._process_user_action)(action, payload)
+            result = await self._process_user_action(action, payload)
             
             # 2. 发送结果给前端
             await self.send(text_data=json.dumps(result, ensure_ascii=False))
@@ -298,17 +298,17 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=json.dumps(error_message.__dict__, ensure_ascii=False))
 
     
-    def _process_user_action(self, action, payload):
+    async def _process_user_action(self, action, payload):
         """
-        同步处理用户操作
+        异步处理用户操作
         """
         logger.info(f"_process_user_action: 完成DocumentStructureAgent的实例化， 项目为{self.project_id}")
 
         # 获取Agent实例
-        agent = DocumentStructureAgent(self.project_id)
+        agent = await DocumentStructureAgent.create(self.project_id)
         
         # 调用Agent的处理方法
-        return agent.handle_user_input(action, payload)
+        return await agent.handle_user_input(action, payload)
     
     # 处理下一个系统步骤 - 这是内部方法，不是用户操作，作为用户操作的辅助 
     async def _process_next_step(self, step_name):
@@ -316,8 +316,8 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
         try:
             logger.info(f"process_next_step: 开始处理步骤 {step_name}")
             
-            # 使用sync_to_async包装同步方法
-            result = await sync_to_async(self._process_system_step)(step_name)
+            # 直接调用异步方法
+            result = await self._process_system_step(step_name)
             
             # 2. 发送结果给前端 （这是点对点模式，只响应发起请求的特定客户端）
             if isinstance(result, dict):
@@ -342,19 +342,19 @@ class StructuringAgentConsumer(AsyncWebsocketConsumer):
             }, ensure_ascii=False))
 
 
-    def _process_system_step(self, step_name):
-        """同步处理系统步骤"""
+    async def _process_system_step(self, step_name):
+        """异步处理系统步骤"""
         logger.info(f"_process_system_step: 处理步骤 {step_name}, 项目 {self.project_id}")
         
         # 获取Agent实例
         if not hasattr(self, '_agent'): # 检查是否已经创建了Agent实例 
-            self._agent = DocumentStructureAgent(self.project_id)  # 如果还没有创建，则创建一个
+            self._agent = await DocumentStructureAgent.create(self.project_id)  # 如果还没有创建，则创建一个
         
         try:
             # 尝试将步骤名称转换为枚举
             step = ProcessStep(step_name)
             # 调用Agent的处理步骤方法
-            return self._agent.process_step(step) # 如果已经创建，直接使用。 
+            return await self._agent.process_step(step) # 如果已经创建，直接使用。 
         except ValueError:
             return {
                 "status": "error",

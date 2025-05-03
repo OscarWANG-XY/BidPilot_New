@@ -4,9 +4,10 @@ from dataclasses import dataclass
 import json
 import traceback
 from datetime import datetime
+import asyncio
 
 from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
+from asgiref.sync import async_to_sync, sync_to_async
 from django.conf import settings
 from django.core.cache import cache
 
@@ -68,13 +69,21 @@ class DocumentStructureAgent:
         
         # 如果不是延迟初始化，则立即创建组件
         if not lazy_init:
-            self._init_components()
+            # 注意：这里不再直接调用 _init_components，因为它是同步的
+            pass
             
-        # 尝试从数据库恢复状态
-        self._try_restore_state()
+        # 注意：这里不再直接调用 _try_restore_state，因为它需要异步执行
+        # 状态恢复将在第一次使用时进行
 
-    def _init_components(self):
-        """初始化组件，仅在需要时调用"""
+    @classmethod
+    async def create(cls, project_id: str, lazy_init: bool = False):
+        """异步创建代理实例并恢复状态"""
+        instance = cls(project_id, lazy_init)
+        await instance._try_restore_state()
+        return instance
+
+    async def _init_components(self):
+        """异步初始化组件，仅在需要时调用"""
         if self._docx_extractor is None:  # 避免重复初始化
             self._docx_extractor = DocxExtractor(self.project_id)
 
@@ -86,43 +95,43 @@ class DocumentStructureAgent:
 
         if self._add_intro_headings is None:
             self._add_intro_headings = AddIntroHeadings()
-    
 
-    # --------- 以下提供了另一种方式的懒加载 --------- 
-    # 与__init__()方法的lazy_init条件初始化 形成 双重保险。 
-    # 下面这种方式，让每一个组件只在真正需要使用时才初始化， 比如__init__()的方式更灵活。
     @property
-    def docx_extractor(self):
+    async def docx_extractor(self):
         """获取文档提取器，确保已初始化"""
-        self._init_components()
+        if self._docx_extractor is None:
+            await self._init_components()
         return self._docx_extractor
     
     @property
-    def outline_l1_analyzer(self):
+    async def outline_l1_analyzer(self):
         """获取一级标题分析器，确保已初始化"""
-        self._init_components()
+        if self._outline_l1_analyzer is None:
+            await self._init_components()
         return self._outline_l1_analyzer
     
-    @property   
-    def outline_l2_l3_analyzer(self):
+    @property
+    async def outline_l2_l3_analyzer(self):
         """获取二级/三级标题分析器，确保已初始化"""
-        self._init_components()
+        if self._outline_l2_l3_analyzer is None:
+            await self._init_components()
         return self._outline_l2_l3_analyzer
     
     @property
-    def add_intro_headings(self):
+    async def add_intro_headings(self):
         """获取引言标题分析器，确保已初始化"""
-        self._init_components()
+        if self._add_intro_headings is None:
+            await self._init_components()
         return self._add_intro_headings
-    
+
     # --------- 状态管理器 ---------
     @property
     def current_state(self) -> AgentState:
         """获取当前状态"""
         return self.state_manager.get_state()
     
-    def _try_restore_state(self):
-        """尝试从缓存或数据库恢复状态"""
+    async def _try_restore_state(self):
+        """异步尝试从缓存或数据库恢复状态"""
         from apps.projects.models import StructuringAgentState
         from django.core.cache import cache
         
@@ -131,20 +140,20 @@ class DocumentStructureAgent:
         
         try:
             # 首先尝试从缓存恢复状态
-            cached_state = cache.get(state_cache_key)
+            cached_state = await sync_to_async(cache.get)(state_cache_key)
             
             if cached_state:
                 # 从缓存恢复基本状态
-                self.state_manager.set_state(AgentState(cached_state['state']))
+                await self.state_manager.set_state(AgentState(cached_state['state']))
                 self.state_manager.set_state_history(cached_state['state_history'])
                 logger.info(f"已从缓存恢复项目 {self.project_id} 的状态")
             else:
                 # 从数据库恢复状态
                 try:
-                    state_record = StructuringAgentState.objects.get(project_id=self.project_id)
+                    state_record = await sync_to_async(StructuringAgentState.objects.get)(project_id=self.project_id)
                     
                     # 恢复状态
-                    self.state_manager.set_state(AgentState(state_record.state))
+                    await self.state_manager.set_state(AgentState(state_record.state))
                     self.state_manager.set_state_history(state_record.state_history)
                     
                     # 更新缓存
@@ -152,7 +161,7 @@ class DocumentStructureAgent:
                         'state': state_record.state,
                         'state_history': self.state_manager.get_state_history(),
                     }
-                    cache.set(state_cache_key, cache_data, timeout=900)
+                    await sync_to_async(cache.set)(state_cache_key, cache_data, timeout=900)
                     
                     logger.info(f"已从数据库恢复项目 {self.project_id} 的状态并更新缓存")
                 except StructuringAgentState.DoesNotExist:
@@ -165,10 +174,10 @@ class DocumentStructureAgent:
                     raise StateError(error_msg)
             
             # 恢复文档数据
-            self._restore_documents()
+            await self._restore_documents()
             
             # 处理中断状态的恢复
-            self._handle_interrupted_state()
+            await self._handle_interrupted_state()
             
         except Exception as e:
             if not isinstance(e, StateError):
@@ -177,76 +186,8 @@ class DocumentStructureAgent:
                 raise StateError(error_msg)
             raise
 
-    def _handle_interrupted_state(self):
-        """
-        处理中断状态的恢复，确保状态机处于有效状态
-        
-        根据状态流转图，处理所有可能的中断状态：
-        1. 检查当前状态是否是中间状态（应该自动流转的状态）
-        2. 如果是中间状态，且数据完整，则自动流转到下一个状态
-        3. 如果数据不完整，保持当前状态不变
-        """
-        current = self.current_state
-        logger.info(f"检查中断状态: 当前状态为 {current.value}")
-        
-        # 处理文档提取后的状态
-        if current == AgentState.DOCUMENT_EXTRACTED:
-            if self.document:  # 确保有文档数据
-                self.update_state(
-                    AgentState.ANALYZING_OUTLINE_H1,
-                    "正在分析一级标题...",
-                    {}
-                )
-                logger.info(f"项目 {self.project_id} 从中断状态 DOCUMENT_EXTRACTED 恢复到 ANALYZING_OUTLINE_H1")
-        
-        # 处理一级标题分析后的状态
-        elif current == AgentState.OUTLINE_H1_ANALYZED:
-            if self.H1_document:  # 确保有H1文档数据
-                self.update_state(
-                    AgentState.ANALYZING_OUTLINE_H2H3,
-                    "正在分析二级/三级标题...",
-                    {}
-                )
-                logger.info(f"项目 {self.project_id} 从中断状态 OUTLINE_H1_ANALYZED 恢复到 ANALYZING_OUTLINE_H2H3")
-        
-        # 处理二级/三级标题分析后的状态
-        elif current == AgentState.OUTLINE_H2H3_ANALYZED:
-            if self.H2H3_document:  # 确保有H2H3文档数据
-                self.update_state(
-                    AgentState.ADDING_INTRODUCTION,
-                    "正在添加引言...",
-                    {}
-                )
-                logger.info(f"项目 {self.project_id} 从中断状态 OUTLINE_H2H3_ANALYZED 恢复到 ADDING_INTRODUCTION")
-        
-        # 处理引言添加后的状态
-        elif current == AgentState.INTRODUCTION_ADDED:
-            if self.Intro_document:  # 确保有引言文档数据
-                self.update_state(
-                    AgentState.AWAITING_EDITING,
-                    "请在编辑器中检查和调整大纲...",
-                    {"document": self.Intro_document}
-                )
-                logger.info(f"项目 {self.project_id} 从中断状态 INTRODUCTION_ADDED 恢复到 AWAITING_EDITING")
-        
-        # 处理正在进行中的状态（这些状态应该重试）
-        elif current in [
-            AgentState.EXTRACTING_DOCUMENT,
-            AgentState.ANALYZING_OUTLINE_H1,
-            AgentState.ANALYZING_OUTLINE_H2H3,
-            AgentState.ADDING_INTRODUCTION
-        ]:
-            logger.warning(f"项目 {self.project_id} 在进行中状态 {current.value} 被中断，需要用户重试")
-            self.update_state(
-                AgentState.FAILED,
-                f"处理在 {current.value} 状态被中断，请重试",
-                {"error_source": "interrupted"}
-            )
-        
-        return self.current_state
-
-    def _restore_documents(self):
-        """恢复文档数据"""
+    async def _restore_documents(self):
+        """异步恢复文档数据"""
         from apps.projects.models import StructuringAgentDocument
         from django.core.cache import cache
         
@@ -263,7 +204,7 @@ class DocumentStructureAgent:
         for doc_type, attr_name in doc_type_mapping.items():
             # 先尝试从缓存获取
             cache_key = f"structuring_agent:doc:{self.project_id}:{doc_type}"
-            cached_doc = cache.get(cache_key)
+            cached_doc = await sync_to_async(cache.get)(cache_key)
             
             if cached_doc:
                 # 从缓存恢复文档
@@ -273,7 +214,7 @@ class DocumentStructureAgent:
             
             # 如果缓存中没有，从数据库获取
             try:
-                doc_record = StructuringAgentDocument.objects.get(
+                doc_record = await sync_to_async(StructuringAgentDocument.objects.get)(
                     project_id=self.project_id,
                     document_type=doc_type
                 )
@@ -282,7 +223,7 @@ class DocumentStructureAgent:
                 setattr(self, attr_name, doc_record.content)
                 
                 # 更新缓存
-                cache.set(cache_key, doc_record.content, timeout=900)
+                await sync_to_async(cache.set)(cache_key, doc_record.content, timeout=900)
                 
                 logger.debug(f"已从数据库恢复项目 {self.project_id} 的 {doc_type} 文档并更新缓存")
             except StructuringAgentDocument.DoesNotExist:
@@ -291,12 +232,71 @@ class DocumentStructureAgent:
             except Exception as e:
                 logger.error(f"恢复文档 {doc_type} 时出错: {str(e)}")
 
-
+    async def _handle_interrupted_state(self):
+        """异步处理中断状态的恢复"""
+        current = self.current_state
+        logger.info(f"检查中断状态: 当前状态为 {current.value}")
+        
+        # 处理文档提取后的状态
+        if current == AgentState.DOCUMENT_EXTRACTED:
+            if self.document:  # 确保有文档数据
+                await self.update_state(
+                    AgentState.ANALYZING_OUTLINE_H1,
+                    "正在分析一级标题...",
+                    {}
+                )
+                logger.info(f"项目 {self.project_id} 从中断状态 DOCUMENT_EXTRACTED 恢复到 ANALYZING_OUTLINE_H1")
+        
+        # 处理一级标题分析后的状态
+        elif current == AgentState.OUTLINE_H1_ANALYZED:
+            if self.H1_document:  # 确保有H1文档数据
+                await self.update_state(
+                    AgentState.ANALYZING_OUTLINE_H2H3,
+                    "正在分析二级/三级标题...",
+                    {}
+                )
+                logger.info(f"项目 {self.project_id} 从中断状态 OUTLINE_H1_ANALYZED 恢复到 ANALYZING_OUTLINE_H2H3")
+        
+        # 处理二级/三级标题分析后的状态
+        elif current == AgentState.OUTLINE_H2H3_ANALYZED:
+            if self.H2H3_document:  # 确保有H2H3文档数据
+                await self.update_state(
+                    AgentState.ADDING_INTRODUCTION,
+                    "正在添加引言...",
+                    {}
+                )
+                logger.info(f"项目 {self.project_id} 从中断状态 OUTLINE_H2H3_ANALYZED 恢复到 ADDING_INTRODUCTION")
+        
+        # 处理引言添加后的状态
+        elif current == AgentState.INTRODUCTION_ADDED:
+            if self.Intro_document:  # 确保有引言文档数据
+                await self.update_state(
+                    AgentState.AWAITING_EDITING,
+                    "请在编辑器中检查和调整大纲...",
+                    {"document": self.Intro_document}
+                )
+                logger.info(f"项目 {self.project_id} 从中断状态 INTRODUCTION_ADDED 恢复到 AWAITING_EDITING")
+        
+        # 处理正在进行中的状态（这些状态应该重试）
+        elif current in [
+            AgentState.EXTRACTING_DOCUMENT,
+            AgentState.ANALYZING_OUTLINE_H1,
+            AgentState.ANALYZING_OUTLINE_H2H3,
+            AgentState.ADDING_INTRODUCTION
+        ]:
+            logger.warning(f"项目 {self.project_id} 在进行中状态 {current.value} 被中断，需要用户重试")
+            await self.update_state(
+                AgentState.FAILED,
+                f"处理在 {current.value} 状态被中断，请重试",
+                {"error_source": "interrupted"}
+            )
+        
+        return self.current_state
 
     # --------- 状态更新函数，在 ---------
     # 在每一个_process_step 的开始和结束时, 错误时，_handle_retry, _handle_rollback里都被调用。 
     # 更新状态时，有两个动作： 1）更新状态和持久化  2）推送消息到前端 
-    def update_state(self, state: AgentState, message: str = "", data: Dict[str, Any] = None):
+    async def update_state(self, state: AgentState, message: str = "", data: Dict[str, Any] = None):
         """
         更新任务状态并推送消息到前端
         
@@ -306,9 +306,8 @@ class DocumentStructureAgent:
             data: 要发送的额外数据
         """
         try:
-            # 尝试状态转换 （注意，在transition_to里，自带了数据持久化的处理， 
-            # 持久化时，state是通过传参获得，而其他数据通过self.state_manager._agent_reference反向获得， 都在state_manager.py中执行）
-            self.state_manager.transition_to(state)
+            # 尝试状态转换
+            await self.state_manager.transition_to(state)
             
             # 如果没有提供消息，使用状态的默认消息
             if not message:
@@ -340,12 +339,15 @@ class DocumentStructureAgent:
                 **agent_message.__dict__
             }
             
-            # 推送消息到WebSocket， 这时广播模式，发送给所有连接到同一项目的客户端 
+            # 推送消息到WebSocket，使用 async_to_sync 确保消息立即发送
             try:
-                async_to_sync(self.channel_layer.group_send)(
+                # 使用 async_to_sync 确保消息立即发送
+                await self.channel_layer.group_send(
                     self.group_name,
                     payload
                 )
+                # 添加一个更长的延迟，确保消息被发送
+                await asyncio.sleep(0.5)
             except Exception as e:
                 logger.error(f"WebSocket消息发送失败: {str(e)}")
             
@@ -369,10 +371,12 @@ class DocumentStructureAgent:
             }
             
             try:
-                async_to_sync(self.channel_layer.group_send)(
+                await self.channel_layer.group_send(
                     self.group_name,
                     error_payload
                 )
+                # 添加一个更长的延迟，确保消息被发送
+                await asyncio.sleep(0.5)
             except Exception as e:
                 logger.error(f"错误通知发送失败: {str(e)}")
                 
@@ -381,7 +385,7 @@ class DocumentStructureAgent:
 
     # --------- 处理用户输入 ---------
     # handle_user_input进行逻辑分流，根据action的类型，判定是调用process_step, 还是_handle_retry, _handle_rollback等
-    def handle_user_input(self, action: str, data: dict = None) -> dict:
+    async def handle_user_input(self, action: str, data: dict = None) -> dict:
         """
         处理来自用户的输入，推进状态机
         
@@ -406,32 +410,32 @@ class DocumentStructureAgent:
             except ValueError:
                 error_msg = f"未知的用户操作: {action}"
                 logger.warning(f"[{trace_id}] {error_msg}")
-                return AgentResponse(
-                    status="error", 
-                    message=error_msg, 
-                    trace_id=trace_id
-                ).__dict__
+                return {
+                    "status": "error", 
+                    "message": error_msg, 
+                    "trace_id": trace_id
+                }
             
             # 验证当前状态是否允许此操作
             action_config = ACTION_CONFIG[action_enum]
             if self.current_state not in action_config.valid_states:
                 error_msg = f"当前状态 {self.current_state.value} 不允许执行操作 {action}"
                 logger.warning(f"[{trace_id}] {error_msg}")
-                return AgentResponse(
-                    status="error", 
-                    message=error_msg, 
-                    trace_id=trace_id
-                ).__dict__
+                return {
+                    "status": "error", 
+                    "message": error_msg, 
+                    "trace_id": trace_id
+                }
             
             # 验证是否提供了必要的数据
             if action_config.requires_payload and not data:
                 error_msg = f"操作 {action} 需要提供数据"
                 logger.warning(f"[{trace_id}] {error_msg}")
-                return AgentResponse(
-                    status="error", 
-                    message=error_msg, 
-                    trace_id=trace_id
-                ).__dict__
+                return {
+                    "status": "error", 
+                    "message": error_msg, 
+                    "trace_id": trace_id
+                }
             
             logger.info(f"handle_user_input: 完成操作验证")
 
@@ -439,36 +443,39 @@ class DocumentStructureAgent:
             if action_enum in [UserAction.DOCUMENT_UPLOADED, UserAction.COMPLETE_EDITING]:
                 # 将用户操作映射到处理步骤
                 step = ACTION_TO_STEP[action_enum]
-                return self.process_step(step, data)
+                result = await self.process_step(step, data)
+                return result
                 
             elif action_enum == UserAction.RETRY:
-                return self._handle_retry(data, trace_id)
+                result = await self._handle_retry(data, trace_id)
+                return result
                 
             elif action_enum == UserAction.ROLLBACK:
-                return self._handle_rollback(data, trace_id)
+                result = await self._handle_rollback(data, trace_id)
+                return result
                 
             elif action_enum == UserAction.GET_STATUS:
                 # 返回当前状态信息
-                return AgentResponse(
-                    status="success",
-                    state=self.current_state.value,
-                    requires_input=STATE_CONFIG[self.current_state].requires_input,
-                    message=STATE_CONFIG[self.current_state].default_message,
-                    trace_id=trace_id
-                ).__dict__
+                return {
+                    "status": "success",
+                    "state": self.current_state.value,
+                    "requires_input": STATE_CONFIG[self.current_state].requires_input,
+                    "message": STATE_CONFIG[self.current_state].default_message,
+                    "trace_id": trace_id
+                }
                 
         except Exception as e:
             error_msg = f"处理用户操作失败: {str(e)}"
             logger.error(f"[{trace_id}] {error_msg}\n{traceback.format_exc()}")
-            return AgentResponse(
-                status="error", 
-                message=error_msg, 
-                trace_id=trace_id
-            ).__dict__
+            return {
+                "status": "error", 
+                "message": error_msg, 
+                "trace_id": trace_id
+            }
 
 
     # --------- 处理步骤 ---------
-    def process_step(self, step: ProcessStep = None, user_input: dict = None):
+    async def process_step(self, step: ProcessStep = None, user_input: dict = None):
         """
         执行指定的处理步骤，支持交互式处理流程
         
@@ -494,30 +501,30 @@ class DocumentStructureAgent:
         try:
             # 提取文档
             if step == ProcessStep.EXTRACT:
-                self._process_extract(user_input, trace_id)
+                await self._process_extract(user_input, trace_id)
 
             # 分析一级标题  
             elif step == ProcessStep.ANALYZE_OUTLINE_H1:
-                self._process_analyze_l1_headings(trace_id)
+                await self._process_analyze_l1_headings(trace_id)
 
             # 分析二级/三级标题
             elif step == ProcessStep.ANALYZE_OUTLINE_H2H3:
-                self._process_analyze_l2_l3_headings(trace_id)
+                await self._process_analyze_l2_l3_headings(trace_id)
 
             # 添加引言标题
             elif step == ProcessStep.ADD_INTRODUCTION:
-                self._process_add_intro_headings(trace_id)
+                await self._process_add_intro_headings(trace_id)
                 
             # 完成编辑
             elif step == ProcessStep.COMPLETE:
-                return self._process_complete(trace_id, user_input)  # 直接返回 _process_complete 的结果
+                return await self._process_complete(trace_id, user_input)  # 直接返回 _process_complete 的结果
                 
             return {"status": "success", "next_step": self.next_step}
                 
         except DocumentProcessingError as e:
             error_msg = f"文档处理失败: {str(e)}"
             logger.error(f"[{trace_id}] {error_msg}")
-            self.update_state(AgentState.FAILED, error_msg)
+            await self.update_state(AgentState.FAILED, error_msg)
             return {
                 "status": "error", 
                 "message": error_msg, 
@@ -528,7 +535,7 @@ class DocumentStructureAgent:
         except OutlineAnalysisError as e:
             error_msg = f"大纲分析失败: {str(e)}"
             logger.error(f"[{trace_id}] {error_msg}")
-            self.update_state(AgentState.FAILED, error_msg)
+            await self.update_state(AgentState.FAILED, error_msg)
             return {
                 "status": "error", 
                 "message": error_msg, 
@@ -539,7 +546,7 @@ class DocumentStructureAgent:
         except Exception as e:
             error_msg = f"处理失败: {str(e)}"
             logger.error(f"[{trace_id}] {error_msg}\n{traceback.format_exc()}")
-            self.update_state(AgentState.FAILED, error_msg)
+            await self.update_state(AgentState.FAILED, error_msg)
             return {
                 "status": "error", 
                 "message": error_msg, 
@@ -547,20 +554,21 @@ class DocumentStructureAgent:
                 "error_type": "unknown"
             }
     
-    def _process_extract(self, user_input: dict, trace_id: str) -> dict:
+    async def _process_extract(self, user_input: dict, trace_id: str) -> dict:
         """处理文档提取步骤"""
         # 开始
-        self.update_state(AgentState.EXTRACTING_DOCUMENT, "正在提取文档内容...")   
+        await self.update_state(AgentState.EXTRACTING_DOCUMENT, "正在提取文档内容...")   
         
         try:
             # 提取文档内容 - 使用属性访问
-            self.document = self.docx_extractor.extract_content()
+            extractor = await self.docx_extractor
+            self.document = await extractor.extract_content()
             
             if not self.document:
                 raise DocumentProcessingError("文档提取失败，内容为空")
 
             # 更新状态
-            self.update_state(AgentState.DOCUMENT_EXTRACTED, "文档提取完成，准备分析大纲...")
+            await self.update_state(AgentState.DOCUMENT_EXTRACTED, "文档提取完成，准备分析大纲...")
             
             # 返回成功结果，而不是自动进入下一步
             logger.info(f"[{trace_id}] 文档提取成功，文档大小: {len(json.dumps(self.document))}")
@@ -571,25 +579,26 @@ class DocumentStructureAgent:
             logger.error(f"[{trace_id}] 文档提取异常: {str(e)}\n{traceback.format_exc()}")
             raise DocumentProcessingError(f"文档提取失败: {str(e)}")
     
-    def _process_analyze_l1_headings(self, trace_id: str) -> dict:
+    async def _process_analyze_l1_headings(self, trace_id: str) -> dict:
         """处理一级标题分析步骤"""
         if not self.document:
             raise OutlineAnalysisError("没有可用的文档内容")
             
-        self.update_state(AgentState.ANALYZING_OUTLINE_H1, "正在分析文档H1大纲...")
+        await self.update_state(AgentState.ANALYZING_OUTLINE_H1, "正在分析文档H1大纲...")
         
         try:
             # 分析文档大纲 - 使用属性访问
-            self.H1_document = async_to_sync(self.outline_l1_analyzer.analyze)(
+            analyzer = await self.outline_l1_analyzer
+            self.H1_document = await analyzer.analyze(
                 self.document,
                 channel_layer=self.channel_layer,
                 group_name=self.group_name
-                )
+            )
             if not self.H1_document:
                 raise OutlineAnalysisError("H1大纲分析失败，结果为空")
                 
             # 更新状态 - 通知前端分析完成
-            self.update_state(
+            await self.update_state(
                 AgentState.OUTLINE_H1_ANALYZED, 
                 "H1大纲分析完成...",
             )
@@ -597,86 +606,85 @@ class DocumentStructureAgent:
             logger.info(f"[{trace_id}] 大纲分析成功")
 
             # 返回成功结果，而不是自动进入下一步
-            
             self.next_step = ProcessStep.ANALYZE_OUTLINE_H2H3
             
         except Exception as e:
             logger.error(f"[{trace_id}] 大纲分析异常: {str(e)}\n{traceback.format_exc()}")
             raise OutlineAnalysisError(f"大纲分析失败: {str(e)}")
 
-    def _process_analyze_l2_l3_headings(self, trace_id: str) -> dict:
+    async def _process_analyze_l2_l3_headings(self, trace_id: str) -> dict:
         """处理二级/三级标题分析步骤"""
         if not self.H1_document:
             raise OutlineAnalysisError("没有可用的H1大纲内容")
             
-        self.update_state(AgentState.ANALYZING_OUTLINE_H2H3, "正在分析文档H2/H3大纲...")
+        await self.update_state(AgentState.ANALYZING_OUTLINE_H2H3, "正在分析文档H2/H3大纲...")
         
         try:
             # 分析文档大纲 - 使用属性访问
-            self.H2H3_document = async_to_sync(self.outline_l2_l3_analyzer.analyze)(
+            analyzer = await self.outline_l2_l3_analyzer
+            self.H2H3_document = await analyzer.analyze(
                 self.H1_document,
                 channel_layer=self.channel_layer,
                 group_name=self.group_name
-                )
+            )
             if not self.H2H3_document:
                 raise OutlineAnalysisError("H2/H3大纲分析失败，结果为空")
                 
-            # 更新状态 - 通知前端分析完成 （注意，这里我们并没有传递outline数据给前端）
-            self.update_state(
+            # 更新状态 - 通知前端分析完成
+            await self.update_state(
                 AgentState.OUTLINE_H2H3_ANALYZED, 
                 "H2/H3大纲分析完成...",
-                # {"document": self.H1_document}
             )
             
             logger.info(f"[{trace_id}] 大纲分析成功")
 
-            # 自动进入添加引言标题步骤，不等待用户确认
-            # return self.process_step(ProcessStep.ADD_INTRODUCTION)
-
+            # 返回成功结果，而不是自动进入下一步
             self.next_step = ProcessStep.ADD_INTRODUCTION
             
         except Exception as e:
             logger.error(f"[{trace_id}] 大纲分析异常: {str(e)}\n{traceback.format_exc()}")
             raise OutlineAnalysisError(f"大纲分析失败: {str(e)}")
 
-    def _process_add_intro_headings(self, trace_id: str) -> dict:
+    async def _process_add_intro_headings(self, trace_id: str) -> dict:
         """处理引言标题分析步骤"""
         if not self.H2H3_document:
             raise OutlineAnalysisError("没有可用的H2/H3大纲内容")
             
-        self.update_state(AgentState.ADDING_INTRODUCTION, "正在添加引言标题...")
+        await self.update_state(AgentState.ADDING_INTRODUCTION, "正在添加引言标题...")
 
         try:
             # 分析文档大纲 - 使用属性访问
-            self.Intro_document = self.add_intro_headings.add(self.H2H3_document)
+            analyzer = await self.add_intro_headings
+            self.Intro_document = await analyzer.add(self.H2H3_document)
             if not self.Intro_document:
                 raise OutlineAnalysisError("引言标题分析失败，结果为空")
                 
-            # 更新状态 - 通知前端分析完成 （注意，这里我们并没有传递outline数据给前端）
-            self.update_state(
+            # 更新状态 - 通知前端分析完成
+            await self.update_state(
                 AgentState.INTRODUCTION_ADDED, 
                 "引言标题分析完成, 完整大纲结果请在编辑器中检查和调整...",
                 {"document": self.Intro_document}
             )
 
+            # 添加一个小延迟，确保消息被发送
+            await asyncio.sleep(0.1)
+
             # 自动进入等待编辑状态
-            self.update_state(
+            await self.update_state(
                 AgentState.AWAITING_EDITING,
                 "请在编辑器中检查和调整大纲..."
-    )
+            )
             
             logger.info(f"[{trace_id}] 大纲分析成功")
 
             # 返回成功结果，而不是自动进入下一步
             self.next_step = ProcessStep.COMPLETE
             
-            
         except Exception as e:
             logger.error(f"[{trace_id}] 大纲分析异常: {str(e)}\n{traceback.format_exc()}")
             raise OutlineAnalysisError(f"大纲分析失败: {str(e)}")
-        pass
 
-    def _process_complete(self, trace_id: str, user_input: dict = None) -> dict:
+    async def _process_complete(self, trace_id: str, user_input: dict = None) -> dict:
         """处理完成编辑步骤"""
         # 如果用户提供了编辑后的文档，更新 final_document
         if user_input and 'document' in user_input:
@@ -684,7 +692,7 @@ class DocumentStructureAgent:
             logger.info(f"[{trace_id}] 已更新为用户编辑后的文档")
         
         # 标记为完成
-        self.update_state(AgentState.COMPLETED, "文档结构化完成！")
+        await self.update_state(AgentState.COMPLETED, "文档结构化完成！")
         
         logger.info(f"[{trace_id}] 文档结构化流程完成")
         self.next_step = None
@@ -696,7 +704,7 @@ class DocumentStructureAgent:
         }
 
     # --------- 特殊处理 ---------
-    def _handle_retry(self, data: dict, trace_id: str) -> dict:
+    async def _handle_retry(self, data: dict, trace_id: str) -> dict:
         """处理重试操作"""
         if self.current_state == AgentState.FAILED:
             # 获取出错前的状态
@@ -704,30 +712,30 @@ class DocumentStructureAgent:
             
             if error_source == "document_processing":
                 # 文档处理错误，回到上传状态
-                self.update_state(AgentState.AWAITING_UPLOAD, "请重新上传文档")
+                await self.update_state(AgentState.AWAITING_UPLOAD, "请重新上传文档")
             elif error_source == "outline_analysis":
                 # 大纲分析错误，回到文档提取完成状态
-                self.update_state(AgentState.DOCUMENT_EXTRACTED, "文档已提取，请重新分析大纲")
+                await self.update_state(AgentState.DOCUMENT_EXTRACTED, "文档已提取，请重新分析大纲")
             else:
                 # 其他错误，使用状态回退
                 previous_state = self.state_manager.rollback()
                 if previous_state:
-                    self.update_state(previous_state, f"已回退到 {previous_state.name} 状态")
+                    await self.update_state(previous_state, f"已回退到 {previous_state.name} 状态")
                 else:
                     # 无法回退，回到初始状态
-                    self.update_state(AgentState.AWAITING_UPLOAD, "请重新上传文档")
+                    await self.update_state(AgentState.AWAITING_UPLOAD, "请重新上传文档")
             
             logger.info(f"[{trace_id}] 重试成功，当前状态: {self.current_state.value}")
             return {"status": "success", "message": "已重置，请继续操作", "trace_id": trace_id}
         
         return {"status": "error", "message": "当前状态不支持重试", "trace_id": trace_id} 
 
-    def _handle_rollback(self, data: dict, trace_id: str) -> dict:
+    async def _handle_rollback(self, data: dict, trace_id: str) -> dict:
         """处理回退操作"""
         previous_state = self.state_manager.rollback()
         
         if previous_state:
-            self.update_state(previous_state, f"已回退到 {previous_state.name} 状态")
+            await self.update_state(previous_state, f"已回退到 {previous_state.name} 状态")
             logger.info(f"[{trace_id}] 回退成功，当前状态: {self.current_state.value}")
             return {"status": "success", "message": "已回退到上一状态", "trace_id": trace_id}
         

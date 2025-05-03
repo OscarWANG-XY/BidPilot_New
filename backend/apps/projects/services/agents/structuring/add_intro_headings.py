@@ -22,7 +22,7 @@ class AddIntroHeadings:
         pass
 
     
-    def add(self, document_h2: Dict) -> Dict:
+    async def add(self, document_h2: Dict) -> Dict:
         """
         为文档添加引言标题
         
