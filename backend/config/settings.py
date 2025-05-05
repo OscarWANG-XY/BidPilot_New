@@ -279,7 +279,7 @@ CSRF_COOKIE_SAMESITE = None
 
 
 # ----------------------------- Tiptap Service Configuration -----------------------------
-TIPTAP_SERVICE_URL = 'http://localhost:3000'  # Update this to match your deployment
+TIPTAP_SERVICE_URL = 'http://tiptap:3001'  # 使用 Docker 服务名称
 TIPTAP_SERVICE_TIMEOUT = 30  # seconds
 
 

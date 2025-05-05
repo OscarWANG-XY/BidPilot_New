@@ -31,12 +31,10 @@ export default defineConfig({
     host: '0.0.0.0',  // 或者使用 true 允许外部访问
     //open: true,  // true 自动打开浏览器 
     proxy: {
-
-      // 代理到 django 的 api
+      // 代理到 nginx
       '/api': {
-        target: process.env.VITE_API_URL || 'http://localhost:8000',
+        target: 'http://nginx:80',
         changeOrigin: true,
-        //rewrite: (path) => path.replace(/^\/api/, '')
         rewrite: (path) => path
       },
 // 之前用在 upload-server 上，现在用 django, 就不用了     

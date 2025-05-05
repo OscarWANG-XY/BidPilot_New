@@ -3,7 +3,7 @@ from celery import Celery
 
 
 # 设置默认Django设置模块
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.development')  # 开发环境使用 development
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')  # 开发环境使用 development
 
 # 创建Celery实例
 app = Celery('config')

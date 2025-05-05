@@ -1,0 +1,159 @@
+#version: '3.8'
+
+services:
+  # 数据库服务
+  db:
+    image: postgres:14.17
+    container_name: bidpilot_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DB=${POSTGRES_DB}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - bidpilot_network
+
+  # Redis服务
+  redis:
+    image: redis:7.2-alpine
+    container_name: bidpilot_redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - bidpilot_network
+
+  # Celery worker服务
+  celery_worker:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: bidpilot_celery_worker
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./backend:/app  # 开发时使用挂载卷实现热重载
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    command: celery -A config worker -l info
+    restart: unless-stopped
+    networks:
+      - bidpilot_network
+
+  # 后端Django服务
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: bidpilot_backend
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - static_volume:/app/static
+      - media_volume:/app/media
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DEBUG=True
+      - ALLOWED_HOSTS=localhost,127.0.0.1
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    networks:
+      - bidpilot_network
+
+  # 前端React服务
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    container_name: bidpilot_frontend
+    volumes:
+      - ./frontend:/app  # 开发时使用挂载卷实现热重载
+      - /app/node_modules  # 避免覆盖node_modules
+    env_file:
+      - .env
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000/api
+    ports:
+      - "5173:5173"
+    restart: unless-stopped
+    networks:
+      - bidpilot_network
+
+  # Tiptap服务
+  tiptap:
+    build:
+      context: .
+      dockerfile: docker/tiptap/Dockerfile
+    container_name: bidpilot_tiptap
+    volumes:
+      - ./tiptap-service:/app  # 开发时使用挂载卷实现热重载
+      - /app/node_modules  # 避免覆盖node_modules
+    env_file:
+      - .env
+    environment:
+      - PORT=3001
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+    networks:
+      - bidpilot_network
+
+  # Nginx代理服务
+  nginx:
+    image: nginx:alpine
+    container_name: bidpilot_nginx
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+      - frontend
+      - tiptap
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    networks:
+      - bidpilot_network
+
+networks:
+  bidpilot_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  static_volume:
+  media_volume:
+
+

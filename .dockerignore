@@ -1,0 +1,9 @@
+echo ".git/
+__pycache__/
+*.pyc
+**/node_modules
+*/node_modules
+node_modules
+.env
+venv/
+ENV/" > .dockerignore
