@@ -12,11 +12,17 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os, sys 
 from pathlib import Path
 from dotenv import load_dotenv
-load_dotenv()
-
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+# BASE_DIR 指向backend目录
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load .env file from the parent directory of backend
+# BASE_DIR.parent / '.env' 构建了指向父目录中 .env 文件的完整路径
+load_dotenv(BASE_DIR.parent / '.env')
+
+
 #sys.path.insert(0,str(BASE_DIR))
 
 # Quick-start development settings - unsuitable for production
@@ -26,9 +32,24 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 SECRET_KEY = 'django-insecure-eue96xem5j9v0-sj$@blb(bh56es614w@_o7gmq$q15!xfnjfk'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = ['115.159.6.83', 'localhost', '127.0.0.1','testserver','*']
+# 根据环境设置允许的主机
+if DEBUG:
+    ALLOWED_HOSTS = ['115.159.6.83', 'localhost', '127.0.0.1', 'testserver', '*']
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:3000",  # React 开发服务器
+        "http://localhost:5173",  # Vite 开发服务器
+        "http://115.159.6.83:5173",  # Vite 开发服务器
+        "http://115.159.6.83:3000",  # React 开发服务器 
+    ]
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    ALLOWED_HOSTS = ['115.159.6.83']
+    CORS_ALLOWED_ORIGINS = [
+        "http://115.159.6.83:5173",  # Vite 开发服务器
+    ]
+    CORS_ALLOW_ALL_ORIGINS = False
 
 
 # Application definition
@@ -125,11 +146,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',  # 数据库引擎
-        'NAME': 'bidpilot_new',  # 数据库名称
-        'USER': 'postgres',  # 数据库用户
-        'PASSWORD': '123456',  # 数据库密码\
-        'HOST': 'localhost',  # 数据库主机
-        'PORT': '5432',  # 数据库端口
+        'NAME': os.environ.get('POSTGRES_DB', 'bidpilot_new'),  # 数据库名称
+        'USER': os.environ.get('POSTGRES_USER', 'postgres'),  # 数据库用户
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', '123456'),  # 数据库密码\
+        'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),  # 数据库主机
+        'PORT': os.environ.get('POSTGRES_PORT', '5432'),  # 数据库端口
         'CONN_MAX_AGE': 0,  # 对异步连接很重要
         'OPTIONS': {
             'client_encoding': 'UTF8',  # 确保客户端编码为 UTF-8
@@ -320,5 +341,93 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+# JWT 时效配置
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),  # 设置access token有效期为30分钟
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),    # 设置refresh token有效期为1天
+}
+
+# 自定义用户模型
+AUTH_USER_MODEL = 'authentication.User'
+
+# Logging Configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+            'level': 'DEBUG', 
+        },
+    },
+    'loggers': {
+        '': {  # Root logger
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'apps.authentication': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'apps.files': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'apps.doc_analysis': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'apps.projects': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'apps.chat': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'apps._tools.docx_parser': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'apps.projects.middlewares': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'apps.projects.signals': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'apps._tools.LLM_services': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'apps.projects.utils.redis_manager': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
+
+# Celery Configuration
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
 
 
