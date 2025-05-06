@@ -1,0 +1,75 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ main ]  # 您可以将main替换为您的主分支名称
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    # 检出代码
+    - name: Checkout code
+      uses: actions/checkout@v2
+      
+    # 登录到腾讯云容器镜像服务
+    - name: Login to TCR
+      uses: docker/login-action@v1
+      with:
+        registry: ccr.ccs.tencentyun.com
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    
+    # 设置Docker Buildx
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+    
+    # 构建并推送后端镜像
+    - name: Build and push Backend
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: ./docker/backend/Dockerfile
+        push: true
+        tags: ccr.ccs.tencentyun.com/bidpilot/bidpilot-backend:latest
+    
+    # 构建并推送前端镜像
+    - name: Build and push Frontend
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: ./docker/frontend/Dockerfile
+        push: true
+        tags: ccr.ccs.tencentyun.com/bidpilot/bidpilot-frontend:latest
+    
+    # 构建并推送Celery Worker镜像
+    - name: Build and push Celery Worker
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: ./docker/backend/Dockerfile
+        push: true
+        tags: ccr.ccs.tencentyun.com/bidpilot/bidpilot-celery-worker:latest
+    
+    # 构建并推送Tiptap服务镜像
+    - name: Build and push Tiptap
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: ./docker/tiptap/Dockerfile
+        push: true
+        tags: ccr.ccs.tencentyun.com/bidpilot/bidpilot-tiptap:latest
+    
+    # 部署到服务器
+    - name: Deploy to server
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USERNAME }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        script: |
+          cd ~/bidpilot_new
+          docker login ccr.ccs.tencentyun.com --username=${{ secrets.DOCKER_USERNAME }} --password=${{ secrets.DOCKER_PASSWORD }}
+          docker-compose pull
+          docker-compose up -d
