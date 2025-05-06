@@ -4,6 +4,8 @@ __pycache__/
 *.pyo
 *.pyd
 .env
+.env.prod
+.env.test
 *.sqlite3
 
 # Django
@@ -72,3 +74,6 @@ backend/apps/projects/notebook/cache_e3/
 
 .npmrc
 
+
+#notebook
+/notebook

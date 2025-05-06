@@ -1,0 +1,41 @@
+FROM python:3.12-slim
+
+# 设置环境变量（防止生产.pyc文件， 直接输出到终端不要经过缓存， 禁用pip缓存）
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+# 设置容器工作目录为/app 
+WORKDIR /app
+
+# 安装系统依赖(更新 apt 并安装编译工具、PostgreSQL 开发库和 netcat 工具，安装完成后清理 apt 缓存以减小镜像体积)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    netcat-traditional \
+    && rm -rf /var/lib/apt/lists/*
+
+# 复制requirements.txt文件
+COPY backend/requirements.txt .
+
+# 安装Python依赖
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 复制项目文件, 将整个 backend 目录复制到容器的 /app 目录下
+COPY backend/ .
+
+# 收集静态文件 （这是 Django 部署的标准步骤）
+RUN python manage.py collectstatic --noinput
+
+# 添加启动脚本: 复制自定义的入口脚本并赋予可执行权限（这个脚本可能包含数据库迁移等初始化操作）
+COPY docker/backend/entrypoint.prod.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# 创建非root用户: 创建一个名为 appuser 的非 root 用户，并将 /app 目录的所有权转移给这个用户，最后切换到这个用户运行容器，这是 Docker 安全最佳实践
+RUN adduser --disabled-password --gecos '' appuser
+RUN chown -R appuser:appuser /app
+USER appuser
+
+# 启动命令: 指定容器启动时运行的入口脚本entrypoint, 使用 Gunicorn 作为 WSGI 服务器运行 Django 应用，绑定到 8000 端口，使用 4 个工作进程和 2 个线程
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "4", "--threads", "2"] 
