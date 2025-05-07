@@ -3,7 +3,7 @@ import {
     Outlet,
     redirect
   } from '@tanstack/react-router'
-  import { ProjectLayout } from '@/__deprecated/_04_ProjectLayout'
+  import { ProjectLayout } from '@/components/projects/ProjectLayout/ProjectLayout'
   
   export const Route = createFileRoute('/projects/$projectId/')({
     component: ProjectDetailComponent,

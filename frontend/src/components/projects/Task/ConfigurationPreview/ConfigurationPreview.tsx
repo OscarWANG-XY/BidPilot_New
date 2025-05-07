@@ -6,7 +6,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import TiptapEditor_lite from '@/__deprecated/shared/TiptapEditor_lite2';
+// import TiptapEditor_lite from '@/__deprecated/shared/TiptapEditor_lite2';
+import TiptapEditor from '@/components/TiptapEditor/TiptapEditor'
 
 interface ConfigurationPreviewProps {
   context?: any;
@@ -38,7 +39,7 @@ const ConfigurationPreview: React.FC<ConfigurationPreviewProps> = ({
             <AccordionTrigger className="text-sm font-medium">上下文 (Context)</AccordionTrigger>
             <AccordionContent>
               <div className="border rounded-md overflow-hidden h-[400px]">
-                <TiptapEditor_lite
+                <TiptapEditor
                   initialContent={context || ''}
                   readOnly={true}
                   {...editorConfig}
@@ -52,7 +53,7 @@ const ConfigurationPreview: React.FC<ConfigurationPreviewProps> = ({
             <AccordionTrigger className="text-sm font-medium">指令 (instruction)</AccordionTrigger>
             <AccordionContent>
               <div className="border rounded-md overflow-hidden h-[400px]">
-                <TiptapEditor_lite
+                <TiptapEditor
                   initialContent={instruction || ''}
                   readOnly={true}
                   {...editorConfig}
@@ -66,7 +67,7 @@ const ConfigurationPreview: React.FC<ConfigurationPreviewProps> = ({
             <AccordionTrigger className="text-sm font-medium">补充信息 (supplement)</AccordionTrigger>
             <AccordionContent>
               <div className="border rounded-md overflow-hidden h-[400px]">
-                <TiptapEditor_lite
+                <TiptapEditor
                   initialContent={supplement || ''}
                   readOnly={true}
                   {...editorConfig}

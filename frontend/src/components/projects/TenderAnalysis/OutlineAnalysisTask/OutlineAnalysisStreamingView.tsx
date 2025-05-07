@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { MarkdownStreamingRenderer } from '@/__deprecated/shared/MarkdownStreamingRenderer';
+import { MarkdownStreamingRenderer } from '@/components/projects/TenderAnalysis/OutlineAnalysisTask/shared/MarkdownStreamingRenderer';
 import { useOutlineAnalysisStream } from '@/components/projects/TenderAnalysis/OutlineAnalysisTask/useTaskOutlineAnalysis';
 import { StageType } from '@/_types/projects_dt_stru/projectStage_interface';
 

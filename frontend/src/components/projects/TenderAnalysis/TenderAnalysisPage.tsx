@@ -3,7 +3,7 @@ import { TenderFileUpload } from './TenderFileUpload/TenderFileupload'
 import { DocxExtractionTask } from './DocxExtractionTask/DocxExtractionTask'
 // import { DocOutlineAnalysisTask } from './_03_OutlineAnalysisTask'
 import { TaskStatus, TaskLockStatus } from '@/_types/projects_dt_stru/projectTasks_interface'
-import { OutlineAnalysisStreamingView } from '@/components/projects/TenderAnalysis/OutlineAnalysisTask/OutlineAnalysisStreamingView'
+// import { OutlineAnalysisStreamingView } from '@/components/projects/TenderAnalysis/OutlineAnalysisTask/OutlineAnalysisStreamingView'
 import TaskContainer from '@/components/projects/Task/TaskContainer'
 import { StageType } from '@/_types/projects_dt_stru/projectStage_interface'
 import { TaskType } from '@/_types/projects_dt_stru/projectTasks_interface'
@@ -14,8 +14,8 @@ interface TenderAnalysisPageProps {
 export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectId }) => {
   // 只保留需要在父组件层面协调的状态
   const [fileUploadStatus, setFileUploadStatus] = useState<TaskStatus>(TaskStatus.NOT_STARTED)
-  const [extractionTaskLockStatus, setExtractionTaskLockStatus] = useState<TaskLockStatus>(TaskLockStatus.UNLOCKED)
-  const [outlineAnalysisTaskLockStatus, setOutlineAnalysisTaskLockStatus] = useState<TaskLockStatus>(TaskLockStatus.UNLOCKED)
+  // const [setExtractionTaskLockStatus] = useState<TaskLockStatus>(TaskLockStatus.UNLOCKED)
+  // const [setOutlineAnalysisTaskLockStatus] = useState<TaskLockStatus>(TaskLockStatus.UNLOCKED)
 
   // 简化的状态处理函数
   const handleFileUploadStateChange = (status: TaskStatus) => {
@@ -25,13 +25,13 @@ export const TenderAnalysisPage: React.FC<TenderAnalysisPageProps> = ({ projectI
   
   const handleExtractionStateChange = (lockStatus: TaskLockStatus) => {
     console.log('Extraction task status updated:', lockStatus)
-    setExtractionTaskLockStatus(lockStatus)
+    // setExtractionTaskLockStatus(lockStatus)
   }
 
-  const handleOutlineAnalysisStateChange = (lockStatus: TaskLockStatus) => {
-    console.log('Outline analysis task status updated:', lockStatus)
-    setOutlineAnalysisTaskLockStatus(lockStatus)
-  }
+  // const handleOutlineAnalysisStateChange = (lockStatus: TaskLockStatus) => {
+  //   console.log('Outline analysis task status updated:', lockStatus)
+  //   setOutlineAnalysisTaskLockStatus(lockStatus)
+  // }
   
   // 导航处理函数
   const handleNavigateToExtractionTask = () => {

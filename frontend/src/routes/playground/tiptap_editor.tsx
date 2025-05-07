@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import TiptapEditorTest from '@/components/TiptapEditor/TE_test';
+// import TiptapEditorTest from '@/components/TiptapEditor/TE_test';
 import TiptapEditor from '@/components/TiptapEditor_Pro/TiptapEditor_pro';
 
 export const Route = createFileRoute('/playground/tiptap_editor')({
