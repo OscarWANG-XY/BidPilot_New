@@ -4,6 +4,7 @@ __pycache__/
 **/node_modules
 */node_modules
 node_modules
+src/__deprecated/**
 .env
 venv/
 ENV/" > .dockerignore

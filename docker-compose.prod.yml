@@ -1,60 +1,96 @@
-version: '3.8'
+# version: '3.8'
 
 services:
   # 数据库服务
   db:
     image: postgres:14.17
-    container_name: bidpilot_db_prod
+    container_name: bidpilot_prod_db  # 修改：统一命名格式 bidpilot_prod_服务名
     volumes:
       - postgres_data:/var/lib/postgresql/data
     env_file:
       - .env.prod
-    environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_DB=${POSTGRES_DB}
+    # 修改：不再单独定义环境变量，完全依赖env_file中的配置
+    # 在backend 和 celery里，我们是保留.env.prod和environments一起使用的
+    # db不那么做的原因是，PostgreSQL数据库一旦初始化，再修改环境变量不会改变数据库密码
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
+    # 改动：更改为always确保数据库总是重启
+    restart: always
+    # 改动：增加资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
     networks:
       - bidpilot_network
 
   # Redis服务
   redis:
     image: redis:7.2-alpine
-    container_name: bidpilot_redis_prod
-    command: redis-server --appendonly yes
+    container_name: bidpilot_prod_redis  # 修改：统一命名格式
+    # 改动：添加密码保护
+    command: 
+      redis-server 
+      --requirepass "redis_123456" 
+      --appendonly yes
     volumes:
       - redis_data:/data
+    env_file:
+      - .env.prod
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
+    # 改动：更改为always确保总是重启
+    restart: always
+    # 改动：增加资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
     networks:
       - bidpilot_network
+
 
   # Celery worker服务
   celery_worker:
     build:
       context: .
       dockerfile: docker/backend/Dockerfile.prod
-    container_name: bidpilot_celery_worker_prod
+    image: bidpilot/celery-worker:prod  # 添加：指定镜像名称
+    container_name: bidpilot_prod_celery_worker  # 修改：统一命名格式
     depends_on:
       - db
       - redis
+    volumes:
+      - celery_worker_logs:/app/logs  # 添加：日志存储卷    
     env_file:
       - .env.prod
     environment:
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-    command: celery -A config worker -l info
-    restart: unless-stopped
+      # 改动：添加Redis密码
+      - REDIS_PASSWORD=redis_123456
+      # 添加这两行，使用正确的Redis连接URL格式
+      - CELERY_BROKER_URL=redis://:redis_123456@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:redis_123456@redis:6379/0
+    # 改动：更新celery命令，增加worker数
+    command: celery -A config worker -l info --concurrency=4
+    # 改动：更改为always确保总是重启
+    restart: always
+    # 改动：增加资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
     networks:
       - bidpilot_network
 
@@ -63,7 +99,8 @@ services:
     build:
       context: .
       dockerfile: docker/backend/Dockerfile.prod
-    container_name: bidpilot_backend_prod
+    image: bidpilot/backend:prod  # 添加：指定镜像名称
+    container_name: bidpilot_prod_backend  # 修改：统一命名格式
     depends_on:
       db:
         condition: service_healthy
@@ -72,17 +109,36 @@ services:
     volumes:
       - static_volume:/app/static
       - media_volume:/app/media
+      - backend_logs:/app/logs  # 添加：日志存储卷
     env_file:
       - .env.prod
     environment:
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - DEBUG=False
-      - ALLOWED_HOSTS=localhost,127.0.0.1
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
-    restart: unless-stopped
+      - DJANGO_DEBUG=False
+      # 改动：使用环境变量中的域名
+      - ALLOWED_HOSTS=zzz-tech.cn,www.zzz-tech.cn,localhost,127.0.0.1,backend
+      # 改动：添加Redis密码，使用硬编码
+      - REDIS_PASSWORD=redis_123456
+      - CELERY_BROKER_URL=redis://:redis_123456@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:redis_123456@redis:6379/0
+    # 改动：更改为always确保总是重启
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: always
+    # 改动：增加资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
     networks:
       - bidpilot_network
 
@@ -91,10 +147,27 @@ services:
     build:
       context: .
       dockerfile: docker/frontend/Dockerfile.prod
-    container_name: bidpilot_frontend_prod
+    image: bidpilot/frontend:prod  # 添加：指定镜像名称
+    container_name: bidpilot_prod_frontend  # 修改：统一命名格式
+    pull_policy: if_not_present
+    #user: root # 添加这一行，使用root用户运行容器
+    volumes:
+      - frontend_build:/usr/share/nginx/html
     env_file:
       - .env.prod
-    restart: unless-stopped
+    # 改动：添加环境变量
+    environment:
+      - REACT_APP_API_URL=https://zzz-tech.cn/api
+    ports:
+      - "5173:5173"
+    # 改动：更改为always确保总是重启
+    restart: always
+    # 改动：增加资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
     networks:
       - bidpilot_network
 
@@ -102,40 +175,86 @@ services:
   tiptap:
     build:
       context: .
-      dockerfile: docker/tiptap/Dockerfile
-    container_name: bidpilot_tiptap_prod
+      dockerfile: docker/tiptap/Dockerfile.prod
+    image: bidpilot/tiptap:prod  # 添加：指定镜像名称
+    container_name: bidpilot_prod_tiptap  # 修改：统一命名格式
+    volumes:
+      - tiptap_logs:/app/logs  # 添加：日志存储卷
     env_file:
       - .env.prod
     environment:
       - PORT=3001
-    restart: unless-stopped
+    # 改动：更改为always确保总是重启
+    restart: always
+    # 改动：增加资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
     networks:
       - bidpilot_network
 
   # Nginx代理服务
   nginx:
-    image: nginx:alpine
-    container_name: bidpilot_nginx_prod
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile.prod
+    image: bidpilot/nginx:prod  # 添加：指定镜像名称
+    container_name: bidpilot_prod_nginx  # 修改：统一命名格式
+    pull_policy: if_not_present
+    user: root
     volumes:
-      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      # 改动：使用生产环境专用配置
+      - ./docker/nginx/default.prod.conf:/etc/nginx/conf.d/default.conf:ro
+      # 改动：添加SSL证书目录
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
       - static_volume:/app/static
       - media_volume:/app/media
+      # 添加前端构建文件
+      - frontend_build:/usr/share/nginx/html
+      # 改动：添加日志卷
+      - nginx_logs:/var/log/nginx
     depends_on:
       - backend
       - frontend
       - tiptap
     ports:
       - "80:80"
-    restart: unless-stopped
+      # 改动：添加HTTPS端口
+      - "443:443"
+    # 改动：更改为always确保总是重启
+    restart: always
+    # 改动：增加资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
     networks:
       - bidpilot_network
 
 networks:
   bidpilot_network:
+    name: bidpilot_prod_network  # 添加：明确指定网络名称
     driver: bridge
 
 volumes:
   postgres_data:
+    name: bidpilot_prod_postgres_data  # 添加：明确指定卷名
   redis_data:
+    name: bidpilot_prod_redis_data  # 添加：明确指定卷名
   static_volume:
-  media_volume: 
+    name: bidpilot_prod_static_volume  # 添加：明确指定卷名
+  media_volume:
+    name: bidpilot_prod_media_volume  # 添加：明确指定卷名
+  nginx_logs:
+    name: bidpilot_prod_nginx_logs  # 添加：明确指定卷名
+  backend_logs:
+    name: bidpilot_prod_backend_logs  # 添加：新增命名卷
+  celery_worker_logs:
+    name: bidpilot_prod_celery_worker_logs  # 添加：新增命名卷
+  tiptap_logs:
+    name: bidpilot_prod_tiptap_logs  # 添加：新增命名卷
+  frontend_build:
+    name: bidpilot_prod_frontend_build  # 添加：前端构建文件卷

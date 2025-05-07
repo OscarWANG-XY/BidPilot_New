@@ -45,11 +45,15 @@ if DEBUG:
     ]
     CORS_ALLOW_ALL_ORIGINS = True
 else:
-    ALLOWED_HOSTS = ['115.159.6.83']
+    ALLOWED_HOSTS = ['115.159.6.83', 'localhost', '127.0.0.1', 'zzz-tech.cn', 'www.zzz-tech.cn', 'backend']
     CORS_ALLOWED_ORIGINS = [
         "http://115.159.6.83:5173",  # Vite 开发服务器
+        "https://zzz-tech.cn", 
+        "https://www.zzz-tech.cn",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000"        
     ]
-    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOW_ALL_ORIGINS = True # 之后再改回来，生产时，需要为False.
 
 
 # Application definition

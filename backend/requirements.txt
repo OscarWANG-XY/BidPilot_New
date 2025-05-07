@@ -45,7 +45,7 @@ asyncio==3.4.3
 
 # Time and Date handling
 pytz==2024.2
-tzdata==2024.2
+tzdata==2025.2
 
 # LLM Core
 langchain==0.3.13
@@ -55,11 +55,12 @@ langchain-community == 0.3.13
 
 
 redis==5.2.1
-celery==5.4.0
+celery==5.3.6
 django-redis==5.4.0
 django_celery_beat==2.7.0
 django_celery_results==2.5.1
-
+# Celery 
+kombu==5.5.3  # 支持使用数据库作为消息代理
 
 # 文档处理
 mammoth==1.9.0
@@ -112,6 +113,5 @@ python-json-logger==3.2.1  # Useful for development debugging and log analysis
 
 # 文件类型检测 for windows
 
+gunicorn==21.2.0
 
-# Celery 
-kombu[sqlalchemy]>=5.3.4  # 支持使用数据库作为消息代理

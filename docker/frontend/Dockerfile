@@ -4,7 +4,7 @@ FROM node:20-alpine
 WORKDIR /app
 
 # 安装pnpm
-RUN npm install -g pnpm
+RUN npm install -g pnpm@10.6.5
 
 # 复制package.json和pnpm-lock.yaml
 COPY frontend/package.json frontend/pnpm-lock.yaml ./

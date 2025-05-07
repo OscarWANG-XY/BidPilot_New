@@ -1,0 +1,15 @@
+FROM nginx:alpine
+
+# 修改配置文件，将pid路径改为/tmp/nginx.pid
+RUN sed -i 's|pid /run/nginx.pid;|pid /tmp/nginx.pid;|' /etc/nginx/nginx.conf && \
+    # 注释掉user指令
+    sed -i 's|user nginx;|# user nginx;|' /etc/nginx/nginx.conf
+
+# 保持其他配置不变
+COPY docker/nginx/default.prod.conf /etc/nginx/conf.d/default.conf 
+
+# 创建静态文件目录
+RUN mkdir -p /usr/share/nginx/html
+
+# 注意：前端文件将通过卷挂载提供，而不是从镜像复制
+# 我们移除了：COPY --from=bidpilot/frontend:prod /usr/share/nginx/html /usr/share/nginx/html

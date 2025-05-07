@@ -1,4 +1,6 @@
-FROM python:3.12-slim
+
+# 构建阶段
+FROM python:3.12-slim AS builder 
 
 # 设置环境变量（防止生产.pyc文件， 直接输出到终端不要经过缓存， 禁用pip缓存）
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -8,18 +10,42 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # 设置容器工作目录为/app 
 WORKDIR /app
 
+
 # 安装系统依赖(更新 apt 并安装编译工具、PostgreSQL 开发库和 netcat 工具，安装完成后清理 apt 缓存以减小镜像体积)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
-    netcat-traditional \
     && rm -rf /var/lib/apt/lists/*
 
 # 复制requirements.txt文件
 COPY backend/requirements.txt .
 
-# 安装Python依赖
-RUN pip install --no-cache-dir -r requirements.txt
+# 创建wheels
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir /build/wheels -r requirements.txt
+
+
+# 最终阶段
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# 安装运行时依赖
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    netcat-traditional \
+    libmagic-dev \ 
+    && rm -rf /var/lib/apt/lists/*
+
+# 从构建阶段复制wheels并安装
+COPY --from=builder /build/wheels /wheels
+RUN pip install --no-cache-dir /wheels/*
+
+# 创建非root用户
+RUN adduser --disabled-password --gecos '' appuser
+
 
 # 复制项目文件, 将整个 backend 目录复制到容器的 /app 目录下
 COPY backend/ .
@@ -31,10 +57,13 @@ RUN python manage.py collectstatic --noinput
 COPY docker/backend/entrypoint.prod.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# 创建非root用户: 创建一个名为 appuser 的非 root 用户，并将 /app 目录的所有权转移给这个用户，最后切换到这个用户运行容器，这是 Docker 安全最佳实践
-RUN adduser --disabled-password --gecos '' appuser
+# 权限设置： 将 /app 目录的所有权转移给这个用户，最后切换到这个用户运行容器，这是 Docker 安全最佳实践
 RUN chown -R appuser:appuser /app
 USER appuser
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl --fail http://localhost:8000/health/ || exit 1
 
 # 启动命令: 指定容器启动时运行的入口脚本entrypoint, 使用 Gunicorn 作为 WSGI 服务器运行 Django 应用，绑定到 8000 端口，使用 4 个工作进程和 2 个线程
 ENTRYPOINT ["/entrypoint.sh"]

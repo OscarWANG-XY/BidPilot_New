@@ -77,3 +77,6 @@ backend/apps/projects/notebook/cache_e3/
 
 #notebook
 /notebook
+
+
+_backup/

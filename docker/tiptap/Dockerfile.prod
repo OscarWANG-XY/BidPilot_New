@@ -1,0 +1,54 @@
+FROM node:20-alpine AS builder
+
+# 设置工作目录
+WORKDIR /build
+
+# 安装 pnpm
+RUN npm install -g pnpm@10.6.5
+
+# 复制package.json和pnpm-lock.yaml
+COPY tiptap-service/package.json tiptap-service/pnpm-lock.yaml ./
+
+# 这一行可能不需要，除非您确实有.npmrc文件用于tiptap pro扩展
+# COPY tiptap-service/.npmrc ./
+
+# 使用pnpm安装依赖
+RUN pnpm install --frozen-lockfile
+
+# 复制源代码
+COPY tiptap-service/ ./
+
+# 如果有构建步骤，在这里进行构建
+# RUN pnpm build
+
+# 最终阶段
+FROM node:20-alpine
+
+# 安装 pnpm
+RUN npm install -g pnpm@10.6.5
+
+# 创建非root用户
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# 设置工作目录
+WORKDIR /app
+
+# 设置NODE_ENV为production
+ENV NODE_ENV=production
+
+# 从builder阶段复制node_modules和应用代码
+COPY --from=builder /build/node_modules ./node_modules
+COPY --from=builder /build/ ./
+
+# 切换到非root用户
+USER appuser
+
+# 暴露服务端口
+EXPOSE 3001
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD wget -qO- http://localhost:3001/health || exit 1
+
+# 启动命令
+CMD ["pnpm", "start"]
