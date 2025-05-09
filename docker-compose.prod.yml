@@ -116,11 +116,12 @@ services:
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      # 改动：添加Redis密码，使用硬编码
+      - REDIS_PASSWORD=redis_123456
       - DJANGO_DEBUG=False
       # 改动：使用环境变量中的域名
       - ALLOWED_HOSTS=zzz-tech.cn,www.zzz-tech.cn,localhost,127.0.0.1,backend
-      # 改动：添加Redis密码，使用硬编码
-      - REDIS_PASSWORD=redis_123456
+
       - CELERY_BROKER_URL=redis://:redis_123456@redis:6379/0
       - CELERY_RESULT_BACKEND=redis://:redis_123456@redis:6379/0
     # 改动：更改为always确保总是重启

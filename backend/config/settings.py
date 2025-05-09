@@ -37,15 +37,19 @@ DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() == 'true'
 # 根据环境设置允许的主机
 if DEBUG:
     ALLOWED_HOSTS = ['115.159.6.83', 'localhost', '127.0.0.1', 'testserver', '*']
+else:
+    ALLOWED_HOSTS = ['115.159.6.83', 'localhost', '127.0.0.1', 'zzz-tech.cn', 'www.zzz-tech.cn', 'backend']
+
+# -----------------------  CORS设置 （与前端连接的必要配置）--------------------------------------
+if DEBUG:
     CORS_ALLOWED_ORIGINS = [
         "http://localhost:3000",  # React 开发服务器
         "http://localhost:5173",  # Vite 开发服务器
         "http://115.159.6.83:5173",  # Vite 开发服务器
         "http://115.159.6.83:3000",  # React 开发服务器 
     ]
-    CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOW_ALL_ORIGINS = True  # 开发环境允许所有来源
 else:
-    ALLOWED_HOSTS = ['115.159.6.83', 'localhost', '127.0.0.1', 'zzz-tech.cn', 'www.zzz-tech.cn', 'backend']
     CORS_ALLOWED_ORIGINS = [
         "http://115.159.6.83:5173",  # Vite 开发服务器
         "https://zzz-tech.cn", 
@@ -53,7 +57,38 @@ else:
         "http://localhost:8000",
         "http://127.0.0.1:8000"        
     ]
-    CORS_ALLOW_ALL_ORIGINS = True # 之后再改回来，生产时，需要为False.
+    CORS_ALLOW_ALL_ORIGINS = False  # 注意：生产环境中应设为False
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+# CSRF设置
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False
+CSRF_USE_SESSIONS = False
+CSRF_COOKIE_SAMESITE = None
+
+
 
 
 # Application definition
@@ -237,46 +272,6 @@ SPECTACULAR_SETTINGS = {
 
 
 
-# -----------------------  CORS设置 （与前端连接的必要配置）--------------------------------------
-CORS_ALLOWED_ORIGINS = [
-    #"http://localhost:3000",  # React 开发服务器
-    "http://localhost:5173",  # Vite 开发服务器
-    "http://115.159.6.83:5173",  # Vite 开发服务器 
-    #"http://115.159.6.83:3000",  # React 开发服务器 
-    # "http://localhost:8000",    
-    # "http://127.0.0.1:8000"
-]
-
-CORS_ALLOW_ALL_ORIGINS = True  # 允许所有来源 (生产环境不要开启)
-
-CORS_ALLOW_CREDENTIALS = True
-
-CORS_ALLOW_METHODS = [
-    'DELETE',
-    'GET',
-    'OPTIONS',
-    'PATCH',
-    'POST',
-    'PUT',
-]
-
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-]
-
-# 添加这个设置
-CSRF_COOKIE_SECURE = False
-CSRF_COOKIE_HTTPONLY = False
-CSRF_USE_SESSIONS = False
-CSRF_COOKIE_SAMESITE = None
 
 
 

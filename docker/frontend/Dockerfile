@@ -19,7 +19,7 @@ RUN pnpm install
 COPY frontend/ ./
 
 # 暴露端口
-EXPOSE 3000
+EXPOSE 5173
 
 # 启动开发服务器
 CMD ["pnpm", "start"]

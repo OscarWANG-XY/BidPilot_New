@@ -271,7 +271,7 @@ app.use((req, res) => {
 });
 
 // 启动服务器
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`TipTap conversion service running on http://localhost:${PORT}`);
   console.log(`Health check available at http://localhost:${PORT}/health`);
