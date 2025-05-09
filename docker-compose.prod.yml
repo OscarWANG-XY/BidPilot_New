@@ -158,8 +158,6 @@ services:
     # 改动：添加环境变量
     environment:
       - REACT_APP_API_URL=https://zzz-tech.cn/api
-    ports:
-      - "5173:5173"
     # 改动：更改为always确保总是重启
     restart: always
     # 改动：增加资源限制
