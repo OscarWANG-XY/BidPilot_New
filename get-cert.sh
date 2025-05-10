@@ -1,3 +1,55 @@
+#!/bin/bash
+
+# 1. 清理旧的证书文件
+echo "清理旧的证书文件..."
+rm -rf ./data/certbot/conf/live/zzz-tech.cn
+rm -rf ./data/certbot/conf/archive/zzz-tech.cn
+rm -rf ./data/certbot/conf/renewal/zzz-tech.cn.conf
+
+# 2. 设置临时的 Nginx 配置，专门用于 ACME 挑战
+cat > ./docker/nginx/temp.conf << EOF
+server {
+    listen 80;
+    server_name zzz-tech.cn www.zzz-tech.cn;
+    
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+    
+    location / {
+        return 200 "Let's Encrypt validation server";
+    }
+}
+EOF
+
+# 3. 应用临时配置并重启 Nginx
+cp ./docker/nginx/temp.conf ./docker/nginx/default.prod.conf
+echo "重启 Nginx 容器..."
+docker-compose -f docker-compose.run.yml restart nginx
+
+# 4. 等待 Nginx 启动
+echo "等待 Nginx 启动..."
+sleep 10
+
+# 5. 确认 Nginx 运行状态
+docker ps | grep nginx
+curl -I http://zzz-tech.cn || echo "无法访问网站"
+
+# 6. 运行 certbot 获取证书
+echo "获取 Let's Encrypt 证书..."
+docker-compose -f docker-compose.run.yml run --rm certbot certonly \
+  --webroot --webroot-path=/var/www/certbot \
+  --email hui.wang1986@gmail.com --agree-tos --no-eff-email \
+  --cert-name zzz-tech.cn \
+  -d zzz-tech.cn -d www.zzz-tech.cn
+
+# 7. 检查证书是否获取成功
+echo "检查证书文件..."
+ls -la ./data/certbot/conf/live/zzz-tech.cn/ || echo "未找到证书文件"
+
+# 8. 应用完整的 Nginx 配置
+echo "恢复 Nginx 完整配置..."
+cat > ./docker/nginx/default.prod.conf << 'EOF'
 server {
     listen 80;
     server_name zzz-tech.cn www.zzz-tech.cn;
@@ -97,3 +149,10 @@ server {
     access_log /var/log/nginx/access.log;
     error_log /var/log/nginx/error.log;
 }
+EOF
+
+# 9. 重启 Nginx 使用新证书
+echo "重启 Nginx 应用证书配置..."
+docker-compose -f docker-compose.run.yml restart nginx
+
+echo "完成！请尝试访问 https://zzz-tech.cn" 
