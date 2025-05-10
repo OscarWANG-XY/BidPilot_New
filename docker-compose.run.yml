@@ -1,5 +1,9 @@
 # version: '3.8'
 
+# 运行环境
+# docker-compose.run.yml并未使用 Dockerfile.prod文件， 而是直接使用pull下来的镜像 
+# 我们是在本地通过docker-compose.prod.yml 调用Dockerfile.prod文件 构建的镜像的。 
+
 services:
   # 数据库服务
   db:

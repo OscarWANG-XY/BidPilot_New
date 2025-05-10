@@ -24,7 +24,7 @@ COPY backend/requirements.txt .
 RUN pip wheel --no-cache-dir --no-deps --wheel-dir /build/wheels -r requirements.txt
 
 
-# 最终阶段
+# 最终阶段 （运行时阶段）
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -54,8 +54,8 @@ COPY backend/ .
 RUN python manage.py collectstatic --noinput
 
 # 添加启动脚本: 复制自定义的入口脚本并赋予可执行权限（这个脚本可能包含数据库迁移等初始化操作）
-COPY docker/backend/entrypoint.prod.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY docker/backend/entrypoint.prod.sh /entrypoint.prod.sh
+RUN chmod +x /entrypoint.prod.sh
 
 # 权限设置： 将 /app 目录的所有权转移给这个用户，最后切换到这个用户运行容器，这是 Docker 安全最佳实践
 RUN chown -R appuser:appuser /app
@@ -65,6 +65,6 @@ USER appuser
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl --fail http://localhost:8000/health/ || exit 1
 
-# 启动命令: 指定容器启动时运行的入口脚本entrypoint, 使用 Gunicorn 作为 WSGI 服务器运行 Django 应用，绑定到 8000 端口，使用 4 个工作进程和 2 个线程
-ENTRYPOINT ["/entrypoint.sh"]
+# 启动命令: 指定容器启动时运行的入口脚本entrypoint.prod, 使用 Gunicorn 作为 WSGI 服务器运行 Django 应用，绑定到 8000 端口，使用 4 个工作进程和 2 个线程
+ENTRYPOINT ["/entrypoint.prod.sh"]
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "4", "--threads", "2"] 
