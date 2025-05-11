@@ -140,6 +140,17 @@ AWS_S3_FILE_OVERWRITE = False  # 不覆盖同名文件
 AWS_LOCATION = ''  # 这会生成类似 uploads/2025/01/31/ 的路径
 
 
+# 腾讯云短信
+# 腾讯云短信服务配置
+TENCENT_CLOUD_SECRET_ID = os.environ.get('TENCENT_CLOUD_SECRET_ID', '')
+TENCENT_CLOUD_SECRET_KEY = os.environ.get('TENCENT_CLOUD_SECRET_KEY', '')
+TENCENT_SMS_REGION = os.environ.get('TENCENT_SMS_REGION', 'ap-nanjing')  # 默认使用南京区域
+TENCENT_SMS_SDK_APP_ID = os.environ.get('TENCENT_SMS_SDK_APP_ID', '1400962213') 
+TENCENT_SMS_TEMPLATE_ID = os.environ.get('TENCENT_SMS_TEMPLATE_ID', '2422430')
+TENCENT_SMS_SIGN_NAME = os.environ.get('TENCENT_SMS_SIGN_NAME', '执智者上海科技有限公司')
+
+
+
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # 需要放在最前面
     'django.middleware.security.SecurityMiddleware',

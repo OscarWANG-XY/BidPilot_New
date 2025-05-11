@@ -6,7 +6,7 @@ from django.contrib.auth import authenticate
 from django.core.cache import cache
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import User, VerificationCode
-
+from .sms_service import TencentSmsService
 # 确保 logger 名称与 notebooks/django_setup.py 中的名称匹配
 logger = logging.getLogger('apps.authentication')
 
@@ -84,8 +84,14 @@ class AuthService:
         cache.set(cache_key, True, 60)
         logger.info("设置发送限制: 60秒")
         
-        # TODO: 调用短信服务发送验证码
-        logger.info("准备发送验证码到手机: %s", phone)
+        try:
+            # 调用腾讯云短信服务发送验证码
+            result = TencentSmsService.send_verification_code(phone, code)
+            logger.info("验证码发送成功，结果: %s", result)
+            return True
+        except ValueError as e:
+            logger.error("验证码发送失败: %s", str(e))
+            raise ValueError(f'验证码发送失败: {str(e)}')
         
         return True
 

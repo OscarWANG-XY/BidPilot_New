@@ -78,6 +78,11 @@ websockets==15.0.1
 
 # pypandoc 3.6.4
 
+# 腾讯云短信
+tencentcloud-sdk-python-common==3.0.1375
+tencentcloud-sdk-python-sms==3.0.1375
+tencentcloud-sdk-python==3.0.1375
+
 # -----------   development.txt
 #-r base.txt
 
@@ -114,4 +119,3 @@ python-json-logger==3.2.1  # Useful for development debugging and log analysis
 # 文件类型检测 for windows
 
 gunicorn==21.2.0
-
