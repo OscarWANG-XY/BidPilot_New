@@ -4,7 +4,7 @@
 
 import { createRootRoute, Outlet, redirect, useLocation} from '@tanstack/react-router'    // 引入路由器
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'  // 引入路由器调试工具
-import { useAuth, AuthProvider } from '@/contexts/auth-context'  // 引入认证上下文
+import { useAuth, AuthProvider } from '@/_hooks/auth-context'  // 引入认证上下文
 import { AppSidebar } from "@/components/layout/app-sidebar"  // 引入自定义的侧边栏组件
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator 
 } from "@/components/ui/breadcrumb"  // 引入ui面包屑组件

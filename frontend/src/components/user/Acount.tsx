@@ -4,7 +4,7 @@ import * as React from "react"
 import { useState } from "react"
 import { BadgeCheck, User, Mail, Phone, Key, Upload, Loader2 } from "lucide-react"
 import { useToast } from "@/_hooks/use-toast"
-import { useAuth } from "@/contexts/auth-context"
+import { useAuth } from "@/_hooks/auth-context"
 import { UserResponse } from "@/_types/user_dt_stru"
 
 import { Button } from "@/components/ui/button"

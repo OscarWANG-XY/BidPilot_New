@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import { useAuth } from "@/contexts/auth-context"
+import { useAuth } from "@/_hooks/auth-context"
 import { useToast } from "@/_hooks/use-toast"
 import { useNavigate } from "@tanstack/react-router"
 

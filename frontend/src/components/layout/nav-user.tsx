@@ -28,7 +28,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { useAuth } from "@/contexts/auth-context"
+import { useAuth } from "@/_hooks/auth-context"
 import { useToast } from "@/_hooks/use-toast"
 import { UserResponse } from "@/_types/user_dt_stru"
 import { useNavigate } from "@tanstack/react-router"

@@ -1,5 +1,5 @@
 // useWechatLogin.ts
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/_hooks/auth-context";
 import { useToast } from "@/_hooks/use-toast";
 import { LoginMethod } from "@/_types/auth_dt_stru";
 

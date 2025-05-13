@@ -1,6 +1,6 @@
 //import { useEffect } from "react"; // 引入 React 的 useEffect 钩子，用于处理副作用
 
-import { useAuth } from "@/contexts/auth-context"; // 引入自定义的 Auth 上下文，用于处理登录逻辑
+import { useAuth } from "@/_hooks/auth-context"; // 引入自定义的 Auth 上下文，用于处理登录逻辑
 import { useToast } from "@/_hooks/use-toast"; // 引入自定义的 Toast 钩子，用于显示提示信息
 
 
