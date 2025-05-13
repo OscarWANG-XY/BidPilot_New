@@ -14,7 +14,6 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as TestgroundImport } from './routes/testground'
-import { Route as ChatImport } from './routes/chat'
 import { Route as ProjectsIndexImport } from './routes/projects/index'
 import { Route as PlaygroundIndexImport } from './routes/playground/index'
 import { Route as UsersSubscriptionImport } from './routes/users/subscription'
@@ -26,7 +25,6 @@ import { Route as PlaygroundTiptapeditorImport } from './routes/playground/tipta
 import { Route as PlaygroundTaskImport } from './routes/playground/task'
 import { Route as PlaygroundMarkdowneditorImport } from './routes/playground/markdown_editor'
 import { Route as PlaygroundLayoutImport } from './routes/playground/_layout'
-import { Route as ChatSessionIdImport } from './routes/chat.$sessionId'
 import { Route as AuthServiceTermImport } from './routes/auth/service-term'
 import { Route as AuthRegisterImport } from './routes/auth/register'
 import { Route as AuthPrivacyPolicyImport } from './routes/auth/privacy-policy'
@@ -87,12 +85,6 @@ const AboutLazyRoute = AboutLazyImport.update({
 const TestgroundRoute = TestgroundImport.update({
   id: '/testground',
   path: '/testground',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const ChatRoute = ChatImport.update({
-  id: '/chat',
-  path: '/chat',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -165,12 +157,6 @@ const PlaygroundMarkdowneditorRoute = PlaygroundMarkdowneditorImport.update({
 const PlaygroundLayoutRoute = PlaygroundLayoutImport.update({
   id: '/_layout',
   getParentRoute: () => PlaygroundRoute,
-} as any)
-
-const ChatSessionIdRoute = ChatSessionIdImport.update({
-  id: '/$sessionId',
-  path: '/$sessionId',
-  getParentRoute: () => ChatRoute,
 } as any)
 
 const AuthServiceTermRoute = AuthServiceTermImport.update({
@@ -269,13 +255,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexLazyImport
       parentRoute: typeof rootRoute
     }
-    '/chat': {
-      id: '/chat'
-      path: '/chat'
-      fullPath: '/chat'
-      preLoaderRoute: typeof ChatImport
-      parentRoute: typeof rootRoute
-    }
     '/testground': {
       id: '/testground'
       path: '/testground'
@@ -345,13 +324,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/service-term'
       preLoaderRoute: typeof AuthServiceTermImport
       parentRoute: typeof rootRoute
-    }
-    '/chat/$sessionId': {
-      id: '/chat/$sessionId'
-      path: '/$sessionId'
-      fullPath: '/chat/$sessionId'
-      preLoaderRoute: typeof ChatSessionIdImport
-      parentRoute: typeof ChatImport
     }
     '/playground': {
       id: '/playground'
@@ -498,16 +470,6 @@ declare module '@tanstack/react-router' {
 
 // Create and export the route tree
 
-interface ChatRouteChildren {
-  ChatSessionIdRoute: typeof ChatSessionIdRoute
-}
-
-const ChatRouteChildren: ChatRouteChildren = {
-  ChatSessionIdRoute: ChatSessionIdRoute,
-}
-
-const ChatRouteWithChildren = ChatRoute._addFileChildren(ChatRouteChildren)
-
 interface PlaygroundRouteChildren {
   PlaygroundLayoutRoute: typeof PlaygroundLayoutRoute
   PlaygroundMarkdowneditorRoute: typeof PlaygroundMarkdowneditorRoute
@@ -559,7 +521,6 @@ const ProjectsProjectIdRouteWithChildren =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexLazyRoute
-  '/chat': typeof ChatRouteWithChildren
   '/testground': typeof TestgroundRoute
   '/about': typeof AboutLazyRoute
   '/company': typeof CompanyLazyRoute
@@ -570,7 +531,6 @@ export interface FileRoutesByFullPath {
   '/auth/privacy-policy': typeof AuthPrivacyPolicyRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/service-term': typeof AuthServiceTermRoute
-  '/chat/$sessionId': typeof ChatSessionIdRoute
   '/playground': typeof PlaygroundLayoutRoute
   '/playground/markdown_editor': typeof PlaygroundMarkdowneditorRoute
   '/playground/task': typeof PlaygroundTaskRoute
@@ -594,7 +554,6 @@ export interface FileRoutesByFullPath {
 
 export interface FileRoutesByTo {
   '/': typeof IndexLazyRoute
-  '/chat': typeof ChatRouteWithChildren
   '/testground': typeof TestgroundRoute
   '/about': typeof AboutLazyRoute
   '/company': typeof CompanyLazyRoute
@@ -605,7 +564,6 @@ export interface FileRoutesByTo {
   '/auth/privacy-policy': typeof AuthPrivacyPolicyRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/service-term': typeof AuthServiceTermRoute
-  '/chat/$sessionId': typeof ChatSessionIdRoute
   '/playground': typeof PlaygroundIndexRoute
   '/playground/markdown_editor': typeof PlaygroundMarkdowneditorRoute
   '/playground/task': typeof PlaygroundTaskRoute
@@ -628,7 +586,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexLazyRoute
-  '/chat': typeof ChatRouteWithChildren
   '/testground': typeof TestgroundRoute
   '/about': typeof AboutLazyRoute
   '/company': typeof CompanyLazyRoute
@@ -639,7 +596,6 @@ export interface FileRoutesById {
   '/auth/privacy-policy': typeof AuthPrivacyPolicyRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/service-term': typeof AuthServiceTermRoute
-  '/chat/$sessionId': typeof ChatSessionIdRoute
   '/playground': typeof PlaygroundRouteWithChildren
   '/playground/_layout': typeof PlaygroundLayoutRoute
   '/playground/markdown_editor': typeof PlaygroundMarkdowneditorRoute
@@ -666,7 +622,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/chat'
     | '/testground'
     | '/about'
     | '/company'
@@ -677,7 +632,6 @@ export interface FileRouteTypes {
     | '/auth/privacy-policy'
     | '/auth/register'
     | '/auth/service-term'
-    | '/chat/$sessionId'
     | '/playground'
     | '/playground/markdown_editor'
     | '/playground/task'
@@ -700,7 +654,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/chat'
     | '/testground'
     | '/about'
     | '/company'
@@ -711,7 +664,6 @@ export interface FileRouteTypes {
     | '/auth/privacy-policy'
     | '/auth/register'
     | '/auth/service-term'
-    | '/chat/$sessionId'
     | '/playground'
     | '/playground/markdown_editor'
     | '/playground/task'
@@ -732,7 +684,6 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/chat'
     | '/testground'
     | '/about'
     | '/company'
@@ -743,7 +694,6 @@ export interface FileRouteTypes {
     | '/auth/privacy-policy'
     | '/auth/register'
     | '/auth/service-term'
-    | '/chat/$sessionId'
     | '/playground'
     | '/playground/_layout'
     | '/playground/markdown_editor'
@@ -769,7 +719,6 @@ export interface FileRouteTypes {
 
 export interface RootRouteChildren {
   IndexLazyRoute: typeof IndexLazyRoute
-  ChatRoute: typeof ChatRouteWithChildren
   TestgroundRoute: typeof TestgroundRoute
   AboutLazyRoute: typeof AboutLazyRoute
   CompanyLazyRoute: typeof CompanyLazyRoute
@@ -791,7 +740,6 @@ export interface RootRouteChildren {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexLazyRoute: IndexLazyRoute,
-  ChatRoute: ChatRouteWithChildren,
   TestgroundRoute: TestgroundRoute,
   AboutLazyRoute: AboutLazyRoute,
   CompanyLazyRoute: CompanyLazyRoute,
@@ -822,7 +770,6 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
-        "/chat",
         "/testground",
         "/about",
         "/company",
@@ -844,12 +791,6 @@ export const routeTree = rootRoute
     },
     "/": {
       "filePath": "index.lazy.tsx"
-    },
-    "/chat": {
-      "filePath": "chat.tsx",
-      "children": [
-        "/chat/$sessionId"
-      ]
     },
     "/testground": {
       "filePath": "testground.tsx"
@@ -880,10 +821,6 @@ export const routeTree = rootRoute
     },
     "/auth/service-term": {
       "filePath": "auth/service-term.tsx"
-    },
-    "/chat/$sessionId": {
-      "filePath": "chat.$sessionId.tsx",
-      "parent": "/chat"
     },
     "/playground": {
       "filePath": "playground",

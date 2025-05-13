@@ -69,7 +69,7 @@ projects,
           </SidebarMenuButton>
         </SidebarMenuItem>
 
-        <SidebarMenuItem>
+        {/* <SidebarMenuItem>
           <SidebarMenuButton asChild>
             <a href="/chat" className={`w-full flex items-center gap-2 px-2 ${pathname === '/chat' ? 'bg-gray-100 rounded' : ''}`}>
               <Building2 className="h-4 w-4" /> 
@@ -77,7 +77,7 @@ projects,
             </a>
 
           </SidebarMenuButton>
-        </SidebarMenuItem>
+        </SidebarMenuItem> */}
 
 
       </SidebarMenu>
