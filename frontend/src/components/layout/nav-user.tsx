@@ -31,6 +31,7 @@ import {
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/_hooks/use-toast"
 import { UserResponse } from "@/_types/user_dt_stru"
+import { useNavigate } from "@tanstack/react-router"
 
 // ========================= 用户导航栏 =========================
 export function NavUser({
@@ -41,6 +42,7 @@ export function NavUser({
   const { isMobile } = useSidebar()
   const { logout } = useAuth()
   const { toast } = useToast()
+  const navigate = useNavigate()
 
   // 创建一个安全的用户对象，当user为null时使用默认值
   const safeUser = user || {
@@ -111,25 +113,25 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Sparkles />
-                Upgrade to Pro
+              <DropdownMenuItem onClick={() => navigate({ to: "/users/subscription" })}>
+                <Sparkles className="mr-2 h-4 w-4" />
+                升级为Pro
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck />
-                Account
+              <DropdownMenuItem onClick={() => navigate({ to: "/users/account" })}>
+                <BadgeCheck className="mr-2 h-4 w-4" />
+                账户管理
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard />
-                Billing
+              <DropdownMenuItem onClick={() => navigate({ to: "/users/billing" })}>
+                <CreditCard className="mr-2 h-4 w-4" />
+                订单查询
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell />
-                Notifications
-              </DropdownMenuItem>
+              {/* <DropdownMenuItem onClick={() => navigate({ to: "/users/settings" })}>
+                <Bell className="mr-2 h-4 w-4" />
+                系统设置
+              </DropdownMenuItem> */}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>

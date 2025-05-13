@@ -17,6 +17,10 @@ import { Route as TestgroundImport } from './routes/testground'
 import { Route as ChatImport } from './routes/chat'
 import { Route as ProjectsIndexImport } from './routes/projects/index'
 import { Route as PlaygroundIndexImport } from './routes/playground/index'
+import { Route as UsersSubscriptionImport } from './routes/users/subscription'
+import { Route as UsersSettingsImport } from './routes/users/settings'
+import { Route as UsersBillingImport } from './routes/users/billing'
+import { Route as UsersAccountImport } from './routes/users/account'
 import { Route as ProjectsProjectIdImport } from './routes/projects/$projectId'
 import { Route as PlaygroundTiptapeditorImport } from './routes/playground/tiptap_editor'
 import { Route as PlaygroundTaskImport } from './routes/playground/task'
@@ -108,6 +112,30 @@ const PlaygroundIndexRoute = PlaygroundIndexImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => PlaygroundRoute,
+} as any)
+
+const UsersSubscriptionRoute = UsersSubscriptionImport.update({
+  id: '/users/subscription',
+  path: '/users/subscription',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const UsersSettingsRoute = UsersSettingsImport.update({
+  id: '/users/settings',
+  path: '/users/settings',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const UsersBillingRoute = UsersBillingImport.update({
+  id: '/users/billing',
+  path: '/users/billing',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const UsersAccountRoute = UsersAccountImport.update({
+  id: '/users/account',
+  path: '/users/account',
+  getParentRoute: () => rootRoute,
 } as any)
 
 const ProjectsProjectIdRoute = ProjectsProjectIdImport.update({
@@ -367,6 +395,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdImport
       parentRoute: typeof rootRoute
     }
+    '/users/account': {
+      id: '/users/account'
+      path: '/users/account'
+      fullPath: '/users/account'
+      preLoaderRoute: typeof UsersAccountImport
+      parentRoute: typeof rootRoute
+    }
+    '/users/billing': {
+      id: '/users/billing'
+      path: '/users/billing'
+      fullPath: '/users/billing'
+      preLoaderRoute: typeof UsersBillingImport
+      parentRoute: typeof rootRoute
+    }
+    '/users/settings': {
+      id: '/users/settings'
+      path: '/users/settings'
+      fullPath: '/users/settings'
+      preLoaderRoute: typeof UsersSettingsImport
+      parentRoute: typeof rootRoute
+    }
+    '/users/subscription': {
+      id: '/users/subscription'
+      path: '/users/subscription'
+      fullPath: '/users/subscription'
+      preLoaderRoute: typeof UsersSubscriptionImport
+      parentRoute: typeof rootRoute
+    }
     '/playground/': {
       id: '/playground/'
       path: '/'
@@ -520,6 +576,10 @@ export interface FileRoutesByFullPath {
   '/playground/task': typeof PlaygroundTaskRoute
   '/playground/tiptap_editor': typeof PlaygroundTiptapeditorRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
+  '/users/account': typeof UsersAccountRoute
+  '/users/billing': typeof UsersBillingRoute
+  '/users/settings': typeof UsersSettingsRoute
+  '/users/subscription': typeof UsersSubscriptionRoute
   '/playground/': typeof PlaygroundIndexRoute
   '/projects': typeof ProjectsIndexRoute
   '/projects/$projectId/bid-writing': typeof ProjectsProjectIdBidWritingRoute
@@ -550,6 +610,10 @@ export interface FileRoutesByTo {
   '/playground/markdown_editor': typeof PlaygroundMarkdowneditorRoute
   '/playground/task': typeof PlaygroundTaskRoute
   '/playground/tiptap_editor': typeof PlaygroundTiptapeditorRoute
+  '/users/account': typeof UsersAccountRoute
+  '/users/billing': typeof UsersBillingRoute
+  '/users/settings': typeof UsersSettingsRoute
+  '/users/subscription': typeof UsersSubscriptionRoute
   '/projects': typeof ProjectsIndexRoute
   '/projects/$projectId/bid-writing': typeof ProjectsProjectIdBidWritingRoute
   '/projects/$projectId/tender-analysis': typeof ProjectsProjectIdTenderAnalysisRoute
@@ -582,6 +646,10 @@ export interface FileRoutesById {
   '/playground/task': typeof PlaygroundTaskRoute
   '/playground/tiptap_editor': typeof PlaygroundTiptapeditorRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
+  '/users/account': typeof UsersAccountRoute
+  '/users/billing': typeof UsersBillingRoute
+  '/users/settings': typeof UsersSettingsRoute
+  '/users/subscription': typeof UsersSubscriptionRoute
   '/playground/': typeof PlaygroundIndexRoute
   '/projects/': typeof ProjectsIndexRoute
   '/projects/$projectId/bid-writing': typeof ProjectsProjectIdBidWritingRoute
@@ -615,6 +683,10 @@ export interface FileRouteTypes {
     | '/playground/task'
     | '/playground/tiptap_editor'
     | '/projects/$projectId'
+    | '/users/account'
+    | '/users/billing'
+    | '/users/settings'
+    | '/users/subscription'
     | '/playground/'
     | '/projects'
     | '/projects/$projectId/bid-writing'
@@ -644,6 +716,10 @@ export interface FileRouteTypes {
     | '/playground/markdown_editor'
     | '/playground/task'
     | '/playground/tiptap_editor'
+    | '/users/account'
+    | '/users/billing'
+    | '/users/settings'
+    | '/users/subscription'
     | '/projects'
     | '/projects/$projectId/bid-writing'
     | '/projects/$projectId/tender-analysis'
@@ -674,6 +750,10 @@ export interface FileRouteTypes {
     | '/playground/task'
     | '/playground/tiptap_editor'
     | '/projects/$projectId'
+    | '/users/account'
+    | '/users/billing'
+    | '/users/settings'
+    | '/users/subscription'
     | '/playground/'
     | '/projects/'
     | '/projects/$projectId/bid-writing'
@@ -702,6 +782,10 @@ export interface RootRouteChildren {
   AuthServiceTermRoute: typeof AuthServiceTermRoute
   PlaygroundRoute: typeof PlaygroundRouteWithChildren
   ProjectsProjectIdRoute: typeof ProjectsProjectIdRouteWithChildren
+  UsersAccountRoute: typeof UsersAccountRoute
+  UsersBillingRoute: typeof UsersBillingRoute
+  UsersSettingsRoute: typeof UsersSettingsRoute
+  UsersSubscriptionRoute: typeof UsersSubscriptionRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
 }
 
@@ -720,6 +804,10 @@ const rootRouteChildren: RootRouteChildren = {
   AuthServiceTermRoute: AuthServiceTermRoute,
   PlaygroundRoute: PlaygroundRouteWithChildren,
   ProjectsProjectIdRoute: ProjectsProjectIdRouteWithChildren,
+  UsersAccountRoute: UsersAccountRoute,
+  UsersBillingRoute: UsersBillingRoute,
+  UsersSettingsRoute: UsersSettingsRoute,
+  UsersSubscriptionRoute: UsersSubscriptionRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
 }
 
@@ -747,6 +835,10 @@ export const routeTree = rootRoute
         "/auth/service-term",
         "/playground",
         "/projects/$projectId",
+        "/users/account",
+        "/users/billing",
+        "/users/settings",
+        "/users/subscription",
         "/projects/"
       ]
     },
@@ -831,6 +923,18 @@ export const routeTree = rootRoute
         "/projects/$projectId/history/stage/$historyId",
         "/projects/$projectId/history/task/$historyId"
       ]
+    },
+    "/users/account": {
+      "filePath": "users/account.tsx"
+    },
+    "/users/billing": {
+      "filePath": "users/billing.tsx"
+    },
+    "/users/settings": {
+      "filePath": "users/settings.tsx"
+    },
+    "/users/subscription": {
+      "filePath": "users/subscription.tsx"
     },
     "/playground/": {
       "filePath": "playground/index.tsx",
