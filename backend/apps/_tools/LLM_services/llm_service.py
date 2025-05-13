@@ -1,6 +1,5 @@
 from ._generic_llm_services import GenericLLMService, LLMRequest, LLMConfig, RedisStreamingCallbackHandler
 from ._batch_llm_services import BatchLLMService
-from apps.doc_analysis.pipeline.types import OutlineAnalysisResult
 from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from typing import Any, List, Union, Optional
 import os

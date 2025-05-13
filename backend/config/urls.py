@@ -40,8 +40,8 @@ urlpatterns = [
     path('api/auth/', include('apps.authentication.urls')),
     path('api/files/', include('apps.files.urls')),
     path('api/projects/', include('apps.projects.urls')),
-    path('api/doc_analysis/', include('apps.doc_analysis.urls')),
-    path('api/chat/', include('apps.chat.urls')),
+    # path('api/doc_analysis/', include('apps.doc_analysis.urls')),
+    # path('api/chat/', include('apps.chat.urls')),
     path('api/testground/', include('apps.testground.urls')),
 
     # ------------------------------ API 文档 ------------------------------
