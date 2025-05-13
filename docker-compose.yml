@@ -4,6 +4,8 @@ services:
   # 数据库服务
   db:
     image: postgres:14.17 # # 这个名字不要改，使用官方镜像名
+    ports:
+      - "5432:5432"
     container_name: bidpilot_dev_db # 修改：更明确的容器名称
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data

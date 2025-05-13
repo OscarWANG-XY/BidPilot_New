@@ -1,5 +1,6 @@
 import random
 import logging
+import string
 from datetime import timedelta
 from django.utils import timezone
 from django.contrib.auth import authenticate
@@ -19,10 +20,13 @@ class AuthService:
         """生成JWT令牌"""
         refresh = RefreshToken.for_user(user)
 
-        logger.info("生成令牌：", 
-                    "access_token: ", str(refresh.access_token),
-                    "refresh_token: ", str(refresh),
-                    "user: ", user)
+        logger.info("生成令牌：access_token: %s, refresh_token: %s, user: %s", 
+                    str(refresh.access_token),
+                    str(refresh),
+                    user)
+        
+        # 确保使用最新的用户数据
+        user = User.objects.get(id=user.id)        
 
         return {
             'access_token': str(refresh.access_token),
@@ -47,6 +51,15 @@ class AuthService:
         if not user:
             logger.error("认证失败：用户名或密码错误")
             raise ValueError('用户名或密码错误')
+        
+        # 如果用户没有用户名，生成用户名
+        if not user.username:
+            user.username = AuthService.generate_username(user.phone)
+            user.save()
+            logger.info("为现有用户生成用户名: %s", user.username)
+        
+                    # 重新获取用户以确保有最新数据
+            user = User.objects.get(id=user.id)
         
         logger.info("用户认证成功: %s", user.phone if hasattr(user, 'phone') else user.email)
         return AuthService.generate_tokens(user)
@@ -138,6 +151,17 @@ class AuthService:
         return True
 
 
+    # -----------  生成用户名 done test   -------------
+    @staticmethod
+    def generate_username(phone: str):
+        """基于手机号生成用户名"""
+        # 生成格式为 user_<手机号后4位>_<6位随机字符串>
+        suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
+        phone_tail = phone[-4:] if len(phone) >= 4 else phone
+        username = f"user_{phone_tail}_{suffix}"
+        logger.info("生成用户名: %s", username)
+        return username
+
     # -----------  验证码登录 done test   -------------
     # 请注意，由于我们使用了get_or_create方法，如果用户不存在，会自动创建一个新用户。
     # 因此，如果用户不存在，会自动创建一个新用户， 验证码登录即注册（具有注册功能）
@@ -155,6 +179,14 @@ class AuthService:
         
         # 获取或创建用户
         user, created = User.objects.get_or_create(phone=phone)
+        
+        # 如果是新创建的用户或现有用户没有用户名，生成用户名
+        if created or not user.username:
+            user.username = AuthService.generate_username(phone)
+            user.save()
+            # 重新获取用户以确保有最新数据
+            user = User.objects.get(id=user.id)
+
         logger.info("用户%s: %s", "创建" if created else "获取", user.phone)
         
         return AuthService.generate_tokens(user)
@@ -181,14 +213,16 @@ class AuthService:
             if User.objects.filter(phone=phone).exists():
                 raise ValueError('该手机号已注册')
             
+            # 生成用户名
+            username = AuthService.generate_username(phone)
+            
             # 创建用户
-            user = User.objects.create_user(phone=phone, password=password)
+            user = User.objects.create_user(phone=phone, password=password, username=username)
 
-            logger.info("用户创建成功: %s", user.phone)
+            logger.info("用户创建成功: %s，用户名: %s", user.phone, user.username)
             logger.info("传递完整用户对象到给到 generate_tokens 方法", user)
             return AuthService.generate_tokens(user)
         
-
         except Exception as e:
             logger.error("注册过程出错: %s", str(e))
             raise
