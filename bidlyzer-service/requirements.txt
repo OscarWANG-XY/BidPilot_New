@@ -1,0 +1,39 @@
+
+
+# 核心依赖
+fastapi==0.115.12
+uvicorn==0.34.2
+pydantic==2.9.2
+python-dotenv==1.0.1
+
+# LLM Core
+langchain==0.3.13
+langchain-core==0.3.28
+langchain-openai==0.2.14
+langchain-community == 0.3.13
+
+#测试
+pytest==8.3.4
+httpx==0.28.1    # 用于HTTP测试
+
+
+redis==5.2.1
+celery==5.3.6
+celery[beat]
+
+websockets==15.0.1
+python-jose==3.4.0
+
+# vsCode开发用具，用于notebook测试
+# 不需要安装jupyterlab，使用vscode的notebook扩展即可，
+ipython==8.12.3   
+ipykernel==6.29.0
+debugpy==1.8.0
+
+
+# ORM相关
+tortoise-orm==0.20.0  # 最新稳定版本
+aerich==0.7.2  # Tortoise ORM的迁移工具
+
+# 如果使用PostgreSQL
+asyncpg==0.30.0

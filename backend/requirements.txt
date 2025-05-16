@@ -60,7 +60,7 @@ django-redis==5.4.0
 django_celery_beat==2.7.0
 django_celery_results==2.5.1
 # Celery 
-kombu==5.5.3  # 支持使用数据库作为消息代理
+# kombu==5.5.3  # 不需要单独列出来，安装celery时会自动安装
 
 # 文档处理
 mammoth==1.9.0
