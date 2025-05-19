@@ -3,11 +3,12 @@ from tortoise import fields
 from tortoise.models import Model
 from enum import Enum
 import json
+import uuid
 
 
 class StructuringAgentState(Model):
     """文档结构化代理状态模型"""
-    id = fields.IntField(pk=True)
+    id = fields.UUIDField(pk=True, default=uuid.uuid4)
     project_id = fields.CharField(max_length=255, unique=True)
     state = fields.CharField(max_length=50)
     state_history = fields.JSONField(default=list)
@@ -20,7 +21,7 @@ class StructuringAgentState(Model):
 
 class StructuringAgentDocument(Model):
     """文档结构化代理文档模型"""
-    id = fields.IntField(pk=True)
+    id = fields.UUIDField(pk=True, default=uuid.uuid4)
     project_id = fields.CharField(max_length=255)
     document_type = fields.CharField(max_length=50)
     content = fields.JSONField()

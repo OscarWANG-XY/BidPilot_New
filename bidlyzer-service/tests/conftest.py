@@ -43,3 +43,15 @@ skip_if_no_redis = pytest.mark.skipif(
     reason="Set REDIS_TEST=true or ALL_INTEGRATION_TESTS=true to run Redis integration tests"
 )
 
+# 模型测试跳过条件
+skip_if_no_model = pytest.mark.skipif(
+    not (os.getenv("MODEL_TEST") == "true" or RUN_ALL_INTEGRATION_TESTS),
+    reason="Set MODEL_TEST=true or ALL_INTEGRATION_TESTS=true to run model tests"
+)
+
+# Postgres集成测试跳过条件
+skip_if_no_postgres = pytest.mark.skipif(
+    not (os.getenv("POSTGRES_TEST") == "true" or RUN_ALL_INTEGRATION_TESTS),
+    reason="Set POSTGRES_TEST=true or ALL_INTEGRATION_TESTS=true to run Postgres integration tests"
+)
+

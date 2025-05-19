@@ -46,8 +46,8 @@ class Settings(BaseSettings):
     STRUCTURING_CACHE_TIMEOUT: int = Field(default=900, description="缓存超时时间（秒）")
 
     # ----------------------------- Tiptap Service Configuration -----------------------------
-    TIPTAP_SERVICE_URL: str = 'http://tiptap:3001'  # 使用 Docker 服务名称
-    TIPTAP_SERVICE_TIMEOUT: int = 30  # seconds
+    TIPTAP_SERVICE_URL: str = Field(default='http://tiptap:3001', description="Tiptap Service URL")
+    TIPTAP_SERVICE_TIMEOUT: int = Field(default=30, description="Tiptap Service Timeout")
 
 
     # Pydantic 的特殊配置类, 这里配置了环境变量文件的加载方式

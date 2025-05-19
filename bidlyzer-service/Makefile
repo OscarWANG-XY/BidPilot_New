@@ -19,9 +19,15 @@ test-tiptap:
 		tests/unit/test_tiptap_utils.py \
 		tests/unit/test_tiptap_helpers.py -v
 
-test-tiptap-helpers:
-	PYTHONPATH=. DOCX_TEST=true pytest \
-		tests/unit/test_tiptap_helpers.py -v
+test-models:
+	PYTHONPATH=. MODEL_TEST=true pytest \
+		tests/integration/test_models_structuring.py \
+		tests/integration/test_models_structuring_interaction.py \
+		tests/unit/test_models_structuring.py -v
+
+test-postgres:
+	PYTHONPATH=. POSTGRES_TEST=true pytest \
+		tests/integration/test_postgres.py -v
 
 
 # 使用标记运行所有集成测试
