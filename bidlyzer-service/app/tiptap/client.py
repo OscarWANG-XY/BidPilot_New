@@ -5,7 +5,11 @@ import logging
 import inspect
 from app.core.config import settings
 
+# 配置日志
 logger = logging.getLogger(__name__)
+# 设置 httpx 和 httpcore 的日志级别为 WARNING，这样就不会显示 DEBUG 信息
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 class TiptapClient:
     """Tiptap服务客户端，用于与tiptap-service进行通信"""
