@@ -1,34 +1,36 @@
 .PHONY: test test-unit test-integration test-redis test-tiptap test-docx test-all test-all-integration
 
-# 运行单元测试
-test-unit:
-	PYTHONPATH=. pytest tests/unit -v
+
 
 # 运行特定集成测试
 test-redis:
-	PYTHONPATH=. REDIS_TEST=true pytest tests/integration/test_redis.py -v
-
-
-test-tiptap:
-	PYTHONPATH=. TIPTAP_TEST=true pytest \
-		tests/integration/test_tiptap_client.py \
-		tests/integration/test_tiptap_docx.py \
-		tests/integration/test_tiptap_utils.py \
-		tests/unit/test_tiptap_client.py \
-		tests/unit/test_tiptap_docx.py \
-		tests/unit/test_tiptap_utils.py \
-		tests/unit/test_tiptap_helpers.py -v
-
-test-models:
-	PYTHONPATH=. MODEL_TEST=true pytest \
-		tests/integration/test_models_structuring.py \
-		tests/integration/test_models_structuring_interaction.py \
-		tests/unit/test_models_structuring.py -v
+	PYTHONPATH=. REDIS_TEST=true pytest app/core/tests/integration/test_redis.py -v
 
 test-postgres:
 	PYTHONPATH=. POSTGRES_TEST=true pytest \
-		tests/integration/test_postgres.py -v
+		app/core/tests/integration/test_postgres.py \
+		app/core/tests/unit/test_postgres.py -v
 
+test-tiptap:
+	PYTHONPATH=. TIPTAP_TEST=true pytest \
+		app/tiptap/tests/integration/test_tiptap_client.py \
+		app/tiptap/tests/integration/test_tiptap_docx.py \
+		app/tiptap/tests/integration/test_tiptap_utils.py \
+		app/tiptap/tests/unit/test_tiptap_client.py \
+		app/tiptap/tests/unit/test_tiptap_docx.py \
+		app/tiptap/tests/unit/test_tiptap_utils.py \
+		app/tiptap/tests/unit/test_tiptap_helpers.py -v
+
+test-models:
+	PYTHONPATH=. MODEL_TEST=true pytest \
+		app/models/tests/integration/test_models_structuring.py \
+		app/models/tests/integration/test_models_structuring_interaction.py \
+		app/models/tests/unit/test_models_structuring.py -v
+
+
+test-api:
+	PYTHONPATH=. API_TEST=true pytest \
+		app/api/tests/unit/test_documents.py -v
 
 # 使用标记运行所有集成测试
 test-integration:

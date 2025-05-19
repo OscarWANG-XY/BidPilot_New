@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     # 基础配置
     API_V1_STR: str = "/api/v1"  # API 的版本前缀，默认值为 "/api/v1"
     PROJECT_NAME: str = "Bidlyzer-Service"   # 项目名称
-    
+    API_PORT: int = Field(default=8001, description="API 端口")
 
     #路径配置（显示定义）
     PROJECT_ROOT: Path = Field(

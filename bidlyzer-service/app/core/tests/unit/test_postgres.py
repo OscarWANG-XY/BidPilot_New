@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from app.core.db_helper import init_db, close_db, generate_schemas, TORTOISE_ORM
 from tortoise.exceptions import DBConnectionError
-from tests.conftest import skip_if_no_postgres
+from conftest import skip_if_no_postgres
 import logging
 
 # 配置日志

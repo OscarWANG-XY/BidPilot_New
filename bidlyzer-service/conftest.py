@@ -55,3 +55,9 @@ skip_if_no_postgres = pytest.mark.skipif(
     reason="Set POSTGRES_TEST=true or ALL_INTEGRATION_TESTS=true to run Postgres integration tests"
 )
 
+# API集成测试跳过条件
+skip_if_no_api = pytest.mark.skipif(
+    not (os.getenv("API_TEST") == "true" or RUN_ALL_INTEGRATION_TESTS),
+    reason="Set API_TEST=true or ALL_INTEGRATION_TESTS=true to run API integration tests"
+)
+

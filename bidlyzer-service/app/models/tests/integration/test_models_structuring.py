@@ -7,7 +7,7 @@ import os
 import logging
 import uuid
 from app.models.structuring_models import StructuringAgentState, StructuringAgentDocument
-from tests.conftest import skip_if_no_redis  # 只导入全局 conftest 中的跳过装饰器
+from conftest import skip_if_no_redis  # 只导入全局 conftest 中的跳过装饰器
 
 # 配置日志
 logger = logging.getLogger(__name__)

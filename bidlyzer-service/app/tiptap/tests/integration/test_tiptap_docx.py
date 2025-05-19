@@ -2,7 +2,7 @@ import pytest
 import os
 from app.tiptap.docx import docx_to_tiptap_json
 from app.tiptap.client import TiptapClient
-from ..conftest import skip_if_no_tiptap
+from conftest import skip_if_no_tiptap
 
 pytestmark = [pytest.mark.integration, pytest.mark.tiptap]
 

@@ -10,7 +10,7 @@ from app.tiptap.utils import (
     set_content_from_html,
     set_content_from_markdown
 )
-from tests.conftest import skip_if_no_tiptap
+from conftest import skip_if_no_tiptap
 
 pytestmark = [pytest.mark.tiptap]
 

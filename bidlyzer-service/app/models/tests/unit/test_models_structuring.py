@@ -2,7 +2,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from app.models.structuring_models import StructuringAgentState, StructuringAgentDocument
-from tests.conftest import skip_if_no_model
+from conftest import skip_if_no_model
 import uuid
 from tortoise import fields
 

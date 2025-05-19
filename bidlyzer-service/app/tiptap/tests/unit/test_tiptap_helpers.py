@@ -1,7 +1,7 @@
 import pytest
 import json
 from app.tiptap.helpers import TiptapUtils
-from tests.conftest import skip_if_no_tiptap
+from conftest import skip_if_no_tiptap
 
 pytestmark = [pytest.mark.tiptap]
 

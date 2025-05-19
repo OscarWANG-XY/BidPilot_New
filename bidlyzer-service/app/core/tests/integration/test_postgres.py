@@ -6,7 +6,7 @@ import logging
 from tortoise import Tortoise
 from app.core.db_helper import init_db, close_db, generate_schemas, TORTOISE_ORM
 from app.core.config import settings
-from ..conftest import skip_if_no_postgres
+from conftest import skip_if_no_postgres
 
 # 配置日志
 logging.basicConfig(level=logging.DEBUG)

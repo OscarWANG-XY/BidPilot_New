@@ -7,7 +7,7 @@ from app.core.config import settings
 from app.core.redis_helper import RedisClient
 from app.core.db_helper import init_db, close_db, generate_schemas
 from tortoise import Tortoise
-#from app.api.endpoints import documents
+from app.api.endpoints import documents 
 
 
 
@@ -56,7 +56,7 @@ app.add_middleware(
 
 
 # 添加路由
-# app.include_router(documents.router, prefix=settings.API_V1_STR)
+app.include_router(documents.router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def read_root():
@@ -105,6 +105,6 @@ async def ping_db():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=settings.API_PORT, reload=True)
     # 可直接运行：python -m app.main
     # 不推荐在notebook中运行,会阻塞当前 Notebook 内核（需要手动停止或重启内核才能退出）

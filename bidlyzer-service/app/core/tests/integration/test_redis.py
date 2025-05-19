@@ -4,7 +4,7 @@ import json
 import pytest
 import pytest_asyncio
 from app.core.config import settings
-from ..conftest import skip_if_no_redis
+from conftest import skip_if_no_redis
 from app.core.redis_helper import RedisClient
 
 
