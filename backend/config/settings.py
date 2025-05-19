@@ -290,8 +290,12 @@ SPECTACULAR_SETTINGS = {
 
 
 # ----------------------------- Tiptap Service Configuration -----------------------------
-TIPTAP_SERVICE_URL = 'http://tiptap:3001'  # 使用 Docker 服务名称
-TIPTAP_SERVICE_TIMEOUT = 30  # seconds
+TIPTAP_SERVICE_URL = os.getenv('TIPTAP_SERVICE_URL', 'http://localhost:3001')  # 使用 Docker 服务名称
+TIPTAP_SERVICE_TIMEOUT = os.getenv('TIPTAP_SERVICE_TIMEOUT', 30)  # seconds
+
+
+# ----------------------------- Bidlyzer Service Configuration -----------------------------
+BIDLYZER_SERVICE_URL = os.getenv('BIDLYZER_SERVICE_URL', 'http://localhost:8001')  # 使用 Docker 服务名称
 
 
 
