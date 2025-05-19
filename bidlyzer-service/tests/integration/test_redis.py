@@ -2,11 +2,32 @@
 import asyncio
 import json
 import pytest
+import pytest_asyncio
 from app.core.config import settings
-from .conftest import skip_if_no_redis
+from ..conftest import skip_if_no_redis
+from app.core.redis_helper import RedisClient
+
 
 # 添加标记，使其可以通过pytest -m redis运行
 pytestmark = [pytest.mark.integration, pytest.mark.redis]
+
+@pytest_asyncio.fixture
+async def redis_client():
+    """获取Redis客户端连接作为fixture"""
+    client = await RedisClient.get_client()
+    yield client
+    # 清理测试数据
+    await client.delete("test_key", "test_json")
+    # 关闭连接
+    await client.aclose()
+
+@pytest.fixture
+def event_loop():
+    """创建一个新的事件循环"""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close() 
+
 
 @skip_if_no_redis
 def test_env_loading():

@@ -3,12 +3,24 @@ import os
 import asyncio
 from app.tiptap.client import TiptapClient
 import logging
-from .conftest import skip_if_no_service
+from ..conftest import skip_if_no_service
 
 logger = logging.getLogger(__name__)
 
 # 添加标记，使其可以通过pytest -m tiptap运行
 pytestmark = [pytest.mark.integration, pytest.mark.tiptap]
+
+@pytest.fixture(scope="session")
+def tiptap_service_url():
+    """从环境变量获取Tiptap服务URL"""
+    return os.getenv("TIPTAP_SERVICE_URL", "http://localhost:3001")
+
+@pytest.fixture
+def tiptap_client(tiptap_service_url):
+    """创建一个真实的TiptapClient实例"""
+    logger.info(f"创建TiptapClient实例，连接到 {tiptap_service_url}")
+    return TiptapClient(base_url=tiptap_service_url)
+
 
 @skip_if_no_service
 @pytest.mark.asyncio
