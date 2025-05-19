@@ -42,6 +42,14 @@ class Settings(BaseSettings):
     REDIS_URL: str = ""
 
 
+    # 缓存配置 for cache_manager.py
+    STRUCTURING_CACHE_TIMEOUT: int = Field(default=900, description="缓存超时时间（秒）")
+
+    # ----------------------------- Tiptap Service Configuration -----------------------------
+    TIPTAP_SERVICE_URL: str = 'http://tiptap:3001'  # 使用 Docker 服务名称
+    TIPTAP_SERVICE_TIMEOUT: int = 30  # seconds
+
+
     # Pydantic 的特殊配置类, 这里配置了环境变量文件的加载方式
     class Config:
         env_file = str(Path(__file__).resolve().parent.parent.parent / ".env")   #指定从.env文件加载环境变量
