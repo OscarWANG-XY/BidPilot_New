@@ -6,13 +6,23 @@ test-unit:
 
 # 运行特定集成测试
 test-redis:
-	PYTHONPATH=. REDIS_INTEGRATION_TEST=true pytest tests/integration/test_redis.py -v
+	PYTHONPATH=. REDIS_TEST=true pytest tests/integration/test_redis.py -v
+
 
 test-tiptap:
-	PYTHONPATH=. TIPTAP_INTEGRATION_TEST=true pytest tests/integration/test_tiptap_client.py -v
+	PYTHONPATH=. TIPTAP_TEST=true pytest \
+		tests/integration/test_tiptap_client.py \
+		tests/integration/test_tiptap_docx.py \
+		tests/integration/test_tiptap_utils.py \
+		tests/unit/test_tiptap_client.py \
+		tests/unit/test_tiptap_docx.py \
+		tests/unit/test_tiptap_utils.py \
+		tests/unit/test_tiptap_helpers.py -v
 
-test-docx:
-	PYTHONPATH=. DOCX_TEST=true pytest tests/unit/test_docx.py tests/integration/test_docx.py -v
+test-tiptap-helpers:
+	PYTHONPATH=. DOCX_TEST=true pytest \
+		tests/unit/test_tiptap_helpers.py -v
+
 
 # 使用标记运行所有集成测试
 test-integration:

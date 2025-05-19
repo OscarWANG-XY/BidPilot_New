@@ -3,7 +3,7 @@ import os
 import asyncio
 from app.tiptap.client import TiptapClient
 import logging
-from ..conftest import skip_if_no_service
+from ..conftest import skip_if_no_tiptap
 
 logger = logging.getLogger(__name__)
 
@@ -22,14 +22,16 @@ def tiptap_client(tiptap_service_url):
     return TiptapClient(base_url=tiptap_service_url)
 
 
-@skip_if_no_service
+@skip_if_no_tiptap
+@pytest.mark.tiptap
 @pytest.mark.asyncio
 async def test_health_check(tiptap_client):
     """测试健康检查"""
     is_healthy = await tiptap_client.health_check()
     assert is_healthy, "Tiptap服务应该处于健康状态"
 
-@skip_if_no_service
+@skip_if_no_tiptap
+@pytest.mark.tiptap
 @pytest.mark.asyncio
 async def test_html_to_json_integration(tiptap_client):
     """测试HTML到JSON的转换"""
@@ -48,7 +50,8 @@ async def test_html_to_json_integration(tiptap_client):
     assert paragraph["type"] == "paragraph", "第一个内容节点应该是段落"
     assert "content" in paragraph, "段落应该有内容"
 
-@skip_if_no_service
+@skip_if_no_tiptap
+@pytest.mark.tiptap
 @pytest.mark.asyncio
 async def test_json_to_html_integration(tiptap_client):
     """测试JSON到HTML的转换"""
@@ -87,7 +90,8 @@ async def test_json_to_html_integration(tiptap_client):
     assert "<strong>World</strong>" in result, "结果应该包含带有加粗格式的World"
     assert "<p" in result, "结果应该包含段落标签"
 
-@skip_if_no_service
+@skip_if_no_tiptap
+@pytest.mark.tiptap
 @pytest.mark.asyncio
 async def test_markdown_conversions_integration(tiptap_client):
     """测试Markdown相关的转换"""
@@ -135,7 +139,8 @@ async def test_markdown_conversions_integration(tiptap_client):
     assert "# Heading" in md_from_json, "结果应该包含Markdown标题"
     assert "**bold**" in md_from_json, "结果应该包含Markdown加粗语法"
 
-@skip_if_no_service
+@skip_if_no_tiptap
+@pytest.mark.tiptap
 @pytest.mark.asyncio
 async def test_error_handling(tiptap_client):
     """测试错误处理"""
@@ -150,7 +155,8 @@ async def test_error_handling(tiptap_client):
     result = await tiptap_client.html_to_json(invalid_html)
     assert result is not None, "即使HTML无效也应该返回某种结果"
 
-@skip_if_no_service
+@skip_if_no_tiptap
+@pytest.mark.tiptap
 @pytest.mark.asyncio
 async def test_complex_document(tiptap_client):
     """测试复杂文档转换"""
@@ -182,7 +188,8 @@ async def test_complex_document(tiptap_client):
     assert "Complex Document" in html_result, "结果应该包含原标题文本"
     assert "<strong>bold</strong>" in html_result, "结果应该包含加粗文本"
 
-@skip_if_no_service
+@skip_if_no_tiptap
+@pytest.mark.tiptap
 @pytest.mark.asyncio
 async def test_performance(tiptap_client):
     """测试转换性能"""

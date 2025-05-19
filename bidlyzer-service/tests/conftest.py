@@ -32,19 +32,14 @@ RUN_ALL_INTEGRATION_TESTS = os.getenv("ALL_INTEGRATION_TESTS") == "true"
 
 # 环境变量检查装饰器
 # 如果环境变量TIPTAP_INTEGRATION_TEST不为true，则跳过测试
-skip_if_no_service = pytest.mark.skipif(
-    not (os.getenv("TIPTAP_INTEGRATION_TEST") == "true" or RUN_ALL_INTEGRATION_TESTS),
-    reason="Set TIPTAP_INTEGRATION_TEST=true or ALL_INTEGRATION_TESTS=true to run integration tests"
+skip_if_no_tiptap = pytest.mark.skipif(
+    not (os.getenv("TIPTAP_TEST") == "true" or RUN_ALL_INTEGRATION_TESTS),
+    reason="Set TIPTAP_TEST=true or ALL_INTEGRATION_TESTS=true to run integration tests"
 )
 
 # Redis集成测试跳过条件
 skip_if_no_redis = pytest.mark.skipif(
-    not (os.getenv("REDIS_INTEGRATION_TEST") == "true" or RUN_ALL_INTEGRATION_TESTS),
-    reason="Set REDIS_INTEGRATION_TEST=true or ALL_INTEGRATION_TESTS=true to run Redis integration tests"
+    not (os.getenv("REDIS_TEST") == "true" or RUN_ALL_INTEGRATION_TESTS),
+    reason="Set REDIS_TEST=true or ALL_INTEGRATION_TESTS=true to run Redis integration tests"
 )
 
-# 检查是否启用了docx测试
-skip_if_no_docx = pytest.mark.skipif(
-    not os.getenv("DOCX_TEST") == "true",
-    reason="Set DOCX_TEST=true to run docx tests"
-)

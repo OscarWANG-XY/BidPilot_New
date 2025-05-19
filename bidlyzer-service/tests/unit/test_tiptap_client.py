@@ -1,7 +1,7 @@
 import pytest 
 from unittest.mock import patch, AsyncMock
 from app.tiptap.client import TiptapClient 
-from tests.conftest import skip_if_no_service
+from tests.conftest import skip_if_no_tiptap
 
 # 以下单元测试，仅验证TiptapClient的逻辑，不涉及TiptapService的逻辑
 # 验证的核心内容为：
@@ -16,13 +16,15 @@ from tests.conftest import skip_if_no_service
 # - 正确处理成功响应（返回服务端模拟的 {"type": "doc", "content": []}）
 # - 正确抛出异常信息（如 "Tiptap服务请求失败"）
 
+pytestmark = [pytest.mark.tiptap]
 
 # 使用pytest的fixture来创建一个模拟的TiptapClient实例,不是真实的连接。 
 @pytest.fixture
 def tiptap_client():
     return TiptapClient(base_url="http://mock-tiptap:3001")
 
-@skip_if_no_service
+@skip_if_no_tiptap
+@pytest.mark.tiptap
 @pytest.mark.asyncio  #标记测试函数是异步函数
 async def test_html_to_json(tiptap_client):
     #使用patch替换真实的网络请求，并构建了模拟的响应
@@ -55,7 +57,8 @@ async def test_html_to_json(tiptap_client):
         assert result == {"type": "doc", "content": []}
 
 # health_check使用的是get, 并返回bool值，需要单独测试
-@skip_if_no_service
+@skip_if_no_tiptap
+@pytest.mark.tiptap
 @pytest.mark.asyncio
 async def test_health_check_success(tiptap_client):
     with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
@@ -67,7 +70,8 @@ async def test_health_check_success(tiptap_client):
         
         assert result is True
 
-@skip_if_no_service
+@skip_if_no_tiptap
+@pytest.mark.tiptap
 @pytest.mark.asyncio
 async def test_health_check_failure(tiptap_client):
     with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
@@ -77,7 +81,8 @@ async def test_health_check_failure(tiptap_client):
         
         assert result is False
 
-@skip_if_no_service
+@skip_if_no_tiptap
+@pytest.mark.tiptap
 @pytest.mark.asyncio
 async def test_request_error(tiptap_client):
     with patch("httpx.AsyncClient.request", new_callable=AsyncMock) as mock_request:

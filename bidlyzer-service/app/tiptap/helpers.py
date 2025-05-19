@@ -548,7 +548,7 @@ class TiptapUtils:
                 
                 # 使用 TiptapClient 将表格转换为 Markdown
                 try:
-                    from apps.projects.tiptap.client import TiptapClient
+                    from app.tiptap.client import TiptapClient
                     tiptap_client = TiptapClient()
                     markdown_result = tiptap_client.json_to_markdown(table_doc)
                     markdown_text = markdown_result["data"].strip()
@@ -968,7 +968,7 @@ class TiptapUtils:
         """
         # 如果未提供TiptapClient实例，创建一个新的
         if tiptap_client is None:
-            from apps.projects.tiptap.client import TiptapClient
+            from app.tiptap.client import TiptapClient
             tiptap_client = TiptapClient()
         
         # 定位标题节点

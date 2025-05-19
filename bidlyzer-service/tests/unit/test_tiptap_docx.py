@@ -1,7 +1,9 @@
 import pytest
 import os
 from app.tiptap.docx import docx_to_html
-from tests.conftest import skip_if_no_docx
+from tests.conftest import skip_if_no_tiptap
+
+pytestmark = [pytest.mark.tiptap]
 
 @pytest.fixture
 def sample_docx_path():
@@ -15,7 +17,8 @@ def sample_docx_content():
         return f.read()
 
 @pytest.mark.asyncio
-@skip_if_no_docx
+@pytest.mark.tiptap
+@skip_if_no_tiptap
 async def test_docx_to_html_with_file_path(sample_docx_path):
     """测试使用文件路径转换docx到html"""
     html = await docx_to_html(sample_docx_path)
@@ -27,7 +30,8 @@ async def test_docx_to_html_with_file_path(sample_docx_path):
     assert '<h2>' in html
 
 @pytest.mark.asyncio
-@skip_if_no_docx
+@pytest.mark.tiptap
+@skip_if_no_tiptap
 async def test_docx_to_html_with_file_object(sample_docx_path):
     """测试使用文件对象转换docx到html"""
     with open(sample_docx_path, 'rb') as f:
@@ -40,7 +44,8 @@ async def test_docx_to_html_with_file_object(sample_docx_path):
     assert '<h2>' in html
 
 @pytest.mark.asyncio
-@skip_if_no_docx
+@skip_if_no_tiptap
+@pytest.mark.tiptap
 async def test_docx_to_html_with_bytes(sample_docx_content):
     """测试使用字节内容转换docx到html"""
     html = await docx_to_html(sample_docx_content)
@@ -52,7 +57,8 @@ async def test_docx_to_html_with_bytes(sample_docx_content):
     assert '<h2>' in html
 
 @pytest.mark.asyncio
-@skip_if_no_docx
+@skip_if_no_tiptap
+@pytest.mark.tiptap
 async def test_docx_to_html_preserve_formatting(sample_docx_path):
     """测试保留格式的转换"""
     html = await docx_to_html(sample_docx_path, preserve_formatting=True)
@@ -68,7 +74,8 @@ async def test_docx_to_html_preserve_formatting(sample_docx_path):
     assert '<table' in html
 
 @pytest.mark.asyncio
-@skip_if_no_docx
+@skip_if_no_tiptap
+@pytest.mark.tiptap
 async def test_docx_to_html_invalid_file():
     """测试无效文件的情况"""
     with pytest.raises(Exception):
