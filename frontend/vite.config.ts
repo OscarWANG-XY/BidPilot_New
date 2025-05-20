@@ -33,7 +33,8 @@ export default defineConfig({
     proxy: {
       // 代理到 nginx
       '/api': {
-        target: 'http://nginx:80',
+        //target: 'http://nginx:80',
+        target: 'http://localhost:8000',
         changeOrigin: true,
         rewrite: (path) => path
       },
