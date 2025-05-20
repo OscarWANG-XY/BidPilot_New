@@ -19,7 +19,7 @@ import os
 import asyncio
 import logging
 import pytest_asyncio
-from app.tiptap.client import TiptapClient
+from app.clients.tiptap.client import TiptapClient
 from app.core.redis_helper import RedisClient
 
 

@@ -13,13 +13,13 @@ test-postgres:
 
 test-tiptap:
 	PYTHONPATH=. TIPTAP_TEST=true pytest \
-		app/tiptap/tests/test_tiptap_client_integration.py \
-		app/tiptap/tests/test_tiptap_docx_integration.py \
-		app/tiptap/tests/test_tiptap_utils_integration.py \
-		app/tiptap/tests/test_tiptap_client_unit.py \
-		app/tiptap/tests/test_tiptap_docx_unit.py \
-		app/tiptap/tests/test_tiptap_utils_unit.py \
-		app/tiptap/tests/test_tiptap_helpers_unit.py -v
+		app/clients/tiptap/tests/test_tiptap_client_integration.py \
+		app/clients/tiptap/tests/test_tiptap_docx_integration.py \
+		app/clients/tiptap/tests/test_tiptap_utils_integration.py \
+		app/clients/tiptap/tests/test_tiptap_client_unit.py \
+		app/clients/tiptap/tests/test_tiptap_docx_unit.py \
+		app/clients/tiptap/tests/test_tiptap_utils_unit.py \
+		app/clients/tiptap/tests/test_tiptap_helpers_unit.py -v
 
 test-models:
 	PYTHONPATH=. MODEL_TEST=true pytest \
@@ -30,7 +30,7 @@ test-models:
 
 test-api:
 	PYTHONPATH=. API_TEST=true pytest \
-		app/api/tests/test_documents_unit.py -v
+		app/api/tests/test_django_unit.py -v
 
 # 使用标记运行所有集成测试
 test-integration:

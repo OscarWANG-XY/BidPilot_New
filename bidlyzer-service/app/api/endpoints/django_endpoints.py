@@ -1,9 +1,9 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Dict, Any
-from app.services.structuring.cache_manager import CacheManager
+from app.core.cache_manager import CacheManager
 
-router = APIRouter(tags=["documents"])
+router = APIRouter(prefix="/django", tags=["django"])
 
 class DocumentAnalysisRequest(BaseModel):
     """分析请求模型"""
@@ -23,7 +23,8 @@ async def analyze_document(request: DocumentAnalysisRequest):
         success = await CacheManager.cache_document(
             project_id=request.project_id,
             doc_type="document",
-            document=request.document
+            document=request.document,
+            timeout=3600
         )
         
         if not success:

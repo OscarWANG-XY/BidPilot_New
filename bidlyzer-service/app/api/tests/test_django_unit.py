@@ -10,19 +10,19 @@ client = TestClient(app)
 @pytest.fixture
 def mock_cache_document():
     """Mock CacheManager.cache_document method"""
-    with patch('app.services.structuring.cache_manager.CacheManager.cache_document', new_callable=AsyncMock) as mock:
+    with patch('app.core.cache_manager.CacheManager.cache_document', new_callable=AsyncMock) as mock:
         yield mock
 
 @pytest.fixture
 def mock_cache_state():
     """Mock CacheManager.cache_state method"""
-    with patch('app.services.structuring.cache_manager.CacheManager.cache_state', new_callable=AsyncMock) as mock:
+    with patch('app.core.cache_manager.CacheManager.cache_state', new_callable=AsyncMock) as mock:
         yield mock
 
 @pytest.fixture
 def mock_get_document():
     """Mock CacheManager.get_document method"""
-    with patch('app.services.structuring.cache_manager.CacheManager.get_document', new_callable=AsyncMock) as mock:
+    with patch('app.core.cache_manager.CacheManager.get_document', new_callable=AsyncMock) as mock:
         yield mock
 
 # Test cases
@@ -43,7 +43,7 @@ async def test_analyze_document_success(mock_cache_document, mock_cache_state):
     }
     
     # 发送请求
-    response = client.post("/api/v1/analyze", json=test_data)
+    response = client.post("/api/v1/django/analyze", json=test_data)
     
     # 验证结果
     assert response.status_code == 200
@@ -75,7 +75,7 @@ async def test_analyze_document_failure(mock_cache_document):
     }
     
     # 发送请求
-    response = client.post("/api/v1/analyze", json=test_data)
+    response = client.post("/api/v1/django/analyze", json=test_data)
     
     # 验证结果
     assert response.status_code == 500
@@ -92,7 +92,7 @@ async def test_get_document_success(mock_get_document):
     mock_get_document.return_value = mock_document
     
     # 发送请求
-    response = client.get("/api/v1/documents/test-project-123")
+    response = client.get("/api/v1/django/documents/test-project-123")
     
     # 验证结果
     assert response.status_code == 200
@@ -109,7 +109,7 @@ async def test_get_document_not_found(mock_get_document):
     mock_get_document.return_value = None
     
     # 发送请求
-    response = client.get("/api/v1/documents/nonexistent-project")
+    response = client.get("/api/v1/django/documents/nonexistent-project")
     
     # 验证结果
     assert response.status_code == 404
