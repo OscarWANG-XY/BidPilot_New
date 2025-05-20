@@ -8,11 +8,11 @@ pytestmark = [pytest.mark.integration, pytest.mark.tiptap]
 
 @pytest.fixture
 def sample_docx_path():
-    return os.path.join(os.path.dirname(__file__), '..', 'unit', 'fixtures', 'sample.docx')
+    return os.path.join(os.path.dirname(__file__), '.', 'fixtures', 'sample.docx')
 
 @pytest.fixture
 def sample_docx_content():
-    with open(os.path.join(os.path.dirname(__file__), '..', 'unit', 'fixtures', 'sample.docx'), 'rb') as f:
+    with open(os.path.join(os.path.dirname(__file__), '.', 'fixtures', 'sample.docx'), 'rb') as f:
         return f.read()
 
 @pytest.mark.integration

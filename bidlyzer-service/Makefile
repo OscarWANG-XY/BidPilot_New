@@ -4,33 +4,33 @@
 
 # 运行特定集成测试
 test-redis:
-	PYTHONPATH=. REDIS_TEST=true pytest app/core/tests/integration/test_redis.py -v
+	PYTHONPATH=. REDIS_TEST=true pytest app/core/tests/test_redis_integration.py -v
 
 test-postgres:
 	PYTHONPATH=. POSTGRES_TEST=true pytest \
-		app/core/tests/integration/test_postgres.py \
-		app/core/tests/unit/test_postgres.py -v
+		app/core/tests/test_postgres_integration.py \
+		app/core/tests/test_postgres_unit.py -v
 
 test-tiptap:
 	PYTHONPATH=. TIPTAP_TEST=true pytest \
-		app/tiptap/tests/integration/test_tiptap_client.py \
-		app/tiptap/tests/integration/test_tiptap_docx.py \
-		app/tiptap/tests/integration/test_tiptap_utils.py \
-		app/tiptap/tests/unit/test_tiptap_client.py \
-		app/tiptap/tests/unit/test_tiptap_docx.py \
-		app/tiptap/tests/unit/test_tiptap_utils.py \
-		app/tiptap/tests/unit/test_tiptap_helpers.py -v
+		app/tiptap/tests/test_tiptap_client_integration.py \
+		app/tiptap/tests/test_tiptap_docx_integration.py \
+		app/tiptap/tests/test_tiptap_utils_integration.py \
+		app/tiptap/tests/test_tiptap_client_unit.py \
+		app/tiptap/tests/test_tiptap_docx_unit.py \
+		app/tiptap/tests/test_tiptap_utils_unit.py \
+		app/tiptap/tests/test_tiptap_helpers_unit.py -v
 
 test-models:
 	PYTHONPATH=. MODEL_TEST=true pytest \
-		app/models/tests/integration/test_models_structuring.py \
-		app/models/tests/integration/test_models_structuring_interaction.py \
-		app/models/tests/unit/test_models_structuring.py -v
+		app/models/tests/test_models_structuring_integration.py \
+		app/models/tests/test_models_structuring_interaction_integration.py \
+		app/models/tests/test_models_structuring_unit.py -v
 
 
 test-api:
 	PYTHONPATH=. API_TEST=true pytest \
-		app/api/tests/unit/test_documents.py -v
+		app/api/tests/test_documents_unit.py -v
 
 # 使用标记运行所有集成测试
 test-integration:
