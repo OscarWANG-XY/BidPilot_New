@@ -69,7 +69,7 @@ class BidlyzerAPIClientTests(TestCase):
         
         # Verify request was made correctly
         mock_post.assert_called_once_with(
-            url='http://testserver:8001/api/v1/analyze',
+            url='http://testserver:8001/api/v1/django/analyze',
             json={
                 'project_id': self.project_id,
                 'document': self.test_document
@@ -136,7 +136,7 @@ class BidlyzerAPIClientTests(TestCase):
         
         # Verify request was made correctly
         mock_get.assert_called_once_with(
-            url=f'http://testserver:8001/api/v1/documents/{self.project_id}',
+            url=f'http://testserver:8001/api/v1/django/documents/{self.project_id}',
             timeout=30
         )
     

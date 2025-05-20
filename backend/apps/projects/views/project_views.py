@@ -15,6 +15,7 @@ from ..serializers import (
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiTypes
 import logging
 
+
 logger = logging.getLogger(__name__)
 
 @extend_schema_view(
@@ -116,6 +117,15 @@ logger = logging.getLogger(__name__)
             200: ProjectTenderFileUpdateSerializer,
             400: OpenApiTypes.OBJECT,
             401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
+    get_tender_file_url=extend_schema(
+        tags=['projects'],
+        summary='获取项目招标文件URL',
+        description='获取指定项目的招标文件URL',
+        responses={
+            200: OpenApiTypes.OBJECT,
             404: OpenApiTypes.OBJECT
         }
     )
@@ -253,4 +263,33 @@ class ProjectViewSet(viewsets.ModelViewSet):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['get'])
+    def get_tender_file_url(self, request, pk=None):
+        """ 获取项目招标文件提取信息 """
+        project = self.get_object()
+        
+        # 获取与项目关联的文件记录
+        from apps.files.models import FileRecord
+        files = FileRecord.objects.filter(project=project)
+        
+        if not files.exists():
+            return Response({"detail": "该项目没有关联的招标文件"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # 生成文件URL列表
+        file_urls = []
+        for file in files:
+            # 获取签名URL，默认有效期为1小时
+            presigned_url = file.get_presigned_url()
+            if presigned_url:
+                file_urls.append({
+                    "id": str(file.id),
+                    "name": file.name,
+                    "type": file.type,
+                    "url": presigned_url,
+                    "size": file.size,
+                    "mime_type": file.mime_type
+                })
+        
+        return Response({"files": file_urls})
 

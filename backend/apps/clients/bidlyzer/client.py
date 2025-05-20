@@ -59,7 +59,7 @@ class BidlyzerAPIClient:
             API响应数据
         """
         try:
-            url = self._get_url('/analyze')
+            url = self._get_url('/django/analyze')
             
             payload = {
                 'project_id': project_id,
@@ -97,7 +97,7 @@ class BidlyzerAPIClient:
             文档数据，如果不存在则返回None
         """
         try:
-            url = self._get_url(f'/documents/{project_id}')
+            url = self._get_url(f'/django/documents/{project_id}')
             
             logger.info(f"获取文档: project_id={project_id}")
             
