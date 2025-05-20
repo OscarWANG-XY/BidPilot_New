@@ -19,7 +19,7 @@ class BidlyzerAPIClient:
             base_url: FastAPI服务的基础URL
             timeout: 请求超时时间（秒）
         """
-        self.base_url = base_url or getattr(settings, 'BIDLYZER_API_URL', 'http://localhost:8000')
+        self.base_url = base_url or getattr(settings, 'BIDLYZER_SERVICE_URL', 'http://localhost:8001')
         self.timeout = timeout
         self.api_prefix = '/api/v1'
     
