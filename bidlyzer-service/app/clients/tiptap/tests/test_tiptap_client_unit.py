@@ -1,6 +1,6 @@
 import pytest 
 from unittest.mock import patch, AsyncMock
-from app.tiptap.client import TiptapClient 
+from app.clients.tiptap.client import TiptapClient 
 from conftest import skip_if_no_tiptap
 
 # 以下单元测试，仅验证TiptapClient的逻辑，不涉及TiptapService的逻辑

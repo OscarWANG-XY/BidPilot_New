@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
-from app.tiptap.utils import (
+from app.clients.tiptap.utils import (
     get_html_from_json,
     get_markdown_from_json,
     get_json_from_html,
@@ -25,7 +25,7 @@ def mock_tiptap_client(monkeypatch):
     
     # Mock the TiptapClient class
     mock_client_class = MagicMock(return_value=mock_client)
-    monkeypatch.setattr("app.tiptap.utils.TiptapClient", mock_client_class)
+    monkeypatch.setattr("app.clients.tiptap.utils.TiptapClient", mock_client_class)
     
     return mock_client
 

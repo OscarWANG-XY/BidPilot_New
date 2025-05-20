@@ -1,6 +1,6 @@
 import pytest
 import os
-from app.tiptap.docx import docx_to_html
+from app.clients.tiptap.docx import docx_to_html
 from conftest import skip_if_no_tiptap
 
 pytestmark = [pytest.mark.tiptap]

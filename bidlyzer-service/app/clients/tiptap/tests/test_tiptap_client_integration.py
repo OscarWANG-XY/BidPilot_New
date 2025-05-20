@@ -1,7 +1,7 @@
 import pytest
 import os
 import asyncio
-from app.tiptap.client import TiptapClient
+from app.clients.tiptap.client import TiptapClient
 import logging
 from conftest import skip_if_no_tiptap
 

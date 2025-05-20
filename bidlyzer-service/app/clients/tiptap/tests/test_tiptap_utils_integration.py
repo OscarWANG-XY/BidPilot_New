@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock
-from app.tiptap.utils import (
+from app.clients.tiptap.utils import (
     get_html_from_json,
     get_markdown_from_json,
     get_json_from_html,

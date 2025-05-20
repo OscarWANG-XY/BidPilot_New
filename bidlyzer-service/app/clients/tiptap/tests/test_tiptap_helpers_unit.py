@@ -1,6 +1,6 @@
 import pytest
 import json
-from app.tiptap.helpers import TiptapUtils
+from app.clients.tiptap.helpers import TiptapUtils
 from conftest import skip_if_no_tiptap
 
 pytestmark = [pytest.mark.tiptap]
