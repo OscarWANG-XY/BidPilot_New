@@ -7,7 +7,8 @@ from app.core.config import settings
 from app.core.redis_helper import RedisClient
 from app.core.db_helper import init_db, close_db, generate_schemas
 from tortoise import Tortoise
-from app.api.endpoints import django_endpoints, frontend_endpoints, frontend_endpoints_SSE
+from app.auth.middleware import JWTAuthMiddleware
+from app.api.router import api_router
 
 
 
@@ -54,11 +55,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 添加JWT认证中间件
+app.add_middleware(JWTAuthMiddleware)
 
 # 添加路由
-app.include_router(django_endpoints.router, prefix=settings.API_V1_STR)
-app.include_router(frontend_endpoints.router, prefix=settings.API_V1_STR)
-app.include_router(frontend_endpoints_SSE.router, prefix=settings.API_V1_STR)
+app.include_router(api_router, prefix=settings.API_V1_STR)
+
 
 @app.get("/")
 def read_root():

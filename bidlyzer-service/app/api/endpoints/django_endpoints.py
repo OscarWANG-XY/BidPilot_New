@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import Dict, Any
 from app.core.cache_manager import CacheManager
 
-router = APIRouter(prefix="/django", tags=["django"])
+router = APIRouter()
 
 class DocumentAnalysisRequest(BaseModel):
     """分析请求模型"""
@@ -58,8 +58,7 @@ async def get_document(project_id: str):
     if not document:
         raise HTTPException(status_code=404, detail="文档未找到")
 
-
-    return{
+    return {
         "project_id": project_id,
         "document": document,
     }

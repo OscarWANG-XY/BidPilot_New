@@ -53,7 +53,16 @@ class Settings(BaseSettings):
     # ----------------------------- Django Service Configuration -----------------------------
     DJANGO_SERVICE_URL: str = Field(default='http://localhost:8000', description="Django Service URL")
     DJANGO_SERVICE_TIMEOUT: int = Field(default=30, description="Django Service Timeout")
+    DJANGO_SECRET_KEY: str = Field(default="", description="Django Secret Key")
 
+    # JWT 配置
+    JWT_ALGORITHM: str = Field(default="HS256", description="JWT Algorithm")
+    JWT_ACCESS_TOKEN_LIFETIME: int = Field(default=300, description="JWT Access Token Lifetime in seconds")
+    JWT_SIGNING_KEY: str = Field(default="", description="JWT Signing Key")
+    JWT_VERIFYING_KEY: str = Field(default="", description="JWT Verifying Key")
+    JWT_AUDIENCE: str = Field(default=None, description="JWT Audience")
+    JWT_ISSUER: str = Field(default=None, description="JWT Issuer")
+    JWT_AUTH_HEADER_PREFIX: str = Field(default="Bearer", description="JWT Authorization header prefix")
 
     # Pydantic 的特殊配置类, 这里配置了环境变量文件的加载方式
     class Config:

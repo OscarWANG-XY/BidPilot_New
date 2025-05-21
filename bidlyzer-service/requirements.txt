@@ -4,6 +4,7 @@
 fastapi==0.115.12
 uvicorn==0.34.2
 pydantic==2.9.2
+#pydantic-settings==2.9.1 会跟随pydantic安装，无需单独安装
 python-dotenv==1.0.1
 
 # LLM Core
@@ -43,3 +44,10 @@ asyncpg==0.30.0
 # 文档处理
 mammoth==1.9.0
 python-docx==1.1.2
+
+
+# 用于Django的JWT
+PyJWT==2.10.1
+
+# 用于SSE
+sse-starlette==2.3.5
