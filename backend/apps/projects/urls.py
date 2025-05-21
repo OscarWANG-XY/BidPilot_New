@@ -8,7 +8,6 @@ from .views import (
     ProjectChangeHistoryViewSet, 
     StageChangeHistoryViewSet, 
     TaskChangeHistoryViewSet,
-    BidlyzerViewSet,
     test_sse,
 )
 
@@ -34,9 +33,6 @@ router.register('', ProjectViewSet, basename='project')
 router.register('projects/change-history', ProjectChangeHistoryViewSet, basename='project-change-history')
 router.register('stages/change-history', StageChangeHistoryViewSet, basename='stage-change-history')
 router.register('tasks/change-history', TaskChangeHistoryViewSet, basename='task-change-history')
-
-# 添加招标文件URL视图集 - 专供内部服务使用
-router.register('bidlyzer', BidlyzerViewSet, basename='project-bidlyzer')
 
 
 # ----------- 添加嵌套路由器 -----------

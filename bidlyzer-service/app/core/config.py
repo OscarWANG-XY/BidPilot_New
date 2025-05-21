@@ -46,12 +46,12 @@ class Settings(BaseSettings):
     STRUCTURING_CACHE_TIMEOUT: int = Field(default=900, description="缓存超时时间（秒）")
 
     # ----------------------------- Tiptap Service Configuration -----------------------------
-    TIPTAP_SERVICE_URL: str = Field(default='http://tiptap:3001', description="Tiptap Service URL")
+    TIPTAP_SERVICE_URL: str = Field(default='http://localhost:3001', description="Tiptap Service URL")
     TIPTAP_SERVICE_TIMEOUT: int = Field(default=30, description="Tiptap Service Timeout")
 
 
     # ----------------------------- Django Service Configuration -----------------------------
-    DJANGO_SERVICE_URL: str = Field(default='http://django:8000', description="Django Service URL")
+    DJANGO_SERVICE_URL: str = Field(default='http://localhost:8000', description="Django Service URL")
     DJANGO_SERVICE_TIMEOUT: int = Field(default=30, description="Django Service Timeout")
 
 

@@ -264,7 +264,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=['get'], permission_classes=[])
     def get_tender_file_url(self, request, pk=None):
         """ 获取项目招标文件提取信息 """
         project = self.get_object()
