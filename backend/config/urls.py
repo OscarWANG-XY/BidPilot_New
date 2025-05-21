@@ -35,14 +35,26 @@ def health_check(request):
 
 
 urlpatterns = [
-    path('api/health/', health_check, name='health_check'),
+
+    # ------------------------------ 管理员API ------------------------------
     path('admin/', admin.site.urls),
+
+    # ------------------------------ 健康检查API ------------------------------
+    path('api/health/', health_check, name='health_check'),
+
+    # ------------------------------ 测试API ------------------------------
+    path('api/testground/', include('apps.testground.urls')),
+
+    # -----------------------------面向前端的API -----------------------------
     path('api/auth/', include('apps.authentication.urls')),
     path('api/files/', include('apps.files.urls')),
     path('api/projects/', include('apps.projects.urls')),
     # path('api/doc_analysis/', include('apps.doc_analysis.urls')),
     # path('api/chat/', include('apps.chat.urls')),
-    path('api/testground/', include('apps.testground.urls')),
+
+
+    # ------------------------------ 内部API ------------------------------
+    path('api/internal/', include('apps.internal_server.urls')),
 
     # ------------------------------ API 文档 ------------------------------
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
@@ -50,4 +62,6 @@ urlpatterns = [
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     # Redoc UI:
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+
+
 ]

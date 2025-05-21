@@ -107,6 +107,7 @@ INSTALLED_APPS = [
     'apps.authentication',
     'apps.files',
     'apps.projects',
+    'apps.internal_server',
     #'apps.doc_analysis',
     #'apps.chat',
     'apps.testground',

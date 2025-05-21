@@ -59,6 +59,6 @@ class DjangoClient:
         Returns:
             dict: 包含文件URL列表的响应数据
         """
-        endpoint = f"api/projects/{project_id}/get_tender_file_url/"
+        endpoint = f"api/internal/projects/{project_id}/get_tender_file_url/"
         # 使用GET方法获取文件URL
         return await self._make_request(endpoint, data=None, method='get')
