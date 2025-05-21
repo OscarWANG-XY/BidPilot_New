@@ -82,7 +82,7 @@ class DocxOutlineAnalyzerStep():
         """ 
         docx_extraction_task = Task.objects.get(stage__project=project, type=TaskType.DOCX_EXTRACTION_TASK)
         
-        from apps.projects.tiptap.helpers import TiptapUtils
+        from apps.clients.tiptap.helpers import TiptapUtils
         data_input, index_path_map = TiptapUtils.extract_indexed_paragraphs(docx_extraction_task.docx_tiptap, 50)
 
         return data_input, index_path_map

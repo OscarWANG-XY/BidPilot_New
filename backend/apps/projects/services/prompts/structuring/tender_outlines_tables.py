@@ -74,7 +74,7 @@ class TenderOutlinesTables():
         准备请求数据
         """ 
 
-        from apps.projects.tiptap.helpers import TiptapUtils
+        from apps.clients.tiptap.helpers import TiptapUtils
 
         tables, index_path_map = TiptapUtils.extract_tables_to_markdown(self.data_input)
 

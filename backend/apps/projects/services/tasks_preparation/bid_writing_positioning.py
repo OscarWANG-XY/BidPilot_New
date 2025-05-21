@@ -73,7 +73,7 @@ class BidWritingPositioning():
         """ 
         # docx_extraction_task = Task.objects.get(stage__project=project, type=TaskType.DOCX_EXTRACTION_TASK)
         
-        from apps.projects.tiptap.helpers import TiptapUtils
+        from apps.clients.tiptap.helpers import TiptapUtils
         data_input = TiptapUtils.print_enhanced_toc(self.data_input)
         index_path_map = {}
 

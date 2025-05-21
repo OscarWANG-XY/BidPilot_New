@@ -7,7 +7,7 @@
 import logging
 from typing import Dict, List, Tuple, Any, Optional
 
-from apps.projects.tiptap.helpers import TiptapUtils
+from apps.clients.tiptap.helpers import TiptapUtils
 
 logger = logging.getLogger(__name__)
 

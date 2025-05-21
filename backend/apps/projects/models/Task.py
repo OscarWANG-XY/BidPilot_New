@@ -1,7 +1,7 @@
 import uuid
 from django.db import models
 from django.conf import settings
-from ..tiptap.utils import (
+from apps.clients.tiptap.utils import (
     task_get_content_as_html, task_get_content_as_markdown,
     task_set_content_from_html, task_set_content_from_markdown
 )

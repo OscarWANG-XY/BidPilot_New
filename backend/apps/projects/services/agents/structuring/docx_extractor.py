@@ -63,7 +63,7 @@ class DocxExtractor:
             logger.info(f"DocxExtractor: 开始提取文档内容, file={file_to_process}")
             
             # 导入转换函数
-            from apps.projects.tiptap import docx_to_tiptap_json
+            from apps.clients.tiptap import docx_to_tiptap_json
             tiptap_content = docx_to_tiptap_json(file_to_process)
             
             # 简单验证输出

@@ -71,7 +71,7 @@ class GetAppendixList():
         """
         准备请求数据
         """ 
-        from apps.projects.tiptap.helpers import TiptapUtils
+        from apps.clients.tiptap.helpers import TiptapUtils
         toc_context = TiptapUtils.print_enhanced_toc(doc=self.doc, include_captions=False)
         index_path_map = {}
 

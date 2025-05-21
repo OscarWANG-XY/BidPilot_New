@@ -8,6 +8,7 @@ from .views import (
     ProjectChangeHistoryViewSet, 
     StageChangeHistoryViewSet, 
     TaskChangeHistoryViewSet,
+    BidlyzerViewSet,
     test_sse,
 )
 
@@ -17,7 +18,7 @@ from .views import (
 # NestedDefaultRouter(router, 'projects', lookup='project') → /projects/{project_pk}/
 # register('stages', ...) → /projects/{project_pk}/stages/
 
-#basename 是 URL 名称的“前缀”，方便你在视图、模板、前端中通过名称引用路由，不影响路径结构，但对 reverse() 和超链接字段非常关键。
+#basename 是 URL 名称的"前缀"，方便你在视图、模板、前端中通过名称引用路由，不影响路径结构，但对 reverse() 和超链接字段非常关键。
 # 动作	     URL 名称	                 对应路径
 # list	    project-stages-list	        /projects/{project_pk}/stages/
 # detail	project-stages-detail	    /projects/{project_pk}/stages/{pk}/
@@ -33,6 +34,9 @@ router.register('', ProjectViewSet, basename='project')
 router.register('projects/change-history', ProjectChangeHistoryViewSet, basename='project-change-history')
 router.register('stages/change-history', StageChangeHistoryViewSet, basename='stage-change-history')
 router.register('tasks/change-history', TaskChangeHistoryViewSet, basename='task-change-history')
+
+# 添加招标文件URL视图集 - 专供内部服务使用
+router.register('bidlyzer', BidlyzerViewSet, basename='project-bidlyzer')
 
 
 # ----------- 添加嵌套路由器 -----------
@@ -57,25 +61,3 @@ urlpatterns = [
     path('', include(stage_router.urls)),  # 添加嵌套路由URLs
     path('', include(task_router.urls)),  # 添加嵌套路由URLs
 ]
-
-
-
-
-# 添加面向tiptap微服务的导入
-from .tiptap.api import (
-    html_to_json, json_to_html, 
-    markdown_to_json, json_to_markdown,
-    tiptap_health
-)
-
-# 添加到 urlpatterns
-tiptap_urlpatterns = [
-    path('tiptap/html-to-json', html_to_json, name='html_to_json'),
-    path('tiptap/json-to-html', json_to_html, name='json_to_html'),
-    path('tiptap/markdown-to-json', markdown_to_json, name='markdown_to_json'),
-    path('tiptap/json-to-markdown', json_to_markdown, name='json_to_markdown'),
-    path('tiptap/health', tiptap_health, name='tiptap_health'),
-]
-
-# 将 tiptap_urlpatterns 添加到主 urlpatterns
-urlpatterns += tiptap_urlpatterns

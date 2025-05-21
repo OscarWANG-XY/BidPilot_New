@@ -62,7 +62,7 @@ class DocxExtractorStep(PipelineStep[Project, Dict[str, Any]]):
             # tiptap_content = pipeline.load().parse().to_tiptap_json()
 
             # 使用docx_to_tiptap_json函数提取文档元素   - Approach 2 (微服务版本)
-            from apps.projects.tiptap import docx_to_tiptap_json
+            from apps.clients.tiptap import docx_to_tiptap_json
             tiptap_content = docx_to_tiptap_json(temp_file_path)
             
             # 输出验证

@@ -7,7 +7,7 @@
 import logging
 from typing import Dict, List, Tuple, Any, Optional
 
-from apps.projects.tiptap.helpers import TiptapUtils
+from apps.clients.tiptap.helpers import TiptapUtils
 from apps.projects.services.prompts.structuring.tender_outlines_L1 import TenderOutlinesL1PromptBuilder
 from apps.projects.services.llm.llm_client import LLMClient
 from apps.projects.services.llm.llm_output_processor import LLMOutputProcessor

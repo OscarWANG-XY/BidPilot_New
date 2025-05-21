@@ -74,7 +74,7 @@ class BidOutlines():
         """ 
         # docx_extraction_task = Task.objects.get(stage__project=project, type=TaskType.DOCX_EXTRACTION_TASK)
         
-        from apps.projects.tiptap.helpers import TiptapUtils
+        from apps.clients.tiptap.helpers import TiptapUtils
 
         parts = []
         for path in self.paths:

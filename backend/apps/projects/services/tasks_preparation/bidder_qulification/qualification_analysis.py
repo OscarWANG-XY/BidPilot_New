@@ -73,7 +73,7 @@ class QualificationAnalysis():
         准备请求数据
         """ 
         
-        from apps.projects.tiptap.helpers import TiptapUtils
+        from apps.clients.tiptap.helpers import TiptapUtils
 
         parts = []
         for path in self.paths:

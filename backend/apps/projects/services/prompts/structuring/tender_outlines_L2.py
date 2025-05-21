@@ -180,7 +180,7 @@ class TenderOutlinesL2PromptBuilder():
         准备请求数据
         """ 
 
-        from apps.projects.tiptap.helpers import TiptapUtils
+        from apps.clients.tiptap.helpers import TiptapUtils
         indexed_chapters, index_path_map = TiptapUtils.extract_chapters(
             doc = self.doc, 
             max_length = None,
