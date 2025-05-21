@@ -50,6 +50,11 @@ class Settings(BaseSettings):
     TIPTAP_SERVICE_TIMEOUT: int = Field(default=30, description="Tiptap Service Timeout")
 
 
+    # ----------------------------- Django Service Configuration -----------------------------
+    DJANGO_SERVICE_URL: str = Field(default='http://django:8000', description="Django Service URL")
+    DJANGO_SERVICE_TIMEOUT: int = Field(default=30, description="Django Service Timeout")
+
+
     # Pydantic 的特殊配置类, 这里配置了环境变量文件的加载方式
     class Config:
         env_file = str(Path(__file__).resolve().parent.parent.parent / ".env")   #指定从.env文件加载环境变量
