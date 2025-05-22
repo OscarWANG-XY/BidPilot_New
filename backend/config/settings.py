@@ -360,8 +360,13 @@ CHANNEL_LAYERS = {
 
 # JWT 时效配置
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),  # 设置access token有效期为30分钟
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),    # 设置refresh token有效期为1天
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),  # 保持30分钟
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),    # 保持1天
+    'SIGNING_KEY': os.getenv('JWT_SIGNING_KEY', SECRET_KEY),  # 显式使用环境变量中的密钥
+    'ALGORITHM': os.getenv('JWT_ALGORITHM', 'HS256'),  # 明确指定算法
+    'AUTH_HEADER_TYPES': ('Bearer',),  # 确保使用Bearer认证头
+    'USER_ID_FIELD': 'id',  # 确保使用id作为用户标识
+    'USER_ID_CLAIM': 'user_id',  # 确保user_id作为JWT中的用户标识声明
 }
 
 # 自定义用户模型

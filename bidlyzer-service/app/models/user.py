@@ -4,7 +4,7 @@ from typing import List, Optional
 
 class User(BaseModel):
     """用户模型，用于序列化从JWT payload中提取的用户信息"""
-    id: int
+    id: str  # 使用字符串类型 以接受UUID字符串
     username: str
     email: Optional[str] = None
     is_staff: bool = False

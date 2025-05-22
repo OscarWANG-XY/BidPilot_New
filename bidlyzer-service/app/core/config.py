@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from pydantic import Field
 from pydantic_settings import BaseSettings
+from typing import Optional  # 添加Optional导入
 
 class Settings(BaseSettings):
     
@@ -57,11 +58,11 @@ class Settings(BaseSettings):
 
     # JWT 配置
     JWT_ALGORITHM: str = Field(default="HS256", description="JWT Algorithm")
-    JWT_ACCESS_TOKEN_LIFETIME: int = Field(default=300, description="JWT Access Token Lifetime in seconds")
+    JWT_ACCESS_TOKEN_LIFETIME: int = Field(default=1800, description="JWT Access Token Lifetime in seconds")
     JWT_SIGNING_KEY: str = Field(default="", description="JWT Signing Key")
     JWT_VERIFYING_KEY: str = Field(default="", description="JWT Verifying Key")
-    JWT_AUDIENCE: str = Field(default=None, description="JWT Audience")
-    JWT_ISSUER: str = Field(default=None, description="JWT Issuer")
+    JWT_AUDIENCE: Optional[str] = Field(default=None, description="JWT Audience")
+    JWT_ISSUER: Optional[str] = Field(default=None, description="JWT Issuer")
     JWT_AUTH_HEADER_PREFIX: str = Field(default="Bearer", description="JWT Authorization header prefix")
 
     # Pydantic 的特殊配置类, 这里配置了环境变量文件的加载方式

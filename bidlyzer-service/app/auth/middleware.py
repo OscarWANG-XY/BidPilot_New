@@ -15,6 +15,7 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
             "/docs",
             "/redoc",
             "/openapi.json",
+            "/api/v1/openapi.json"
             # 添加其他不需要认证的路径
         ]
         
