@@ -38,6 +38,12 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path
       },
+      // 新增 FastAPI 微服务代理
+      '/fastapi': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/fastapi/, ''),
+      }
 // 之前用在 upload-server 上，现在用 django, 就不用了     
 //      '/api2': {
 //        target: 'http://localhost:3001',
