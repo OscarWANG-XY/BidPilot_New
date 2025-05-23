@@ -1,6 +1,14 @@
-.PHONY: test test-unit test-integration test-redis test-tiptap test-docx test-all test-all-integration
+.PHONY: test test-unit test-integration test-redis test-tiptap test-docx test-all test-all-integration start-test-worker stop-workers
 
+# Celery Worker管理
+start-test-worker:
+	@echo "🚀 启动Celery测试Worker..."
+	@./start_test_worker.sh
 
+stop-workers:
+	@echo "🛑 停止所有Celery Worker..."
+	@pkill -f "celery.*worker" 2>/dev/null || true
+	@echo "✅ 已停止所有Worker"
 
 # 运行特定集成测试
 test-redis:
@@ -31,6 +39,10 @@ test-models:
 test-api:
 	PYTHONPATH=. API_TEST=true pytest \
 		app/api/tests/test_django_unit.py -v
+
+test-celery:
+	PYTHONPATH=. CELERY_TEST=true pytest \
+		app/core/tests/test_celery.py -v
 
 # 使用标记运行所有集成测试
 test-integration:

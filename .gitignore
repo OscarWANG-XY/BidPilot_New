@@ -80,3 +80,7 @@ backend/apps/projects/notebook/cache_e3/
 
 
 _backup/
+
+
+# Celery Beat 调度文件
+celerybeat-schedule*
