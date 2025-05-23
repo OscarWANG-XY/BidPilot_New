@@ -21,14 +21,6 @@ async def redis_client():
     # 关闭连接
     await client.aclose()
 
-@pytest.fixture
-def event_loop():
-    """创建一个新的事件循环"""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close() 
-
-
 @skip_if_no_redis
 def test_env_loading():
     """测试.env文件加载, 检查config.py中是否正确加载了.env文件"""

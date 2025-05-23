@@ -1,7 +1,7 @@
 # app/core/config.py
 import os 
 from pathlib import Path
-from pydantic import Field
+from pydantic import Field, ConfigDict
 from pydantic_settings import BaseSettings
 from typing import Optional  # 添加Optional导入
 
@@ -65,11 +65,12 @@ class Settings(BaseSettings):
     JWT_ISSUER: Optional[str] = Field(default=None, description="JWT Issuer")
     JWT_AUTH_HEADER_PREFIX: str = Field(default="Bearer", description="JWT Authorization header prefix")
 
-    # Pydantic 的特殊配置类, 这里配置了环境变量文件的加载方式
-    class Config:
-        env_file = str(Path(__file__).resolve().parent.parent.parent / ".env")   #指定从.env文件加载环境变量
-        env_file_encoding = "utf-8"  # 指定环境变量文件的编码
-        case_sensitive = True # 环境变量名区分大小写
+    # Pydantic v2 配置
+    model_config = ConfigDict(
+        env_file=str(Path(__file__).resolve().parent.parent.parent / ".env"),   #指定从.env文件加载环境变量
+        env_file_encoding="utf-8",  # 指定环境变量文件的编码
+        case_sensitive=True # 环境变量名区分大小写
+    )
 
     # 以下初始化会在构建实例的时候运行
     def __init__(self, **data):

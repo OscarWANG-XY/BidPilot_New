@@ -1,5 +1,5 @@
 import pytest 
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch, AsyncMock, MagicMock
 from app.clients.tiptap.client import TiptapClient 
 from conftest import skip_if_no_tiptap
 
@@ -35,8 +35,8 @@ async def test_html_to_json(tiptap_client):
         # 设置async json方法
         mock_response.json = AsyncMock(return_value={"type": "doc", "content": []})
         
-        #模拟raise_for_status方法
-        mock_response.raise_for_status = AsyncMock()
+        #模拟raise_for_status方法 - 这应该是同步方法
+        mock_response.raise_for_status = MagicMock()
         
         #设置模拟响应
         mock_request.return_value = mock_response
