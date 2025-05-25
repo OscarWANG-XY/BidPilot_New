@@ -5,35 +5,20 @@ import requests
 import logging
 from typing import Dict, Any
 
-from app.models.structuring_models import Project  # Tortoise ORM模型
-from app.core.config import settings
-
 logger = logging.getLogger(__name__)
 
 class DocxExtractor:
     """文档内容提取模块，用于大模型agent"""
 
-    def __init__(self, project_id: str):
+    def __init__(self, project_id: str, file_url: str = None):
         """初始化文档提取器"""
         self.project_id = project_id
-        self.file_url = None
+        self.file_url = file_url
         logger.info(f"DocxExtractor: 初始化, project_id={project_id}")
-
-    async def get_url(self):
-        """异步获取文件URL - 使用Tortoise ORM"""
-        # 直接使用异步查询，不需要sync_to_async
-        project = await Project.get_or_none(id=self.project_id)
-        if project:
-            # 假设使用Tortoise的反向关系查询
-            first_file = await project.files.first()
-            if first_file:
-                return await first_file.get_presigned_url()  # 确保这个方法也是异步的
-        return None
 
     async def extract_content(self) -> Dict[str, Any]:
         """异步提取文档内容"""
         # 获取文件URL
-        self.file_url = await self.get_url()
         if not self.file_url:
             logger.error(f"DocxExtractor: 无法获取文件URL, project_id={self.project_id}")
             raise ValueError("项目中没有上传的文件")
@@ -59,8 +44,8 @@ class DocxExtractor:
             logger.info(f"DocxExtractor: 开始提取文档内容, file={file_to_process}")
             
             # 导入转换函数
-            from app.tiptap.docx import docx_to_tiptap_json
-            tiptap_content = docx_to_tiptap_json(file_to_process)
+            from app.clients.tiptap.docx import docx_to_tiptap_json
+            tiptap_content = await docx_to_tiptap_json(file_to_process)
             
             # 简单验证输出
             if not tiptap_content:
