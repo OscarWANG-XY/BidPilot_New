@@ -12,7 +12,8 @@ from ..task_service import count_tokens
 import os, logging
 import time
 import random
-from asgiref.sync import async_to_sync
+import asyncio
+import json
 
 
 logger = logging.getLogger(__name__)
@@ -60,6 +61,66 @@ class WebSocketStreamingCallbackHandler(BaseCallbackHandler):
         )
 
 
+class SSEStreamingCallbackHandler(BaseCallbackHandler):
+    """FastAPI SSE流式输出回调处理器"""
+    
+    def __init__(self, queue: asyncio.Queue, task_id=None):
+        super().__init__()
+        self.queue = queue
+        self.task_id = task_id
+        self.accumulated_content = ""
+        self.run_inline = True  # True表示内联运行， 边生成边执行 
+        self.raise_error = False  # False表示不抛出错误
+        
+    async def on_llm_new_token(self, token, **kwargs):
+        """处理生成的新token，将数据放入队列"""
+        self.accumulated_content += token
+        
+        # 构建SSE格式的数据
+        sse_data = {
+            'token': token,
+            'content': self.accumulated_content,
+            'task_id': self.task_id,
+            'finished': False,
+            'type': 'token'
+        }
+        
+        # 将数据放入队列，供SSE endpoint消费
+        try:
+            await self.queue.put(sse_data)
+        except Exception as e:
+            logger.error(f"Failed to put token data into SSE queue: {str(e)}")
+    
+    async def on_llm_end(self, response, **kwargs):
+        """标记LLM响应完成，发送结束信号"""
+        final_data = {
+            'token': '',
+            'content': self.accumulated_content,
+            'task_id': self.task_id,
+            'finished': True,
+            'type': 'end'
+        }
+        
+        try:
+            await self.queue.put(final_data)
+        except Exception as e:
+            logger.error(f"Failed to put end data into SSE queue: {str(e)}")
+    
+    async def on_llm_error(self, error, **kwargs):
+        """处理LLM错误"""
+        error_data = {
+            'error': str(error),
+            'task_id': self.task_id,
+            'finished': True,
+            'type': 'error'
+        }
+        
+        try:
+            await self.queue.put(error_data)
+        except Exception as e:
+            logger.error(f"Failed to put error data into SSE queue: {str(e)}")
+
+
 class LLMService:
     """通用LLM服务实现"""
     def __init__(
@@ -86,7 +147,7 @@ class LLMService:
             timeout=self.config.timeout,
         )
 
-    async def process(self, request: LLMRequestModel, channel_layer=None, group_name=None, task_id=None) -> Any:
+    async def process(self, request: LLMRequestModel, channel_layer=None, group_name=None, task_id=None, sse_queue=None) -> Any:
         """
         处理LLM请求
         :param request: LLM请求对象
@@ -122,9 +183,12 @@ class LLMService:
                 request_dict = request.dict()   #将LLMRequest对象转换为字典
 
                 # 配置流式输出
-                if self.config.streaming and channel_layer and group_name:
+                if self.config.streaming and sse_queue:
+                    # 使用SSE流式输出
+                    callbacks = [SSEStreamingCallbackHandler(sse_queue, task_id)]
+                elif self.config.streaming and channel_layer and group_name:
                     # 使用WebSocket流式输出
-                    callbacks = [WebSocketStreamingCallbackHandler(channel_layer, group_name)]
+                    callbacks = [WebSocketStreamingCallbackHandler(channel_layer, group_name, task_id)]
                 elif self.config.streaming:
                     # 使用标准输出流式输出
                     callbacks = [StreamingStdOutCallbackHandler()]
