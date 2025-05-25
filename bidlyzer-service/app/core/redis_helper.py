@@ -127,3 +127,77 @@ class RedisClient:
         except Exception as e:
             logger.error(f"Redis设置过期时间失败: {str(e)}")
             raise
+    
+    @classmethod
+    async def publish(cls, channel: str, message: Union[str, dict]) -> int:
+        """
+        发布消息到Redis通道（用于SSE推送）
+        
+        Args:
+            channel: Redis通道名称
+            message: 要发布的消息，可以是字符串或字典
+            
+        Returns:
+            订阅该通道的客户端数量
+        """
+        try:
+            client = await cls.get_client()
+            
+            # 如果是字典，序列化为JSON字符串
+            if isinstance(message, dict):
+                message = json.dumps(message, ensure_ascii=False)
+            
+            subscriber_count = await client.publish(channel, message)
+            logger.debug(f"Published message to channel {channel}, subscribers: {subscriber_count}")
+            
+            return subscriber_count
+            
+        except Exception as e:
+            logger.error(f"Redis发布消息失败 - channel: {channel}, error: {str(e)}")
+            raise
+    
+    @classmethod
+    async def subscribe(cls, *channels: str):
+        """
+        订阅Redis通道（用于SSE接收）
+        
+        Args:
+            *channels: 要订阅的通道名称列表
+            
+        Returns:
+            Pubsub对象，可用于接收消息
+        """
+        try:
+            client = await cls.get_client()
+            pubsub = client.pubsub()
+            
+            # 订阅通道
+            await pubsub.subscribe(*channels)
+            logger.debug(f"Subscribed to channels: {channels}")
+            
+            return pubsub
+            
+        except Exception as e:
+            logger.error(f"Redis订阅通道失败 - channels: {channels}, error: {str(e)}")
+            raise
+    
+    @classmethod
+    async def unsubscribe(cls, pubsub, *channels: str) -> None:
+        """
+        取消订阅Redis通道
+        
+        Args:
+            pubsub: Pubsub对象
+            *channels: 要取消订阅的通道名称列表
+        """
+        try:
+            if channels:
+                await pubsub.unsubscribe(*channels)
+                logger.debug(f"Unsubscribed from channels: {channels}")
+            else:
+                await pubsub.unsubscribe()
+                logger.debug("Unsubscribed from all channels")
+                
+        except Exception as e:
+            logger.error(f"Redis取消订阅失败: {str(e)}")
+            raise
