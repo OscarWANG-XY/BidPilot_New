@@ -4,6 +4,10 @@ from pathlib import Path
 from pydantic import Field, ConfigDict
 from pydantic_settings import BaseSettings
 from typing import Optional  # 添加Optional导入
+from dotenv import load_dotenv
+
+
+
 
 class Settings(BaseSettings):
     
@@ -23,7 +27,6 @@ class Settings(BaseSettings):
         default=Path(__file__).resolve().parent.parent.parent / "data",
         description="数据存储目录，默认在项目根目录下的data文件夹"
     )
-
 
     # PostgreSQL 数据库配置
     POSTGRES_USER: str = Field(default="postgres", description="PostgreSQL 用户名")
@@ -64,6 +67,10 @@ class Settings(BaseSettings):
     JWT_AUDIENCE: Optional[str] = Field(default=None, description="JWT Audience")
     JWT_ISSUER: Optional[str] = Field(default=None, description="JWT Issuer")
     JWT_AUTH_HEADER_PREFIX: str = Field(default="Bearer", description="JWT Authorization header prefix")
+
+
+    # 阿里云API配置
+    ALIBABA_API_KEY: str = Field(default="", description="阿里云API Key")
 
     # Pydantic v2 配置
     model_config = ConfigDict(

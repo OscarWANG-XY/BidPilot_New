@@ -14,6 +14,7 @@ import time
 import random
 import asyncio
 import json
+from app.core.config import settings
 
 
 logger = logging.getLogger(__name__)
@@ -142,7 +143,7 @@ class LLMService:
             temperature=self.config.temperature,
             top_p=self.config.top_p,
             streaming=self.config.streaming,
-            api_key=self.config.api_key or os.getenv("ALIBABA_API_KEY"),
+            api_key=self.config.api_key or settings.ALIBABA_API_KEY,
             base_url=self.config.base_url,
             timeout=self.config.timeout,
         )
