@@ -31,7 +31,6 @@ class SystemInternalState(str, Enum):
     ADDING_INTRODUCTION = "adding_introduction"
     INTRODUCTION_ADDED = "introduction_added"
     AWAITING_EDITING = "awaiting_editing"
-    EDITING_IN_PROGRESS = "editing_in_progress"
     COMPLETED = "completed"
     FAILED = "failed"
 
@@ -46,7 +45,6 @@ INTERNAL_TO_USER_STATE_MAP = {
     SystemInternalState.ADDING_INTRODUCTION: UserVisibleState.PROCESSING,
     SystemInternalState.INTRODUCTION_ADDED: UserVisibleState.PROCESSING,
     SystemInternalState.AWAITING_EDITING: UserVisibleState.EDITING,
-    SystemInternalState.EDITING_IN_PROGRESS: UserVisibleState.EDITING,
     SystemInternalState.COMPLETED: UserVisibleState.COMPLETED,
     SystemInternalState.FAILED: UserVisibleState.FAILED,
 }
@@ -237,14 +235,6 @@ def _awaiting_editing_config():
         can_retry=True
     )
 
-@StateRegistry.register_state(SystemInternalState.EDITING_IN_PROGRESS)
-def _editing_in_progress_config():
-    return StateMetadata(
-        display_name="编辑中",
-        description="用户正在编辑文档",
-        notification_type="info"
-    )
-
 @StateRegistry.register_state(SystemInternalState.COMPLETED)
 def _completed_config():
     return StateMetadata(
@@ -305,17 +295,17 @@ def _add_introduction_step_config():
 def _complete_editing_step_config():
     return {
         "description": "完成编辑",
-        "required_states": [SystemInternalState.AWAITING_EDITING, SystemInternalState.EDITING_IN_PROGRESS],
+        "required_states": [SystemInternalState.AWAITING_EDITING],
         "target_state": SystemInternalState.COMPLETED,
         "user_triggered": True
     }
 
-# 操作配置 - 移除upload_document
+# 操作配置 
 @StateRegistry.register_action(UserAction.COMPLETE_EDITING)
 def _complete_editing_action_config():
     return {
         "description": "完成编辑",
-        "valid_states": [SystemInternalState.AWAITING_EDITING, SystemInternalState.EDITING_IN_PROGRESS],
+        "valid_states": [SystemInternalState.AWAITING_EDITING],
         "target_step": ProcessingStep.COMPLETE_EDITING,
         "requires_payload": True
     }

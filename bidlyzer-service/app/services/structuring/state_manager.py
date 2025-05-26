@@ -5,7 +5,7 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 import asyncio
 import json
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from app.core.cache_manager import CacheManager
 from app.core.redis_helper import RedisClient
@@ -23,6 +23,12 @@ logger = logging.getLogger(__name__)
 
 class AgentStateData(BaseModel):
     """Agent状态数据模型"""
+    model_config = ConfigDict(
+        json_encoders={
+            datetime: lambda v: v.isoformat()
+        }
+    )
+    
     project_id: str
     current_internal_state: SystemInternalState
     current_user_state: UserVisibleState
@@ -44,13 +50,8 @@ class AgentStateData(BaseModel):
     extracted_content: Optional[Dict[str, Any]] = None
     h1_analysis_result: Optional[Dict[str, Any]] = None
     h2h3_analysis_result: Optional[Dict[str, Any]] = None
-    introduction_content: Optional[str] = None
+    introduction_content: Optional[Dict[str, Any]] = None
     final_document: Optional[Dict[str, Any]] = None
-    
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
 
 # ========================= 状态管理器 =========================
 
@@ -253,7 +254,8 @@ class StructuringAgentStateManager:
         """保存Agent状态到Redis"""
         try:
             state_key = f"structuring_agent:state:{agent_state.project_id}"
-            state_data = agent_state.model_dump()
+            # 使用 mode='json' 确保正确的 JSON 序列化，包括 datetime 字段
+            state_data = agent_state.model_dump(mode='json')
             
             # 使用15分钟过期时间
             success = await RedisClient.set(state_key, state_data, expire=900)
@@ -346,6 +348,10 @@ class StructuringAgentStateManager:
     
     def _is_valid_transition(self, current_state: SystemInternalState, target_state: SystemInternalState) -> bool:
         """验证状态转换是否合法"""
+        # 允许相同状态的转换（用于更新进度或消息）
+        if current_state == target_state:
+            return True
+            
         # 获取当前状态配置
         current_config = StateRegistry.get_state_config(current_state)
         
@@ -364,6 +370,7 @@ class StructuringAgentStateManager:
         # 允许从任何状态转换到取消状态（如果有的话）
         # 这里可以根据需要添加更多转换规则
         
+        logger.debug(f"Invalid transition attempted: {current_state} -> {target_state}")
         return False
     
     def _is_valid_action(self, current_state: SystemInternalState, action: UserAction) -> bool:
@@ -410,7 +417,7 @@ class StructuringAgentStateManager:
         elif state == SystemInternalState.OUTLINE_H2H3_ANALYZED:
             agent_state.h2h3_analysis_result = result_data
         elif state == SystemInternalState.INTRODUCTION_ADDED:
-            agent_state.introduction_content = result_data.get("introduction", "")
+            agent_state.introduction_content = result_data
         elif state == SystemInternalState.COMPLETED:
             agent_state.final_document = result_data
     
@@ -418,14 +425,20 @@ class StructuringAgentStateManager:
         """检查是否需要自动转换状态"""
         current_config = StateRegistry.get_state_config(agent_state.current_internal_state)
         
-        if current_config and current_config.auto_transition and current_config.next_state:
-            # 延迟一小段时间后自动转换（模拟处理时间）
-            await asyncio.sleep(1)
-            await self.transition_to_state(
-                agent_state.project_id, 
-                current_config.next_state,
-                progress=agent_state.overall_progress
-            )
+        # 禁用自动转换，避免无限循环和状态混乱
+        # 所有状态转换应该由业务逻辑显式控制
+        logger.debug(f"Auto-transition disabled for state: {agent_state.current_internal_state}")
+        return
+        
+        # 原有的自动转换逻辑已被禁用
+        # if current_config and current_config.auto_transition and current_config.next_state:
+        #     # 延迟一小段时间后自动转换（模拟处理时间）
+        #     await asyncio.sleep(1)
+        #     await self.transition_to_state(
+        #         agent_state.project_id, 
+        #         current_config.next_state,
+        #         progress=agent_state.overall_progress
+        #     )
     
     # =============== 用户操作处理器 ===============
     
