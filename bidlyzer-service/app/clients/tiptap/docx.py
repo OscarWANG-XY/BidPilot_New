@@ -24,7 +24,8 @@ async def docx_to_html(docx_file, preserve_formatting=True):
         if preserve_formatting:
             # Create detailed style mapping to preserve more original formatting
             style_map = """
-                p[style-name='Normal Indent'] => p.indent
+                p[style-name='Normal'] => p:fresh
+                p[style-name='Normal Indent'] => p.indent:fresh
                 p[style-name='Heading 1'] => h1:fresh
                 p[style-name='Heading 2'] => h2:fresh
                 p[style-name='Heading 3'] => h3:fresh
@@ -37,21 +38,23 @@ async def docx_to_html(docx_file, preserve_formatting=True):
                 r[style-name='Emphasis'] => em
                 r[style-name='Intense Emphasis'] => em.intense
                 r[style-name='Code'] => code
-                p[style-name='List Paragraph'] => p.list-paragraph
+                p[style-name='List Paragraph'] => p.list-paragraph:fresh
                 table => table.docx-table
                 r[style-name='Hyperlink'] => a
-                p[style-name='Footnote Text'] => p.footnote-text
-                p[style-name='Endnote Text'] => p.endnote-text
-                p[style-name='Caption'] => p.caption
+                p[style-name='Footnote Text'] => p.footnote-text:fresh
+                p[style-name='Endnote Text'] => p.endnote-text:fresh
+                p[style-name='Caption'] => p.caption:fresh
                 r[style-name='Subtle Emphasis'] => span.subtle-emphasis
-                p[style-name='TOC Heading'] => h1.toc-heading
-                p[style-name='TOC 1'] => p.toc-1
-                p[style-name='TOC 2'] => p.toc-2
-                p[style-name='TOC 3'] => p.toc-3
-                p[style-name='No Spacing'] => p.no-spacing
-                p[style-name='Body Text'] => p.body-text
-                p[style-name='Table Text'] => p.table-text
-                p[style-name='Title'] => h1.title
+                p[style-name='TOC Heading'] => h1.toc-heading:fresh
+                p[style-name='TOC 1'] => p.toc-1:fresh
+                p[style-name='TOC 2'] => p.toc-2:fresh
+                p[style-name='TOC 3'] => p.toc-3:fresh
+                p[style-name='No Spacing'] => p.no-spacing:fresh
+                p[style-name='Body Text'] => p.body-text:fresh
+                p[style-name='Table Text'] => p.table-text:fresh
+                p[style-name='Title'] => h1.title:fresh
+                p => p:fresh
+                br => br
             """
             
             # Correctly handle image conversion
@@ -69,6 +72,13 @@ async def docx_to_html(docx_file, preserve_formatting=True):
                 "include_default_style_map": True,
                 "ignore_empty_paragraphs": False,
                 "convert_image": mammoth.images.img_element(convert_image)
+            }
+        else:
+            # 简化版本，确保基本的段落换行
+            options = {
+                "style_map": "p => p:fresh\nbr => br",
+                "include_default_style_map": True,
+                "ignore_empty_paragraphs": False
             }
         
         # Handle different types of input
@@ -92,6 +102,14 @@ async def docx_to_html(docx_file, preserve_formatting=True):
         
         html = result.value
         messages = result.messages  # Warning and error messages
+        
+        # 后处理：确保段落之间有适当的换行
+        if html:
+            # 在连续的 </p><p> 之间添加换行符（如果需要）
+            import re
+            html = re.sub(r'</p><p', '</p>\n<p', html)
+            html = re.sub(r'</h[1-6]><p', lambda m: m.group(0).replace('><p', '>\n<p'), html)
+            html = re.sub(r'</p><h[1-6]', lambda m: m.group(0).replace('><h', '>\n<h'), html)
         
         # Filter out common harmless warnings
         filtered_messages = []
