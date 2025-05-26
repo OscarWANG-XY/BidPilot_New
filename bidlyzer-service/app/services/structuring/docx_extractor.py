@@ -10,16 +10,15 @@ logger = logging.getLogger(__name__)
 class DocxExtractor:
     """文档内容提取模块，用于大模型agent"""
 
-    def __init__(self, project_id: str, file_url: str = None):
+    def __init__(self, project_id: str):
         """初始化文档提取器"""
         self.project_id = project_id
-        self.file_url = file_url
         logger.info(f"DocxExtractor: 初始化, project_id={project_id}")
 
-    async def extract_content(self) -> Dict[str, Any]:
+    async def extract_content(self, file_url: str) -> Dict[str, Any]:
         """异步提取文档内容"""
         # 获取文件URL
-        if not self.file_url:
+        if not file_url:
             logger.error(f"DocxExtractor: 无法获取文件URL, project_id={self.project_id}")
             raise ValueError("项目中没有上传的文件")
 
@@ -27,10 +26,10 @@ class DocxExtractor:
         
         try:
             # 如果提供了URL，下载文件到临时位置
-            if self.file_url:
+            if file_url:
                 logger.info(f"docx_extractor: 开始下载文件")
                 temp_file_path = os.path.join(tempfile.gettempdir(), f"doc_analysis_{uuid.uuid4()}.docx")
-                response = requests.get(self.file_url, timeout=30)
+                response = requests.get(file_url, timeout=30)
                 response.raise_for_status()
                 
                 with open(temp_file_path, 'wb') as temp_file:
@@ -38,8 +37,8 @@ class DocxExtractor:
                 
                 file_to_process = temp_file_path
             else:
-                # 使用本地文件
-                file_to_process = self.file_path
+                # 如果没有提供URL，抛出错误
+                raise ValueError("必须提供文件URL")
             
             logger.info(f"DocxExtractor: 开始提取文档内容, file={file_to_process}")
             
