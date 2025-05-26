@@ -154,7 +154,7 @@ class TenderOutlinesL1PromptBuilder():
         # docx_extraction_task = Task.objects.get(stage__project=project, type=TaskType.DOCX_EXTRACTION_TASK)
         
         from app.clients.tiptap.helpers import TiptapUtils
-        indexed_doc, index_path_map = TiptapUtils.extract_indexed_paragraphs(self.doc, 100)
+        indexed_doc, index_path_map = TiptapUtils.extract_indexed_paragraphs(self.doc, 50)
 
         return indexed_doc, index_path_map
 
