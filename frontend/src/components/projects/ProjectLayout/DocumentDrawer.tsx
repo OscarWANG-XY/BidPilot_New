@@ -10,16 +10,7 @@ interface DocumentDrawerProps {
   rightPanelWidth: number;
   onClose: () => void;
   onWidthChange: (newWidth: number) => void;
-
-  // 关于文档内容和编辑的props
   content: string;
-  isupdating: boolean;
-  editingContent: string;
-  isEditing: boolean;
-  onStartEditing: () => void;
-  onEditingContent: (value: string) => void;
-  onCancelEditing: () => void;
-  onSaveEditing: () => void;
 }
 
 export const DocumentDrawer: React.FC<DocumentDrawerProps> = ({
@@ -28,13 +19,6 @@ export const DocumentDrawer: React.FC<DocumentDrawerProps> = ({
   onClose,
   onWidthChange,
   content,
-  isupdating,
-  editingContent,
-  isEditing,
-  onStartEditing,
-  onEditingContent,
-  onCancelEditing,
-  onSaveEditing,
 }) => {
   // 如果抽屉关闭，不渲染任何内容
   if (!isOpen) {
@@ -59,25 +43,15 @@ export const DocumentDrawer: React.FC<DocumentDrawerProps> = ({
             招标文件内容
           </div>
           <div className="flex space-x-2">
-            {isEditing ? (
-              <>
-                <Button variant="outline" size="sm" onClick={onCancelEditing} disabled={isupdating}>取消编辑</Button>
-                <Button size="sm" onClick={onSaveEditing} disabled={isupdating}>保存修改</Button>
-              </>
-            ) : (
-              <Button size="sm" onClick={onStartEditing} disabled={isupdating}>开始编辑</Button>
-            )}
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0" 
               onClick={toggleMaximize} 
               title={rightPanelWidth === 50 ? "扩大文档区域" : "恢复默认大小"}
-              disabled={isupdating}
             >
               <Maximize2 className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-500" 
               onClick={onClose} 
               title="关闭文档"
-              disabled={isupdating}
             >
               <X className="h-4 w-4" />
             </Button>
@@ -85,9 +59,8 @@ export const DocumentDrawer: React.FC<DocumentDrawerProps> = ({
         </div>
         <div className="h-full overflow-auto p-4 bg-white m-3 rounded-md shadow-sm">
           <TiptapEditor
-            initialContent={isEditing ? editingContent : content}
-            onChange={isEditing ? onEditingContent : undefined}
-            readOnly={!isEditing}
+            initialContent={content}
+            readOnly={true}
             maxWidth="100%"
             minWidth="100%"
             maxHeight="100%"
