@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getCurrentUser, updateUser } from '@/_api/user_api';
+import { getCurrentUser, updateUser } from '@/_api/auth_api/user_api';
 import { UserUpdateInput } from '@/_types/user_dt_stru';
 
 // Query keys

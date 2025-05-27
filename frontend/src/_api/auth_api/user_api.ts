@@ -1,7 +1,7 @@
 // src/api/user_api.ts
 
 // 导入配置好的 axios 实例
-import axiosInstance from './axios_instance';
+import axiosInstance from '../axios_instance';
 
 // 导入自定义类型定义
 // UserResponse: 表示从API返回的用户信息的数据结构

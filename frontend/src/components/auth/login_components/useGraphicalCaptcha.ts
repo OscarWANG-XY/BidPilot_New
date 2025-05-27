@@ -1,6 +1,6 @@
 // hooks/useCaptcha.ts
 import { useCallback, useRef } from 'react'; // 引入 React 的 useCallback 和 useRef 钩子
-import { verifyGphCaptcha } from '@/_api/gph_captcha_api'; // 引入验证图形验证码的 API 函数
+import { verifyGphCaptcha } from '@/_api/auth_api/gph_captcha_api'; // 引入验证图形验证码的 API 函数
 
 // 为 AliyunCaptcha 添加类型声明
 declare global {

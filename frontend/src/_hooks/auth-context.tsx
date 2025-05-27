@@ -19,9 +19,9 @@ import {
   registerUser,
   forgotPassword,
   logout,
-} from '@/_api/auth_api'
+} from '@/_api/auth_api/auth_api'
 import { UserResponse } from '@/_types/user_dt_stru';
-import { getCurrentUser} from '@/_api/user_api';
+import { getCurrentUser} from '@/_api/auth_api/user_api';
 
 const STORAGE_KEYS = {
   TOKEN: 'token',
