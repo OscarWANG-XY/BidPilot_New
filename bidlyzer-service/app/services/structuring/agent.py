@@ -52,7 +52,8 @@ class DocumentStructureAgent:
             'h1_document': f"structuring:doc:{project_id}:h1",
             'h2h3_document': f"structuring:doc:{project_id}:h2h3", 
             'intro_document': f"structuring:doc:{project_id}:intro",
-            'final_document': f"structuring:doc:{project_id}:final"
+            'final_document': f"structuring:doc:{project_id}:final",
+            'edited_document': f"structuring:doc:{project_id}:edited"
         }
         
         # 延迟初始化组件  (测试done)

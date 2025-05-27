@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 import asyncio
 import json
 import logging
+from datetime import datetime
 
 from app.services.structuring.state_manager import structuring_state_manager
 from app.services.structuring.state import UserAction, SystemInternalState, UserVisibleState
@@ -57,6 +58,42 @@ class StateStatusResponse(BaseModel):
     internal_state: str
     progress: int
     message: Optional[str] = None
+
+# ========================= 新增文档管理相关模型 =========================
+
+class GetDocumentResponse(BaseModel):
+    """获取文档响应"""
+    success: bool
+    message: str
+    project_id: str
+    doc_type: str
+    document: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+class UpdateDocumentRequest(BaseModel):
+    """更新文档请求"""
+    document: Dict[str, Any] = Field(description="编辑后的文档数据")
+    user_notes: Optional[str] = Field(default=None, description="用户编辑备注")
+    save_as_final: bool = Field(default=True, description="是否保存为最终文档")
+
+class UpdateDocumentResponse(BaseModel):
+    """更新文档响应"""
+    success: bool
+    message: str
+    project_id: str
+    doc_type: str
+    saved_at: str
+
+class DocumentCompareResponse(BaseModel):
+    """文档对比响应"""
+    success: bool
+    message: str
+    project_id: str
+    source_type: str
+    target_type: str
+    source_document: Optional[Dict[str, Any]] = None
+    target_document: Optional[Dict[str, Any]] = None
+    comparison_metadata: Optional[Dict[str, Any]] = None
 
 # ========================= 端点实现 =========================
 
@@ -338,3 +375,269 @@ async def get_status(project_id: str):
 # ========================= 后台任务 =========================
 
 # 原来的后台任务函数已被Celery任务替代，详见 app/tasks/structuring_tasks.py
+
+# ========================= 新增文档管理端点 =========================
+
+@router.get("/document/{project_id}", response_model=GetDocumentResponse)
+async def get_document(
+    project_id: str,
+    doc_type: str = "intro"
+):
+    """
+    端点5: 获取文档（供前端编辑器加载）
+    支持的文档类型: raw, h1, h2h3, intro, final
+    """
+    try:
+        logger.info(f"Getting document for project {project_id}, type: {doc_type}")
+        
+        # 验证文档类型
+        valid_doc_types = ["raw", "h1", "h2h3", "intro", "final"]
+        if doc_type not in valid_doc_types:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"无效的文档类型: {doc_type}。支持的类型: {', '.join(valid_doc_types)}"
+            )
+        
+        # 获取agent实例
+        from app.services.structuring.agent import get_agent
+        agent = await get_agent(project_id)
+        
+        # 获取文档
+        document = await agent.get_document(doc_type)
+        
+        if not document:
+            # 检查项目状态，提供更详细的错误信息
+            agent_state = await agent.current_state
+            if not agent_state:
+                raise HTTPException(
+                    status_code=404, 
+                    detail="项目未找到或尚未开始分析"
+                )
+            
+            # 根据当前状态提供相应的提示
+            current_internal_state = agent_state.current_internal_state
+            if doc_type == "intro" and current_internal_state.value in [
+                "extracting_document", "document_extracted", 
+                "analyzing_outline_h1", "outline_h1_analyzed",
+                "analyzing_outline_h2h3", "outline_h2h3_analyzed",
+                "adding_introduction"
+            ]:
+                raise HTTPException(
+                    status_code=202, 
+                    detail=f"文档正在处理中，当前状态: {current_internal_state.value}，请稍后重试"
+                )
+            
+            raise HTTPException(
+                status_code=404, 
+                detail=f"文档类型 {doc_type} 暂不可用"
+            )
+        
+        # 获取文档元数据
+        metadata = {
+            "doc_type": doc_type,
+            "project_id": project_id,
+            "retrieved_at": datetime.now().isoformat(),
+            "document_size": len(json.dumps(document)) if document else 0
+        }
+        
+        # 如果有agent状态，添加状态信息
+        agent_state = await agent.current_state
+        if agent_state:
+            metadata.update({
+                "current_state": agent_state.current_internal_state.value,
+                "progress": agent_state.overall_progress,
+                "last_updated": agent_state.updated_at.isoformat()
+            })
+        
+        return GetDocumentResponse(
+            success=True,
+            message=f"成功获取 {doc_type} 文档",
+            project_id=project_id,
+            doc_type=doc_type,
+            document=document,
+            metadata=metadata
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting document for project {project_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"获取文档失败: {str(e)}")
+
+@router.put("/document/{project_id}/edit", response_model=UpdateDocumentResponse)
+async def update_document(
+    project_id: str,
+    request: UpdateDocumentRequest
+):
+    """
+    端点6: 提交编辑（保存为final_document）
+    用户在编辑器中完成编辑后，通过此端点保存最终文档
+    """
+    try:
+        logger.info(f"Updating document for project {project_id}")
+        
+        # 获取agent实例
+        from app.services.structuring.agent import get_agent
+        agent = await get_agent(project_id)
+        
+        # 检查当前状态是否允许编辑
+        current_state = await agent.current_internal_state
+        if current_state not in [SystemInternalState.AWAITING_EDITING, SystemInternalState.COMPLETED]:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"当前状态不允许编辑: {current_state.value if current_state else 'unknown'}"
+            )
+        
+        # 保存文档
+        if request.save_as_final:
+            # 保存为最终文档
+            success = await agent._save_document('final_document', request.document)
+            doc_type = "final"
+        else:
+            # 保存为临时编辑版本（可以扩展支持多个编辑版本）
+            success = await agent._save_document('edited_document', request.document)
+            doc_type = "edited"
+        
+        if not success:
+            raise HTTPException(status_code=500, detail="保存文档失败")
+        
+        # 如果保存为最终文档且当前状态是等待编辑，则触发完成编辑操作
+        if request.save_as_final and current_state == SystemInternalState.AWAITING_EDITING:
+            # 使用状态管理器处理编辑完成操作
+            success = await structuring_state_manager.handle_user_action(
+                project_id=project_id,
+                action=UserAction.COMPLETE_EDITING,
+                payload={
+                    "document": request.document,
+                    "user_notes": request.user_notes
+                }
+            )
+            
+            if not success:
+                logger.warning(f"文档已保存但状态更新失败: {project_id}")
+        
+        return UpdateDocumentResponse(
+            success=True,
+            message=f"文档已成功保存为 {doc_type} 版本",
+            project_id=project_id,
+            doc_type=doc_type,
+            saved_at=datetime.now().isoformat()
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating document for project {project_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"更新文档失败: {str(e)}")
+
+@router.get("/document/{project_id}/compare", response_model=DocumentCompareResponse)
+async def compare_documents(
+    project_id: str,
+    source: str = "intro",
+    target: str = "final"
+):
+    """
+    端点7: 版本对比（可选，增强体验）
+    对比两个版本的文档，帮助用户了解编辑前后的变化
+    """
+    try:
+        logger.info(f"Comparing documents for project {project_id}: {source} vs {target}")
+        
+        # 验证文档类型
+        valid_doc_types = ["raw", "h1", "h2h3", "intro", "final", "edited"]
+        if source not in valid_doc_types or target not in valid_doc_types:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"无效的文档类型。支持的类型: {', '.join(valid_doc_types)}"
+            )
+        
+        if source == target:
+            raise HTTPException(
+                status_code=400, 
+                detail="源文档和目标文档不能相同"
+            )
+        
+        # 获取agent实例
+        from app.services.structuring.agent import get_agent
+        agent = await get_agent(project_id)
+        
+        # 获取两个文档
+        source_document = await agent.get_document(source)
+        target_document = await agent.get_document(target)
+        
+        # 检查文档是否存在
+        if not source_document:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"源文档 {source} 不存在"
+            )
+        
+        if not target_document:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"目标文档 {target} 不存在"
+            )
+        
+        # 生成对比元数据
+        comparison_metadata = {
+            "source_type": source,
+            "target_type": target,
+            "compared_at": datetime.now().isoformat(),
+            "source_size": len(json.dumps(source_document)),
+            "target_size": len(json.dumps(target_document)),
+        }
+        
+        # 简单的统计对比（可以扩展为更详细的diff算法）
+        try:
+            source_str = json.dumps(source_document, ensure_ascii=False)
+            target_str = json.dumps(target_document, ensure_ascii=False)
+            
+            comparison_metadata.update({
+                "size_difference": len(target_str) - len(source_str),
+                "similarity_ratio": _calculate_similarity(source_str, target_str)
+            })
+        except Exception as e:
+            logger.warning(f"Failed to calculate document similarity: {e}")
+        
+        return DocumentCompareResponse(
+            success=True,
+            message=f"成功对比文档 {source} 和 {target}",
+            project_id=project_id,
+            source_type=source,
+            target_type=target,
+            source_document=source_document,
+            target_document=target_document,
+            comparison_metadata=comparison_metadata
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error comparing documents for project {project_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"文档对比失败: {str(e)}")
+
+def _calculate_similarity(text1: str, text2: str) -> float:
+    """
+    计算两个文本的相似度（简单实现）
+    返回0-1之间的相似度分数
+    """
+    try:
+        # 简单的字符级相似度计算
+        if not text1 and not text2:
+            return 1.0
+        if not text1 or not text2:
+            return 0.0
+        
+        # 使用最长公共子序列的思想计算相似度
+        len1, len2 = len(text1), len(text2)
+        max_len = max(len1, len2)
+        min_len = min(len1, len2)
+        
+        # 简单的相似度计算：基于长度差异
+        length_similarity = min_len / max_len if max_len > 0 else 1.0
+        
+        # 可以扩展为更复杂的算法，如编辑距离、余弦相似度等
+        return length_similarity
+        
+    except Exception:
+        return 0.0
