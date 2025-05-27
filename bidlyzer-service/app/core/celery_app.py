@@ -9,6 +9,7 @@ celery_app = Celery(
     backend=settings.REDIS_URL,
     include=[
         "app.tasks.test_tasks",  # 包含任务模块
+        "app.tasks.structuring_tasks",  # 新增：文档结构化任务
     ]
 )
 
@@ -29,6 +30,8 @@ celery_app.conf.update(
         'app.tasks.example_tasks.*': {'queue': 'fastapi_default'},
         'app.tasks.bid_analysis_tasks.*': {'queue': 'fastapi_analysis'},
         'app.tasks.test_tasks.*': {'queue': 'fastapi_test'},
+        'app.tasks.structuring_tasks.*': {'queue': 'fastapi_structuring'},  # 新增：结构化任务队列
+        'structuring.*': {'queue': 'fastapi_structuring'},  # 新增：按任务名称路由
     },
     
     # 任务结果过期时间（秒）

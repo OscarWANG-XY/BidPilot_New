@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Request
 from fastapi.responses import StreamingResponse
 from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field
@@ -17,7 +17,7 @@ router = APIRouter()
 # ========================= 请求/响应模型 =========================
 
 class StartAnalysisRequest(BaseModel):
-    """开始分析请求"""
+    """开始分析请求 (done)"""
     project_id: str = Field(description="项目ID")
 
 class StartAnalysisResponse(BaseModel):
@@ -85,12 +85,15 @@ async def start_analysis(
         # 初始化Agent状态（从文档提取开始）
         agent_state = await structuring_state_manager.initialize_agent(request.project_id)
         
-        # 在后台启动分析流程
-        # background_tasks.add_task(_run_structuring_analysis, request.project_id, request.file_path)
+        # 使用Celery任务在后台启动分析流程
+        from app.tasks.structuring_tasks import run_structuring_analysis
+        celery_task = run_structuring_analysis.delay(request.project_id)
+        
+        logger.info(f"Celery任务已启动: task_id={celery_task.id}, project_id={request.project_id}")
         
         return StartAnalysisResponse(
             success=True,
-            message="分析已开始，请通过SSE监听进度更新",
+            message=f"分析已开始，请通过SSE监听进度更新。Celery任务ID: {celery_task.id}",
             project_id=request.project_id,
             initial_state=agent_state.current_internal_state.value
         )
@@ -110,7 +113,7 @@ async def edit_document(request: EditDocumentRequest):
         
         # 检查当前状态是否允许编辑
         current_state = await structuring_state_manager.get_internal_state(request.project_id)
-        if current_state not in [SystemInternalState.AWAITING_EDITING, SystemInternalState.EDITING_IN_PROGRESS]:
+        if current_state not in [SystemInternalState.AWAITING_EDITING]:
             raise HTTPException(
                 status_code=400, 
                 detail=f"当前状态不允许编辑: {current_state.value if current_state else 'unknown'}"
@@ -172,12 +175,15 @@ async def retry_analysis(
         if not success:
             raise HTTPException(status_code=500, detail="重试操作失败")
         
-        # 在后台重新启动分析流程
-        background_tasks.add_task(_run_structuring_analysis, request.project_id, None)
+        # 使用Celery任务在后台重新启动分析流程
+        from app.tasks.structuring_tasks import retry_structuring_analysis
+        celery_task = retry_structuring_analysis.delay(request.project_id)
+        
+        logger.info(f"重试Celery任务已启动: task_id={celery_task.id}, project_id={request.project_id}")
         
         return RetryAnalysisResponse(
             success=True,
-            message="重试已开始，请通过SSE监听进度更新",
+            message=f"重试已开始，请通过SSE监听进度更新。Celery任务ID: {celery_task.id}",
             project_id=request.project_id,
             current_state=SystemInternalState.EXTRACTING_DOCUMENT.value
         )
@@ -189,19 +195,37 @@ async def retry_analysis(
         raise HTTPException(status_code=500, detail=f"重试失败: {str(e)}")
 
 @router.get("/sse/{project_id}")
-async def sse_stream(project_id: str):
+async def sse_stream(project_id: str, request: Request):
     """
-    端点4: SSE流
+    端点4: SSE流 (使用中间件认证)
     Agent向前端实时推送状态更新和进度信息
+    
+    认证方式: 
+    - HTTP请求: Authorization: Bearer <token>
+    - SSE连接: URL参数 ?token=<token>
+    - 认证由JWTAuthMiddleware统一处理
     """
     async def event_generator():
         """SSE事件生成器"""
         try:
+            # 从中间件获取用户信息
+            user_info = request.state.user
+            user_id = user_info.get('user_id', 'unknown')
+            
+            logger.info(f"SSE连接已建立 - 项目: {project_id}, 用户: {user_id}")
+            
             # Redis订阅通道
             channel = f"sse:structuring:{project_id}"
             
-            # 发送初始连接确认
-            yield f"data: {json.dumps({'event': 'connected', 'project_id': project_id})}\n\n"
+            # 发送初始连接确认（包含用户信息）
+            yield f"data: {json.dumps({
+                'event': 'connected', 
+                'data': {
+                    'projectId': project_id,
+                    'userId': user_id,
+                    'message': '连接已建立'
+                }
+            })}\n\n"
             
             # 发送当前状态（如果存在）
             current_state = await structuring_state_manager.get_agent_state(project_id)
@@ -209,9 +233,9 @@ async def sse_stream(project_id: str):
                 initial_data = {
                     "event": "state_update",
                     "data": {
-                        "project_id": project_id,
-                        "internal_state": current_state.current_internal_state.value,
-                        "user_state": current_state.current_user_state.value,
+                        "projectId": project_id,
+                        "internalState": current_state.current_internal_state.value,
+                        "userState": current_state.current_user_state.value,
                         "progress": current_state.overall_progress,
                         "message": "当前状态"
                     }
@@ -219,31 +243,56 @@ async def sse_stream(project_id: str):
                 yield f"data: {json.dumps(initial_data)}\n\n"
             
             # 监听Redis消息
-            async for message in RedisClient.subscribe(channel):
-                if message:
-                    try:
-                        # 解析消息
-                        message_data = json.loads(message) if isinstance(message, str) else message
+            pubsub = await RedisClient.subscribe(channel)
+            
+            # 发送一个测试消息（可选，用于调试）
+            test_message = {
+                "event": "test",
+                "data": {
+                    "projectId": project_id,
+                    "message": "这是一个测试消息",
+                    "timestamp": "2024-01-01T00:00:00Z"
+                }
+            }
+            yield f"data: {json.dumps(test_message)}\n\n"
+            
+            try:
+                # 监听消息
+                while True:
+                    message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+                    if message is not None:
+                        try:
+                            # 解析消息
+                            message_data = json.loads(message['data']) if isinstance(message['data'], str) else message['data']
+                            
+                            # 格式化为SSE格式
+                            sse_data = {
+                                "event": message_data.get("event", "update"),
+                                "data": message_data.get("data", message_data)
+                            }
+                            
+                            yield f"data: {json.dumps(sse_data)}\n\n"
+                            
+                        except json.JSONDecodeError as e:
+                            logger.error(f"Error parsing SSE message: {e}")
+                            continue
+                    
+                    # 检查客户端是否断开连接
+                    if await request.is_disconnected():
+                        break
                         
-                        # 格式化为SSE格式
-                        sse_data = {
-                            "event": message_data.get("event", "update"),
-                            "data": message_data.get("data", message_data)
-                        }
-                        
-                        yield f"data: {json.dumps(sse_data)}\n\n"
-                        
-                    except json.JSONDecodeError as e:
-                        logger.error(f"Error parsing SSE message: {e}")
-                        continue
-                        
+            finally:
+                # 确保清理pubsub连接
+                await RedisClient.unsubscribe(pubsub, channel)
+                await pubsub.close()
+            
         except Exception as e:
             logger.error(f"Error in SSE stream for project {project_id}: {str(e)}")
             # 发送错误消息
             error_data = {
                 "event": "error",
                 "data": {
-                    "project_id": project_id,
+                    "projectId": project_id,
                     "error": str(e)
                 }
             }
@@ -288,59 +337,4 @@ async def get_status(project_id: str):
 
 # ========================= 后台任务 =========================
 
-async def _run_structuring_analysis(project_id: str, file_path: Optional[str]):
-    """
-    后台运行结构化分析流程
-    这里使用占位符实现，实际的agent逻辑将在后续实现
-    """
-    try:
-        logger.info(f"Starting background structuring analysis for project {project_id}")
-        
-        # TODO: 这里将调用实际的structuring agent
-        # 目前使用占位符模拟流程
-        
-        # 占位符: 模拟文档提取
-        await structuring_state_manager.transition_to_state(
-            project_id, 
-            SystemInternalState.DOCUMENT_EXTRACTED,
-            progress=20,
-            message="文档提取完成"
-        )
-        
-        # 占位符: 模拟H1分析
-        await asyncio.sleep(2)
-        await structuring_state_manager.transition_to_state(
-            project_id,
-            SystemInternalState.OUTLINE_H1_ANALYZED,
-            progress=50,
-            message="主要章节分析完成"
-        )
-        
-        # 占位符: 模拟H2H3分析
-        await asyncio.sleep(2)
-        await structuring_state_manager.transition_to_state(
-            project_id,
-            SystemInternalState.OUTLINE_H2H3_ANALYZED,
-            progress=80,
-            message="子章节分析完成"
-        )
-        
-        # 占位符: 模拟添加引言
-        await asyncio.sleep(1)
-        await structuring_state_manager.transition_to_state(
-            project_id,
-            SystemInternalState.AWAITING_EDITING,
-            progress=90,
-            message="文档结构化完成，等待用户编辑"
-        )
-        
-        logger.info(f"Structuring analysis completed for project {project_id}")
-        
-    except Exception as e:
-        logger.error(f"Error in background structuring analysis for project {project_id}: {str(e)}")
-        # 更新状态为失败
-        await structuring_state_manager.transition_to_state(
-            project_id,
-            SystemInternalState.FAILED,
-            message=f"分析失败: {str(e)}"
-        )
+# 原来的后台任务函数已被Celery任务替代，详见 app/tasks/structuring_tasks.py

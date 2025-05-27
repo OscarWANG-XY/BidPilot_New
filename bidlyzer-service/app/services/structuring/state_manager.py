@@ -46,7 +46,7 @@ class AgentStateData(BaseModel):
     error_message: Optional[str] = None
     retry_count: int = 0
     
-    # 数据存储
+    # 数据存储 step results
     extracted_content: Optional[Dict[str, Any]] = None
     h1_analysis_result: Optional[Dict[str, Any]] = None
     h2h3_analysis_result: Optional[Dict[str, Any]] = None
