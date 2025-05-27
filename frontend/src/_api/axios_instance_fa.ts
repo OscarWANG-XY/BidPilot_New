@@ -41,7 +41,7 @@ const convertKeysToCamel = (obj: any): any => {
 
 // 创建 FastAPI axios 实例
 const fastApiInstance = axios.create({
-    baseURL: '/fastapi'  // 使用新的代理路径
+    baseURL: '/fastapi/api/v1'  // 添加API版本前缀
 });
 
 // 请求拦截器 - 复用 JWT 逻辑

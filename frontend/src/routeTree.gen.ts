@@ -32,6 +32,7 @@ import { Route as AuthLoginImport } from './routes/auth/login'
 import { Route as AuthForgotPasswordImport } from './routes/auth/forgot-password'
 import { Route as ProjectsProjectIdIndexImport } from './routes/projects/$projectId/index'
 import { Route as ProjectsProjectIdTenderAnalysisImport } from './routes/projects/$projectId/tender-analysis'
+import { Route as ProjectsProjectIdStructuringImport } from './routes/projects/$projectId/structuring'
 import { Route as ProjectsProjectIdBidWritingImport } from './routes/projects/$projectId/bid-writing'
 import { Route as ProjectsProjectIdHistoryIndexImport } from './routes/projects/$projectId/history/index'
 import { Route as ProjectsProjectIdHistoryHistoryIdImport } from './routes/projects/$projectId/history/$historyId'
@@ -199,6 +200,13 @@ const ProjectsProjectIdTenderAnalysisRoute =
   ProjectsProjectIdTenderAnalysisImport.update({
     id: '/tender-analysis',
     path: '/tender-analysis',
+    getParentRoute: () => ProjectsProjectIdRoute,
+  } as any)
+
+const ProjectsProjectIdStructuringRoute =
+  ProjectsProjectIdStructuringImport.update({
+    id: '/structuring',
+    path: '/structuring',
     getParentRoute: () => ProjectsProjectIdRoute,
   } as any)
 
@@ -416,6 +424,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdBidWritingImport
       parentRoute: typeof ProjectsProjectIdImport
     }
+    '/projects/$projectId/structuring': {
+      id: '/projects/$projectId/structuring'
+      path: '/structuring'
+      fullPath: '/projects/$projectId/structuring'
+      preLoaderRoute: typeof ProjectsProjectIdStructuringImport
+      parentRoute: typeof ProjectsProjectIdImport
+    }
     '/projects/$projectId/tender-analysis': {
       id: '/projects/$projectId/tender-analysis'
       path: '/tender-analysis'
@@ -492,6 +507,7 @@ const PlaygroundRouteWithChildren = PlaygroundRoute._addFileChildren(
 
 interface ProjectsProjectIdRouteChildren {
   ProjectsProjectIdBidWritingRoute: typeof ProjectsProjectIdBidWritingRoute
+  ProjectsProjectIdStructuringRoute: typeof ProjectsProjectIdStructuringRoute
   ProjectsProjectIdTenderAnalysisRoute: typeof ProjectsProjectIdTenderAnalysisRoute
   ProjectsProjectIdIndexRoute: typeof ProjectsProjectIdIndexRoute
   ProjectsProjectIdHistoryHistoryIdRoute: typeof ProjectsProjectIdHistoryHistoryIdRoute
@@ -503,6 +519,7 @@ interface ProjectsProjectIdRouteChildren {
 
 const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
   ProjectsProjectIdBidWritingRoute: ProjectsProjectIdBidWritingRoute,
+  ProjectsProjectIdStructuringRoute: ProjectsProjectIdStructuringRoute,
   ProjectsProjectIdTenderAnalysisRoute: ProjectsProjectIdTenderAnalysisRoute,
   ProjectsProjectIdIndexRoute: ProjectsProjectIdIndexRoute,
   ProjectsProjectIdHistoryHistoryIdRoute:
@@ -543,6 +560,7 @@ export interface FileRoutesByFullPath {
   '/playground/': typeof PlaygroundIndexRoute
   '/projects': typeof ProjectsIndexRoute
   '/projects/$projectId/bid-writing': typeof ProjectsProjectIdBidWritingRoute
+  '/projects/$projectId/structuring': typeof ProjectsProjectIdStructuringRoute
   '/projects/$projectId/tender-analysis': typeof ProjectsProjectIdTenderAnalysisRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
   '/projects/$projectId/history/$historyId': typeof ProjectsProjectIdHistoryHistoryIdRoute
@@ -574,6 +592,7 @@ export interface FileRoutesByTo {
   '/users/subscription': typeof UsersSubscriptionRoute
   '/projects': typeof ProjectsIndexRoute
   '/projects/$projectId/bid-writing': typeof ProjectsProjectIdBidWritingRoute
+  '/projects/$projectId/structuring': typeof ProjectsProjectIdStructuringRoute
   '/projects/$projectId/tender-analysis': typeof ProjectsProjectIdTenderAnalysisRoute
   '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
   '/projects/$projectId/history/$historyId': typeof ProjectsProjectIdHistoryHistoryIdRoute
@@ -609,6 +628,7 @@ export interface FileRoutesById {
   '/playground/': typeof PlaygroundIndexRoute
   '/projects/': typeof ProjectsIndexRoute
   '/projects/$projectId/bid-writing': typeof ProjectsProjectIdBidWritingRoute
+  '/projects/$projectId/structuring': typeof ProjectsProjectIdStructuringRoute
   '/projects/$projectId/tender-analysis': typeof ProjectsProjectIdTenderAnalysisRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
   '/projects/$projectId/history/$historyId': typeof ProjectsProjectIdHistoryHistoryIdRoute
@@ -644,6 +664,7 @@ export interface FileRouteTypes {
     | '/playground/'
     | '/projects'
     | '/projects/$projectId/bid-writing'
+    | '/projects/$projectId/structuring'
     | '/projects/$projectId/tender-analysis'
     | '/projects/$projectId/'
     | '/projects/$projectId/history/$historyId'
@@ -674,6 +695,7 @@ export interface FileRouteTypes {
     | '/users/subscription'
     | '/projects'
     | '/projects/$projectId/bid-writing'
+    | '/projects/$projectId/structuring'
     | '/projects/$projectId/tender-analysis'
     | '/projects/$projectId'
     | '/projects/$projectId/history/$historyId'
@@ -707,6 +729,7 @@ export interface FileRouteTypes {
     | '/playground/'
     | '/projects/'
     | '/projects/$projectId/bid-writing'
+    | '/projects/$projectId/structuring'
     | '/projects/$projectId/tender-analysis'
     | '/projects/$projectId/'
     | '/projects/$projectId/history/$historyId'
@@ -852,6 +875,7 @@ export const routeTree = rootRoute
       "filePath": "projects/$projectId.tsx",
       "children": [
         "/projects/$projectId/bid-writing",
+        "/projects/$projectId/structuring",
         "/projects/$projectId/tender-analysis",
         "/projects/$projectId/",
         "/projects/$projectId/history/$historyId",
@@ -882,6 +906,10 @@ export const routeTree = rootRoute
     },
     "/projects/$projectId/bid-writing": {
       "filePath": "projects/$projectId/bid-writing.tsx",
+      "parent": "/projects/$projectId"
+    },
+    "/projects/$projectId/structuring": {
+      "filePath": "projects/$projectId/structuring.tsx",
       "parent": "/projects/$projectId"
     },
     "/projects/$projectId/tender-analysis": {
