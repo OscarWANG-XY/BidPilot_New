@@ -44,6 +44,42 @@ export interface StateStatusResponse {
   message?: string;
 }
 
+// ========================= 新增文档管理相关类型 =========================
+
+export interface GetDocumentResponse {
+  success: boolean;
+  message: string;
+  projectId: string;
+  docType: string;
+  document?: Record<string, any>;
+  metadata?: Record<string, any>;
+}
+
+export interface UpdateDocumentRequest {
+  document: Record<string, any>;
+  userNotes?: string;
+  saveAsFinal?: boolean;
+}
+
+export interface UpdateDocumentResponse {
+  success: boolean;
+  message: string;
+  projectId: string;
+  docType: string;
+  savedAt: string;
+}
+
+export interface DocumentCompareResponse {
+  success: boolean;
+  message: string;
+  projectId: string;
+  sourceType: string;
+  targetType: string;
+  sourceDocument?: Record<string, any>;
+  targetDocument?: Record<string, any>;
+  comparisonMetadata?: Record<string, any>;
+}
+
 export interface SSEEventData {
   event: string;
   data: {
@@ -126,6 +162,77 @@ export class StructuringAPI {
     } catch (error: any) {
       console.error('❌ [Structuring] 获取状态失败:', error);
       throw new Error(error.response?.data?.detail || '获取状态失败');
+    }
+  }
+
+  // ========================= 新增文档管理API方法 =========================
+
+  /**
+   * 获取文档
+   */
+  static async getDocument(projectId: string, docType: string = 'intro'): Promise<GetDocumentResponse> {
+    try {
+      console.log('📄 [Structuring] 获取文档:', { projectId, docType });
+      
+      const response = await fastApiInstance.get(`/structuring/document/${projectId}`, {
+        params: { doc_type: docType }
+      });
+      
+      console.log('✅ [Structuring] 文档获取成功:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ [Structuring] 获取文档失败:', error);
+      throw new Error(error.response?.data?.detail || '获取文档失败');
+    }
+  }
+
+  /**
+   * 更新文档
+   */
+  static async updateDocument(
+    projectId: string, 
+    request: UpdateDocumentRequest
+  ): Promise<UpdateDocumentResponse> {
+    try {
+      console.log('💾 [Structuring] 更新文档:', { projectId, saveAsFinal: request.saveAsFinal });
+      
+      // 转换为后端期望的格式
+      const payload = {
+        document: request.document,
+        user_notes: request.userNotes,
+        save_as_final: request.saveAsFinal ?? true
+      };
+      
+      const response = await fastApiInstance.put(`/structuring/document/${projectId}/edit`, payload);
+      
+      console.log('✅ [Structuring] 文档更新成功:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ [Structuring] 更新文档失败:', error);
+      throw new Error(error.response?.data?.detail || '更新文档失败');
+    }
+  }
+
+  /**
+   * 对比文档
+   */
+  static async compareDocuments(
+    projectId: string, 
+    source: string = 'intro', 
+    target: string = 'final'
+  ): Promise<DocumentCompareResponse> {
+    try {
+      console.log('🔍 [Structuring] 对比文档:', { projectId, source, target });
+      
+      const response = await fastApiInstance.get(`/structuring/document/${projectId}/compare`, {
+        params: { source, target }
+      });
+      
+      console.log('✅ [Structuring] 文档对比成功:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ [Structuring] 文档对比失败:', error);
+      throw new Error(error.response?.data?.detail || '文档对比失败');
     }
   }
 }
@@ -430,6 +537,67 @@ export class StructuringManager {
    */
   isSSEConnected(): boolean {
     return this.sse?.isConnected() || false;
+  }
+
+  // ========================= 新增文档管理便捷方法 =========================
+
+  /**
+   * 获取文档
+   */
+  async getDocument(docType: string = 'intro'): Promise<GetDocumentResponse> {
+    return await StructuringAPI.getDocument(this.projectId, docType);
+  }
+
+  /**
+   * 更新文档
+   */
+  async updateDocument(
+    document: Record<string, any>, 
+    userNotes?: string, 
+    saveAsFinal: boolean = true
+  ): Promise<UpdateDocumentResponse> {
+    return await StructuringAPI.updateDocument(this.projectId, {
+      document,
+      userNotes,
+      saveAsFinal
+    });
+  }
+
+  /**
+   * 对比文档版本
+   */
+  async compareDocuments(
+    source: string = 'intro', 
+    target: string = 'final'
+  ): Promise<DocumentCompareResponse> {
+    return await StructuringAPI.compareDocuments(this.projectId, source, target);
+  }
+
+  /**
+   * 获取可编辑的文档（通常是intro文档）
+   */
+  async getEditableDocument(): Promise<GetDocumentResponse> {
+    return await this.getDocument('intro');
+  }
+
+  /**
+   * 保存编辑后的文档为最终版本
+   */
+  async saveFinalDocument(
+    document: Record<string, any>, 
+    userNotes?: string
+  ): Promise<UpdateDocumentResponse> {
+    return await this.updateDocument(document, userNotes, true);
+  }
+
+  /**
+   * 保存编辑后的文档为草稿
+   */
+  async saveDraftDocument(
+    document: Record<string, any>, 
+    userNotes?: string
+  ): Promise<UpdateDocumentResponse> {
+    return await this.updateDocument(document, userNotes, false);
   }
 }
 
