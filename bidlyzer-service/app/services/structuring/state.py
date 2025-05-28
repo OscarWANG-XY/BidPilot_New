@@ -10,8 +10,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# ========================= 双层状态设计 =========================
+# =========================Part 1:  agent 状态、步骤、用户操作 定义 =========================
 
+# agent 的内部状态和用户可见状态 （以及它们之间的映射关系）
 class UserVisibleState(str, Enum):
     """用户可见的简化状态 - 4个主要阶段"""
     PROCESSING = "processing"      # 智能分析处理阶段（从文档提取开始）
@@ -34,7 +35,6 @@ class SystemInternalState(str, Enum):
     COMPLETED = "completed"
     FAILED = "failed"
 
-# 内部状态到用户可见状态的映射
 INTERNAL_TO_USER_STATE_MAP = {
     SystemInternalState.EXTRACTING_DOCUMENT: UserVisibleState.PROCESSING,
     SystemInternalState.DOCUMENT_EXTRACTED: UserVisibleState.PROCESSING,
@@ -49,7 +49,25 @@ INTERNAL_TO_USER_STATE_MAP = {
     SystemInternalState.FAILED: UserVisibleState.FAILED,
 }
 
-# ========================= 统一配置系统 =========================
+# agent 处理的步骤 
+class ProcessingStep(str, Enum):
+    """处理步骤枚举"""
+    EXTRACT = "extract"
+    ANALYZE_H1 = "analyze_h1"
+    ANALYZE_H2H3 = "analyze_h2h3"
+    ADD_INTRODUCTION = "add_introduction"
+    COMPLETE_EDITING = "complete_editing"
+
+# required 用户操作 
+class UserAction(str, Enum):
+    """用户操作枚举 - 移除upload_document，因为上传在Django完成"""
+    COMPLETE_EDITING = "complete_editing"
+    RETRY = "retry"
+    CANCEL = "cancel"
+
+# ==========================Part 2: 状态注册器 ==========================
+# 定义了状态数据结构：状态名， 下一个
+# 定义了注册state, step, action 的装饰器， 以及获取state_config, step_config, action_config的方法
 
 class StateMetadata(BaseModel):
     """状态元数据 - 统一配置"""
@@ -67,22 +85,6 @@ class StateMetadata(BaseModel):
     auto_transition: bool = Field(default=False, description="是否自动转换")
     next_state: Optional[SystemInternalState] = Field(default=None, description="下一个状态")
     estimated_duration: Optional[int] = Field(default=None, description="预估耗时(秒)")
-
-class ProcessingStep(str, Enum):
-    """处理步骤枚举"""
-    EXTRACT = "extract"
-    ANALYZE_H1 = "analyze_h1"
-    ANALYZE_H2H3 = "analyze_h2h3"
-    ADD_INTRODUCTION = "add_introduction"
-    COMPLETE_EDITING = "complete_editing"
-
-class UserAction(str, Enum):
-    """用户操作枚举 - 移除upload_document，因为上传在Django完成"""
-    COMPLETE_EDITING = "complete_editing"
-    RETRY = "retry"
-    CANCEL = "cancel"
-
-# ========================= 自动化配置注册 =========================
 
 class StateRegistry:
     """状态注册器 - 自动化配置管理"""
@@ -134,9 +136,10 @@ class StateRegistry:
         """获取操作配置"""
         return cls._action_configs.get(action, {})
 
-# ========================= 配置定义（使用装饰器自动注册）=========================
 
-# 状态配置 - 从文档提取开始
+# ======================== Part 3: 注册state_config, step_config, action_config 的值 ========================
+
+# ========================= 状态值注册 =========================
 @StateRegistry.register_state(SystemInternalState.EXTRACTING_DOCUMENT)
 def _extracting_document_config():
     return StateMetadata(
@@ -254,7 +257,9 @@ def _failed_config():
         is_terminal=True
     )
 
-# 步骤配置 - 调整为从文档提取开始
+
+# ========================= 步骤配置 =========================
+# 每个步骤配置 定义了从哪里来（required_states）， 到哪里去（target_state）， 是否需要用户触发（user_triggered）
 @StateRegistry.register_step(ProcessingStep.EXTRACT)
 def _extract_step_config():
     return {
@@ -300,7 +305,9 @@ def _complete_editing_step_config():
         "user_triggered": True
     }
 
-# 操作配置 
+
+# ========================= 操作配置 =========================
+# 每个用户操作定义了 需要处于什么状态， 准备执行什么步骤， 用户操作是否需要输入（payload） 
 @StateRegistry.register_action(UserAction.COMPLETE_EDITING)
 def _complete_editing_action_config():
     return {
@@ -325,6 +332,10 @@ def _cancel_action_config():
         "valid_states": [state for state in SystemInternalState if state not in [SystemInternalState.COMPLETED, SystemInternalState.FAILED]],
         "requires_payload": False
     }
+
+
+
+
 
 # ========================= FastAPI适配的数据模型 =========================
 
