@@ -7,7 +7,7 @@ import json
 import logging
 from datetime import datetime
 
-from app.services.structuring.state_manager import structuring_state_manager
+from app.services.structuring.state_manager import create_state_manager
 from app.services.structuring.state import UserAction, SystemInternalState, UserVisibleState
 from app.core.redis_helper import RedisClient
 
@@ -107,10 +107,13 @@ async def start_analysis(
     用户上传文件后点击分析按钮触发此端点
     """
     try:
-        logger.info(f"Starting analysis for project {request.project_id}")
+        logger.info(f"开始分析项目 {request.project_id}")
+        
+        # 创建状态管理器实例
+        state_manager = create_state_manager(request.project_id)
         
         # 检查项目是否已经在处理中
-        current_state = await structuring_state_manager.get_internal_state(request.project_id)
+        current_state = await state_manager.get_internal_state()
         if current_state and current_state not in [SystemInternalState.COMPLETED, SystemInternalState.FAILED]:
             return StartAnalysisResponse(
                 success=False,
@@ -120,7 +123,7 @@ async def start_analysis(
             )
         
         # 初始化Agent状态（从文档提取开始）
-        agent_state = await structuring_state_manager.initialize_agent(request.project_id)
+        agent_state = await state_manager.initialize_agent()
         
         # 使用Celery任务在后台启动分析流程
         from app.tasks.structuring_tasks import run_structuring_analysis
@@ -148,8 +151,11 @@ async def edit_document(request: EditDocumentRequest):
     try:
         logger.info(f"Processing document edit for project {request.project_id}")
         
+        # 创建状态管理器实例
+        state_manager = create_state_manager(request.project_id)
+        
         # 检查当前状态是否允许编辑
-        current_state = await structuring_state_manager.get_internal_state(request.project_id)
+        current_state = await state_manager.get_internal_state()
         if current_state not in [SystemInternalState.AWAITING_EDITING]:
             raise HTTPException(
                 status_code=400, 
@@ -157,8 +163,7 @@ async def edit_document(request: EditDocumentRequest):
             )
         
         # 处理用户编辑完成操作
-        success = await structuring_state_manager.handle_user_action(
-            project_id=request.project_id,
+        success = await state_manager.handle_user_action(
             action=UserAction.COMPLETE_EDITING,
             payload={
                 "document": request.document,
@@ -193,26 +198,28 @@ async def retry_analysis(
     try:
         logger.info(f"Retrying analysis for project {request.project_id}")
         
+        # 创建状态管理器实例
+        state_manager = create_state_manager(request.project_id)
+        
         # 检查当前状态是否允许重试
-        current_state = await structuring_state_manager.get_internal_state(request.project_id)
+        current_state = await state_manager.get_internal_state()
         if current_state != SystemInternalState.FAILED:
             return RetryAnalysisResponse(
                 success=False,
-                message=f"当前状态不需要重试: {current_state.value if current_state else 'unknown'}",
+                message="当前状态不需要重试",
                 project_id=request.project_id,
                 current_state=current_state.value if current_state else "unknown"
             )
         
         # 处理重试操作
-        success = await structuring_state_manager.handle_user_action(
-            project_id=request.project_id,
+        success = await state_manager.handle_user_action(
             action=UserAction.RETRY
         )
         
         if not success:
             raise HTTPException(status_code=500, detail="重试操作失败")
         
-        # 使用Celery任务在后台重新启动分析流程
+        # 使用Celery任务重新启动分析
         from app.tasks.structuring_tasks import retry_structuring_analysis
         celery_task = retry_structuring_analysis.delay(request.project_id)
         
@@ -222,7 +229,7 @@ async def retry_analysis(
             success=True,
             message=f"重试已开始，请通过SSE监听进度更新。Celery任务ID: {celery_task.id}",
             project_id=request.project_id,
-            current_state=SystemInternalState.EXTRACTING_DOCUMENT.value
+            current_state="EXTRACTING_DOCUMENT"
         )
         
     except HTTPException:
@@ -265,7 +272,7 @@ async def sse_stream(project_id: str, request: Request):
             })}\n\n"
             
             # 发送当前状态（如果存在）
-            current_state = await structuring_state_manager.get_agent_state(project_id)
+            current_state = await create_state_manager(project_id).get_agent_state()
             if current_state:
                 initial_data = {
                     "event": "state_update",
@@ -353,7 +360,7 @@ async def get_status(project_id: str):
     用于前端主动查询当前处理状态
     """
     try:
-        agent_state = await structuring_state_manager.get_agent_state(project_id)
+        agent_state = await create_state_manager(project_id).get_agent_state()
         
         if not agent_state:
             raise HTTPException(status_code=404, detail="项目状态未找到")
@@ -399,20 +406,29 @@ async def get_document(
             )
         
         # 获取agent实例
-        from app.services.structuring.agent import get_agent
-        agent = await get_agent(project_id)
+        from app.services.structuring.agent import create_or_get_agent
+        agent = await create_or_get_agent(project_id)
         
-        # 获取文档
-        document = await agent.get_document(doc_type)
+        # 检查项目状态
+        agent_state = await agent.current_state
+        if not agent_state:
+            raise HTTPException(
+                status_code=404, 
+                detail="项目未找到或尚未开始分析"
+            )
         
-        if not document:
-            # 检查项目状态，提供更详细的错误信息
-            agent_state = await agent.current_state
-            if not agent_state:
-                raise HTTPException(
-                    status_code=404, 
-                    detail="项目未找到或尚未开始分析"
-                )
+        # 检查对应的步骤结果是否存在
+        doc_type_to_flag_map = {
+            'raw': agent_state.has_extracted_content,
+            'h1': agent_state.has_h1_analysis_result,
+            'h2h3': agent_state.has_h2h3_analysis_result,
+            'intro': agent_state.has_introduction_content,
+            'final': agent_state.has_final_document
+        }
+        
+        if not doc_type_to_flag_map.get(doc_type, False):
+            # 获取可用的文档类型
+            available_types = await agent.get_available_document_types()
             
             # 根据当前状态提供相应的提示
             current_internal_state = agent_state.current_internal_state
@@ -424,12 +440,21 @@ async def get_document(
             ]:
                 raise HTTPException(
                     status_code=202, 
-                    detail=f"文档正在处理中，当前状态: {current_internal_state.value}，请稍后重试"
+                    detail=f"文档正在处理中，当前状态: {current_internal_state.value}。可用文档类型: {', '.join(available_types) if available_types else '无'}"
                 )
             
             raise HTTPException(
                 status_code=404, 
-                detail=f"文档类型 {doc_type} 暂不可用"
+                detail=f"文档类型 {doc_type} 暂不可用。可用类型: {', '.join(available_types) if available_types else '无'}"
+            )
+        
+        # 获取文档
+        document = await agent.get_document(doc_type)
+        
+        if not document:
+            raise HTTPException(
+                status_code=500, 
+                detail=f"文档标记显示存在但实际获取失败，可能是缓存过期"
             )
         
         # 获取文档元数据
@@ -437,17 +462,23 @@ async def get_document(
             "doc_type": doc_type,
             "project_id": project_id,
             "retrieved_at": datetime.now().isoformat(),
-            "document_size": len(json.dumps(document)) if document else 0
+            "document_size": len(json.dumps(document)) if document else 0,
+            "available_types": await agent.get_available_document_types()
         }
         
-        # 如果有agent状态，添加状态信息
-        agent_state = await agent.current_state
-        if agent_state:
-            metadata.update({
-                "current_state": agent_state.current_internal_state.value,
-                "progress": agent_state.overall_progress,
-                "last_updated": agent_state.updated_at.isoformat()
-            })
+        # 添加状态信息
+        metadata.update({
+            "current_state": agent_state.current_internal_state.value,
+            "progress": agent_state.overall_progress,
+            "last_updated": agent_state.updated_at.isoformat(),
+            "step_results": {
+                "has_extracted_content": agent_state.has_extracted_content,
+                "has_h1_analysis_result": agent_state.has_h1_analysis_result,
+                "has_h2h3_analysis_result": agent_state.has_h2h3_analysis_result,
+                "has_introduction_content": agent_state.has_introduction_content,
+                "has_final_document": agent_state.has_final_document
+            }
+        })
         
         return GetDocumentResponse(
             success=True,
@@ -477,8 +508,8 @@ async def update_document(
         logger.info(f"Updating document for project {project_id}")
         
         # 获取agent实例
-        from app.services.structuring.agent import get_agent
-        agent = await get_agent(project_id)
+        from app.services.structuring.agent import create_or_get_agent
+        agent = await create_or_get_agent(project_id)
         
         # 检查当前状态是否允许编辑
         current_state = await agent.current_internal_state
@@ -504,8 +535,7 @@ async def update_document(
         # 如果保存为最终文档且当前状态是等待编辑，则触发完成编辑操作
         if request.save_as_final and current_state == SystemInternalState.AWAITING_EDITING:
             # 使用状态管理器处理编辑完成操作
-            success = await structuring_state_manager.handle_user_action(
-                project_id=project_id,
+            success = await create_state_manager(project_id).handle_user_action(
                 action=UserAction.COMPLETE_EDITING,
                 payload={
                     "document": request.document,
@@ -558,8 +588,8 @@ async def compare_documents(
             )
         
         # 获取agent实例
-        from app.services.structuring.agent import get_agent
-        agent = await get_agent(project_id)
+        from app.services.structuring.agent import create_or_get_agent
+        agent = await create_or_get_agent(project_id)
         
         # 获取两个文档
         source_document = await agent.get_document(source)

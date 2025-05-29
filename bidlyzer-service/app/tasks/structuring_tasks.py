@@ -5,7 +5,7 @@ from typing import Optional, Dict, Any
 from celery import current_task
 
 from app.core.celery_app import celery_app
-from app.services.structuring.agent import get_agent, remove_agent
+from app.services.structuring.agent import create_or_get_agent, remove_agent
 from app.services.structuring.state import ProcessingStep
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ async def _run_analysis_async(project_id: str, task_id: str) -> Dict[str, Any]:
     agent = None
     try:
         # 获取agent实例
-        agent = await get_agent(project_id)
+        agent = await create_or_get_agent(project_id)
         
         # 开始分析流程
         result = await agent.start_analysis()
@@ -100,33 +100,13 @@ def retry_structuring_analysis(self, project_id: str) -> Dict[str, Any]:
         raise Exception(error_msg)
 
 
-@celery_app.task(bind=True, name="structuring.process_step")
-def process_single_step(self, project_id: str, step: str, user_input: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """
-    Celery任务：处理单个步骤（用于手动控制流程）
-    """
-    task_id = self.request.id
-    logger.info(f"[Celery-{task_id}] 处理单个步骤: project_id={project_id}, step={step}")
-    
-    try:
-        result = asyncio.run(_process_step_async(project_id, step, user_input, task_id))
-        
-        logger.info(f"[Celery-{task_id}] 步骤处理完成: project_id={project_id}, step={step}")
-        return result
-        
-    except Exception as e:
-        error_msg = f"步骤处理失败: {str(e)}"
-        logger.error(f"[Celery-{task_id}] {error_msg}")
-        raise Exception(error_msg)
 
-
-async def _process_step_async(project_id: str, step: str, user_input: Optional[Dict[str, Any]], task_id: str) -> Dict[str, Any]:
     """
     异步处理单个步骤
     """
     agent = None
     try:
-        agent = await get_agent(project_id)
+        agent = await create_or_get_agent(project_id)
         
         # 转换步骤字符串为枚举
         processing_step = ProcessingStep(step)
