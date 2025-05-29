@@ -13,13 +13,6 @@ logger = logging.getLogger(__name__)
 # =========================Part 1:  agent 状态、步骤、用户操作 定义 =========================
 
 # agent 的内部状态和用户可见状态 （以及它们之间的映射关系）
-class UserVisibleState(str, Enum):
-    """用户可见的简化状态 - 4个主要阶段"""
-    PROCESSING = "processing"      # 智能分析处理阶段（从文档提取开始）
-    EDITING = "editing"           # 用户编辑阶段
-    COMPLETED = "completed"       # 完成状态
-    FAILED = "failed"            # 失败状态
-
 class SystemInternalState(str, Enum):
     """系统内部的细粒度状态 - 用于精确控制处理流程"""
     # 微服务从文档提取开始，文件上传由Django处理
@@ -34,6 +27,37 @@ class SystemInternalState(str, Enum):
     AWAITING_EDITING = "awaiting_editing"
     COMPLETED = "completed"
     FAILED = "failed"
+
+class StateType(str, Enum):
+    ING = "ing"
+    ED = "ed"
+    FAILED = "failed"
+
+ING_STATE_POOL = [
+    SystemInternalState.EXTRACTING_DOCUMENT,
+    SystemInternalState.ANALYZING_OUTLINE_H1,
+    SystemInternalState.ANALYZING_OUTLINE_H2H3,
+    SystemInternalState.ADDING_INTRODUCTION,
+]
+
+AWAITING_STATE_POOL = [
+    SystemInternalState.AWAITING_EDITING,
+]
+
+ED_STATE_POOL = [
+    SystemInternalState.DOCUMENT_EXTRACTED,
+    SystemInternalState.OUTLINE_H1_ANALYZED,
+    SystemInternalState.OUTLINE_H2H3_ANALYZED,
+    SystemInternalState.INTRODUCTION_ADDED,
+    SystemInternalState.COMPLETED,
+]
+
+class UserVisibleState(str, Enum):
+    """用户可见的简化状态 - 4个主要阶段"""
+    PROCESSING = "processing"      # 智能分析处理阶段（从文档提取开始）
+    EDITING = "editing"           # 用户编辑阶段
+    COMPLETED = "completed"       # 完成状态
+    FAILED = "failed"            # 失败状态
 
 INTERNAL_TO_USER_STATE_MAP = {
     SystemInternalState.EXTRACTING_DOCUMENT: UserVisibleState.PROCESSING,
@@ -56,7 +80,7 @@ class ProcessingStep(str, Enum):
     ANALYZE_H1 = "analyze_h1"
     ANALYZE_H2H3 = "analyze_h2h3"
     ADD_INTRODUCTION = "add_introduction"
-    COMPLETE_EDITING = "complete_editing"
+    USER_EDITING = "user_editing"
 
 # required 用户操作 
 class UserAction(str, Enum):
@@ -74,17 +98,28 @@ class StateMetadata(BaseModel):
     # 用户体验相关
     display_name: str = Field(description="显示名称")
     description: str = Field(description="状态描述")
-    notification_type: str = Field(description="通知类型: info/loading/success/error")
-    
-    # 业务逻辑相关
+    state_type: Optional[StateType] = Field(default=None, description="状态类型")
+    # 处理相关
+    previous_state: Optional[SystemInternalState] = Field(default=None, description="上一个状态")
+    next_state: Optional[SystemInternalState] = Field(default=None, description="下一个状态")
+    # ING 状态
+    state_to_step: Optional[ProcessingStep] = Field(default=None, description="状态到步骤的映射")
+    # ED 状态
+    next_step: Optional[ProcessingStep] = Field(default=None, description="下一个步骤")
+    # FAILED 状态
+
+
+    # 暂时未启用字段
+    auto_transition: bool = Field(default=False, description="是否自动转换")
     requires_user_input: bool = Field(default=False, description="是否需要用户输入")
     can_retry: bool = Field(default=False, description="是否可重试")
     is_terminal: bool = Field(default=False, description="是否为终止状态")
-    
-    # 处理相关
-    auto_transition: bool = Field(default=False, description="是否自动转换")
-    next_state: Optional[SystemInternalState] = Field(default=None, description="下一个状态")
     estimated_duration: Optional[int] = Field(default=None, description="预估耗时(秒)")
+    
+
+
+    
+
 
 class StateRegistry:
     """状态注册器 - 自动化配置管理"""
@@ -145,10 +180,10 @@ def _extracting_document_config():
     return StateMetadata(
         display_name="提取文档",
         description="正在提取文档内容...",
-        notification_type="loading",
-        auto_transition=True,
+        state_type=StateType.ING,
+        previous_state=None,
         next_state=SystemInternalState.DOCUMENT_EXTRACTED,
-        estimated_duration=30
+        state_to_step=ProcessingStep.EXTRACT,
     )
 
 @StateRegistry.register_state(SystemInternalState.DOCUMENT_EXTRACTED)
@@ -156,10 +191,10 @@ def _document_extracted_config():
     return StateMetadata(
         display_name="文档提取完成",
         description="文档提取完成，开始智能分析",
-        notification_type="success",
-        auto_transition=True,
+        state_type=StateType.ED,
+        previous_state=SystemInternalState.EXTRACTING_DOCUMENT,
         next_state=SystemInternalState.ANALYZING_OUTLINE_H1,
-        estimated_duration=5
+        next_step=ProcessingStep.ANALYZE_H1,
     )
 
 @StateRegistry.register_state(SystemInternalState.ANALYZING_OUTLINE_H1)
@@ -167,10 +202,10 @@ def _analyzing_h1_config():
     return StateMetadata(
         display_name="分析主要章节",
         description="正在分析文档主要章节结构...",
-        notification_type="loading",
-        auto_transition=True,
+        state_type=StateType.ING,
+        previous_state=SystemInternalState.DOCUMENT_EXTRACTED,
         next_state=SystemInternalState.OUTLINE_H1_ANALYZED,
-        estimated_duration=45
+        state_to_step=ProcessingStep.ANALYZE_H1,
     )
 
 @StateRegistry.register_state(SystemInternalState.OUTLINE_H1_ANALYZED)
@@ -178,10 +213,10 @@ def _h1_analyzed_config():
     return StateMetadata(
         display_name="主要章节分析完成",
         description="主要章节分析完成，开始细化子章节",
-        notification_type="success",
-        auto_transition=True,
+        state_type=StateType.ED,
+        previous_state=SystemInternalState.ANALYZING_OUTLINE_H1,
         next_state=SystemInternalState.ANALYZING_OUTLINE_H2H3,
-        estimated_duration=5
+        next_step=ProcessingStep.ANALYZE_H2H3,
     )
 
 @StateRegistry.register_state(SystemInternalState.ANALYZING_OUTLINE_H2H3)
@@ -189,10 +224,10 @@ def _analyzing_h2h3_config():
     return StateMetadata(
         display_name="分析子章节",
         description="正在分析文档子章节结构...",
-        notification_type="loading",
-        auto_transition=True,
+        state_type=StateType.ING,
+        previous_state=SystemInternalState.OUTLINE_H1_ANALYZED,
         next_state=SystemInternalState.OUTLINE_H2H3_ANALYZED,
-        estimated_duration=60
+        state_to_step=ProcessingStep.ANALYZE_H2H3,
     )
 
 @StateRegistry.register_state(SystemInternalState.OUTLINE_H2H3_ANALYZED)
@@ -200,10 +235,10 @@ def _h2h3_analyzed_config():
     return StateMetadata(
         display_name="子章节分析完成",
         description="子章节分析完成，开始添加引言",
-        notification_type="success",
-        auto_transition=True,
+        state_type=StateType.ED,
+        previous_state=SystemInternalState.ANALYZING_OUTLINE_H2H3,
         next_state=SystemInternalState.ADDING_INTRODUCTION,
-        estimated_duration=5
+        next_step=ProcessingStep.ADD_INTRODUCTION,
     )
 
 @StateRegistry.register_state(SystemInternalState.ADDING_INTRODUCTION)
@@ -211,10 +246,10 @@ def _adding_introduction_config():
     return StateMetadata(
         display_name="添加引言",
         description="正在为文档添加引言部分...",
-        notification_type="loading",
-        auto_transition=True,
+        state_type=StateType.ING,
+        previous_state=SystemInternalState.OUTLINE_H2H3_ANALYZED,
         next_state=SystemInternalState.INTRODUCTION_ADDED,
-        estimated_duration=30
+        state_to_step=ProcessingStep.ADD_INTRODUCTION,        
     )
 
 @StateRegistry.register_state(SystemInternalState.INTRODUCTION_ADDED)
@@ -222,10 +257,10 @@ def _introduction_added_config():
     return StateMetadata(
         display_name="引言添加完成",
         description="文档结构化完成，请进行编辑",
-        notification_type="success",
-        auto_transition=True,
+        state_type=StateType.ED,
+        previous_state=SystemInternalState.ADDING_INTRODUCTION,
         next_state=SystemInternalState.AWAITING_EDITING,
-        estimated_duration=5
+        next_step=ProcessingStep.USER_EDITING,
     )
 
 @StateRegistry.register_state(SystemInternalState.AWAITING_EDITING)
@@ -233,9 +268,10 @@ def _awaiting_editing_config():
     return StateMetadata(
         display_name="等待编辑",
         description="文档已准备就绪，请在编辑器中查看和调整",
-        notification_type="success",
-        requires_user_input=True,
-        can_retry=True
+        state_type=StateType.ING,
+        previous_state=SystemInternalState.INTRODUCTION_ADDED,
+        next_state=SystemInternalState.COMPLETED,
+        state_to_step=None,
     )
 
 @StateRegistry.register_state(SystemInternalState.COMPLETED)
@@ -243,8 +279,9 @@ def _completed_config():
     return StateMetadata(
         display_name="处理完成",
         description="文档结构化和编辑已完成",
-        notification_type="success",
-        is_terminal=True
+        state_type=StateType.ED,
+        previous_state=SystemInternalState.AWAITING_EDITING,
+        next_state=None,
     )
 
 @StateRegistry.register_state(SystemInternalState.FAILED)
@@ -252,9 +289,7 @@ def _failed_config():
     return StateMetadata(
         display_name="处理失败",
         description="处理过程中出现错误",
-        notification_type="error",
-        can_retry=True,
-        is_terminal=True
+        state_type=StateType.FAILED,
     )
 
 
@@ -296,8 +331,8 @@ def _add_introduction_step_config():
         "user_triggered": False
     }
 
-@StateRegistry.register_step(ProcessingStep.COMPLETE_EDITING)
-def _complete_editing_step_config():
+@StateRegistry.register_step(ProcessingStep.USER_EDITING)
+def _user_editing_step_config():
     return {
         "description": "完成编辑",
         "required_states": [SystemInternalState.AWAITING_EDITING],
@@ -313,7 +348,7 @@ def _complete_editing_action_config():
     return {
         "description": "完成编辑",
         "valid_states": [SystemInternalState.AWAITING_EDITING],
-        "target_step": ProcessingStep.COMPLETE_EDITING,
+        "target_step": ProcessingStep.USER_EDITING,
         "requires_payload": True
     }
 
@@ -333,87 +368,6 @@ def _cancel_action_config():
         "requires_payload": False
     }
 
-
-
-
-
-# ========================= FastAPI适配的数据模型 =========================
-
-# 定义了SSEMessage的结构 
-class SSEMessage(BaseModel):
-    """SSE消息格式 - 适配Redis推送"""
-    event: str = Field(description="事件类型")
-    data: Dict[str, Any] = Field(description="消息数据")
-    timestamp: datetime = Field(default_factory=datetime.now)
-    
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
-
-# 状态更新事件， 继承了SSEMessage，内部会格式化为SSE协议需要的格式。 
-class StateUpdateEvent(SSEMessage):
-    """状态更新事件"""
-    event: str = "state_update"  # SSE 协议要求指定事件名。 
-    
-    def __init__(self, 
-                 project_id: str,
-                 internal_state: SystemInternalState,
-                 user_state: UserVisibleState,
-                 progress: int = 0,
-                 message: str = "",
-                 **kwargs):
-        super().__init__(
-            data={
-                "project_id": project_id,
-                "internal_state": internal_state.value,
-                "user_state": user_state.value,
-                "progress": progress,
-                "message": message,
-                "config": StateRegistry.get_state_config(internal_state).model_dump() if StateRegistry.get_state_config(internal_state) else {},
-                **kwargs
-            }
-        )
-
-class ProcessingProgressEvent(SSEMessage):
-    """处理进度事件"""
-    event: str = "processing_progress"
-    
-    def __init__(self, 
-                 project_id: str,
-                 step: ProcessingStep,
-                 progress: int,
-                 estimated_remaining: Optional[int] = None,
-                 **kwargs):
-        super().__init__(
-            data={
-                "project_id": project_id,
-                "step": step.value,
-                "progress": progress,
-                "estimated_remaining": estimated_remaining,
-                **kwargs
-            }
-        )
-
-class ErrorEvent(SSEMessage):
-    """错误事件"""
-    event: str = "error"
-    
-    def __init__(self, 
-                 project_id: str,
-                 error_type: str,
-                 error_message: str,
-                 can_retry: bool = False,
-                 **kwargs):
-        super().__init__(
-            data={
-                "project_id": project_id,
-                "error_type": error_type,
-                "error_message": error_message,
-                "can_retry": can_retry,
-                **kwargs
-            }
-        )
 
 # ========================= 异常定义 =========================
 

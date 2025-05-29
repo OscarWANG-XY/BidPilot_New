@@ -10,15 +10,15 @@ from app.core.cache_manager import CacheManager
 from .state_manager import create_state_manager, AgentStateData
 from .state import (
     SystemInternalState, UserVisibleState, ProcessingStep, UserAction,
-    StateRegistry, INTERNAL_TO_USER_STATE_MAP,
+    StateRegistry, INTERNAL_TO_USER_STATE_MAP, ING_STATE_POOL, ED_STATE_POOL, AWAITING_STATE_POOL,
     StateTransitionError, InvalidActionError, ProcessingError
 )
 
 # 假设这些执行组件已经正确迁移
-from .docx_extractor import DocxExtractor
-from .analyze_l1_headings import OutlineL1Analyzer
-from .analyze_l2_l3_headings import OutlineL2L3Analyzer
-from .add_intro_headings import AddIntroHeadings
+from .step_funcs.docx_extractor import DocxExtractor
+from .step_funcs.analyze_l1_headings import OutlineL1Analyzer
+from .step_funcs.analyze_l2_l3_headings import OutlineL2L3Analyzer
+from .step_funcs.add_intro_headings import AddIntroHeadings
 
 logger = logging.getLogger(__name__)
 
@@ -219,8 +219,8 @@ class DocumentStructureAgent:
             elif step == ProcessingStep.ADD_INTRODUCTION:
                 return await self._process_add_introduction(trace_id)
                 
-            elif step == ProcessingStep.COMPLETE_EDITING:
-                return await self._process_complete_editing(trace_id, user_input)
+            elif step == ProcessingStep.USER_EDITING:
+                return await self._process_editing(trace_id, user_input)
                 
             else:
                 return {
@@ -252,12 +252,6 @@ class DocumentStructureAgent:
                     progress=10,
                     message="正在提取文档内容..."
                 )
-            else:
-                # 如果已经是提取状态，只更新进度和消息
-                await self.state_manager.update_step_progress(
-                    ProcessingStep.EXTRACT,
-                    10
-                )
             
             # 通过project_id获取文件url
             from app.clients.django.client import DjangoClient
@@ -273,14 +267,14 @@ class DocumentStructureAgent:
                 raise ProcessingError("文档提取失败，内容为空")
             
             # 保存提取结果
-            await self._save_document('raw_document', raw_document)
+            await self.state_manager._save_document('raw_document', raw_document)
             
             # 更新状态为提取完成
             await self.state_manager.transition_to_state(
                 SystemInternalState.DOCUMENT_EXTRACTED,
                 progress=20,
                 message="文档提取完成",
-                result_data={"document_size": len(json.dumps(raw_document))}
+                result_data=raw_document
             )
             
             logger.info(f"[{trace_id}] 文档提取成功")
@@ -300,7 +294,7 @@ class DocumentStructureAgent:
         """处理一级标题分析步骤"""
         try:
             # 获取原始文档
-            document = await self._get_document('raw_document')
+            document = await self.state_manager._get_document('raw_document')
             if not document:
                 raise ProcessingError("没有可用的文档内容")
             
@@ -319,7 +313,7 @@ class DocumentStructureAgent:
                 raise ProcessingError("H1大纲分析失败，结果为空")
             
             # 保存分析结果
-            await self._save_document('h1_document', h1_document)
+            await self.state_manager._save_document('h1_document', h1_document)
             
             # 更新状态
             await self.state_manager.transition_to_state(
@@ -346,7 +340,7 @@ class DocumentStructureAgent:
         """处理二级/三级标题分析步骤"""
         try:
             # 获取H1分析结果
-            h1_document = await self._get_document('h1_document')
+            h1_document = await self.state_manager._get_document('h1_document')
             if not h1_document:
                 raise ProcessingError("没有可用的H1分析结果")
             
@@ -365,7 +359,7 @@ class DocumentStructureAgent:
                 raise ProcessingError("H2H3大纲分析失败，结果为空")
             
             # 保存分析结果
-            await self._save_document('h2h3_document', h2h3_document)
+            await self.state_manager._save_document('h2h3_document', h2h3_document)
             
             # 更新状态
             await self.state_manager.transition_to_state(
@@ -392,7 +386,7 @@ class DocumentStructureAgent:
         """处理引言添加步骤"""
         try:
             # 获取H2H3分析结果
-            h2h3_document = await self._get_document('h2h3_document')
+            h2h3_document = await self.state_manager._get_document('h2h3_document')
             if not h2h3_document:
                 raise ProcessingError("没有可用的H2H3分析结果")
             
@@ -411,7 +405,7 @@ class DocumentStructureAgent:
                 raise ProcessingError("引言添加失败，结果为空")
             
             # 保存结果
-            await self._save_document('intro_document', intro_document)
+            await self.state_manager._save_document('intro_document', intro_document)
             
             # 更新状态为引言添加完成
             await self.state_manager.transition_to_state(
@@ -436,7 +430,7 @@ class DocumentStructureAgent:
             logger.error(f"[{trace_id}] 引言添加失败: {str(e)}")
             raise ProcessingError(f"引言添加失败: {str(e)}")
     
-    async def _process_complete_editing(self, trace_id: str, user_input: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    async def _process_editing(self, trace_id: str, user_input: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """处理完成编辑步骤"""
         try:
             # 获取用户编辑后的文档
@@ -446,14 +440,14 @@ class DocumentStructureAgent:
                 logger.info(f"[{trace_id}] 收到用户编辑后的文档")
             else:
                 # 如果没有用户编辑，使用引言文档作为最终文档
-                final_document = await self._get_document('intro_document')
+                final_document = await self.state_manager._get_document('intro_document')
                 logger.info(f"[{trace_id}] 使用引言文档作为最终文档")
             
             if not final_document:
                 raise ProcessingError("没有可用的最终文档")
             
             # 保存最终文档
-            await self._save_document('final_document', final_document)
+            await self.state_manager._save_document('final_document', final_document)
             
             # 更新状态为完成
             await self.state_manager.transition_to_state(
@@ -487,53 +481,65 @@ class DocumentStructureAgent:
                 logger.info(f"项目 {self.project_id} 状态已存在: {agent_state.current_internal_state}")
                 
                 # 处理中断状态的恢复
-                await self._handle_interrupted_state(agent_state)
+                current_internal_state = agent_state.current_internal_state
+                await self._handle_interrupted_state(current_internal_state)
             else:
                 logger.info(f"项目 {self.project_id} 没有保存的状态，将在开始分析时初始化")
+                await self.start_analysis()
                 
         except Exception as e:
             logger.error(f"恢复状态时出错: {str(e)}")
             raise ProcessingError(f"状态恢复失败: {str(e)}")
 
-    async def _handle_interrupted_state(self, agent_state: AgentStateData):
+    async def _handle_interrupted_state(self, current: SystemInternalState):
         """处理中断状态的恢复"""
-        current = agent_state.current_internal_state
         logger.info(f"检查中断状态: 当前状态为 {current}")
         
         # 根据完成状态决定下一步
-        if current == SystemInternalState.DOCUMENT_EXTRACTED:
-            logger.info("从文档提取完成状态恢复，继续H1分析")
-            await self.process_step(ProcessingStep.ANALYZE_H1)
+        print(f"current 值为: {current}")
+        if current in ED_STATE_POOL and current != SystemInternalState.COMPLETED:
+            logger.info(f"从状态 {current} 恢复，直接执行下一步")
+            next_step = StateRegistry.get_state_config(current).next_step
+            return await self.process_step(next_step)
         
-        elif current == SystemInternalState.OUTLINE_H1_ANALYZED:
-            logger.info("从H1分析完成状态恢复，继续H2H3分析")
-            await self.process_step(ProcessingStep.ANALYZE_H2H3)
-        
-        elif current == SystemInternalState.OUTLINE_H2H3_ANALYZED:
-            logger.info("从H2H3分析完成状态恢复，继续添加引言")
-            await self.process_step(ProcessingStep.ADD_INTRODUCTION)
-        
-        elif current == SystemInternalState.INTRODUCTION_ADDED:
-            logger.info("从引言添加完成状态恢复，转换到等待编辑")
-            await self.state_manager.transition_to_state(
-                SystemInternalState.AWAITING_EDITING,
-                progress=100,
-                message="文档已准备就绪，请在编辑器中查看和调整"
-            )
-        
-        elif current in [
-            SystemInternalState.EXTRACTING_DOCUMENT,
-            SystemInternalState.ANALYZING_OUTLINE_H1,
-            SystemInternalState.ANALYZING_OUTLINE_H2H3,
-            SystemInternalState.ADDING_INTRODUCTION
-        ]:
+        elif current in ING_STATE_POOL and current != SystemInternalState.EXTRACTING_DOCUMENT:
             # 处理中状态需要重试
             logger.warning(f"项目 {self.project_id} 在处理状态 {current} 被中断，标记为失败")
+            previous_state = StateRegistry.get_state_config(current).previous_state
             await self.state_manager.transition_to_state(
-                SystemInternalState.FAILED,
-                message=f"处理在 {current} 状态被中断，请重试"
+                previous_state,
+                message=f"处理在 {current} 状态被中断，跳回上一个状态{previous_state}，准备重试"
             )
-
+            next_step = StateRegistry.get_state_config(previous_state).next_step
+            return await self.process_step(next_step)
+        
+        elif current in AWAITING_STATE_POOL:
+            logger.info(f"项目 {self.project_id} 当前为等待编辑状态，无需恢复")
+            return
+        
+        else:  # 当前状态为Failed或其他特殊状态
+            logger.warning(f"项目 {self.project_id} 当前为失败状态，跳回上一个非失败状态")
+            state_history = await self.state_manager.get_agent_state_history(limit=10)
+            if not state_history:
+                logger.warning(f"项目 {self.project_id} 没有状态历史，从文档提取开始重试")
+                return await self.state_manager._handle_restart_from_beginning()
+            
+            # 找到最后一个非失败状态
+            last_success_state = None
+            for state_record in state_history: #由于history是按时间倒序排列，所以会找到第一个非失败的状态。 
+                if state_record.current_internal_state != SystemInternalState.FAILED:
+                    last_success_state = state_record.current_internal_state
+                    break
+            
+            if not last_success_state:
+                logger.warning(f"项目 {self.project_id} 没有找到成功状态，从文档提取开始重试")
+                return await self.state_manager._handle_restart_from_beginning()
+            
+            await self.state_manager.transition_to_state(
+                last_success_state,
+                message=f"跳回最近一个非失败的状态{last_success_state}，准备重试"
+            )
+            await self._handle_interrupted_state(last_success_state)
 
 
 # =============== 全局实例管理 (用于celery任务) ===============
