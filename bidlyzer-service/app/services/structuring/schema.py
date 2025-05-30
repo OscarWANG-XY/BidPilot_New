@@ -1,15 +1,79 @@
-from enum import Enum
-from typing import Optional, Dict, Any, List, Union, Callable, Type
-from pydantic import BaseModel, Field, ConfigDict
+# state_manager_v2.py - FastAPI集成的状态管理器
+# 提供状态转换、事件发布和Redis集成功能
+
+from typing import Optional, Dict, Any, List
 from datetime import datetime
-from functools import wraps
-import logging
+from pydantic import BaseModel, Field, ConfigDict
 from .state import SystemInternalState, UserVisibleState, ProcessingStep, StateRegistry
 
+import logging
 logger = logging.getLogger(__name__)
 
+# ========================= 状态数据模型 =========================
 
-# ========================= FastAPI适配的数据模型 =========================
+class AgentStateData(BaseModel):
+    """Agent状态数据模型"""
+    model_config = ConfigDict(
+        json_encoders={
+            datetime: lambda v: v.isoformat()
+        }
+    )
+    
+    project_id: str
+    current_internal_state: SystemInternalState   # 每个state 都有对应的state_config在state.py中定义了。 
+    current_user_state: UserVisibleState          
+    
+    # 进度相关
+    overall_progress: int = Field(default=0, ge=0, le=100)
+    step_progress: Dict[ProcessingStep, int] = Field(default_factory=dict)
+    
+    # 时间戳
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+    
+    # 处理相关
+    current_step: Optional[ProcessingStep] = None       
+    error_message: Optional[str] = None
+    retry_count: int = 0
+    
+    # 步骤结果存在标记 - 表示对应文档是否已生成并存储
+    has_extracted_content: bool = Field(default=False, description="是否已提取文档内容")
+    has_h1_analysis_result: bool = Field(default=False, description="是否已完成H1分析")
+    has_h2h3_analysis_result: bool = Field(default=False, description="是否已完成H2H3分析")
+    has_introduction_content: bool = Field(default=False, description="是否已添加引言内容")
+    has_final_document: bool = Field(default=False, description="是否已生成最终文档")
+
+
+class AgentStateHistory(BaseModel):
+    model_config = ConfigDict(
+        json_encoders={
+            datetime: lambda v: v.isoformat()
+        }
+    )
+    project_id:str
+    agent_states: List[AgentStateData] = Field(default_factory=list)
+    total_states: int = Field(default=0)
+    last_updated: datetime = Field(default_factory=datetime.now)
+    
+    def __str__(self) -> str:
+        """简单的打印方法"""
+        return (f"AgentStateHistory(project_id={self.project_id}, "
+                f"total_states={self.total_states}, "
+                f"last_updated={self.last_updated.strftime('%Y-%m-%d %H:%M:%S')})")
+    
+
+
+class TenderFile(BaseModel):
+    """单个招标文件信息"""
+    id: str  # 或者 UUID，取决于您的ID格式
+    name: str
+    type: str
+    url: str
+    size: int
+    mime_type: str
+
+
+
 
 # 定义了SSEMessage的结构 
 class SSEMessage(BaseModel):
@@ -118,5 +182,3 @@ class SSEMessageHistory(BaseModel):
     messages: List[SSEMessageRecord] = Field(default_factory=list)
     total_messages: int = Field(default=0)
     last_updated: datetime = Field(default_factory=datetime.now)
-
-

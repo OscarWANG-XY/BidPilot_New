@@ -1,16 +1,14 @@
 import logging
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 from datetime import datetime
 import asyncio
 import json
 import traceback
 
-from app.core.redis_helper import RedisClient
-from app.core.cache_manager import CacheManager
 from .state_manager import create_state_manager, AgentStateData
 from .state import (
     SystemInternalState, UserVisibleState, ProcessingStep, UserAction,
-    StateRegistry, INTERNAL_TO_USER_STATE_MAP, ING_STATE_POOL, ED_STATE_POOL, AWAITING_STATE_POOL,
+    StateRegistry, ING_STATE_POOL, ED_STATE_POOL, AWAITING_STATE_POOL,
     StateTransitionError, InvalidActionError, ProcessingError
 )
 
@@ -103,17 +101,19 @@ class DocumentStructureAgent:
     @property
     async def current_state(self) -> Optional[AgentStateData]:
         """获取当前状态数据"""
-        return await self.state_manager.get_agent_state()
+        return await self.state_manager.cache.get_agent_state()
     
     @property
     async def current_internal_state(self) -> Optional[SystemInternalState]:
         """获取当前内部状态"""
-        return await self.state_manager.get_internal_state()
+        agent_state = await self.state_manager.cache.get_agent_state()
+        current_internal_state = agent_state.current_internal_state
+        return current_internal_state
     
-    @property
-    async def current_user_state(self) -> Optional[UserVisibleState]:
-        """获取当前用户可见状态"""
-        return await self.state_manager.get_user_visible_state()
+    # @property
+    # async def current_user_state(self) -> Optional[UserVisibleState]:
+    #     """获取当前用户可见状态"""
+    #     return await self.state_manager.get_user_visible_state()
 
 
     # =============== 主要处理流程 ===============
@@ -253,11 +253,7 @@ class DocumentStructureAgent:
                     message="正在提取文档内容..."
                 )
             
-            # 通过project_id获取文件url
-            from app.clients.django.client import DjangoClient
-            django_client = DjangoClient()
-            result = await django_client.get_tender_file_url(self.project_id)
-            file_url = result['files'][0]['url']
+            file_url = await self.state_manager.storage.get_tender_file_url()
 
             # 执行文档提取
             extractor = await self.docx_extractor  # 注意docx_extractor是异步属性，不要加()
@@ -265,9 +261,6 @@ class DocumentStructureAgent:
             
             if not raw_document:
                 raise ProcessingError("文档提取失败，内容为空")
-            
-            # 保存提取结果
-            await self.state_manager._save_document('raw_document', raw_document)
             
             # 更新状态为提取完成
             await self.state_manager.transition_to_state(
@@ -294,7 +287,7 @@ class DocumentStructureAgent:
         """处理一级标题分析步骤"""
         try:
             # 获取原始文档
-            document = await self.state_manager._get_document('raw_document')
+            document = await self.state_manager.cache.get_document('raw_document')
             if not document:
                 raise ProcessingError("没有可用的文档内容")
             
@@ -311,9 +304,6 @@ class DocumentStructureAgent:
             
             if not h1_document:
                 raise ProcessingError("H1大纲分析失败，结果为空")
-            
-            # 保存分析结果
-            await self.state_manager._save_document('h1_document', h1_document)
             
             # 更新状态
             await self.state_manager.transition_to_state(
@@ -340,7 +330,7 @@ class DocumentStructureAgent:
         """处理二级/三级标题分析步骤"""
         try:
             # 获取H1分析结果
-            h1_document = await self.state_manager._get_document('h1_document')
+            h1_document = await self.state_manager.cache.get_document('h1_document')
             if not h1_document:
                 raise ProcessingError("没有可用的H1分析结果")
             
@@ -357,9 +347,6 @@ class DocumentStructureAgent:
             
             if not h2h3_document:
                 raise ProcessingError("H2H3大纲分析失败，结果为空")
-            
-            # 保存分析结果
-            await self.state_manager._save_document('h2h3_document', h2h3_document)
             
             # 更新状态
             await self.state_manager.transition_to_state(
@@ -386,7 +373,7 @@ class DocumentStructureAgent:
         """处理引言添加步骤"""
         try:
             # 获取H2H3分析结果
-            h2h3_document = await self.state_manager._get_document('h2h3_document')
+            h2h3_document = await self.state_manager.cache.get_document('h2h3_document')
             if not h2h3_document:
                 raise ProcessingError("没有可用的H2H3分析结果")
             
@@ -403,9 +390,6 @@ class DocumentStructureAgent:
             
             if not intro_document:
                 raise ProcessingError("引言添加失败，结果为空")
-            
-            # 保存结果
-            await self.state_manager._save_document('intro_document', intro_document)
             
             # 更新状态为引言添加完成
             await self.state_manager.transition_to_state(
@@ -440,14 +424,11 @@ class DocumentStructureAgent:
                 logger.info(f"[{trace_id}] 收到用户编辑后的文档")
             else:
                 # 如果没有用户编辑，使用引言文档作为最终文档
-                final_document = await self.state_manager._get_document('intro_document')
+                final_document = await self.state_manager.cache.get_document('intro_document')
                 logger.info(f"[{trace_id}] 使用引言文档作为最终文档")
             
             if not final_document:
                 raise ProcessingError("没有可用的最终文档")
-            
-            # 保存最终文档
-            await self.state_manager._save_document('final_document', final_document)
             
             # 更新状态为完成
             await self.state_manager.transition_to_state(
@@ -519,7 +500,7 @@ class DocumentStructureAgent:
         
         else:  # 当前状态为Failed或其他特殊状态
             logger.warning(f"项目 {self.project_id} 当前为失败状态，跳回上一个非失败状态")
-            state_history = await self.state_manager.get_agent_state_history(limit=10)
+            state_history = await self.state_manager.cache._get_agent_state_history(limit=10)
             if not state_history:
                 logger.warning(f"项目 {self.project_id} 没有状态历史，从文档提取开始重试")
                 return await self.state_manager._handle_restart_from_beginning()

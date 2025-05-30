@@ -272,7 +272,7 @@ async def sse_stream(project_id: str, request: Request):
             })}\n\n"
             
             # 发送当前状态（如果存在）
-            current_state = await create_state_manager(project_id).get_agent_state()
+            current_state = await create_state_manager(project_id).cache.get_agent_state()
             if current_state:
                 initial_data = {
                     "event": "state_update",
@@ -360,7 +360,7 @@ async def get_status(project_id: str):
     用于前端主动查询当前处理状态
     """
     try:
-        agent_state = await create_state_manager(project_id).get_agent_state()
+        agent_state = await create_state_manager(project_id).cache.get_agent_state()
         
         if not agent_state:
             raise HTTPException(status_code=404, detail="项目状态未找到")

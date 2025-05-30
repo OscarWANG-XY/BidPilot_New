@@ -90,10 +90,10 @@ class UserAction(str, Enum):
     CANCEL = "cancel"
 
 # ==========================Part 2: 状态注册器 ==========================
-# 定义了状态数据结构：状态名， 下一个
+# 定义了state_config, step_config, action_config的数据结构
 # 定义了注册state, step, action 的装饰器， 以及获取state_config, step_config, action_config的方法
 
-class StateMetadata(BaseModel):
+class StateConfigData(BaseModel):
     """状态元数据 - 统一配置"""
     # 用户体验相关
     display_name: str = Field(description="显示名称")
@@ -115,18 +115,28 @@ class StateMetadata(BaseModel):
     can_retry: bool = Field(default=False, description="是否可重试")
     is_terminal: bool = Field(default=False, description="是否为终止状态")
     estimated_duration: Optional[int] = Field(default=None, description="预估耗时(秒)")
+
+class StepConfigData(BaseModel):
+    """步骤配置数据"""
+    description: str = Field(description="步骤描述")
+    required_states: List[SystemInternalState] = Field(description="前置状态")
+    target_state: SystemInternalState = Field(description="目标状态")
+    user_triggered: bool = Field(description="是否需要用户触发")
+    result_key: str = Field(description="结果缓存键")
     
-
-
-    
-
+class ActionConfigData(BaseModel):
+    """操作配置数据"""
+    description: str = Field(description="操作描述")
+    valid_states: List[SystemInternalState] = Field(description="有效状态")
+    target_step: Optional[ProcessingStep] = Field(default=None, description="目标步骤")
+    requires_payload: bool = Field(description="是否需要输入")
 
 class StateRegistry:
     """状态注册器 - 自动化配置管理"""
     
-    _state_configs: Dict[SystemInternalState, StateMetadata] = {}
-    _step_configs: Dict[ProcessingStep, Dict[str, Any]] = {}
-    _action_configs: Dict[UserAction, Dict[str, Any]] = {}
+    _state_configs: Dict[SystemInternalState, StateConfigData] = {}
+    _step_configs: Dict[ProcessingStep, StepConfigData] = {}
+    _action_configs: Dict[UserAction, ActionConfigData] = {}
     
     @classmethod
     def register_state(cls, state: SystemInternalState):
@@ -135,7 +145,7 @@ class StateRegistry:
         # config_func 无输入，而输出StateMetadata， 这个函数的作用是获取配置元信息
         # decorator里，将config_func 的输出， 赋值给 cls._state_configs[state]进行存储
         # 最后返回config_func， 允许被装饰的函数保持原样。 
-        def decorator(config_func: Callable[[], StateMetadata]):
+        def decorator(config_func: Callable[[], StateConfigData]):
             cls._state_configs[state] = config_func()
             return config_func
         return decorator
@@ -143,7 +153,7 @@ class StateRegistry:
     @classmethod
     def register_step(cls, step: ProcessingStep):
         """步骤注册装饰器"""
-        def decorator(config_func: Callable[[], Dict[str, Any]]):
+        def decorator(config_func: Callable[[], StepConfigData]):
             cls._step_configs[step] = config_func()
             return config_func
         return decorator
@@ -151,25 +161,25 @@ class StateRegistry:
     @classmethod
     def register_action(cls, action: UserAction):
         """操作注册装饰器"""
-        def decorator(config_func: Callable[[], Dict[str, Any]]):
+        def decorator(config_func: Callable[[], ActionConfigData]):
             cls._action_configs[action] = config_func()
             return config_func
         return decorator
     
     @classmethod
-    def get_state_config(cls, state: SystemInternalState) -> StateMetadata:
+    def get_state_config(cls, state: SystemInternalState) -> StateConfigData:
         """获取状态配置"""
         return cls._state_configs.get(state)
     
     @classmethod
-    def get_step_config(cls, step: ProcessingStep) -> Dict[str, Any]:
+    def get_step_config(cls, step: ProcessingStep) -> StepConfigData:
         """获取步骤配置"""
-        return cls._step_configs.get(step, {})
+        return cls._step_configs.get(step)
     
     @classmethod
-    def get_action_config(cls, action: UserAction) -> Dict[str, Any]:
+    def get_action_config(cls, action: UserAction) -> ActionConfigData:
         """获取操作配置"""
-        return cls._action_configs.get(action, {})
+        return cls._action_configs.get(action)
 
 
 # ======================== Part 3: 注册state_config, step_config, action_config 的值 ========================
@@ -177,7 +187,7 @@ class StateRegistry:
 # ========================= 状态值注册 =========================
 @StateRegistry.register_state(SystemInternalState.EXTRACTING_DOCUMENT)
 def _extracting_document_config():
-    return StateMetadata(
+    return StateConfigData(
         display_name="提取文档",
         description="正在提取文档内容...",
         state_type=StateType.ING,
@@ -188,18 +198,19 @@ def _extracting_document_config():
 
 @StateRegistry.register_state(SystemInternalState.DOCUMENT_EXTRACTED)
 def _document_extracted_config():
-    return StateMetadata(
+    return StateConfigData(
         display_name="文档提取完成",
         description="文档提取完成，开始智能分析",
         state_type=StateType.ED,
         previous_state=SystemInternalState.EXTRACTING_DOCUMENT,
         next_state=SystemInternalState.ANALYZING_OUTLINE_H1,
+        state_to_step=ProcessingStep.EXTRACT,
         next_step=ProcessingStep.ANALYZE_H1,
     )
 
 @StateRegistry.register_state(SystemInternalState.ANALYZING_OUTLINE_H1)
 def _analyzing_h1_config():
-    return StateMetadata(
+    return StateConfigData(
         display_name="分析主要章节",
         description="正在分析文档主要章节结构...",
         state_type=StateType.ING,
@@ -210,18 +221,19 @@ def _analyzing_h1_config():
 
 @StateRegistry.register_state(SystemInternalState.OUTLINE_H1_ANALYZED)
 def _h1_analyzed_config():
-    return StateMetadata(
+    return StateConfigData(
         display_name="主要章节分析完成",
         description="主要章节分析完成，开始细化子章节",
         state_type=StateType.ED,
         previous_state=SystemInternalState.ANALYZING_OUTLINE_H1,
         next_state=SystemInternalState.ANALYZING_OUTLINE_H2H3,
+        state_to_step=ProcessingStep.ANALYZE_H1,
         next_step=ProcessingStep.ANALYZE_H2H3,
     )
 
 @StateRegistry.register_state(SystemInternalState.ANALYZING_OUTLINE_H2H3)
 def _analyzing_h2h3_config():
-    return StateMetadata(
+    return StateConfigData(
         display_name="分析子章节",
         description="正在分析文档子章节结构...",
         state_type=StateType.ING,
@@ -232,18 +244,19 @@ def _analyzing_h2h3_config():
 
 @StateRegistry.register_state(SystemInternalState.OUTLINE_H2H3_ANALYZED)
 def _h2h3_analyzed_config():
-    return StateMetadata(
+    return StateConfigData(
         display_name="子章节分析完成",
         description="子章节分析完成，开始添加引言",
         state_type=StateType.ED,
         previous_state=SystemInternalState.ANALYZING_OUTLINE_H2H3,
         next_state=SystemInternalState.ADDING_INTRODUCTION,
+        state_to_step=ProcessingStep.ANALYZE_H2H3,
         next_step=ProcessingStep.ADD_INTRODUCTION,
     )
 
 @StateRegistry.register_state(SystemInternalState.ADDING_INTRODUCTION)
 def _adding_introduction_config():
-    return StateMetadata(
+    return StateConfigData(
         display_name="添加引言",
         description="正在为文档添加引言部分...",
         state_type=StateType.ING,
@@ -254,39 +267,41 @@ def _adding_introduction_config():
 
 @StateRegistry.register_state(SystemInternalState.INTRODUCTION_ADDED)
 def _introduction_added_config():
-    return StateMetadata(
+    return StateConfigData(
         display_name="引言添加完成",
         description="文档结构化完成，请进行编辑",
         state_type=StateType.ED,
         previous_state=SystemInternalState.ADDING_INTRODUCTION,
         next_state=SystemInternalState.AWAITING_EDITING,
+        state_to_step=ProcessingStep.ADD_INTRODUCTION,
         next_step=ProcessingStep.USER_EDITING,
     )
 
 @StateRegistry.register_state(SystemInternalState.AWAITING_EDITING)
 def _awaiting_editing_config():
-    return StateMetadata(
+    return StateConfigData(
         display_name="等待编辑",
         description="文档已准备就绪，请在编辑器中查看和调整",
         state_type=StateType.ING,
         previous_state=SystemInternalState.INTRODUCTION_ADDED,
         next_state=SystemInternalState.COMPLETED,
-        state_to_step=None,
+        state_to_step=ProcessingStep.USER_EDITING,
     )
 
 @StateRegistry.register_state(SystemInternalState.COMPLETED)
 def _completed_config():
-    return StateMetadata(
+    return StateConfigData(
         display_name="处理完成",
         description="文档结构化和编辑已完成",
         state_type=StateType.ED,
         previous_state=SystemInternalState.AWAITING_EDITING,
         next_state=None,
+        state_to_step=ProcessingStep.USER_EDITING,
     )
 
 @StateRegistry.register_state(SystemInternalState.FAILED)
 def _failed_config():
-    return StateMetadata(
+    return StateConfigData(
         display_name="处理失败",
         description="处理过程中出现错误",
         state_type=StateType.FAILED,
@@ -297,76 +312,81 @@ def _failed_config():
 # 每个步骤配置 定义了从哪里来（required_states）， 到哪里去（target_state）， 是否需要用户触发（user_triggered）
 @StateRegistry.register_step(ProcessingStep.EXTRACT)
 def _extract_step_config():
-    return {
-        "description": "提取文档内容",
-        "required_states": [],  # 初始状态，无前置要求
-        "target_state": SystemInternalState.EXTRACTING_DOCUMENT,
-        "user_triggered": False  # 由start_analysis自动触发
-    }
+    return StepConfigData(
+        description="提取文档内容",
+        required_states=[],  # 初始状态，无前置要求
+        target_state=SystemInternalState.EXTRACTING_DOCUMENT,
+        user_triggered=False,  # 由start_analysis自动触发
+        result_key='raw_document'
+    )
 
 @StateRegistry.register_step(ProcessingStep.ANALYZE_H1)
 def _analyze_h1_step_config():
-    return {
-        "description": "分析一级标题",
-        "required_states": [SystemInternalState.DOCUMENT_EXTRACTED],
-        "target_state": SystemInternalState.ANALYZING_OUTLINE_H1,
-        "user_triggered": False
-    }
+    return StepConfigData(
+        description="分析一级标题",
+        required_states=[SystemInternalState.DOCUMENT_EXTRACTED],
+        target_state=SystemInternalState.ANALYZING_OUTLINE_H1,
+        user_triggered=False,
+        result_key='h1_document'
+    )
 
 @StateRegistry.register_step(ProcessingStep.ANALYZE_H2H3)
 def _analyze_h2h3_step_config():
-    return {
-        "description": "分析二三级标题",
-        "required_states": [SystemInternalState.OUTLINE_H1_ANALYZED],
-        "target_state": SystemInternalState.ANALYZING_OUTLINE_H2H3,
-        "user_triggered": False
-    }
+    return StepConfigData(
+        description="分析二三级标题",
+        required_states=[SystemInternalState.OUTLINE_H1_ANALYZED],
+        target_state=SystemInternalState.ANALYZING_OUTLINE_H2H3,
+        user_triggered=False,
+        result_key='h2h3_document'
+    )
 
 @StateRegistry.register_step(ProcessingStep.ADD_INTRODUCTION)
 def _add_introduction_step_config():
-    return {
-        "description": "添加引言",
-        "required_states": [SystemInternalState.OUTLINE_H2H3_ANALYZED],
-        "target_state": SystemInternalState.ADDING_INTRODUCTION,
-        "user_triggered": False
-    }
+    return StepConfigData(
+        description="添加引言",
+        required_states=[SystemInternalState.OUTLINE_H2H3_ANALYZED],
+        target_state=SystemInternalState.ADDING_INTRODUCTION,
+        user_triggered=False,
+        result_key='intro_document'
+    )
 
 @StateRegistry.register_step(ProcessingStep.USER_EDITING)
 def _user_editing_step_config():
-    return {
-        "description": "完成编辑",
-        "required_states": [SystemInternalState.AWAITING_EDITING],
-        "target_state": SystemInternalState.COMPLETED,
-        "user_triggered": True
-    }
+    return StepConfigData(
+        description="完成编辑",
+        required_states=[SystemInternalState.AWAITING_EDITING],
+        target_state=SystemInternalState.COMPLETED,
+        user_triggered=True,
+        result_key='final_document'
+    )
 
 
 # ========================= 操作配置 =========================
 # 每个用户操作定义了 需要处于什么状态， 准备执行什么步骤， 用户操作是否需要输入（payload） 
 @StateRegistry.register_action(UserAction.COMPLETE_EDITING)
 def _complete_editing_action_config():
-    return {
-        "description": "完成编辑",
-        "valid_states": [SystemInternalState.AWAITING_EDITING],
-        "target_step": ProcessingStep.USER_EDITING,
-        "requires_payload": True
-    }
+    return ActionConfigData(
+        description="完成编辑",
+        valid_states=[SystemInternalState.AWAITING_EDITING],
+        target_step=ProcessingStep.USER_EDITING,
+        requires_payload=True
+    )
 
 @StateRegistry.register_action(UserAction.RETRY)
 def _retry_action_config():
-    return {
-        "description": "重试操作",
-        "valid_states": [SystemInternalState.FAILED],
-        "requires_payload": False
-    }
+    return ActionConfigData(
+        description="重试操作",
+        valid_states=[SystemInternalState.FAILED],
+        requires_payload=False
+    )
 
 @StateRegistry.register_action(UserAction.CANCEL)
 def _cancel_action_config():
-    return {
-        "description": "取消操作",
-        "valid_states": [state for state in SystemInternalState if state not in [SystemInternalState.COMPLETED, SystemInternalState.FAILED]],
-        "requires_payload": False
-    }
+    return ActionConfigData(
+        description="取消操作",
+        valid_states=[state for state in SystemInternalState if state not in [SystemInternalState.COMPLETED, SystemInternalState.FAILED]],
+        requires_payload=False
+    )
 
 
 # ========================= 异常定义 =========================

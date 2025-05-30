@@ -3,77 +3,22 @@
 
 from typing import Optional, Dict, Any, List
 from datetime import datetime
-import asyncio
-import json
 from pydantic import BaseModel, Field, ConfigDict
-
-from app.core.cache_manager import CacheManager
 from app.core.redis_helper import RedisClient
+from app.services.structuring.storage import Storage
+from app.services.structuring.cache import Cache
+from app.services.structuring.schema import AgentStateData, StateUpdateEvent, ProcessingProgressEvent, ErrorEvent
 from .state import (
     SystemInternalState, UserVisibleState, ProcessingStep, UserAction,
     StateRegistry, INTERNAL_TO_USER_STATE_MAP,
     StateTransitionError, InvalidActionError, ProcessingError
 )
-from .sse_message import (
-    StateUpdateEvent, ProcessingProgressEvent, ErrorEvent, SSEMessageRecord, SSEMessageHistory
-)
+
+from app.services.structuring.storage import Storage
 
 import logging
 logger = logging.getLogger(__name__)
 
-# ========================= 状态数据模型 =========================
-
-class AgentStateData(BaseModel):
-    """Agent状态数据模型"""
-    model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat()
-        }
-    )
-    
-    project_id: str
-    current_internal_state: SystemInternalState   # 每个state 都有对应的state_config在state.py中定义了。 
-    current_user_state: UserVisibleState          
-    
-    # 进度相关
-    overall_progress: int = Field(default=0, ge=0, le=100)
-    step_progress: Dict[ProcessingStep, int] = Field(default_factory=dict)
-    
-    # 时间戳
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
-    
-    # 处理相关
-    current_step: Optional[ProcessingStep] = None       
-    error_message: Optional[str] = None
-    retry_count: int = 0
-    
-    # 步骤结果存在标记 - 表示对应文档是否已生成并存储
-    has_extracted_content: bool = Field(default=False, description="是否已提取文档内容")
-    has_h1_analysis_result: bool = Field(default=False, description="是否已完成H1分析")
-    has_h2h3_analysis_result: bool = Field(default=False, description="是否已完成H2H3分析")
-    has_introduction_content: bool = Field(default=False, description="是否已添加引言内容")
-    has_final_document: bool = Field(default=False, description="是否已生成最终文档")
-
-
-class AgentStateHistory(BaseModel):
-    model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat()
-        }
-    )
-    project_id:str
-    agent_states: List[AgentStateData] = Field(default_factory=list)
-    total_states: int = Field(default=0)
-    last_updated: datetime = Field(default_factory=datetime.now)
-    
-    def __str__(self) -> str:
-        """简单的打印方法"""
-        return (f"AgentStateHistory(project_id={self.project_id}, "
-                f"total_states={self.total_states}, "
-                f"last_updated={self.last_updated.strftime('%Y-%m-%d %H:%M:%S')})")
-
-# ========================= 状态管理器 =========================
 
 class StructuringAgentStateManager:
     """文档结构化Agent状态管理器"""
@@ -82,8 +27,10 @@ class StructuringAgentStateManager:
         self.project_id = project_id
         self.sse_channel_prefix = "sse:structuring:"
         self.cache_keys = self._build_cache_keys()
-        self.cache_expire_time = 900
+        self.cache_expire_time = 9000
         self.max_message_history = 100  # 最大消息历史记录数
+        self.storage = Storage(project_id)
+        self.cache = Cache(project_id)
     
     def _build_cache_keys(self) -> Dict[str, str]:
         """缓存键"""
@@ -99,11 +46,6 @@ class StructuringAgentStateManager:
             'sse_message_log': f"structuring:sse_message:{self.project_id}"
         }
     
-    def _generate_message_id(self) -> str:
-        """生成消息唯一标识"""
-        import uuid
-        return f"{self.project_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{str(uuid.uuid4())[:8]}"
-
     # 状态初始化 + 状态转换 
     async def initialize_agent(self) -> AgentStateData:
         """
@@ -112,8 +54,8 @@ class StructuringAgentStateManager:
         注意：文件上传由Django完成，微服务从文档提取开始
         """
         try:
-            # 清理之前的消息历史
-            await self.clear_message_history()
+            # # 清理之前的消息历史
+            # await self.clear_message_history()
             
             # 初始状态改为文档提取
             initial_internal_state = SystemInternalState.EXTRACTING_DOCUMENT
@@ -127,7 +69,7 @@ class StructuringAgentStateManager:
             )
             
             # 保存到Redis
-            await self._save_agent_state(agent_state)
+            await self.cache.add_agent_state_to_history(agent_state)
             
             # 发送初始状态事件
             await self._publish_state_update(agent_state, "开始分析已上传的文档...")
@@ -148,7 +90,7 @@ class StructuringAgentStateManager:
     ) -> bool:
         """状态转换"""
         try:
-            agent_state = await self.get_agent_state()
+            agent_state = await self.cache.get_agent_state()
             if not agent_state:
                 logger.error(f"Agent state not found for project {self.project_id}")
                 return False
@@ -167,23 +109,28 @@ class StructuringAgentStateManager:
             if progress is not None:
                 agent_state.overall_progress = max(0, min(100, progress))
             
+            print(f"更新进度完成: {agent_state.overall_progress}")
+
             # 存储结果数据
             if result_data:
-                await self._store_step_result(agent_state, target_internal_state, result_data)
+                await self.cache.store_step_result(agent_state, result_data)
             
+            print(f"存储结果数据完成: {result_data}")
+
+
             # 清除错误信息（如果成功转换）
             if target_internal_state != SystemInternalState.FAILED:
                 agent_state.error_message = None
                 agent_state.retry_count = 0
             
             # 保存状态
-            await self._save_agent_state(agent_state)
-            
+            await self.cache.add_agent_state_to_history(agent_state)
+            print(f"存储agent_state完成: {agent_state}")
+
             # 发布状态更新事件
             await self._publish_state_update(agent_state, message)
+            print(f"发布状态更新事件完成: {agent_state}")
             
-            # 检查是否需要自动转换到下一状态
-            await self._check_auto_transition(agent_state)
             
             logger.info(f"State transition successful: {self.project_id} -> {target_internal_state}")
             return True
@@ -192,336 +139,6 @@ class StructuringAgentStateManager:
             logger.error(f"Error in state transition: {str(e)}")
             await self._handle_error("state_transition_error", str(e))
             return False
-    
-
-    # 存储：缓存&持久化处理
-    async def _save_agent_state(self, agent_state: AgentStateData) -> bool:
-        """保存Agent状态到Redis并记录历史"""
-        try:
-            agent_state_key = self.cache_keys.get('agent_state')
-            # 使用 mode='json' 确保正确的 JSON 序列化，包括 datetime 字段
-            agent_state_data = agent_state.model_dump(mode='json')
-            
-            # 保存当前状态
-            success = await RedisClient.set(agent_state_key, agent_state_data, expire=self.cache_expire_time)
-            
-            if success:
-                # 保存状态历史
-                await self._save_agent_state_history(agent_state)
-                logger.debug(f"成功保存 agent 状态到 Redis，项目号为： {agent_state.project_id}")
-            else:
-                logger.error(f"保存 agent 状态到 Redis 失败，项目号为： {agent_state.project_id}")
-            
-            return success
-            
-        except Exception as e:
-            logger.error(f"Error saving agent state: {str(e)}")
-            return False
-
-    async def _save_agent_state_history(self, agent_state: AgentStateData) -> bool:
-        """保存Agent状态历史记录"""
-        try:
-            # 获取现有历史记录
-            state_history = await self._get_agent_state_history()
-            if not state_history:
-                state_history = AgentStateHistory(project_id=self.project_id)
-            
-            # 创建当前状态的副本并添加到历史记录
-            state_copy = AgentStateData(**agent_state.model_dump())
-            state_history.agent_states.append(state_copy)
-            state_history.total_states = len(state_history.agent_states)
-            state_history.last_updated = datetime.now()
-            
-            # 限制历史记录数量，保留最新的50条记录
-            max_history_records = 50
-            if len(state_history.agent_states) > max_history_records:
-                state_history.agent_states = state_history.agent_states[-max_history_records:]
-                state_history.total_states = len(state_history.agent_states)
-            
-            # 保存历史记录到Redis
-            history_key = self.cache_keys.get('agent_state_history')
-            history_data = state_history.model_dump(mode='json')
-            
-            success = await RedisClient.set(history_key, history_data, expire=self.cache_expire_time)
-            
-            if success:
-                logger.debug(f"成功保存状态历史记录，项目号：{self.project_id}，历史记录数：{state_history.total_states}")
-            else:
-                logger.error(f"保存状态历史记录失败，项目号：{self.project_id}")
-            
-            return success
-            
-        except Exception as e:
-            logger.error(f"保存状态历史记录时出错: {str(e)}")
-            return False
-
-    async def _get_agent_state_history(self) -> Optional[AgentStateHistory]:
-        """获取Agent状态历史记录"""
-        try:
-            history_key = self.cache_keys.get('agent_state_history')
-            history_data = await RedisClient.get(history_key)
-            
-            if history_data:
-                return AgentStateHistory(**history_data)
-            return None
-            
-        except Exception as e:
-            logger.error(f"获取状态历史记录失败: {str(e)}")
-            return None
-
-    async def get_agent_state_history(self, limit: Optional[int] = None) -> List[AgentStateData]:
-        """获取Agent状态历史记录（公共接口）"""
-        try:
-            state_history = await self._get_agent_state_history()
-            if not state_history or not state_history.agent_states:
-                return []
-            
-            # 按时间排序（最新的在前）
-            sorted_states = sorted(
-                state_history.agent_states,
-                key=lambda x: x.updated_at,
-                reverse=True
-            )
-            
-            # 限制返回数量
-            if limit:
-                sorted_states = sorted_states[:limit]
-            
-            return sorted_states
-            
-        except Exception as e:
-            logger.error(f"获取状态历史记录失败: {str(e)}")
-            return []
-
-    async def clear_agent_state_history(self) -> bool:
-        """清除Agent状态历史记录"""
-        try:
-            history_key = self.cache_keys.get('agent_state_history')
-            return await RedisClient.delete(history_key)
-        except Exception as e:
-            logger.error(f"清除状态历史记录失败: {str(e)}")
-            return False
-
-
-
-    async def _store_step_result(self, agent_state: AgentStateData, state: SystemInternalState, result_data: Dict[str, Any]):
-        """存储步骤结果数据"""
-        if state == SystemInternalState.DOCUMENT_EXTRACTED:
-            agent_state.has_extracted_content = True
-            await self._save_document(cache_key=self.cache_keys.get('raw_document'), content=result_data)
-
-        elif state == SystemInternalState.OUTLINE_H1_ANALYZED:
-            agent_state.has_h1_analysis_result = True
-            await self._save_document(cache_key=self.cache_keys.get('h1_document'), content=result_data)
-
-        elif state == SystemInternalState.OUTLINE_H2H3_ANALYZED:
-            agent_state.has_h2h3_analysis_result = True
-            await self._save_document(cache_key=self.cache_keys.get('h2h3_document'), content=result_data)
-            # await self._delete_document(cache_key=self.cache_keys.get('h1_document'))
-            # agent_state.has_h1_analysis_result = False
-
-        elif state == SystemInternalState.INTRODUCTION_ADDED:
-            agent_state.has_introduction_content = True
-            await self._save_document(cache_key=self.cache_keys.get('intro_document'), content=result_data)
-            # await self._delete_document(cache_key=self.cache_keys.get('h2h3_document'))
-            # agent_state.has_h2h3_analysis_result = False
-
-        elif state == SystemInternalState.COMPLETED:
-            agent_state.has_final_document = True
-            await self._save_document(cache_key=self.cache_keys.get('final_document'), content=result_data)
-            # await self._delete_document(cache_key=self.cache_keys.get('intro_document'))
-            # agent_state.has_introduction_content = False
-    
-    async def _save_document(self, cache_key: str, content: Dict[str, Any]) -> bool:
-        """保存文档数据到Redis"""
-        try:
-            # 设置15分钟过期时间
-            return await RedisClient.set(cache_key, content, expire=self.cache_expire_time)
-        except Exception as e:
-            logger.error(f"保存文档数据失败 {cache_key}: {str(e)}")
-            return False
-
-    async def _delete_document(self, cache_key: str) -> bool:
-        """删除文档数据"""
-        try:
-            return await RedisClient.delete(cache_key)
-        except Exception as e:
-            logger.error(f"删除文档数据失败 {cache_key}: {str(e)}")
-            return False
-
-
-    # 之前的持久化都是覆盖，而这里的持久化是叠加。 
-    async def _store_sse_message(
-        self, 
-        event_type: str, 
-        event_data: Dict[str, Any],
-    ) -> bool:
-        """存储SSE消息到历史记录"""
-        try:
-            # 生成消息记录 - 只使用SSEMessageRecord实际支持的字段
-            message_record = SSEMessageRecord(
-                message_id=self._generate_message_id(),
-                project_id=self.project_id,
-                event_type=event_type,
-                event_data=event_data,
-            )
-            
-            # 获取现有消息历史
-            message_history = await self._get_message_history()
-            if not message_history:
-                message_history = SSEMessageHistory(project_id=self.project_id)
-            
-            # 添加新消息
-            message_history.messages.append(message_record)
-            message_history.last_updated = datetime.now()
-            message_history.total_messages = len(message_history.messages)
-            
-            # 限制消息数量，保留最新的消息
-            if len(message_history.messages) > self.max_message_history:
-                message_history.messages = message_history.messages[-self.max_message_history:]
-                message_history.total_messages = len(message_history.messages)
-            
-            # 保存到Redis
-            cache_key = self.cache_keys.get('sse_message_log')
-            message_data = message_history.model_dump(mode='json')
-            
-            success = await RedisClient.set(cache_key, message_data, expire=self.cache_expire_time)
-            
-            if success:
-                logger.debug(f"成功存储SSE消息: {message_record.message_id}")
-            else:
-                logger.error(f"存储SSE消息失败: {message_record.message_id}")
-            
-            return success
-            
-        except Exception as e:
-            logger.error(f"存储SSE消息时出错: {str(e)}")
-            return False
-    
-    async def _get_message_history(self) -> Optional[SSEMessageHistory]:
-        """获取SSE消息历史记录"""
-        try:
-            cache_key = self.cache_keys.get('sse_message_log')
-            message_data = await RedisClient.get(cache_key)
-            
-            if message_data:
-                return SSEMessageHistory(**message_data)
-            return None
-            
-        except Exception as e:
-            logger.error(f"获取SSE消息历史失败: {str(e)}")
-            return None
-
-    async def get_message_history_for_recovery(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
-        """获取用于前端恢复的消息历史"""
-        try:
-            message_history = await self._get_message_history()
-            if not message_history or not message_history.messages:
-                return []
-            
-            # 按时间排序（最新的在前）
-            sorted_messages = sorted(
-                message_history.messages, 
-                key=lambda x: x.timestamp, 
-                reverse=True
-            )
-            
-            # 限制返回数量
-            if limit:
-                sorted_messages = sorted_messages[:limit]
-            
-            # 转换为前端可用的格式
-            recovery_messages = []
-            for msg in sorted_messages:
-                recovery_data = {
-                    "message_id": msg.message_id,
-                    "event_type": msg.event_type,
-                    "timestamp": msg.timestamp.isoformat(),
-                    "event_data": msg.event_data
-                }
-                
-                # 从event_data中提取状态快照信息（如果存在）
-                if msg.event_data:
-                    # 对于state_update事件，状态信息在event_data中
-                    if msg.event_type == "state_update" and "internal_state" in msg.event_data:
-                        recovery_data["state_snapshot"] = {
-                            "internal_state": msg.event_data.get("internal_state"),
-                            "user_state": msg.event_data.get("user_state"),
-                            "overall_progress": msg.event_data.get("progress"),
-                            "current_step": None  # 步骤信息在progress_update事件中
-                        }
-                    # 对于progress_update事件，包含步骤信息
-                    elif msg.event_type == "progress_update" and "step" in msg.event_data:
-                        recovery_data["state_snapshot"] = {
-                            "internal_state": None,
-                            "user_state": None,
-                            "overall_progress": msg.event_data.get("progress"),
-                            "current_step": msg.event_data.get("step")
-                        }
-                
-                recovery_messages.append(recovery_data)
-            
-            logger.info(f"返回 {len(recovery_messages)} 条消息历史用于恢复")
-            return recovery_messages
-            
-        except Exception as e:
-            logger.error(f"获取恢复消息历史失败: {str(e)}")
-            return []
-    
-    async def clear_message_history(self) -> bool:
-        """清除消息历史记录"""
-        try:
-            cache_key = self.cache_keys.get('sse_message_log')
-            return await RedisClient.delete(cache_key)
-        except Exception as e:
-            logger.error(f"清除消息历史失败: {str(e)}")
-            return False
-
-
-
-    # 查询
-    async def get_agent_state(self) -> Optional[AgentStateData]:
-        """获取Agent状态数据"""
-        try:
-            # 从Redis获取状态数据
-            agent_state_key = self.cache_keys.get('agent_state')
-            agent_state_data = await RedisClient.get(agent_state_key)
-            
-            if agent_state_data:
-                return AgentStateData(**agent_state_data)
-            return None
-            
-        except Exception as e:
-            logger.error(f"Error getting agent state for project {self.project_id}: {str(e)}")
-            return None
-    
-    async def get_user_visible_state(self) -> Optional[UserVisibleState]:
-        """获取用户可见状态"""
-        agent_state = await self.get_agent_state()
-        return agent_state.current_user_state if agent_state else None
-    
-    async def get_internal_state(self) -> Optional[SystemInternalState]:
-        """获取内部状态"""
-        agent_state = await self.get_agent_state()
-        return agent_state.current_internal_state if agent_state else None
-
-    async def get_document(self, doc_type: str = "final") -> Optional[Dict[str, Any]]:
-        """获取指定类型的文档"""
-        return await self._get_document(f"{doc_type}_document")
-
-    async def _get_document(self, key_label: str) -> Optional[Dict[str, Any]]:
-        """从Redis获取文档数据"""
-        cache_key = self.cache_keys.get(key_label)
-        if not cache_key:
-            return None
-        
-        try:
-            return await RedisClient.get(cache_key)
-        except Exception as e:
-            logger.error(f"获取文档数据失败 {key_label}: {str(e)}")
-            return None
-
-    # ========================= SSE消息存储与检索 =========================
     
 
 
@@ -547,7 +164,7 @@ class StructuringAgentStateManager:
             await RedisClient.publish(channel, event.model_dump_json())
             
             # 存储消息到历史记录
-            await self._store_sse_message(
+            await self.cache.add_agent_sse_message_to_history(
                 event_type="state_update",
                 event_data=event.model_dump()
             )
@@ -576,8 +193,8 @@ class StructuringAgentStateManager:
             await RedisClient.publish(channel, event.model_dump_json())
             
             # 存储消息到历史记录
-            agent_state = await self.get_agent_state()
-            await self._store_sse_message(
+            agent_state = await self.cache.get_agent_state()
+            await self.cache.add_agent_sse_message_to_history(
                 event_type="progress_update",
                 event_data=event.model_dump()
             )
@@ -648,7 +265,7 @@ class StructuringAgentStateManager:
         """处理错误"""
         try:
             # 更新状态为失败
-            agent_state = await self.get_agent_state()
+            agent_state = await self.cache.get_agent_state()
             if agent_state:
                 agent_state.current_internal_state = SystemInternalState.FAILED
                 agent_state.current_user_state = UserVisibleState.FAILED
@@ -656,7 +273,7 @@ class StructuringAgentStateManager:
                 agent_state.retry_count += 1
                 agent_state.updated_at = datetime.now()
                 
-                await self._save_agent_state(agent_state)
+                await self.cache.add_agent_state_to_history(agent_state)
             
             # 发布错误事件
             error_event = ErrorEvent(
@@ -670,7 +287,7 @@ class StructuringAgentStateManager:
             await RedisClient.publish(channel, error_event.model_dump_json())
             
             # 存储错误消息到历史记录
-            await self._store_sse_message(
+            await self.cache.add_agent_sse_message_to_history(
                 event_type="error",
                 event_data=error_event.model_dump()
             )
@@ -687,7 +304,7 @@ class StructuringAgentStateManager:
     ) -> bool:
         """处理用户操作"""
         try:
-            agent_state = await self.get_agent_state()
+            agent_state = await self.cache.get_agent_state()
             if not agent_state:
                 logger.error(f"Agent state not found for project {self.project_id}")
                 return False
@@ -754,8 +371,6 @@ class StructuringAgentStateManager:
             SystemInternalState.FAILED,
             message="操作已取消"
         )
-
-
 
 
 
