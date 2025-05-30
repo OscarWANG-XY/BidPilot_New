@@ -184,7 +184,21 @@ class Storage:
                 data=None,
                 method='get'
             )
-            return response
+            
+            # 新增：从response中提取content字段
+            content = response.get("content")
+            
+            # 新增：检查并处理可能的双重序列化问题
+            if isinstance(content, str):
+                try:
+                    import json
+                    content = json.loads(content)
+                    logger.debug(f"检测到字符串格式的JSON数据，已自动解析为字典")
+                except json.JSONDecodeError as e:
+                    logger.error(f"无法解析JSON字符串: {str(e)}")
+                    return None
+            
+            return content  # 返回content而不是整个response
         except Exception as e:
             logger.error(f"从Django服务获取文档失败: {str(e)}")
             return None
