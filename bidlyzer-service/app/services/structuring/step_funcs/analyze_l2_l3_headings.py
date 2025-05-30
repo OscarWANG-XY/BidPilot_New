@@ -72,9 +72,15 @@ class OutlineL2L3Analyzer:
                 limit=self.llm_limit
             )
         else:
-            # 原有的并行处理（不带流式输出）
-            raw_results = await analyzer.process_with_limit(task_inputs, limit=self.llm_limit)
-        
+            # 创建并行任务，每个任务有唯一ID（即使没有流式输出）
+            tasks = []
+            for i, task_input in enumerate(task_inputs):
+                task_id = f"task_{i}"
+                tasks.append((task_id, task_input))
+                
+            # 并行处理（不带流式输出）
+            raw_results = await analyzer.process_parallel_stream(tasks, limit=self.llm_limit)
+
         # 处理结果
         clean_parsed_results = self.output_processor.merge_outputs(raw_results)
         
