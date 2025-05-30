@@ -43,7 +43,6 @@ class AgentStateData(BaseModel):
     has_introduction_content: bool = Field(default=False, description="是否已添加引言内容")
     has_final_document: bool = Field(default=False, description="是否已生成最终文档")
 
-
 class AgentStateHistory(BaseModel):
     model_config = ConfigDict(
         json_encoders={
@@ -61,8 +60,6 @@ class AgentStateHistory(BaseModel):
                 f"total_states={self.total_states}, "
                 f"last_updated={self.last_updated.strftime('%Y-%m-%d %H:%M:%S')})")
     
-
-
 class TenderFile(BaseModel):
     """单个招标文件信息"""
     id: str  # 或者 UUID，取决于您的ID格式
@@ -164,7 +161,7 @@ class SSEMessageRecord(BaseModel):
     message_id: str = Field(description="消息唯一标识")
     project_id: str = Field(description="项目ID")
     event_type: str = Field(description="事件类型: state_update, processing_progress, error")
-    event_data: Dict[str, Any] = Field(description="事件数据内容")
+    event_data: Dict[str, Any] = Field(description="事件数据，支持多种事件类型")
 
     timestamp: datetime = Field(default_factory=datetime.now, description="消息时间戳")
 

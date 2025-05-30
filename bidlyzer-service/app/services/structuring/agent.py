@@ -124,7 +124,7 @@ class DocumentStructureAgent:
         """
         try:
             # 初始化Agent状态
-            agent_state = await self.state_manager.initialize_agent()
+            await self.state_manager.initialize_agent()
             
             
             # 开始文档提取
@@ -253,11 +253,12 @@ class DocumentStructureAgent:
                     message="正在提取文档内容..."
                 )
             
-            file_url = await self.state_manager.storage.get_tender_file_url()
+            # tender_file 是TenderFile类型，包含url字段
+            tender_file = await self.state_manager.storage.get_tender_file_url()
 
             # 执行文档提取
             extractor = await self.docx_extractor  # 注意docx_extractor是异步属性，不要加()
-            raw_document = await extractor.extract_content(file_url)
+            raw_document = await extractor.extract_content(tender_file.url)
             
             if not raw_document:
                 raise ProcessingError("文档提取失败，内容为空")
@@ -273,8 +274,8 @@ class DocumentStructureAgent:
             logger.info(f"[{trace_id}] 文档提取成功")
 
             # 自动触发下一步
-            await asyncio.sleep(0.5)  # 短暂延迟
-            await self.process_step(ProcessingStep.ANALYZE_H1)
+            # await asyncio.sleep(0.5)  # 短暂延迟
+            # await self.process_step(ProcessingStep.ANALYZE_H1)
 
             # 返回给process_step 集中跟踪（暂时未使用起来）
             return {"status": "success", "step": "extract"}

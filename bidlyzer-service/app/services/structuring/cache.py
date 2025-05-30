@@ -1,14 +1,20 @@
 # app/core/cache_manager.py
 
+from datetime import datetime
 from typing import Optional, Dict, Any, List
 from app.core.redis_helper import RedisClient
 from app.core.config import settings
 from app.services.structuring.state import StateRegistry, ED_STATE_POOL
-from app.services.structuring.schema import AgentStateData, AgentStateHistory, SSEMessageRecord, SSEMessageHistory
-from datetime import datetime
+from app.services.structuring.storage import Storage
 
 import logging
 logger = logging.getLogger(__name__)
+
+from app.services.structuring.schema import (
+    AgentStateData, AgentStateHistory, 
+    SSEMessageRecord, SSEMessageHistory
+    )
+
 
 class Cache:
     """缓存管理器，提供文档结构化流程的缓存操作"""
@@ -18,6 +24,7 @@ class Cache:
         self.KEY_PREFIX = 'structuring_agent:'
         self.max_message_history = 100  # 最大消息历史记录数
         self.cache_expire_time = 900   # 缓存过期时间
+        self.storage = Storage(project_id)
     
 
     def get_cache_keys(self) -> str:
@@ -38,7 +45,7 @@ class Cache:
         import uuid
         return f"{self.project_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{str(uuid.uuid4())[:8]}"
     
-    # 存储agent_state历史记录到Redis
+    # 存储agent_state历史记录到Redis，已添加持久化存储到django
     async def add_agent_state_to_history(self, agent_state: AgentStateData) -> bool:
         """保存Agent状态到历史记录中"""
         try:
@@ -63,28 +70,49 @@ class Cache:
             history_key = self.get_cache_keys().get('agent_state_history')
             history_data = state_history.model_dump(mode='json')
             
-            success = await RedisClient.set(history_key, history_data, expire=self.cache_expire_time)
+            success_redis = await RedisClient.set(history_key, history_data, expire=self.cache_expire_time)
             
-            if success:
-                logger.debug(f"成功保存状态到历史记录，项目号：{self.project_id}，历史记录数：{state_history.total_states}")
+            if success_redis:
+                # 如果缓存成功，将缓存的数据进行持久化到django 
+                success_storage = await self.storage.save_agent_state_history_to_django(state_history)
+                if success_storage:
+                    return True
+                else:
+                    logger.error(f"保存状态到Django失败，项目号：{self.project_id}")
+                    return False
             else:
-                logger.error(f"保存状态到历史记录失败，项目号：{self.project_id}")
-            
-            return success
+                logger.error(f"保存状态到Redis失败，项目号：{self.project_id}")
+                return False
 
         except Exception as e:
             logger.error(f"保存状态到历史记录时出错: {str(e)}")
             return False
 
+    #已添加从django持久化恢复的功能
     async def _get_agent_state_history(self) -> Optional[AgentStateHistory]:
         """获取Agent状态历史记录"""
         try:
-            history_key = self.get_cache_keys().get('agent_state_history')
-            history_data = await RedisClient.get(history_key)
+            cache_key = self.get_cache_keys().get('agent_state_history')
+            cache_data = await RedisClient.get(cache_key)
             
-            if history_data:
-                return AgentStateHistory(**history_data)
-            return None
+            if cache_data:
+                return AgentStateHistory(**cache_data)
+            else:
+                # 如果缓存失败，从django获取历史记录storage_data, 格式为AgentStateHistory
+                storage_data = await self.storage.get_agent_state_history_from_django()
+                if storage_data:
+                    # 恢复缓存数据
+                    storage_json = storage_data.model_dump(mode='json')
+                    success_redis = await RedisClient.set(cache_key, storage_json, expire=self.cache_expire_time)
+                    if success_redis:
+                        # 缓存恢复成功后，才返回数据
+                        return storage_data
+                    else:
+                        logger.error(f"恢复缓存失败，项目号：{self.project_id}")
+                        return None
+                else:
+                    logger.debug(f"项目 {self.project_id} 没有历史状态记录，这是正常的初始状态")
+                    return None
             
         except Exception as e:
             logger.error(f"获取状态历史记录失败: {str(e)}")
@@ -132,11 +160,7 @@ class Cache:
 
 
     # 存储agent_sse_message_history到Redis
-    async def add_agent_sse_message_to_history(
-        self, 
-        event_type: str, 
-        event_data: Dict[str, Any],
-    ) -> bool:
+    async def add_agent_sse_message_to_history(self, event_type: str, event_data: Dict[str, Any]) -> bool:
         """存储SSE消息到历史记录"""
         try:
             # 生成消息记录 - 只使用SSEMessageRecord实际支持的字段
@@ -147,7 +171,7 @@ class Cache:
                 event_data=event_data,
             )
             
-            # 获取现有消息历史
+            # 获取现有消息历史, 数据格式为SSEMessageHistory
             message_history = await self.get_agent_sse_message_history()
             if not message_history:
                 message_history = SSEMessageHistory(project_id=self.project_id)
@@ -166,15 +190,19 @@ class Cache:
             cache_key = self.get_cache_keys().get('sse_message_log')
             message_data = message_history.model_dump(mode='json')
             
-            success = await RedisClient.set(cache_key, message_data, expire=self.cache_expire_time)
+            success_redis = await RedisClient.set(cache_key, message_data, expire=self.cache_expire_time)
             
-            if success:
-                logger.debug(f"成功存储SSE消息: {message_record.message_id}")
-                
+            if success_redis:
+                # 如果缓存成功，将缓存的数据进行持久化到django 
+                success_storage = await self.storage.save_agent_message_to_django(message_history)
+                if success_storage:
+                    return True
+                else:
+                    logger.error(f"保存SSE消息历史到Django失败，项目号：{self.project_id}")
+                    return False
             else:
-                logger.error(f"存储SSE消息失败: {message_record.message_id}")
-            
-            return success
+                logger.error(f"保存SSE消息历史到Redis失败，项目号：{self.project_id}")
+                return False
 
         except Exception as e:
             logger.error(f"存储SSE消息时出错: {str(e)}")
@@ -184,11 +212,26 @@ class Cache:
         """获取SSE消息历史记录"""
         try:
             cache_key = self.get_cache_keys().get('sse_message_log')
-            message_data = await RedisClient.get(cache_key)
+            cache_data = await RedisClient.get(cache_key)
             
-            if message_data:
-                return SSEMessageHistory(**message_data)
-            return None
+            if cache_data:
+                return SSEMessageHistory(**cache_data)
+            else:
+                # 如果缓存失败，从django获取历史记录
+                storage_data = await self.storage.get_agent_message_from_django()
+                if storage_data:
+                    # 恢复缓存数据
+                    storage_json = storage_data.model_dump(mode='json')
+                    success_redis = await RedisClient.set(cache_key, storage_json, expire=self.cache_expire_time)
+                    if success_redis:
+                        # 缓存恢复成功后，才返回数据
+                        return storage_data
+                    else:
+                        logger.error(f"恢复SSE消息历史到Redis失败，项目号：{self.project_id}")
+                        return None
+                else:
+                    logger.debug(f"项目 {self.project_id} 没有SSE消息历史记录，这是正常的初始状态")
+                    return None
             
         except Exception as e:
             logger.error(f"获取SSE消息历史失败: {str(e)}")
@@ -203,49 +246,66 @@ class Cache:
             state_config = StateRegistry.get_state_config(agent_state.current_internal_state)
             step = state_config.state_to_step
             step_config = StateRegistry.get_step_config(step)
-            doc_key = step_config.result_key # 获取步骤结果的缓存键
-            await self._save_document(doc_key=doc_key, content=result_data) # 存储到Redis
+            doc_name = step_config.doc_name # 获取步骤结果的缓存键
+            await self._save_document(doc_name=doc_name, content=result_data) # 存储到Redis
 
         else:
             logger.warning(f"改状态下无需存储结果: {agent_state.current_internal_state}")
             return False
 
-    async def _save_document(self, doc_key: str, content: Dict[str, Any]) -> bool:
+    async def _save_document(self, doc_name: str, content: Dict[str, Any]) -> bool:
         """保存文档数据到Redis"""
         try:
-            cache_key = self.get_cache_keys().get(doc_key)
+            cache_key = self.get_cache_keys().get(doc_name)
             if not cache_key: 
-                logger.error(f"无效的文档类型: {doc_key}")
+                logger.error(f"无效的文档类型: {doc_name}")
                 return False
             
             # 缓存到Redis
             redis_success = await RedisClient.set(cache_key, content, expire=self.cache_expire_time)
-            if not redis_success: #这种情况不会进入Exception.
-                logger.error(f"保存到Redis失败: {cache_key}")
+            if redis_success:
+                # 如果缓存成功，将缓存的数据进行持久化到django 
+                success_storage = await self.storage.save_document_to_django(doc_name, content)
+                if success_storage:
+                    return True
+                else:
+                    logger.error(f"保存文档到Django失败，项目号：{self.project_id}")
+                    return False
+            else:
+                logger.error(f"保存文档到Redis失败，项目号：{self.project_id}")
                 return False
-            
-            logger.debug(f"文档保存成功: {cache_key}")
-            return True
 
         except Exception as e:
             logger.error(f"保存文档数据失败 {cache_key}: {str(e)}")
             return False
 
-    async def get_document(self, doc_key: str) -> Optional[Dict[str, Any]]:
+    async def get_document(self, doc_name: str) -> Optional[Dict[str, Any]]:
         """从Redis获取文档数据"""
-        cache_key = self.get_cache_keys().get(doc_key)
-        if not cache_key:
-            return None
         try:
-            return await RedisClient.get(cache_key)
+            cache_key = self.get_cache_keys().get(doc_name)
+            cache_data = await RedisClient.get(cache_key)
+            if cache_data:
+                return cache_data
+            else:
+                # 如果缓存失败，从django获取文档数据
+                storage_data = await self.storage.get_document_from_django(doc_name)
+                if storage_data:
+                    success_redis = await RedisClient.set(cache_key, storage_data, expire=self.cache_expire_time)
+                    if success_redis:
+                        return storage_data
+                    else:
+                        logger.error(f"恢复文档数据到Redis失败，项目号：{self.project_id}")
+                        return None     
+                else:
+                    logger.error(f"获取文档数据失败 {doc_name}: {str(e)}")
+                    return None
         except Exception as e:
-            logger.error(f"获取文档数据失败 {doc_key}: {str(e)}")
+            logger.error(f"获取文档数据失败 {doc_name}: {str(e)}")
             return None
 
 
 
-
-
+    # 以下各方法只用于测试，正常情况下不删除
     async def clean_up(self, target_keys: Optional[List[str]] = None) -> Dict[str, bool]:
         """
         清理项目相关的缓存数据
@@ -329,51 +389,6 @@ class Cache:
         except Exception as e:
             logger.error(f"清理所有缓存时出错: {str(e)}")
             return False
-
-    async def clean_up_documents_only(self) -> Dict[str, bool]:
-        """
-        仅清理文档相关的缓存数据
-        
-        Returns:
-            Dict[str, bool]: 文档缓存的清理结果
-        """
-        document_keys = [
-            'raw_document',
-            'h1_document', 
-            'h2h3_document',
-            'intro_document',
-            'final_document'
-        ]
-        
-        return await self.clean_up(target_keys=document_keys)
-
-    async def clean_up_states_only(self) -> Dict[str, bool]:
-        """
-        仅清理状态相关的缓存数据
-        
-        Returns:
-            Dict[str, bool]: 状态缓存的清理结果
-        """
-        state_keys = [
-            'agent_state',
-            'agent_state_history'
-        ]
-        
-        return await self.clean_up(target_keys=state_keys)
-
-    async def clean_up_messages_only(self) -> Dict[str, bool]:
-        """
-        仅清理消息相关的缓存数据
-        
-        Returns:
-            Dict[str, bool]: 消息缓存的清理结果
-        """
-        message_keys = [
-            'sse_message_log',
-            'sse_channel'
-        ]
-        
-        return await self.clean_up(target_keys=message_keys)
 
     async def check_cache_status(self) -> Dict[str, bool]:
         """

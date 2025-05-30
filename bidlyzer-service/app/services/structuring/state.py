@@ -122,7 +122,7 @@ class StepConfigData(BaseModel):
     required_states: List[SystemInternalState] = Field(description="前置状态")
     target_state: SystemInternalState = Field(description="目标状态")
     user_triggered: bool = Field(description="是否需要用户触发")
-    result_key: str = Field(description="结果缓存键")
+    doc_name: str = Field(description="文档名")
     
 class ActionConfigData(BaseModel):
     """操作配置数据"""
@@ -317,7 +317,7 @@ def _extract_step_config():
         required_states=[],  # 初始状态，无前置要求
         target_state=SystemInternalState.EXTRACTING_DOCUMENT,
         user_triggered=False,  # 由start_analysis自动触发
-        result_key='raw_document'
+        doc_name='raw_document'
     )
 
 @StateRegistry.register_step(ProcessingStep.ANALYZE_H1)
@@ -327,7 +327,7 @@ def _analyze_h1_step_config():
         required_states=[SystemInternalState.DOCUMENT_EXTRACTED],
         target_state=SystemInternalState.ANALYZING_OUTLINE_H1,
         user_triggered=False,
-        result_key='h1_document'
+        doc_name='h1_document'
     )
 
 @StateRegistry.register_step(ProcessingStep.ANALYZE_H2H3)
@@ -337,7 +337,7 @@ def _analyze_h2h3_step_config():
         required_states=[SystemInternalState.OUTLINE_H1_ANALYZED],
         target_state=SystemInternalState.ANALYZING_OUTLINE_H2H3,
         user_triggered=False,
-        result_key='h2h3_document'
+        doc_name='h2h3_document'
     )
 
 @StateRegistry.register_step(ProcessingStep.ADD_INTRODUCTION)
@@ -347,7 +347,7 @@ def _add_introduction_step_config():
         required_states=[SystemInternalState.OUTLINE_H2H3_ANALYZED],
         target_state=SystemInternalState.ADDING_INTRODUCTION,
         user_triggered=False,
-        result_key='intro_document'
+        doc_name='intro_document'
     )
 
 @StateRegistry.register_step(ProcessingStep.USER_EDITING)
@@ -357,7 +357,7 @@ def _user_editing_step_config():
         required_states=[SystemInternalState.AWAITING_EDITING],
         target_state=SystemInternalState.COMPLETED,
         user_triggered=True,
-        result_key='final_document'
+        doc_name='final_document'
     )
 
 
