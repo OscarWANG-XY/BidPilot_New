@@ -274,8 +274,8 @@ class DocumentStructureAgent:
             logger.info(f"[{trace_id}] 文档提取成功")
 
             # 自动触发下一步
-            # await asyncio.sleep(0.5)  # 短暂延迟
-            # await self.process_step(ProcessingStep.ANALYZE_H1)
+            await asyncio.sleep(0.5)  # 短暂延迟
+            await self.process_step(ProcessingStep.ANALYZE_H1)
 
             # 返回给process_step 集中跟踪（暂时未使用起来）
             return {"status": "success", "step": "extract"}

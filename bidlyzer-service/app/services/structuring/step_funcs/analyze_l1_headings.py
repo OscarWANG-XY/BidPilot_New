@@ -8,7 +8,7 @@ import logging
 from typing import Dict, List, Tuple, Any, Optional
 
 from app.clients.tiptap.helpers import TiptapUtils
-from app.services.prompts.structuring.tender_outlines_L1 import TenderOutlinesL1PromptBuilder
+from app.services.structuring.prompts.tender_outlines_L1 import TenderOutlinesL1PromptBuilder
 from app.services.llm.llm_client import LLMClient
 from app.services.llm.llm_output_processor import LLMOutputProcessor
 
