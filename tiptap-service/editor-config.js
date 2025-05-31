@@ -47,8 +47,11 @@ function createEditor() {
       
       // 图片扩展
       Image.configure({
-        inline: false,
+        inline: true,
         allowBase64: true,
+        HTMLAttributes: {
+          class: 'docx-image',
+        },
       }),
       
       // 链接扩展
