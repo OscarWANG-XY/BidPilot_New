@@ -503,8 +503,9 @@ class TiptapUtils:
     
 
     # 提取表格，并转为markdown （用于LLM分析）
+    # 因为调用了tiptap_client.json_to_markdown， 所以整个函数必须是异步
     @staticmethod
-    def extract_tables_to_markdown(doc: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def extract_tables_to_markdown(doc: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
         从 TipTap 文档中提取所有表格，并转换为 Markdown 格式
         
@@ -533,7 +534,7 @@ class TiptapUtils:
         index_path_map = {}
         last_table_path = None
         
-        def process_node(node, path=None):
+        async def process_node(node, path=None):
             nonlocal table_index, last_table_path
             if path is None:
                 path = []
@@ -550,8 +551,8 @@ class TiptapUtils:
                 try:
                     from app.clients.tiptap.client import TiptapClient
                     tiptap_client = TiptapClient()
-                    markdown_result = tiptap_client.json_to_markdown(table_doc)
-                    markdown_text = markdown_result["data"].strip()
+                    markdown_result = await tiptap_client.json_to_markdown(table_doc)
+                    markdown_text = markdown_result.strip()
                     
                     # 检查是否需要合并表格（判断路径是否连续）
                     is_continuous = False
@@ -593,10 +594,10 @@ class TiptapUtils:
             
             # 递归处理子节点
             for i, child in enumerate(node.get("content", [])):
-                process_node(child, path + [i])
+                await process_node(child, path + [i])
         
         # 从文档根节点开始处理
-        process_node(doc)
+        await process_node(doc)
         return tables_str, index_path_map
     
 
