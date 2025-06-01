@@ -7,7 +7,7 @@
 import logging
 from typing import Dict, List, Tuple, Any, Optional
 
-from app.clients.tiptap.helpers import TiptapUtils
+from app.clients.tiptap.tools import get_headings, update_nodes_to_headings
 from app.services.structuring.prompts.tender_outlines_L2 import TenderOutlinesL2PromptBuilder
 from app.services.llm.llm_client import LLMClient
 from app.services.llm.llm_output_processor import LLMOutputProcessor
@@ -83,24 +83,23 @@ class OutlineL2L3Analyzer:
 
         # 处理结果
         clean_parsed_results = self.output_processor.merge_outputs(raw_results)
-        
+
         # 调整级别值(每个加1)
         for item in clean_parsed_results:
             if 'level' in item:
                 item['level'] += 1
         
         # 使用新标题更新文档
-        document_h2 = TiptapUtils.update_titles_from_list(
-            doc=document_h1,
-            title_list=clean_parsed_results,
-            index_path_map=meta["index_path_map"]
+        document_h2 = update_nodes_to_headings(
+            tiptap_doc=document_h1,
+            heading_list=clean_parsed_results,
         )
         
         # 调试信息
-        headings = TiptapUtils.print_headings(document_h2)
-        logger.debug(f"L2/L3分析后的文档标题：\n{headings}")
+        _, print_headings = get_headings(document_h2)
+        logger.debug(f"L2/L3分析后的文档标题：\n{print_headings}")
         
-        return document_h2
+        return document_h2, clean_parsed_results
     
 
     

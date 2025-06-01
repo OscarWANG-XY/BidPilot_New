@@ -7,7 +7,7 @@
 import logging
 from typing import Dict, List, Tuple, Any, Optional
 
-from app.clients.tiptap.helpers import TiptapUtils
+from app.clients.tiptap.tools import get_headings, update_nodes_to_headings
 from app.services.structuring.prompts.tender_outlines_L1 import TenderOutlinesL1PromptBuilder
 from app.services.llm.llm_client import LLMClient
 from app.services.llm.llm_output_processor import LLMOutputProcessor
@@ -48,12 +48,12 @@ class OutlineL1Analyzer:
         
         # 初始化提示构建器并获取LLM参数
         prompt_builder = TenderOutlinesL1PromptBuilder(tender_document)
-        prompt_config, task_inputs, meta = prompt_builder.output_params()
+        prompt_config, task_inputs, meta = await prompt_builder.output_params()
         
         # 调试信息
         logger.debug("已生成L1提示参数")
-        headings = TiptapUtils.print_headings(tender_document)
-        logger.debug(f"L1分析前的文档标题：\n{headings}")
+        _, print_headings = get_headings(tender_document)
+        logger.debug(f"L1分析前的文档标题：\n{print_headings}")
         
         # 使用LLM处理
         analyzer = LLMClient(prompt_config)
@@ -81,15 +81,16 @@ class OutlineL1Analyzer:
         clean_parsed_results = self.output_processor.merge_outputs(raw_results)
         
         # 使用新标题更新文档
-        document_h1 = TiptapUtils.update_titles_from_list(
-            doc=tender_document,
-            title_list=clean_parsed_results,
-            index_path_map=meta["index_path_map"]
-        )
+        document_h1 = update_nodes_to_headings(tender_document, clean_parsed_results)
+        # document_h1 = TiptapUtils.update_titles_from_list(
+        #     doc=tender_document,
+        #     title_list=clean_parsed_results,
+        #     index_path_map=meta["index_path_map"]
+        # )
         
         # 调试信息
-        headings = TiptapUtils.print_headings(document_h1)
-        logger.debug(f"L1分析后的文档标题：\n{headings}")
+        _, print_headings = get_headings(document_h1)
+        logger.debug(f"L1分析后的文档标题：\n{print_headings}")
         
         return document_h1
     

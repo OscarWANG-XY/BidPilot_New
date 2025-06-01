@@ -41,25 +41,31 @@ class TenderOutlinesL2PromptBuilder():
         self.system_role = self._define_system_role()
         self.prompt_template = self._build_prompt_template()
 
-
         # 用户指令
-        self.indexed_chapters,_ = self._prepare_context()    # key_payload
+        # 移除直接调用，改为延迟初始化
+        self.indexed_chapters = None
+        self.index_path_map = None
+        self._context_initialized = False
+        
         self.instruction = self._prepare_instruction()
         self.supplement = self._prepare_supplement()
         self.output_format = self._prepare_output_format()
 
-        # meta
-        _,self.index_path_map = self._prepare_context()
-        self.chapters_tokens = sum([count_tokens(indexed_chapter["paragraphs"]) for indexed_chapter in self.indexed_chapters])
-        self.instruction_tokens = count_tokens(self.instruction)
-        self.supplement_tokens = count_tokens(self.supplement)
-        self.output_format_tokens = count_tokens(self.output_format)
-        self.prompt_template_tokens = count_tokens(self.prompt_template)
-        self.in_tokens = self.chapters_tokens + self.instruction_tokens + self.supplement_tokens + self.output_format_tokens + self.prompt_template_tokens
+        # token_usage 也需要延迟计算，因为依赖 indexed_chapters
+        self.token_usage = None
+
+    def _ensure_context_initialized(self):
+        """确保上下文已经初始化"""
+        if not self._context_initialized:
+            self.indexed_chapters, self.index_path_map = self._prepare_context()
+            self.token_usage = self._calculate_token_usage()
+            self._context_initialized = True
 
     def output_params(self) -> Tuple[Dict[str,any], List[Dict[str,any]], Dict[str,any]]:
+        # 确保上下文已初始化
+        self._ensure_context_initialized()
+        
         # 多任务主要通过task_inputs 来体现
-
         prompt_config = {
             "llm_config": self.llm_config,
             "prompt_template": self.prompt_template,
@@ -69,7 +75,7 @@ class TenderOutlinesL2PromptBuilder():
         task_inputs = []
         for chapter in self.indexed_chapters:
             task_params = {
-                "context": chapter["paragraphs"],
+                "context": chapter["content"],
                 "instruction": self.instruction,
                 "supplement": self.supplement,
                 "output_format": self.output_format,
@@ -78,17 +84,11 @@ class TenderOutlinesL2PromptBuilder():
 
         meta = {
             "index_path_map": self.index_path_map,
-            "in_tokens" : self.in_tokens,
-            "chapters_tokens": self.chapters_tokens,
-            "instruction_tokens": self.instruction_tokens,
-            "supplment_tokens":self.supplement_tokens,
-            "output_format_tokens": self.output_format_tokens,
-            "prompt_template_tokens": self.prompt_template_tokens
+            "token_usage": self.token_usage
         }
 
         return prompt_config, task_inputs, meta
     
-#    def simulate_prompt(self) -> str:
     def simulate_prompt(self) -> Tuple[List[Dict[str,Any]], List[Dict[str,Any]]]:
         """
         模拟生成完整的 prompt
@@ -99,6 +99,9 @@ class TenderOutlinesL2PromptBuilder():
         Returns:
             str: 完整的 prompt 内容
         """
+        # 确保上下文已初始化
+        self._ensure_context_initialized()
+        
         # 创建聊天提示模板
         prompt = ChatPromptTemplate.from_messages([
             SystemMessagePromptTemplate.from_template(
@@ -109,8 +112,8 @@ class TenderOutlinesL2PromptBuilder():
                 self.prompt_template,
                 input_variables=[
                     "context", 
-                    "instruction"
-                    "supplement"
+                    "instruction",
+                    "supplement",
                     "output_format"
                     ]
             )
@@ -152,20 +155,24 @@ class TenderOutlinesL2PromptBuilder():
 
     def _prepare_instruction(self) -> str:
 
-        # 1）以下提取标题，不做层级限定，实际测试过程中，“最多三个层级” 或者 “最多两个层级” 的限定，都会导致输出结果不准确。
-        # 2）第4点，避免了附件章节开头的目录和附件标题的重复识别，同时又确保带有附件的章节，附件标题被识别。
-        # 3）正文的表述很重要，但可能会将章节末尾的附件排除在外，所以第4点作为补充很重要。 
+# 我会提供招标文件提取的文档片段（材料A），每条数据包含 content（文本）和 position（位置索引）。
+# 文档片段可能是文档开头的封面和目录，也可能是文档的章节片段。
+
+# 请忽略封面或目录，对于章节片段请完成以下任务：
+# 1. 识别正文中的标题
+# 2. 请注意区分章节开头的目录和正文的标题，不要将目录的标题作为正文的标题。
+# 3. 请注意区分列表和正文的标题，不要将列表项作为正文的标题。
+# 4. 请注意包含章节末尾的附件标题，但忽略章节开头的附件标题目录。
 
 
 
         return """
-我会提供招标文件提取的文档片段（材料A），
-文档片段可能是文档开头的封面和目录，也可能是文档的章节片段。
+我会提供招标文件章节片段（材料A），第一条为章节标题，之后每条数据包含 content（文本）和 position（位置索引）。
 
-请忽略封面或目录，对于章节片段请完成以下任务：
-1. 识别正文中的标题
-2. 请注意区分章节开头的目录和正文的标题，不要将目录的标题作为正文的标题。
-3. 请注意区分列表和正文的标题，不要将列表项作为正文的标题。
+对于章节片段请完成以下任务：
+1. 识别所有的章节子标题
+2. 请注意区分章节开头的目录和章节正文，不要将章节开头的目录作为章节的子标题。
+3. 请注意区分列表和章节正文的子标题，不要将列表项作为章节子标题。
 4. 请注意包含章节末尾的附件标题，但忽略章节开头的附件标题目录。
 """
 
@@ -175,11 +182,9 @@ class TenderOutlinesL2PromptBuilder():
         准备请求数据
         """ 
 
-        from app.clients.tiptap.helpers import TiptapUtils
-        indexed_chapters, index_path_map = TiptapUtils.extract_chapters(
-            doc = self.doc, 
-            max_length = None,
-            )
+        from app.clients.tiptap.tools import formatted_chapters_md_with_position
+        indexed_chapters = formatted_chapters_md_with_position(self.doc)
+        index_path_map = {}
 
         return indexed_chapters, index_path_map
 
@@ -199,8 +204,8 @@ class TenderOutlinesL2PromptBuilder():
 - 只输出符合JSON格式的数据，不要添加解释、注释或 Markdown 标记。
 - 示例：
 [
-    {"index": int, "level": int, "title": str}, 
-    {"index": int, "level": int, "title": str}
+    {"position": int, "level": int, "title": str}, 
+    {"position": int, "level": int, "title": str}
 ]
 - 一个标题一条数据， 如果只有一个层级的标题，则只输出一个层级。
 - 如未识别到标题，返回空列表。
@@ -245,5 +250,23 @@ class TenderOutlinesL2PromptBuilder():
                     retry_times = 3
                 )
     
+    def _calculate_token_usage(self) -> Dict[str, int]:
+        """计算token使用量"""
+        chapters_tokens = sum([count_tokens(indexed_chapter["content"]) for indexed_chapter in self.indexed_chapters])
+        instruction_tokens = count_tokens(self.instruction)
+        supplement_tokens = count_tokens(self.supplement)
+        output_format_tokens = count_tokens(self.output_format)
+        prompt_template_tokens = count_tokens(self.prompt_template)
+        in_tokens = chapters_tokens + instruction_tokens + supplement_tokens + output_format_tokens + prompt_template_tokens
+
+        token_usage = {
+            "in_tokens": in_tokens,
+            "chapters_tokens": chapters_tokens,
+            "instruction_tokens": instruction_tokens,
+            "supplement_tokens": supplement_tokens,
+            "output_format_tokens": output_format_tokens,
+            "prompt_template_tokens": prompt_template_tokens
+        }
+        return token_usage
 
 

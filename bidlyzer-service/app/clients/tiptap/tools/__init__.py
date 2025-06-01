@@ -2,7 +2,11 @@
 from .nodes import extract_text_from_node, turn_block_nodes_to_tiptap_doc
 from .paragraphs import get_paragraph_nodes_with_position, get_paragraph_text_with_position
 from .tables import get_table_nodes_with_position, turn_tables_to_md_with_position, get_table_md_with_position
-from .document import get_all_nodes_with_position, get_paras_and_tables_md_with_position
+from .document import (
+    get_all_nodes_with_position, get_document_md_with_position, formatted_document_md_with_position, 
+    get_headings, extract_chapters_by_nodes,formatted_chapters_md_with_position,
+    update_nodes_to_headings, add_introduction_headings
+)
 
 __all__ = [
     # 用户序列化器
@@ -17,5 +21,11 @@ __all__ = [
     'get_table_md_with_position',
 
     'get_all_nodes_with_position',
-    'get_paras_and_tables_md_with_position'
+    'get_document_md_with_position',
+    'formatted_document_md_with_position',
+    'get_headings',
+    'extract_chapters_by_nodes',
+    'formatted_chapters_md_with_position',
+    'update_nodes_to_headings',
+    'add_introduction_headings'
 ] 

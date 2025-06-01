@@ -26,7 +26,6 @@ class TenderOutlinesL1PromptBuilder():
     """
 
     def __init__(self, doc: Any):
-
         # 输入参数
         self.doc = doc
 
@@ -39,17 +38,28 @@ class TenderOutlinesL1PromptBuilder():
 
         # 用户指令
         self.instruction = self._prepare_instruction()
-        self.indexed_doc,_ = self._prepare_context()   # key payload 
+        # 移除异步调用，改为延迟初始化
+        self.indexed_doc = None
+        self.index_path_map = None
+        self._context_initialized = False
+        
         self.supplement = self._prepare_supplement()
         self.output_format = self._prepare_output_format()
 
-        # meta
-        _,self.index_path_map = self._prepare_context()
-        self.token_usage = self._calculate_token_usage()
-    
+        # token_usage 也需要延迟计算，因为依赖 indexed_doc
+        self.token_usage = None
 
-    def output_params(self) -> Tuple[Dict[str,any], List[Dict[str,any]], Dict[str,any]]:
+    async def _ensure_context_initialized(self):
+        """确保上下文已经初始化"""
+        if not self._context_initialized:
+            self.indexed_doc, self.index_path_map = await self._prepare_context()
+            self.token_usage = self._calculate_token_usage()
+            self._context_initialized = True
 
+    async def output_params(self) -> Tuple[Dict[str,any], List[Dict[str,any]], Dict[str,any]]:
+        # 确保上下文已初始化
+        await self._ensure_context_initialized()
+        
         # 系统配置，角色，和prompt模板 
         prompt_config = {
             "llm_config": self.llm_config,
@@ -68,29 +78,24 @@ class TenderOutlinesL1PromptBuilder():
         # 额外信息： index-path 映射表； 
         meta = {
             "index_path_map": self.index_path_map,
-            "token_usage":self.token_usage
+            "token_usage": self.token_usage
         }
 
         return prompt_config, task_inputs, meta
 
-
-    def simulate_prompt(self) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    async def simulate_prompt(self) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """
         模拟生成完整的 prompt
-        
-        Args:
-            context: 输入的上下文信息
-            
-        Returns:
-            str: 完整的 prompt 内容
         """
+        # 确保上下文已初始化
+        await self._ensure_context_initialized()
+        
         # 创建聊天提示模板
         prompt = ChatPromptTemplate.from_messages([
             SystemMessagePromptTemplate.from_template(
                 self.system_role
             ),
             HumanMessagePromptTemplate.from_template(
-                # self.task.prompt_template,
                 self.prompt_template,
                 input_variables=[
                     "context", 
@@ -107,7 +112,6 @@ class TenderOutlinesL1PromptBuilder():
             context=self.indexed_doc,
             supplement=self.supplement,
             output_format=self.output_format
-
         )
 
         # 转换为易读的格式
@@ -124,6 +128,21 @@ class TenderOutlinesL1PromptBuilder():
 
         return raw_prompts, formatted_prompts
 
+    async def debug_output(self) -> None:
+        """
+        打印并检查输出数据的类型、结构和长度
+        用于调试和验证输出格式是否符合预期
+        """
+        # 确保上下文已初始化
+        await self._ensure_context_initialized()
+        
+        prompt_config, task_inputs, meta = await self.output_params()
+        raw_prompts, formatted_prompts = await self.simulate_prompt()
+        print(f"prompt_config:{type(prompt_config)}")
+        print(f"task_inputs:{type(task_inputs)}，长度：{len(task_inputs)}，元素：{type(task_inputs[0])}")
+        print(f"meta:{type(meta)}")
+        print(f"raw_prompts:{type(raw_prompts)}，长度：{len(raw_prompts)}，元素：{type(raw_prompts[0])}")
+        print(f"formatted_prompts:{type(formatted_prompts)}，长度：{len(formatted_prompts)}，元素：{type(formatted_prompts[0])}")
 
     def _define_system_role(self) -> str:
 
@@ -138,7 +157,7 @@ class TenderOutlinesL1PromptBuilder():
 
 # 以下版本有比较稳定的输出
         return """
-我会提供某文档的完整文本（材料A），每条数据包含 content（文本）和 index（位置索引）。
+我会提供某文档的完整文本（材料A），每条数据包含 content（文本）和 position（位置索引）。
 
 请完成以下任务：
 1. 识别文档最高层级的标题。
@@ -147,14 +166,18 @@ class TenderOutlinesL1PromptBuilder():
 """
 
 
-    def _prepare_context(self) -> Tuple[List[str], Dict[str, str]]:
+    async def _prepare_context(self) -> Tuple[List[str], Dict[str, str]]:
         """
         准备请求数据
         """ 
         # docx_extraction_task = Task.objects.get(stage__project=project, type=TaskType.DOCX_EXTRACTION_TASK)
         
-        from app.clients.tiptap.helpers import TiptapUtils
-        indexed_doc, index_path_map = TiptapUtils.extract_indexed_paragraphs(self.doc, 50)
+        # from app.clients.tiptap.helpers import TiptapUtils
+        # indexed_doc, index_path_map = TiptapUtils.extract_indexed_paragraphs(self.doc, 50)
+
+        from app.clients.tiptap.tools import formatted_document_md_with_position
+        indexed_doc = await formatted_document_md_with_position(self.doc)
+        index_path_map = {}
 
         return indexed_doc, index_path_map
 
@@ -174,8 +197,8 @@ class TenderOutlinesL1PromptBuilder():
 - 只输出符合JSON格式的数据，不要添加解释、注释或 Markdown 标记。
 - 示例：
 [
-    {"index": int, "level": int, "title": str}, 
-    {"index": int, "level": int, "title": str}
+    {"position": int, "level": int, "title": str}, 
+    {"position": int, "level": int, "title": str}
 ]
 - 一个标题一条数据， 只输出最高层级的标题。
 
@@ -238,17 +261,3 @@ class TenderOutlinesL1PromptBuilder():
             "prompt_template_tokens": prompt_template_tokens,
         }
         return token_usage
-
-
-    def debug_output(self) -> None:
-        """
-        打印并检查输出数据的类型、结构和长度
-        用于调试和验证输出格式是否符合预期
-        """
-        prompt_config, task_inputs, meta = self.output_params()
-        raw_prompts, formatted_prompts = self.simulate_prompt()
-        print(f"prompt_config:{type(prompt_config)}")
-        print(f"task_inputs:{type(task_inputs)}，长度：{len(task_inputs)}，元素：{type(task_inputs[0])}")
-        print(f"meta:{type(meta)}")
-        print(f"raw_prompts:{type(raw_prompts)}，长度：{len(raw_prompts)}，元素：{type(raw_prompts[0])}")
-        print(f"formatted_prompts:{type(formatted_prompts)}，长度：{len(formatted_prompts)}，元素：{type(formatted_prompts[0])}")

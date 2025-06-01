@@ -7,7 +7,7 @@
 import logging
 from typing import Dict, List, Tuple, Any, Optional
 
-from app.clients.tiptap.helpers import TiptapUtils
+from app.clients.tiptap.tools import add_introduction_headings, get_headings
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +33,10 @@ class AddIntroHeadings:
             添加了引言标题的文档
         """
         logger.info("正在添加引言标题")
-        document_final = TiptapUtils.add_introduction_headings(document_h2)
+        document_final = add_introduction_headings(document_h2)
         
         # 调试信息
-        headings = TiptapUtils.print_headings(document_final)
-        logger.debug(f"添加引言后的文档标题：\n{headings}")
+        headings, print_headings = get_headings(document_final)
+        logger.debug(f"添加引言后的文档标题：\n{print_headings}")
         
         return document_final
