@@ -4,28 +4,35 @@ from .paragraphs import get_paragraph_nodes_with_position, get_paragraph_text_wi
 from .tables import get_table_nodes_with_position, turn_tables_to_md_with_position, get_table_md_with_position
 from .document import (
     get_all_nodes_with_position, get_document_md_with_position, formatted_document_md_with_position, 
-    get_headings, extract_chapters_by_nodes,formatted_chapters_md_with_position,
-    update_nodes_to_headings, add_introduction_headings
-)
+    get_headings, update_nodes_to_headings
+    )
+from .chapters import extract_chapters_by_nodes, formatted_chapters_md_with_position, add_introduction_headings, extract_introductions_by_nodes
 
 __all__ = [
-    # 用户序列化器
+    
+    #节点工具
     'extract_text_from_node',
     'turn_block_nodes_to_tiptap_doc',
 
+    # 段落工具
     'get_paragraph_nodes_with_position',
     'get_paragraph_text_with_position',
 
+    # 表格工具
     'get_table_nodes_with_position',
     'turn_tables_to_md_with_position',
     'get_table_md_with_position',
 
+    # 文档工具
     'get_all_nodes_with_position',
     'get_document_md_with_position',
     'formatted_document_md_with_position',
     'get_headings',
+    'update_nodes_to_headings',
+
+    # 章节工具
     'extract_chapters_by_nodes',
     'formatted_chapters_md_with_position',
-    'update_nodes_to_headings',
-    'add_introduction_headings'
+    'add_introduction_headings',
+    'extract_introductions_by_nodes'
 ] 
