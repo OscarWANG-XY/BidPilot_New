@@ -1,10 +1,12 @@
+import React, { useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react';
+import { ToC } from './ToC'
 import StarterKit from '@tiptap/starter-kit';
 // starterkit包含:
 // nodes: Document, Blockquote, CodeBlock, HardBreak, Heading, HorizontalRule, ListItem, OrderedList, Paragraph, Text,
 // Marks:  Bold, Code, Italic, Strike
 // 扩展: Dropcursor, Gapcursor, History
-
+import { getHierarchicalIndexes, TableOfContents } from '@tiptap-pro/extension-table-of-contents'
 import TextAlign from '@tiptap/extension-text-align';
 import Heading from '@tiptap/extension-heading';  //覆盖starterkit中的配置
 import DragHandle from '@tiptap-pro/extension-drag-handle-react';
@@ -26,10 +28,33 @@ const sampleContent = {"type": "doc", "content": [{"type": "heading", "attrs": {
 const limit = 280;
 
 
+// 定义 ToCItemData 接口（如果在其他文件中已定义，可以导入）
+interface ToCItemData {
+  id: string
+  level: number
+  textContent: string
+  isActive: boolean
+  isScrolledOver: boolean
+  itemIndex: number
+}
+
+const MemorizedToC = React.memo(ToC)
+
+
 const TiptapEditor = () => {
+
+  const [items, setItems] = useState<ToCItemData[]>([])
+
   const editor = useEditor({
     extensions: [
       StarterKit,
+      //目录扩展
+      TableOfContents.configure({
+        getIndex: getHierarchicalIndexes,
+        onUpdate(content: ToCItemData[]) {
+          setItems(content)
+        },
+      }),
       // 表格扩展
       Table.configure({
         resizable: true,
@@ -128,7 +153,7 @@ const TiptapEditor = () => {
   }
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
+    <div className="mx-auto max-w-7xl p-6">
       <div>
         <button onClick={toggleEditable}>Toggle editable</button>
       </div>
@@ -142,39 +167,55 @@ const TiptapEditor = () => {
         </DragHandle>
       )}
 
-      <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm dark:border-gray-800">
-        {/* 编辑器内容区域 */}
-        <div 
-          onPaste={handlePaste} 
-          onDrop={handleDrop} 
-          onDragOver={handleDragOver} 
-          onDragEnter={handleDragEnter} 
-          className="min-h-[400px] bg-white p-4 dark:bg-gray-950"
-        >
-          <EditorContent editor={editor} />
-        </div>
+      {/* 编辑器和目录的容器 */}
+      <div className="editor-with-toc">
+        {/* 编辑器主体部分 */}
+        <div className="editor-main">
+          <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm dark:border-gray-800">
+            {/* 编辑器内容区域 */}
+            <div 
+              onPaste={handlePaste} 
+              onDrop={handleDrop} 
+              onDragOver={handleDragOver} 
+              onDragEnter={handleDragEnter} 
+              className="min-h-[400px] bg-white p-4 dark:bg-gray-950"
+            >
+              <EditorContent editor={editor} />
+            </div>
 
-        {/* 字数统计区域 */}
-        <div className="character-count">
-          <svg height="20" width="20" viewBox="0 0 20 20">
-            <circle r="10" cx="10" cy="10" fill="#e9ecef" />
-            <circle
-              r="5"
-              cx="10"
-              cy="10"
-              fill="transparent"
-              stroke="currentColor"
-              strokeWidth="10"
-              strokeDasharray={`calc(${percentage} * 31.4 / 100) 31.4`}
-              transform="rotate(-90) translate(-20)"
-            />
-            <circle r="6" cx="10" cy="10" fill="white" />
-          </svg>
-          <span>
-            {editor?.storage.characterCount.characters()} / {limit} 字符
-            <br />
-            {editor?.storage.characterCount.words()} 词
-          </span>
+            {/* 字数统计区域 */}
+            <div className="character-count">
+              <svg height="20" width="20" viewBox="0 0 20 20">
+                <circle r="10" cx="10" cy="10" fill="#e9ecef" />
+                <circle
+                  r="5"
+                  cx="10"
+                  cy="10"
+                  fill="transparent"
+                  stroke="currentColor"
+                  strokeWidth="10"
+                  strokeDasharray={`calc(${percentage} * 31.4 / 100) 31.4`}
+                  transform="rotate(-90) translate(-20)"
+                />
+                <circle r="6" cx="10" cy="10" fill="white" />
+              </svg>
+              <span>
+                {editor?.storage.characterCount.characters()} / {limit} 字符
+                <br />
+                {editor?.storage.characterCount.words()} 词
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        {/* 目录侧边栏 */}
+        <div className="editor-sidebar">
+          <div className="editor-sidebar-content">
+            <div className="label-large">目录</div>
+            <div className="table-of-contents">
+              <MemorizedToC editor={editor} items={items} />
+            </div>
+          </div>
         </div>
       </div>
     </div>

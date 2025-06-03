@@ -242,4 +242,95 @@
     @apply bg-blue-900/20 border-blue-400;
   }
 
+
+  // ============ 编辑器与目录的布局样式 ============
+  
+  /* 编辑器和目录的容器 */
+  .editor-with-toc {
+    @apply flex;
+    gap: 0rem; /* 缩小间距到 0.1rem */
+    
+    @media (max-width: 1024px) {
+      @apply flex-col;
+      gap: 1rem; /* 在移动端保持较大间距 */
+    }
+  }
+
+  /* 编辑器主体部分 */
+  .editor-main {
+    @apply flex-1 min-w-0; /* min-w-0 确保 flex 项目可以收缩 */
+  }
+
+  /* 编辑器右侧的目录栏 */
+  .editor-sidebar {
+    @apply flex-shrink-0 w-64;
+    
+    @media (max-width: 1024px) {
+      @apply w-full;
+    }
+  }
+
+  .editor-sidebar-content {
+    @apply bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700;
+    /* 匹配整个编辑器容器的高度（内容区域400px + 字数统计区域的高度） */
+    height: 100%;
+    /* 和编辑器内容区域的上下内边距对齐 (p-4 = 1rem) */
+    padding: 1rem;
+    /* 使内容垂直分布 */
+    display: flex;
+    flex-direction: column;
+  }
+
+  .label-large {
+    @apply text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700;
+    /* 确保标题不会被滚动 */
+    flex-shrink: 0;
+  }
+
+  /* 目录样式 */
+  .table-of-contents {
+    @apply flex flex-col text-sm gap-1;
+    /* 允许目录内容滚动，占满剩余空间 */
+    flex: 1;
+    overflow-y: auto;
+
+    > div {
+      @apply rounded-md transition-all duration-200 ease-out;
+      padding-left: calc(0.75rem * (var(--level) - 1));
+      
+      &:hover {
+        @apply bg-gray-100 dark:bg-gray-800;
+      }
+    }
+
+    .empty-state {
+      @apply text-gray-500 dark:text-gray-400 select-none;
+      
+      p {
+        @apply text-sm italic text-center py-4;
+      }
+    }
+
+    .is-active a {
+      @apply text-purple-600 dark:text-purple-400 font-medium bg-purple-50 dark:bg-purple-900/20;
+    }
+
+    .is-scrolled-over a {
+      @apply text-gray-400 dark:text-gray-600;
+    }
+
+    a {
+      @apply text-gray-700 dark:text-gray-300 flex gap-2 no-underline py-2 px-3 rounded-md transition-colors duration-150 text-sm leading-relaxed;
+      
+      &:hover {
+        @apply text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-800;
+      }
+
+      &::before {
+        content: attr(data-item-index) ".";
+        @apply font-mono text-xs text-gray-500 dark:text-gray-400 flex-shrink-0;
+        min-width: 1.5rem;
+      }
+    }
+  }
 }
