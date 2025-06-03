@@ -105,6 +105,8 @@
     content: attr(data-placeholder);
   }
 
+
+  // ========== 字数统计样式 ==========
   /* 字数统计样式 */
   .character-count {
     @apply flex items-center text-gray-500 text-xs gap-2 mx-6 my-4 p-2;
@@ -128,6 +130,25 @@
     }
   }
 
+  /* 深色模式支持 */
+  .dark .character-count {
+    @apply border-gray-700 bg-gray-800 text-gray-400;
+  }
+
+  .dark .character-count svg {
+    @apply text-purple-400;
+  }
+
+  .dark .character-count--warning {
+    @apply text-red-400;
+  }
+
+  .dark .character-count--warning svg {
+    @apply text-red-400;
+  }
+
+
+  // ============ 拖拽功能的样式  ============
   /* ProseMirror 编辑器基础样式 */
   .tiptap-content .ProseMirror {
     @apply px-16;
@@ -221,20 +242,4 @@
     @apply bg-blue-900/20 border-blue-400;
   }
 
-  /* 深色模式支持 */
-  .dark .character-count {
-    @apply border-gray-700 bg-gray-800 text-gray-400;
-  }
-
-  .dark .character-count svg {
-    @apply text-purple-400;
-  }
-
-  .dark .character-count--warning {
-    @apply text-red-400;
-  }
-
-  .dark .character-count--warning svg {
-    @apply text-red-400;
-  }
 }
