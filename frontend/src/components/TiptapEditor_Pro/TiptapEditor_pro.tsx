@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useEditor, EditorContent, BubbleMenu, Editor } from '@tiptap/react';
 import { ToC } from './ToC'
 import { SimpleBubbleBar } from './BubbleBar'
-// import { ToolBar } from './ToolBar';
+import { ToolBar } from './ToolBar';
 import StarterKit from '@tiptap/starter-kit';
 // starterkit包含:
 // nodes: Document, Blockquote, CodeBlock, HardBreak, Heading, HorizontalRule, ListItem, OrderedList, Paragraph, Text,
@@ -198,6 +198,9 @@ const TiptapEditor = () => {
         {/* 编辑器主体部分 */}
         <div className="editor-main">
           <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm dark:border-gray-800">
+            {/* 添加工具栏 */}
+            {editor && <ToolBar editor={editor} />}
+            
             {/* 编辑器内容区域 */}
             <div 
               onPaste={handlePaste} 
