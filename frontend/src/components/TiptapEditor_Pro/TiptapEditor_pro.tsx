@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useEditor, EditorContent, BubbleMenu, Editor } from '@tiptap/react';
+import { useEditor, EditorContent} from '@tiptap/react';
 import { ToC } from './ToC'
 import { SimpleBubbleBar } from './BubbleBar'
 import { ToolBar } from './ToolBar';
