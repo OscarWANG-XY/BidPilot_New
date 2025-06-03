@@ -263,10 +263,38 @@
 
   /* 编辑器右侧的目录栏 */
   .editor-sidebar {
-    @apply flex-shrink-0 w-64;
+    @apply flex-shrink-0 relative;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &.expanded {
+      width: 16rem; /* w-64 = 16rem */
+    }
+    
+    &.collapsed {
+      width: 2.5rem; /* 收缩时的宽度，仅显示切换按钮 */
+    }
     
     @media (max-width: 1024px) {
-      @apply w-full;
+      &.expanded,
+      &.collapsed {
+        @apply w-full;
+      }
+    }
+  }
+
+  /* 切换按钮 */
+  .toc-toggle-btn {
+    @apply absolute top-4 -left-3 z-10 w-6 h-8 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-l-md;
+    @apply flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100;
+    @apply hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1;
+    
+    svg {
+      @apply w-4 h-4;
+    }
+    
+    @media (max-width: 1024px) {
+      @apply relative top-0 left-0 w-full h-10 rounded-md mb-4;
     }
   }
 
@@ -279,6 +307,22 @@
     /* 使内容垂直分布 */
     display: flex;
     flex-direction: column;
+    
+    /* 收缩时隐藏内容 */
+    .editor-sidebar.collapsed & {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(1rem);
+      transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+    }
+    
+    /* 展开时显示内容 */
+    .editor-sidebar.expanded & {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0);
+      transition: opacity 0.3s ease-out 0.1s, transform 0.3s ease-out 0.1s;
+    }
   }
 
   .label-large {

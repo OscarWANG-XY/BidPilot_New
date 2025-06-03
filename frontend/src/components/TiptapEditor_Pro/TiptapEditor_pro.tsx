@@ -44,6 +44,7 @@ const MemorizedToC = React.memo(ToC)
 const TiptapEditor = () => {
 
   const [items, setItems] = useState<ToCItemData[]>([])
+  const [isTocExpanded, setIsTocExpanded] = useState(true)
 
   const editor = useEditor({
     extensions: [
@@ -152,6 +153,10 @@ const TiptapEditor = () => {
     editor?.view.dispatch(editor.view.state.tr)
   }
 
+  const toggleToc = () => {
+    setIsTocExpanded(!isTocExpanded)
+  }
+
   return (
     <div className="mx-auto max-w-7xl p-6">
       <div>
@@ -209,7 +214,26 @@ const TiptapEditor = () => {
         </div>
         
         {/* 目录侧边栏 */}
-        <div className="editor-sidebar">
+        <div className={`editor-sidebar ${isTocExpanded ? 'expanded' : 'collapsed'}`}>
+          {/* 切换按钮 */}
+          <button 
+            onClick={toggleToc}
+            className="toc-toggle-btn"
+            title={isTocExpanded ? '收起目录' : '展开目录'}
+          >
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              strokeWidth="1.5" 
+              stroke="currentColor"
+              className={`transition-transform duration-300 ${isTocExpanded ? 'rotate-180' : ''}`}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </button>
+          
+          {/* 目录内容 */}
           <div className="editor-sidebar-content">
             <div className="label-large">目录</div>
             <div className="table-of-contents">
