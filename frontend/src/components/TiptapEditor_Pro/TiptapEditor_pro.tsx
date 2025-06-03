@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, BubbleMenu, Editor } from '@tiptap/react';
 import { ToC } from './ToC'
+import { SimpleBubbleBar } from './BubbleBar'
+// import { ToolBar } from './ToolBar';
 import StarterKit from '@tiptap/starter-kit';
 // starterkit包含:
 // nodes: Document, Blockquote, CodeBlock, HardBreak, Heading, HorizontalRule, ListItem, OrderedList, Paragraph, Text,
@@ -20,6 +22,12 @@ import Image from '@tiptap/extension-image'
 // 字数统计
 import CharacterCount from '@tiptap/extension-character-count'
 // import Dropcursor from '@tiptap/extension-dropcursor'
+// BubbleBar需要的扩展
+import Highlight from '@tiptap/extension-highlight'
+import Underline from '@tiptap/extension-underline'
+import Subscript from '@tiptap/extension-subscript'
+import Superscript from '@tiptap/extension-superscript'
+import Link from '@tiptap/extension-link'
 
 
 
@@ -83,6 +91,19 @@ const TiptapEditor = () => {
       // 字数统计
       CharacterCount.configure({
         limit,
+      }),
+      // BubbleBar 需要的扩展
+      Highlight.configure({
+        multicolor: true,
+      }),
+      Underline,
+      Subscript,
+      Superscript,
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-blue-600 underline hover:text-blue-800',
+        },
       }),
       // 移除任何手动添加的 DragHandle 扩展
       
@@ -186,6 +207,12 @@ const TiptapEditor = () => {
               className="min-h-[400px] bg-white p-4 dark:bg-gray-950"
             >
               <EditorContent editor={editor} />
+              {/* 添加BubbleBar */}
+              {/* {editor && <BubbleBar editor={editor} />} */}
+              {/* 添加SimpleBubbleBar */}
+              
+              {editor && <SimpleBubbleBar editor={editor} />}
+             
             </div>
 
             {/* 字数统计区域 */}

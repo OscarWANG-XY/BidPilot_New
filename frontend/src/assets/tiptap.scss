@@ -377,4 +377,44 @@
       }
     }
   }
+
+  /* Bubble menu */
+  .bubble-menu {
+    @apply bg-white border border-gray-200 rounded-xl shadow-lg flex p-1;
+
+    button {
+      @apply bg-transparent;
+
+      &:hover {
+        @apply bg-gray-100;
+      }
+
+      &.is-active {
+        @apply bg-purple-500 text-white;
+
+        &:hover {
+          @apply bg-purple-600;
+        }
+      }
+    }
+  }
+
+  /* Dark mode support for bubble menu */
+  .dark .bubble-menu {
+    @apply bg-gray-800 border-gray-700;
+
+    button {
+      &:hover {
+        @apply bg-gray-700;
+      }
+
+      &.is-active {
+        @apply bg-purple-500;
+
+        &:hover {
+          @apply bg-purple-600;
+        }
+      }
+    }
+  }
 }
