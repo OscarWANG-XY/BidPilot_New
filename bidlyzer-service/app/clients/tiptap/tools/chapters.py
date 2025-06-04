@@ -317,7 +317,8 @@ def extract_leaf_chapters(doc: Dict[str, Any]) -> List[Dict[str, Any]]:
                     "type": "doc",
                     "content": chapter_nodes,
                     "meta": {
-                        "position": current_pos
+                        "position": current_pos,
+                        "title": current["title"]
                     }
                 }
                 leaf_chapters.append(leaf_chapter_doc)

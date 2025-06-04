@@ -76,3 +76,100 @@ async def get_table_md_with_position(tiptap_doc: List[Dict[str, Any]]) -> List[D
     tables_info_md = await turn_tables_to_md_with_position(tables_info)
     
     return tables_info_md
+
+
+
+
+
+def print_defined_tables_columns(tiptap_doc: Dict[str, Any], key_col_index=0, value_col_index=2) -> str:
+    """
+    输入：tiptap_doc: Dict[str, Any]
+    逻辑： 
+    - 遍历所有文档中的表格，提取key列 和 value列，并返回一个字符串，格式为："key1: value1\nkey2: value2\n..."
+
+    输出：str
+    """
+
+    if not isinstance(tiptap_doc, dict):
+        raise ValueError("输入必须是字典格式")
+    
+    topic_list = []
+
+    for node in tiptap_doc["content"]:
+        if node["type"] != "table":
+            continue
+
+        rows = node.get("content", [])
+        if not rows or len(rows) <= 1:
+            continue  # 没有数据行
+
+        for row in rows[1:]:  # 跳过表头
+            cells = row.get("content", [])
+            if len(cells) <= max(key_col_index, value_col_index):
+                continue  # 列数不足，跳过
+
+            # 提取 key（类型）文本
+            key_cell = cells[key_col_index]
+            key_text = ""
+            try:
+                key_text = key_cell["content"][0]["content"][0]["text"]
+            except (IndexError, KeyError, TypeError):
+                continue  # 如果无法提取文本，跳过这一行
+            
+            # 提取 value 文本
+            value_cell = cells[value_col_index]
+            value_text = ""
+            try:
+                value_text = value_cell["content"][0]["content"][0]["text"]
+            except (IndexError, KeyError, TypeError):
+                value_text = ""  # 如果无法提取文本，使用空字符串
+
+            topic_list.append(f"{key_text}: {value_text}")
+
+    return "\n".join(topic_list)
+
+
+
+def update_all_tables_column_from_dict(tiptap_doc, dict_value, key_col_index=0, value_col_index=3):
+    """
+    遍历文档中所有表格，统一根据指定列索引进行更新。
+    :param tiptap_json: 整个 Tiptap 文档 JSON
+    :param type_dict: 字典，键为类型，值为说明
+    :param key_col_index: 类型所在列（默认第 1 列）
+    :param value_col_index: 说明写入的目标列（默认第 4 列）
+    """
+    if not isinstance(tiptap_doc, dict):
+        raise ValueError("输入必须是字典格式")
+
+    for node in tiptap_doc["content"]:
+        if node["type"] != "table":
+            continue
+
+        rows = node.get("content", [])
+        if not rows or len(rows) <= 1:
+            continue  # 没有数据行
+
+        for row in rows[1:]:  # 跳过表头
+            cells = row.get("content", [])
+            if len(cells) <= max(key_col_index, value_col_index):
+                continue  # 列数不足，跳过
+
+            # 提取 key（类型）文本
+            key_cell = cells[key_col_index]
+            key_text = ""
+            try:
+                key_text = key_cell["content"][0]["content"][0]["text"]
+            except (IndexError, KeyError, TypeError):
+                pass
+
+            if key_text in dict_value:
+                value_text = dict_value[key_text]
+                cells[value_col_index]["content"] = [{
+                    "type": "paragraph",
+                    "content": [{"type": "text", "text": value_text}]
+                }]
+
+    return tiptap_doc
+
+
+

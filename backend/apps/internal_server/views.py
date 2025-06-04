@@ -126,7 +126,14 @@ class ProjectInternalViewSet(viewsets.GenericViewSet):
         storage = self._get_or_create_storage(project)
         
         # 验证文档类型
-        valid_doc_types = ['raw_document', 'h1_document', 'h2h3_document', 'intro_document', 'final_document']
+        valid_doc_types = ['raw_document', 
+                           'h1_document', 
+                           'h2h3_document', 
+                           'intro_document', 
+                           'final_document',
+                           # planning 阶段新增的文档
+                           'chapters_md'
+                           ]
         
         # 对于POST请求，doc_type可能来自请求体
         if request.method == 'POST' and not doc_name:
@@ -144,7 +151,9 @@ class ProjectInternalViewSet(viewsets.GenericViewSet):
             'h1_document': 'h1_document', 
             'h2h3_document': 'h2h3_document',
             'intro_document': 'intro_document',
-            'final_document': 'final_document'
+            'final_document': 'final_document',
+            # planning 阶段新增的文档
+            'chapters_md': 'chapters_md'
         }
         
         field_name = doc_field_map[doc_name]

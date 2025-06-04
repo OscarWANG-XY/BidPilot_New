@@ -59,6 +59,11 @@ class StructuringAgentStorage(models.Model):
         blank=True,
         verbose_name='最终文档'
     )
+    chapters_md = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='章节md'
+    )
 
 
     created_at = models.DateTimeField(auto_now_add=True)
