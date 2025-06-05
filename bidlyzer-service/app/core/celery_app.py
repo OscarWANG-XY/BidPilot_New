@@ -8,7 +8,6 @@ celery_app = Celery(
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
     include=[
-        "app.tasks.test_tasks",  # 包含任务模块
         "app.tasks.structuring_tasks",  # 新增：文档结构化任务
     ]
 )
@@ -27,20 +26,41 @@ celery_app.conf.update(
     
     # 任务路由配置 - 使用独特的队列名称
     task_routes={
-        'app.tasks.example_tasks.*': {'queue': 'fastapi_default'},
-        'app.tasks.bid_analysis_tasks.*': {'queue': 'fastapi_analysis'},
-        'app.tasks.test_tasks.*': {'queue': 'fastapi_test'},
         'app.tasks.structuring_tasks.*': {'queue': 'fastapi_structuring'},  # 新增：结构化任务队列
-        'structuring.*': {'queue': 'fastapi_structuring'},  # 新增：按任务名称路由
     },
     
-    # 任务结果过期时间（秒）
+    # 任务软超时： 1小时
+    task_soft_time_limit=3600,
+
+    # 任务硬超时： 2小时； 比如一个任务等待用户确认，但用户两个小时都没有确认，那么会被强制终止，状态变为failure，这个时候能计入到最大任务数里。 
+    task_time_limit=7200,
+
+    # 任务最大重试次数
+    task_max_retries=3,
+    task_default_retry_delay = 60,  # 重试间隔60秒
+
+    # Worker 最大内存限制， 达到后不会中断正在执行的任务，但该worker不再接收新任务， 主线程创建新worker替代。
+    # 不同用户直接的占用是累加的。
+    worker_max_memory_per_child=500000,  # 500MB
+
+    # 任务最大任务数后重启 (成功和失败的任务都会被计入，但已经开始的，但未结束的不算在里面)
+    worker_max_tasks_per_child=100,
+
+
+    # 任务执行配置
+    task_always_eager=False,  # 设为True时任务会同步执行（用于测试， 它会让测试的task立即执行，而不是等待，用于比如单元测试等场景。）
+
+    # 任务结果过期时间（秒）： 保留时间： 1小时
     result_expires=3600,
     
-    # 任务执行配置
-    task_always_eager=False,  # 设为True时任务会同步执行（用于测试）
-    worker_prefetch_multiplier=1,  # 每个worker预取的任务数
+    #任务提前预取，而不是等执行完再取下一个， 这样可以减少通信，提高效率。 
+
+    worker_prefetch_multiplier=4,  # 每个worker预取的任务数
+    
+    #适合关键业务，比如支付处理，数据同步，重要通知等。 
     task_acks_late=True,  # 任务完成后再确认
+
+
     worker_disable_rate_limits=False,
     
     # 任务重试配置
@@ -55,14 +75,12 @@ celery_app.conf.update(
     },
 )
 
-# 任务装饰器的默认配置
-celery_app.conf.task_default_retry_delay = 60  # 重试间隔60秒
-celery_app.conf.task_max_retries = 3  # 最大重试次数
+
 
 # 强制导入任务模块以确保任务被注册
 # 这是解决 include 配置有时不生效的问题
 try:
-    import app.tasks.test_tasks
+    import app.tasks.structuring_tasks
     print(f"✅ 成功导入测试任务模块，已注册 {len(celery_app.tasks)} 个任务")
 except ImportError as e:
     print(f"❌ 导入测试任务模块失败: {e}")

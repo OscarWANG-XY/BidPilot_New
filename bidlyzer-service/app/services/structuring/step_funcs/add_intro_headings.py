@@ -22,7 +22,7 @@ class AddIntroHeadings:
         pass
 
     
-    async def add(self, document_h2: Dict) -> Dict:
+    async def add(self, document_h2h3: Dict) -> Dict:
         """
         为文档添加引言标题
         
@@ -33,10 +33,10 @@ class AddIntroHeadings:
             添加了引言标题的文档
         """
         logger.info("正在添加引言标题")
-        document_final = add_introduction_headings(document_h2)
+        intro_document,_ = add_introduction_headings(document_h2h3)
         
         # 调试信息
-        headings, print_headings = get_headings(document_final)
+        _,print_headings = get_headings(intro_document)
         logger.debug(f"添加引言后的文档标题：\n{print_headings}")
         
-        return document_final
+        return intro_document

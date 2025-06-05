@@ -21,7 +21,7 @@ from .step_funcs.add_intro_headings import AddIntroHeadings
 logger = logging.getLogger(__name__)
 
 
-class DocumentStructureAgent:
+class StructuringAgent:
     """
     文档结构化Agent - FastAPI版本
     负责将上传的投标文件提取+分析大纲+注入TiptapJSON
@@ -126,9 +126,8 @@ class DocumentStructureAgent:
             # 初始化Agent状态
             await self.state_manager.initialize_agent()
             
-            
-            # 开始文档提取
-            return await self.process_step(ProcessingStep.EXTRACT)
+            # 开始文档提取 （使用了状态机，所以直接await就好了）
+            await self.process_step(ProcessingStep.EXTRACT)
             
         except Exception as e:
             error_msg = f"启动分析失败: {str(e)}"
@@ -208,37 +207,28 @@ class DocumentStructureAgent:
         try:
             # 根据步骤类型执行相应处理
             if step == ProcessingStep.EXTRACT:
-                return await self._process_extract(trace_id)
+                await self._process_extract(trace_id)
                 
             elif step == ProcessingStep.ANALYZE_H1:
-                return await self._process_analyze_h1(trace_id)
+                await self._process_analyze_h1(trace_id)
                 
             elif step == ProcessingStep.ANALYZE_H2H3:
-                return await self._process_analyze_h2h3(trace_id)
+                await self._process_analyze_h2h3(trace_id)
                 
             elif step == ProcessingStep.ADD_INTRODUCTION:
-                return await self._process_add_introduction(trace_id)
+                await self._process_add_introduction(trace_id)
                 
             elif step == ProcessingStep.USER_EDITING:
-                return await self._process_editing(trace_id, user_input)
+                await self._process_editing(trace_id, user_input)
                 
             else:
-                return {
-                    "status": "error",
-                    "message": f"未知的处理步骤: {step}",
-                    "trace_id": trace_id
-                }
+                raise ProcessingError(f"未知的处理步骤: {step}")
                 
         except Exception as e:
             error_msg = f"处理步骤失败: {str(e)}"
             logger.error(f"[{trace_id}] {error_msg}\n{traceback.format_exc()}")
             await self.state_manager._handle_error("step_processing_error", error_msg)
-            return {
-                "status": "error",
-                "message": error_msg,
-                "trace_id": trace_id,
-                "error_type": "step_processing"
-            }
+            raise ProcessingError(f"处理步骤失败: {str(e)}")
 
     # =============== 具体处理步骤实现 ===============
     async def _process_extract(self, trace_id: str) -> Dict[str, Any]:
@@ -276,9 +266,6 @@ class DocumentStructureAgent:
             # 自动触发下一步
             await asyncio.sleep(0.5)  # 短暂延迟
             await self.process_step(ProcessingStep.ANALYZE_H1)
-
-            # 返回给process_step 集中跟踪（暂时未使用起来）
-            return {"status": "success", "step": "extract"}
             
         except Exception as e:
             logger.error(f"[{trace_id}] 文档提取失败: {str(e)}")
@@ -319,9 +306,6 @@ class DocumentStructureAgent:
             # 自动触发下一步
             await asyncio.sleep(0.5)  # 短暂延迟
             await self.process_step(ProcessingStep.ANALYZE_H2H3)
-
-            # 返回给process_step 集中跟踪（暂时未使用起来）
-            return {"status": "success", "step": "analyze_h1"}
             
         except Exception as e:
             logger.error(f"[{trace_id}] H1分析失败: {str(e)}")
@@ -362,9 +346,6 @@ class DocumentStructureAgent:
             # 自动触发下一步
             await asyncio.sleep(0.5)  # 短暂延迟
             await self.process_step(ProcessingStep.ADD_INTRODUCTION)
-
-            # 返回给process_step 集中跟踪（暂时未使用起来）
-            return {"status": "success", "step": "analyze_h2h3"}
             
         except Exception as e:
             logger.error(f"[{trace_id}] H2H3分析失败: {str(e)}")
@@ -409,8 +390,7 @@ class DocumentStructureAgent:
             )
             
             logger.info(f"[{trace_id}] 引言添加成功")
-            return {"status": "success", "step": "add_introduction", "document": intro_document}
-            
+
         except Exception as e:
             logger.error(f"[{trace_id}] 引言添加失败: {str(e)}")
             raise ProcessingError(f"引言添加失败: {str(e)}")
@@ -440,12 +420,6 @@ class DocumentStructureAgent:
             )
             
             logger.info(f"[{trace_id}] 文档结构化流程完成")
-            return {
-                "status": "success",
-                "step": "complete",
-                "document": final_document,
-                "trace_id": trace_id
-            }
             
         except Exception as e:
             logger.error(f"[{trace_id}] 完成编辑失败: {str(e)}")
@@ -482,18 +456,24 @@ class DocumentStructureAgent:
         if current in ED_STATE_POOL and current != SystemInternalState.COMPLETED:
             logger.info(f"从状态 {current} 恢复，直接执行下一步")
             next_step = StateRegistry.get_state_config(current).next_step
-            return await self.process_step(next_step)
+            await self.process_step(next_step)
         
-        elif current in ING_STATE_POOL and current != SystemInternalState.EXTRACTING_DOCUMENT:
+        elif current in ING_STATE_POOL:
             # 处理中状态需要重试
-            logger.warning(f"项目 {self.project_id} 在处理状态 {current} 被中断，标记为失败")
-            previous_state = StateRegistry.get_state_config(current).previous_state
-            await self.state_manager.transition_to_state(
-                previous_state,
-                message=f"处理在 {current} 状态被中断，跳回上一个状态{previous_state}，准备重试"
-            )
-            next_step = StateRegistry.get_state_config(previous_state).next_step
-            return await self.process_step(next_step)
+            if current == SystemInternalState.EXTRACTING_DOCUMENT:
+                # EXTRACTING_DOCUMENT 是初始状态，直接重新开始
+                logger.info(f"项目 {self.project_id} 从文档提取状态恢复，重新开始提取")
+                await self.process_step(ProcessingStep.EXTRACT)
+            else:
+                # 其他ING状态被中断，跳回上一个状态重试
+                logger.warning(f"项目 {self.project_id} 在处理状态 {current} 被中断，标记为失败")
+                previous_state = StateRegistry.get_state_config(current).previous_state
+                await self.state_manager.transition_to_state(
+                    previous_state,
+                    message=f"处理在 {current} 状态被中断，跳回上一个状态{previous_state}，准备重试"
+                )
+                next_step = StateRegistry.get_state_config(previous_state).next_step
+                await self.process_step(next_step)
         
         elif current in AWAITING_STATE_POOL:
             logger.info(f"项目 {self.project_id} 当前为等待编辑状态，无需恢复")
@@ -501,21 +481,21 @@ class DocumentStructureAgent:
         
         else:  # 当前状态为Failed或其他特殊状态
             logger.warning(f"项目 {self.project_id} 当前为失败状态，跳回上一个非失败状态")
-            state_history = await self.state_manager.cache._get_agent_state_history(limit=10)
+            state_history = await self.state_manager.cache._get_agent_state_history()
             if not state_history:
                 logger.warning(f"项目 {self.project_id} 没有状态历史，从文档提取开始重试")
-                return await self.state_manager._handle_restart_from_beginning()
+                await self.state_manager._handle_restart_from_beginning()
             
             # 找到最后一个非失败状态
             last_success_state = None
-            for state_record in state_history: #由于history是按时间倒序排列，所以会找到第一个非失败的状态。 
+            for state_record in state_history.agent_states: #由于history是按时间倒序排列，所以会找到第一个非失败的状态。 
                 if state_record.current_internal_state != SystemInternalState.FAILED:
                     last_success_state = state_record.current_internal_state
                     break
             
             if not last_success_state:
                 logger.warning(f"项目 {self.project_id} 没有找到成功状态，从文档提取开始重试")
-                return await self.state_manager._handle_restart_from_beginning()
+                await self.state_manager._handle_restart_from_beginning()
             
             await self.state_manager.transition_to_state(
                 last_success_state,
@@ -526,18 +506,25 @@ class DocumentStructureAgent:
 
 # =============== 全局实例管理 (用于celery任务) ===============
 
-_agent_instances: Dict[str, DocumentStructureAgent] = {}
+_agent_instances: Dict[str, StructuringAgent] = {}
 
-async def create_or_get_agent(project_id: str) -> DocumentStructureAgent:
+async def create_or_get_agent(project_id: str) -> StructuringAgent:
     """获取或创建Agent实例"""
+
+    # 检查实例是否存在，存在直接返回，不存在则新建，并尝试恢复状态
     if project_id not in _agent_instances:
-        agent = DocumentStructureAgent(project_id, lazy_init=True)
+        # 没有实例时，构建Agent实例并初始化
+        agent = StructuringAgent(project_id, lazy_init=True)
+        # 尝试恢复状态
         await agent._try_restore_state()
+        # 保存实例
         _agent_instances[project_id] = agent
+
     return _agent_instances[project_id]
 
 async def remove_agent(project_id: str):
     """移除Agent实例"""
+
     if project_id in _agent_instances:
         #这里我们没有添加清理documents的动作，因为我们在每个步骤的保存中都执行 不必要文档的删除
         # 保留的缓存包括：agent_state, raw_document, final_document

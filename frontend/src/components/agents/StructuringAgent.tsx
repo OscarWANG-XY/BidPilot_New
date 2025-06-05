@@ -5,7 +5,7 @@ import {
   SSEEventHandler, 
   SSEEventData,
   StateStatusResponse 
-} from '../../_api/agent_api/structuring_api';
+} from '../../_api/agent_api/structuring_api_SSE';
 
 // 定义消息类型
 interface WorkflowMessage {

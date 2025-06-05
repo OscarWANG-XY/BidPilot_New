@@ -90,16 +90,16 @@ class OutlineL2L3Analyzer:
                 item['level'] += 1
         
         # 使用新标题更新文档
-        document_h2 = update_nodes_to_headings(
+        document_h2h3 = update_nodes_to_headings(
             tiptap_doc=document_h1,
             heading_list=clean_parsed_results,
         )
         
         # 调试信息
-        _, print_headings = get_headings(document_h2)
+        _, print_headings = get_headings(document_h2h3)
         logger.debug(f"L2/L3分析后的文档标题：\n{print_headings}")
         
-        return document_h2, clean_parsed_results
+        return document_h2h3
     
 
     
