@@ -8,7 +8,7 @@ import traceback
 from .state_manager import create_state_manager, AgentStateData
 from .state import (
     SystemInternalState, UserVisibleState, ProcessingStep, UserAction,
-    StateRegistry, ING_STATE_POOL, ED_STATE_POOL, AWAITING_STATE_POOL,
+    StateRegistry, ING_STATE_POOL, ED_STATE_POOL,
     StateTransitionError, InvalidActionError, ProcessingError
 )
 
@@ -135,58 +135,58 @@ class StructuringAgent:
             await self.state_manager._handle_error("start_analysis_error", error_msg)
             raise ProcessingError(error_msg)
 
-    async def handle_user_action(self, action: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """
-        处理用户操作
+    # async def handle_user_action(self, action: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    #     """
+    #     处理用户操作
         
-        Args:
-            action: 用户操作类型
-            payload: 操作数据
+    #     Args:
+    #         action: 用户操作类型
+    #         payload: 操作数据
             
-        Returns:
-            处理结果
-        """
-        trace_id = f"{self.project_id}_{action}_{datetime.now().isoformat()}"
-        logger.info(f"[{trace_id}] 处理用户操作: {action}")
+    #     Returns:
+    #         处理结果
+    #     """
+    #     trace_id = f"{self.project_id}_{action}_{datetime.now().isoformat()}"
+    #     logger.info(f"[{trace_id}] 处理用户操作: {action}")
         
-        try:
-            # 验证操作
-            try:
-                action_enum = UserAction(action)
-            except ValueError:
-                return {
-                    "status": "error",
-                    "message": f"未知的用户操作: {action}",
-                    "trace_id": trace_id
-                }
+    #     try:
+    #         # 验证操作
+    #         try:
+    #             action_enum = UserAction(action)
+    #         except ValueError:
+    #             return {
+    #                 "status": "error",
+    #                 "message": f"未知的用户操作: {action}",
+    #                 "trace_id": trace_id
+    #             }
             
-            # 使用状态管理器处理操作
-            success = await self.state_manager.handle_user_action(
-                action_enum, 
-                payload
-            )
+    #         # 使用状态管理器处理操作
+    #         success = await self.state_manager.handle_user_action(
+    #             action_enum, 
+    #             payload
+    #         )
             
-            if success:
-                return {
-                    "status": "success",
-                    "message": "操作执行成功",
-                    "trace_id": trace_id
-                }
-            else:
-                return {
-                    "status": "error", 
-                    "message": "操作执行失败",
-                    "trace_id": trace_id
-                }
+    #         if success:
+    #             return {
+    #                 "status": "success",
+    #                 "message": "操作执行成功",
+    #                 "trace_id": trace_id
+    #             }
+    #         else:
+    #             return {
+    #                 "status": "error", 
+    #                 "message": "操作执行失败",
+    #                 "trace_id": trace_id
+    #             }
                 
-        except Exception as e:
-            error_msg = f"处理用户操作失败: {str(e)}"
-            logger.error(f"[{trace_id}] {error_msg}")
-            return {
-                "status": "error",
-                "message": error_msg,
-                "trace_id": trace_id
-            }
+    #     except Exception as e:
+    #         error_msg = f"处理用户操作失败: {str(e)}"
+    #         logger.error(f"[{trace_id}] {error_msg}")
+    #         return {
+    #             "status": "error",
+    #             "message": error_msg,
+    #             "trace_id": trace_id
+    #         }
 
 
    
@@ -218,8 +218,8 @@ class StructuringAgent:
             elif step == ProcessingStep.ADD_INTRODUCTION:
                 await self._process_add_introduction(trace_id)
                 
-            elif step == ProcessingStep.USER_EDITING:
-                await self._process_editing(trace_id, user_input)
+            elif step == ProcessingStep.REVIEW_STRUCTURE:
+                await self._process_review_structure(trace_id, user_input)
                 
             else:
                 raise ProcessingError(f"未知的处理步骤: {step}")
@@ -258,7 +258,7 @@ class StructuringAgent:
                 SystemInternalState.DOCUMENT_EXTRACTED,
                 progress=20,
                 message="文档提取完成",
-                result_data=raw_document
+                document_data=raw_document
             )
             
             logger.info(f"[{trace_id}] 文档提取成功")
@@ -298,7 +298,7 @@ class StructuringAgent:
                 SystemInternalState.OUTLINE_H1_ANALYZED,
                 progress=50,
                 message="主要章节分析完成",
-                result_data=h1_document
+                document_data=h1_document
             )
             
             logger.info(f"[{trace_id}] H1分析成功")
@@ -338,7 +338,7 @@ class StructuringAgent:
                 SystemInternalState.OUTLINE_H2H3_ANALYZED,
                 progress=75,
                 message="子章节分析完成",
-                result_data=h2h3_document
+                document_data=h2h3_document
             )
             
             logger.info(f"[{trace_id}] H2H3分析成功")
@@ -378,46 +378,60 @@ class StructuringAgent:
                 SystemInternalState.INTRODUCTION_ADDED,
                 progress=95,
                 message="引言添加完成",
-                result_data=intro_document
-            )
-            
-            # 自动转换到等待编辑状态
-            await asyncio.sleep(1)  # 短暂延迟
-            await self.state_manager.transition_to_state(
-                SystemInternalState.AWAITING_EDITING,
-                progress=100,
-                message="文档已准备就绪，请在编辑器中查看和调整"
-            )
+                document_data=intro_document
+            )            
             
             logger.info(f"[{trace_id}] 引言添加成功")
+
+            # 自动触发下一步
+            await asyncio.sleep(0.5)  # 短暂延迟
+            await self.process_step(ProcessingStep.REVIEW_STRUCTURE)
 
         except Exception as e:
             logger.error(f"[{trace_id}] 引言添加失败: {str(e)}")
             raise ProcessingError(f"引言添加失败: {str(e)}")
     
-    async def _process_editing(self, trace_id: str, user_input: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    async def _process_review_structure(self, trace_id: str, user_input: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """处理完成编辑步骤"""
         try:
-            # 获取用户编辑后的文档
-            final_document = None
-            if user_input and 'document' in user_input:
-                final_document = user_input['document']
-                logger.info(f"[{trace_id}] 收到用户编辑后的文档")
-            else:
-                # 如果没有用户编辑，使用引言文档作为最终文档
-                final_document = await self.state_manager.cache.get_document('intro_document')
-                logger.info(f"[{trace_id}] 使用引言文档作为最终文档")
-            
-            if not final_document:
-                raise ProcessingError("没有可用的最终文档")
+            # 用户核查定稿前，先复制引言文档作为最终文档
+            intro_document = await self.state_manager.cache.get_document('intro_document')
+            if not intro_document:
+                raise ProcessingError("没有可用的引言文档")
+        
+
+            # 更新状态
+            await self.state_manager.transition_to_state(
+                SystemInternalState.REVIEWING_STRUCTURE,
+                progress=100,
+                message="文档已准备就绪，请在编辑器中查看和调整"
+            )
+ 
+            # ###### 待 完成 大模型分析
+            final_document = intro_document
+            review_suggestion = {
+                "type": "doc",
+                "content": [
+                    {
+                        "type": "paragraph",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "建议的文档 占位， 待大模型使用大模型实际分析的结果"
+                            }
+                        ]
+                    },
+                ],
+            }
             
             # 更新状态为完成
             await self.state_manager.transition_to_state(
-                SystemInternalState.COMPLETED,
+                SystemInternalState.STRUCTURE_REVIEWED,
                 progress=100,
-                message="文档结构化完成！",
-                result_data=final_document
-            )
+                message="文档结构化分析完成！",
+                document_data=final_document,
+                suggestions_data=review_suggestion,
+            )      
             
             logger.info(f"[{trace_id}] 文档结构化流程完成")
             
@@ -453,7 +467,7 @@ class StructuringAgent:
         
         # 根据完成状态决定下一步
         print(f"current 值为: {current}")
-        if current in ED_STATE_POOL and current != SystemInternalState.COMPLETED:
+        if current in ED_STATE_POOL and current != SystemInternalState.STRUCTURE_REVIEWED:
             logger.info(f"从状态 {current} 恢复，直接执行下一步")
             next_step = StateRegistry.get_state_config(current).next_step
             await self.process_step(next_step)
@@ -475,9 +489,9 @@ class StructuringAgent:
                 next_step = StateRegistry.get_state_config(previous_state).next_step
                 await self.process_step(next_step)
         
-        elif current in AWAITING_STATE_POOL:
-            logger.info(f"项目 {self.project_id} 当前为等待编辑状态，无需恢复")
-            return
+        # elif current in AWAITING_STATE_POOL:
+        #     logger.info(f"项目 {self.project_id} 当前为等待编辑状态，无需恢复")
+        #     return
         
         else:  # 当前状态为Failed或其他特殊状态
             logger.warning(f"项目 {self.project_id} 当前为失败状态，跳回上一个非失败状态")

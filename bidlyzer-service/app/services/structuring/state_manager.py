@@ -26,25 +26,25 @@ class StructuringAgentStateManager:
     def __init__(self, project_id: str):
         self.project_id = project_id
         self.sse_channel_prefix = "sse:structuring:"
-        self.cache_keys = self._build_cache_keys()
+        # self.cache_keys = self._build_cache_keys()
         self.cache_expire_time = 9000
         self.max_message_history = 100  # 最大消息历史记录数
         self.storage = Storage(project_id)
         self.cache = Cache(project_id)
     
-    def _build_cache_keys(self) -> Dict[str, str]:
-        """缓存键"""
-        return {
-            'agent_state': f"structuring:agent:state:{self.project_id}",
-            'agent_state_history': f"structuring:agent:state_history:{self.project_id}",
-            'raw_document': f"structuring:doc:{self.project_id}:original",
-            'h1_document': f"structuring:doc:{self.project_id}:h1",
-            'h2h3_document': f"structuring:doc:{self.project_id}:h2h3", 
-            'intro_document': f"structuring:doc:{self.project_id}:intro",
-            'final_document': f"structuring:doc:{self.project_id}:final",
-            'edited_document': f"structuring:doc:{self.project_id}:edited",
-            'sse_message_log': f"structuring:sse_message:{self.project_id}"
-        }
+    # def _build_cache_keys(self) -> Dict[str, str]:
+    #     """缓存键"""
+    #     return {
+    #         'agent_state': f"structuring:agent:state:{self.project_id}",
+    #         'agent_state_history': f"structuring:agent:state_history:{self.project_id}",
+    #         'sse_message_log': f"structuring:sse_message:{self.project_id}",
+    #         'raw_document': f"structuring:doc:{self.project_id}:original",
+    #         'h1_document': f"structuring:doc:{self.project_id}:h1",
+    #         'h2h3_document': f"structuring:doc:{self.project_id}:h2h3", 
+    #         'intro_document': f"structuring:doc:{self.project_id}:intro",
+    #         'final_document': f"structuring:doc:{self.project_id}:final",
+    #         'review_suggestions': f"structuring:doc:{self.project_id}:suggestions",
+    #     }
     
     # 状态初始化 + 状态转换 
     async def initialize_agent(self) -> AgentStateData:
@@ -86,19 +86,20 @@ class StructuringAgentStateManager:
         target_internal_state: SystemInternalState,
         progress: Optional[int] = None,
         message: Optional[str] = None,
-        result_data: Optional[Dict[str, Any]] = None
+        document_data: Optional[Dict[str, Any]] = None,
+        suggestions_data: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """状态转换"""
         try:
             agent_state = await self.cache.get_agent_state()
             if not agent_state:
-                logger.error(f"Agent state not found for project {self.project_id}")
+                logger.error(f"未找到项目{self.project_id}的agent状态")
                 return False
             
             # 验证状态转换是否合法
             if not self._is_valid_transition(agent_state.current_internal_state, target_internal_state):
-                logger.error(f"Invalid state transition from {agent_state.current_internal_state} to {target_internal_state}")
-                raise StateTransitionError(f"Invalid transition from {agent_state.current_internal_state} to {target_internal_state}")
+                logger.error(f"状态转换不合法: {agent_state.current_internal_state} -> {target_internal_state}")
+                raise StateTransitionError(f"状态转换不合法: {agent_state.current_internal_state} -> {target_internal_state}")
             
             # 更新状态
             agent_state.current_internal_state = target_internal_state
@@ -112,10 +113,14 @@ class StructuringAgentStateManager:
             print(f"更新进度完成: {agent_state.overall_progress}")
 
             # 存储结果数据
-            if result_data:
-                await self.cache.store_step_result(agent_state, result_data)
-            
-            print(f"存储结果数据完成: {result_data}")
+            if document_data:
+                await self.cache.store_step_result(agent_state, document_data, "document")
+            print(f"存储结果数据完成: {type(document_data)}")
+
+
+            if suggestions_data:
+                await self.cache.store_step_result(agent_state, suggestions_data, "suggestions")
+            print(f"建议文档存储完成: {type(suggestions_data)}")
 
 
             # 清除错误信息（如果成功转换）
@@ -239,25 +244,6 @@ class StructuringAgentStateManager:
             return False
         
         return current_state in action_config.get("valid_states", [])
-
-    async def _check_auto_transition(self, agent_state: AgentStateData):
-        """检查是否需要自动转换状态"""
-        current_config = StateRegistry.get_state_config(agent_state.current_internal_state)
-        
-        # 禁用自动转换，避免无限循环和状态混乱
-        # 所有状态转换应该由业务逻辑显式控制
-        logger.debug(f"Auto-transition disabled for state: {agent_state.current_internal_state}")
-        return
-        
-        # 原有的自动转换逻辑已被禁用
-        # if current_config and current_config.auto_transition and current_config.next_state:
-        #     # 延迟一小段时间后自动转换（模拟处理时间）
-        #     await asyncio.sleep(1)
-        #     await self.transition_to_state(
-        #         agent_state.project_id, 
-        #         current_config.next_state,
-        #         progress=agent_state.overall_progress
-        #     )
     
 
     # 错误处理
@@ -296,81 +282,81 @@ class StructuringAgentStateManager:
             logger.error(f"Error handling error: {str(e)}")
     
 
-    # =============== 用户操作处理器 ===============
-    async def handle_user_action(
-        self, 
-        action: UserAction, 
-        payload: Optional[Dict[str, Any]] = None
-    ) -> bool:
-        """处理用户操作"""
-        try:
-            agent_state = await self.cache.get_agent_state()
-            if not agent_state:
-                logger.error(f"Agent state not found for project {self.project_id}")
-                return False
+    # # =============== 用户操作处理器 ===============
+    # async def handle_user_action(
+    #     self, 
+    #     action: UserAction, 
+    #     payload: Optional[Dict[str, Any]] = None
+    # ) -> bool:
+    #     """处理用户操作"""
+    #     try:
+    #         agent_state = await self.cache.get_agent_state()
+    #         if not agent_state:
+    #             logger.error(f"Agent state not found for project {self.project_id}")
+    #             return False
             
-            # 验证操作是否有效
-            if not self._is_valid_action(agent_state.current_internal_state, action):
-                logger.error(f"Invalid action {action} in state {agent_state.current_internal_state}")
-                raise InvalidActionError(f"Action {action} not allowed in state {agent_state.current_internal_state}")
+    #         # 验证操作是否有效
+    #         if not self._is_valid_action(agent_state.current_internal_state, action):
+    #             logger.error(f"Invalid action {action} in state {agent_state.current_internal_state}")
+    #             raise InvalidActionError(f"Action {action} not allowed in state {agent_state.current_internal_state}")
             
-            # 根据操作类型处理
-            success = False
+    #         # 根据操作类型处理
+    #         success = False
             
-            if action == UserAction.COMPLETE_EDITING:
-                success = await self._handle_complete_editing(agent_state, payload)
+    #         if action == UserAction.COMPLETE_EDITING:
+    #             success = await self._handle_complete_editing(agent_state, payload)
                 
-            elif action == UserAction.RETRY:
-                success = await self._handle_retry(agent_state)
+    #         elif action == UserAction.RETRY:
+    #             success = await self._handle_retry(agent_state)
                 
-            elif action == UserAction.CANCEL:
-                success = await self._handle_cancel(agent_state)
+    #         elif action == UserAction.CANCEL:
+    #             success = await self._handle_cancel(agent_state)
             
-            return success
+    #         return success
             
-        except Exception as e:
-            logger.error(f"Error handling user action {action}: {str(e)}")
-            await self._handle_error("user_action_error", str(e))
-            return False
+    #     except Exception as e:
+    #         logger.error(f"Error handling user action {action}: {str(e)}")
+    #         await self._handle_error("user_action_error", str(e))
+    #         return False
     
-    async def _handle_complete_editing(self, agent_state: AgentStateData, payload: Optional[Dict[str, Any]]) -> bool:
-        """处理完成编辑操作"""
-        if not payload or "document" not in payload:
-            logger.error("Missing document data in complete editing payload")
-            return False
+    # async def _handle_complete_editing(self, agent_state: AgentStateData, payload: Optional[Dict[str, Any]]) -> bool:
+    #     """处理完成编辑操作"""
+    #     if not payload or "document" not in payload:
+    #         logger.error("Missing document data in complete editing payload")
+    #         return False
         
-        return await self.transition_to_state(
-            SystemInternalState.COMPLETED,
-            progress=100,
-            message="文档编辑完成",
-            result_data=payload["document"]
-        )
+    #     return await self.transition_to_state(
+    #         SystemInternalState.COMPLETED,
+    #         progress=100,
+    #         message="文档编辑完成",
+    #         result_data=payload["document"]
+    #     )
     
-    async def _handle_restart_from_beginning(self, agent_state: AgentStateData) -> bool:
-        """处理重试操作"""
-        """从文档提取步骤开始重试（回退方案）"""
-        try:
-            success = await self.transition_to_state(
-                SystemInternalState.EXTRACTING_DOCUMENT,
-                progress=0,
-                message="重试操作，从文档提取开始重新分析"
-            )
+    # async def _handle_restart_from_beginning(self, agent_state: AgentStateData) -> bool:
+    #     """处理重试操作"""
+    #     """从文档提取步骤开始重试（回退方案）"""
+    #     try:
+    #         success = await self.transition_to_state(
+    #             SystemInternalState.EXTRACTING_DOCUMENT,
+    #             progress=0,
+    #             message="重试操作，从文档提取开始重新分析"
+    #         )
             
-            if success:
-                from .agent import create_or_get_agent
-                await create_or_get_agent(self.project_id)
+    #         if success:
+    #             from .agent import create_or_get_agent
+    #             await create_or_get_agent(self.project_id)
 
-            return success
-        except Exception as e:
-            logger.error(f"从提取步骤重试失败: {str(e)}")
-            return False
+    #         return success
+    #     except Exception as e:
+    #         logger.error(f"从提取步骤重试失败: {str(e)}")
+    #         return False
     
-    async def _handle_cancel(self, agent_state: AgentStateData) -> bool:
-        """处理取消操作"""
-        return await self.transition_to_state(
-            SystemInternalState.FAILED,
-            message="操作已取消"
-        )
+    # async def _handle_cancel(self, agent_state: AgentStateData) -> bool:
+    #     """处理取消操作"""
+    #     return await self.transition_to_state(
+    #         SystemInternalState.FAILED,
+    #         message="操作已取消"
+    #     )
 
 
 

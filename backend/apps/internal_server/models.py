@@ -59,6 +59,12 @@ class StructuringAgentStorage(models.Model):
         blank=True,
         verbose_name='最终文档'
     )
+    review_suggestions = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='招标文档结构修正建议文档'
+    )
+
     chapters_md = models.JSONField(
         null=True,
         blank=True,

@@ -24,8 +24,8 @@ class SystemInternalState(str, Enum):
     OUTLINE_H2H3_ANALYZED = "outline_h2h3_analyzed"
     ADDING_INTRODUCTION = "adding_introduction"
     INTRODUCTION_ADDED = "introduction_added"
-    AWAITING_EDITING = "awaiting_editing"
-    COMPLETED = "completed"
+    REVIEWING_STRUCTURE = "reviewing_structure"
+    STRUCTURE_REVIEWED = "structure_reviewed"
     FAILED = "failed"
 
 class StateType(str, Enum):
@@ -38,25 +38,25 @@ ING_STATE_POOL = [
     SystemInternalState.ANALYZING_OUTLINE_H1,
     SystemInternalState.ANALYZING_OUTLINE_H2H3,
     SystemInternalState.ADDING_INTRODUCTION,
+    SystemInternalState.REVIEWING_STRUCTURE,
 ]
 
-AWAITING_STATE_POOL = [
-    SystemInternalState.AWAITING_EDITING,
-]
+# AWAITING_STATE_POOL = [
+    
+# ]
 
 ED_STATE_POOL = [
     SystemInternalState.DOCUMENT_EXTRACTED,
     SystemInternalState.OUTLINE_H1_ANALYZED,
     SystemInternalState.OUTLINE_H2H3_ANALYZED,
     SystemInternalState.INTRODUCTION_ADDED,
-    SystemInternalState.COMPLETED,
+    SystemInternalState.STRUCTURE_REVIEWED,
 ]
 
 class UserVisibleState(str, Enum):
     """用户可见的简化状态 - 4个主要阶段"""
-    PROCESSING = "processing"      # 智能分析处理阶段（从文档提取开始）
-    EDITING = "editing"           # 用户编辑阶段
-    COMPLETED = "completed"       # 完成状态
+    PROCESSING = "processing"      # 智能结构分析处理阶段（从文档提取开始）
+    COMPLETED = "completed"       # 智能结构分析完成状态
     FAILED = "failed"            # 失败状态
 
 INTERNAL_TO_USER_STATE_MAP = {
@@ -68,8 +68,8 @@ INTERNAL_TO_USER_STATE_MAP = {
     SystemInternalState.OUTLINE_H2H3_ANALYZED: UserVisibleState.PROCESSING,
     SystemInternalState.ADDING_INTRODUCTION: UserVisibleState.PROCESSING,
     SystemInternalState.INTRODUCTION_ADDED: UserVisibleState.PROCESSING,
-    SystemInternalState.AWAITING_EDITING: UserVisibleState.EDITING,
-    SystemInternalState.COMPLETED: UserVisibleState.COMPLETED,
+    SystemInternalState.REVIEWING_STRUCTURE: UserVisibleState.PROCESSING,
+    SystemInternalState.STRUCTURE_REVIEWED: UserVisibleState.COMPLETED,
     SystemInternalState.FAILED: UserVisibleState.FAILED,
 }
 
@@ -80,7 +80,7 @@ class ProcessingStep(str, Enum):
     ANALYZE_H1 = "analyze_h1"
     ANALYZE_H2H3 = "analyze_h2h3"
     ADD_INTRODUCTION = "add_introduction"
-    USER_EDITING = "user_editing"
+    REVIEW_STRUCTURE = "review_structure"
 
 # required 用户操作 
 class UserAction(str, Enum):
@@ -124,20 +124,21 @@ class StepConfigData(BaseModel):
     target_state: SystemInternalState = Field(description="目标状态")
     user_triggered: bool = Field(description="是否需要用户触发")
     doc_name: str = Field(description="文档名")
+    suggestions_doc_name: Optional[str] = Field(default=None, description="建议文档名")
     
-class ActionConfigData(BaseModel):
-    """操作配置数据"""
-    description: str = Field(description="操作描述")
-    valid_states: List[SystemInternalState] = Field(description="有效状态")
-    target_step: Optional[ProcessingStep] = Field(default=None, description="目标步骤")
-    requires_payload: bool = Field(description="是否需要输入")
+# class ActionConfigData(BaseModel):
+#     """操作配置数据"""
+#     description: str = Field(description="操作描述")
+#     valid_states: List[SystemInternalState] = Field(description="有效状态")
+#     target_step: Optional[ProcessingStep] = Field(default=None, description="目标步骤")
+#     requires_payload: bool = Field(description="是否需要输入")
 
 class StateRegistry:
     """状态注册器 - 自动化配置管理"""
     
     _state_configs: Dict[SystemInternalState, StateConfigData] = {}
     _step_configs: Dict[ProcessingStep, StepConfigData] = {}
-    _action_configs: Dict[UserAction, ActionConfigData] = {}
+    # _action_configs: Dict[UserAction, ActionConfigData] = {}
     
     @classmethod
     def register_state(cls, state: SystemInternalState):
@@ -159,13 +160,13 @@ class StateRegistry:
             return config_func
         return decorator
     
-    @classmethod
-    def register_action(cls, action: UserAction):
-        """操作注册装饰器"""
-        def decorator(config_func: Callable[[], ActionConfigData]):
-            cls._action_configs[action] = config_func()
-            return config_func
-        return decorator
+    # @classmethod
+    # def register_action(cls, action: UserAction):
+    #     """操作注册装饰器"""
+    #     def decorator(config_func: Callable[[], ActionConfigData]):
+    #         cls._action_configs[action] = config_func()
+    #         return config_func
+    #     return decorator
     
     @classmethod
     def get_state_config(cls, state: SystemInternalState) -> StateConfigData:
@@ -177,10 +178,10 @@ class StateRegistry:
         """获取步骤配置"""
         return cls._step_configs.get(step)
     
-    @classmethod
-    def get_action_config(cls, action: UserAction) -> ActionConfigData:
-        """获取操作配置"""
-        return cls._action_configs.get(action)
+    # @classmethod
+    # def get_action_config(cls, action: UserAction) -> ActionConfigData:
+    #     """获取操作配置"""
+    #     return cls._action_configs.get(action)
 
 
 # ======================== Part 3: 注册state_config, step_config, action_config 的值 ========================
@@ -281,33 +282,33 @@ def _introduction_added_config():
         description="文档结构化完成，请进行编辑",
         state_type=StateType.ED,
         previous_state=SystemInternalState.ADDING_INTRODUCTION,
-        next_state=SystemInternalState.AWAITING_EDITING,
+        next_state=SystemInternalState.REVIEWING_STRUCTURE,
         state_to_step=ProcessingStep.ADD_INTRODUCTION,
-        next_step=ProcessingStep.USER_EDITING,
+        next_step=ProcessingStep.REVIEW_STRUCTURE,
     )
 
-@StateRegistry.register_state(SystemInternalState.AWAITING_EDITING)
-def _awaiting_editing_config():
+@StateRegistry.register_state(SystemInternalState.REVIEWING_STRUCTURE)
+def _reviewing_structure_config():
     return StateConfigData(
         state_order = 9,
-        display_name="等待编辑",
-        description="文档已准备就绪，请在编辑器中查看和调整",
+        display_name="检查文档结构",
+        description="检查文档结构是否合理",
         state_type=StateType.ING,
         previous_state=SystemInternalState.INTRODUCTION_ADDED,
-        next_state=SystemInternalState.COMPLETED,
-        state_to_step=ProcessingStep.USER_EDITING,
+        next_state=SystemInternalState.STRUCTURE_REVIEWED,
+        state_to_step=ProcessingStep.REVIEW_STRUCTURE,
     )
 
-@StateRegistry.register_state(SystemInternalState.COMPLETED)
-def _completed_config():
+@StateRegistry.register_state(SystemInternalState.STRUCTURE_REVIEWED)
+def _structure_reviewed_config():
     return StateConfigData(
         state_order = 10,
-        display_name="处理完成",
-        description="文档结构化和编辑已完成",
+        display_name="结构检查完成",
+        description="结构检查完成，请进行人工的最终定稿",
         state_type=StateType.ED,
-        previous_state=SystemInternalState.AWAITING_EDITING,
+        previous_state=SystemInternalState.REVIEWING_STRUCTURE,
         next_state=None,
-        state_to_step=ProcessingStep.USER_EDITING,
+        state_to_step=ProcessingStep.REVIEW_STRUCTURE,
     )
 
 @StateRegistry.register_state(SystemInternalState.FAILED)
@@ -362,43 +363,44 @@ def _add_introduction_step_config():
         doc_name='intro_document'
     )
 
-@StateRegistry.register_step(ProcessingStep.USER_EDITING)
-def _user_editing_step_config():
+@StateRegistry.register_step(ProcessingStep.REVIEW_STRUCTURE)
+def _review_structure_step_config():
     return StepConfigData(
-        description="完成编辑",
-        required_states=[SystemInternalState.AWAITING_EDITING],
-        target_state=SystemInternalState.COMPLETED,
-        user_triggered=True,
-        doc_name='final_document'
+        description="检查文档结构",
+        required_states=[SystemInternalState.INTRODUCTION_ADDED],
+        target_state=SystemInternalState.REVIEWING_STRUCTURE,
+        user_triggered=False,
+        doc_name="final_document",
+        suggestions_doc_name="review_suggestions",
     )
 
 
-# ========================= 操作配置 =========================
-# 每个用户操作定义了 需要处于什么状态， 准备执行什么步骤， 用户操作是否需要输入（payload） 
-@StateRegistry.register_action(UserAction.COMPLETE_EDITING)
-def _complete_editing_action_config():
-    return ActionConfigData(
-        description="完成编辑",
-        valid_states=[SystemInternalState.AWAITING_EDITING],
-        target_step=ProcessingStep.USER_EDITING,
-        requires_payload=True
-    )
+# # ========================= 操作配置 =========================
+# # 每个用户操作定义了 需要处于什么状态， 准备执行什么步骤， 用户操作是否需要输入（payload） 
+# @StateRegistry.register_action(UserAction.COMPLETE_EDITING)
+# def _complete_editing_action_config():
+#     return ActionConfigData(
+#         description="完成编辑",
+#         valid_states=[SystemInternalState.AWAITING_EDITING],
+#         target_step=ProcessingStep.USER_EDITING,
+#         requires_payload=True
+#     )
 
-@StateRegistry.register_action(UserAction.RETRY)
-def _retry_action_config():
-    return ActionConfigData(
-        description="重试操作",
-        valid_states=[SystemInternalState.FAILED],
-        requires_payload=False
-    )
+# @StateRegistry.register_action(UserAction.RETRY)
+# def _retry_action_config():
+#     return ActionConfigData(
+#         description="重试操作",
+#         valid_states=[SystemInternalState.FAILED],
+#         requires_payload=False
+#     )
 
-@StateRegistry.register_action(UserAction.CANCEL)
-def _cancel_action_config():
-    return ActionConfigData(
-        description="取消操作",
-        valid_states=[state for state in SystemInternalState if state not in [SystemInternalState.COMPLETED, SystemInternalState.FAILED]],
-        requires_payload=False
-    )
+# @StateRegistry.register_action(UserAction.CANCEL)
+# def _cancel_action_config():
+#     return ActionConfigData(
+#         description="取消操作",
+#         valid_states=[state for state in SystemInternalState if state not in [SystemInternalState.COMPLETED, SystemInternalState.FAILED]],
+#         requires_payload=False
+#     )
 
 
 # ========================= 异常定义 =========================

@@ -31,13 +31,13 @@ class Cache:
         """获取状态缓存键"""
         return {
             'agent_state_history': f"{self.KEY_PREFIX}{self.project_id}:agent_state_history",
+            'sse_message_log': f"{self.KEY_PREFIX}{self.project_id}:sse_message_log",
             'raw_document': f"{self.KEY_PREFIX}{self.project_id}:raw_document",
             'h1_document': f"{self.KEY_PREFIX}{self.project_id}:h1_document",
             'h2h3_document': f"{self.KEY_PREFIX}{self.project_id}:h2h3_document", 
             'intro_document': f"{self.KEY_PREFIX}{self.project_id}:intro_document",
             'final_document': f"{self.KEY_PREFIX}{self.project_id}:final_document",
-            'sse_message_log': f"{self.KEY_PREFIX}{self.project_id}:sse_message_log",
-            'sse_channel': f"{self.KEY_PREFIX}{self.project_id}:sse_channel",
+            'review_suggestions': f"{self.KEY_PREFIX}{self.project_id}:review_suggestions",
         }
     
     def _generate_message_id(self) -> str:
@@ -239,14 +239,18 @@ class Cache:
 
 
 
-    async def store_step_result(self, agent_state: AgentStateData, result_data: Dict[str, Any]):
+    async def store_step_result(self, agent_state: AgentStateData, result_data: Dict[str, Any], type: str):
         """存储步骤结果数据"""
         if agent_state.current_internal_state in ED_STATE_POOL:
-
             state_config = StateRegistry.get_state_config(agent_state.current_internal_state)
             step = state_config.state_to_step
             step_config = StateRegistry.get_step_config(step)
-            doc_name = step_config.doc_name # 获取步骤结果的缓存键
+            if type == "document":
+                doc_name = step_config.doc_name # 获取步骤结果的缓存键
+            elif type == "suggestions":
+                doc_name = step_config.suggestions_doc_name # 获取步骤结果的缓存键
+            else:
+                raise ValueError(f"无效的文档类型: {type}")
             await self._save_document(doc_name=doc_name, content=result_data) # 存储到Redis
 
         else:

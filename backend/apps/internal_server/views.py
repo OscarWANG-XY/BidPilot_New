@@ -131,6 +131,7 @@ class ProjectInternalViewSet(viewsets.GenericViewSet):
                            'h2h3_document', 
                            'intro_document', 
                            'final_document',
+                           'review_suggestions',
                            # planning 阶段新增的文档
                            'chapters_md'
                            ]
@@ -152,6 +153,7 @@ class ProjectInternalViewSet(viewsets.GenericViewSet):
             'h2h3_document': 'h2h3_document',
             'intro_document': 'intro_document',
             'final_document': 'final_document',
+            'review_suggestions':"review_suggestions",
             # planning 阶段新增的文档
             'chapters_md': 'chapters_md'
         }
