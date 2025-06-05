@@ -168,7 +168,7 @@ class Cache:
                 message_id=self._generate_message_id(),
                 project_id=self.project_id,
                 event_type=event_type,
-                event_data=event_data,
+                data=event_data["data"],
             )
             
             # 获取现有消息历史, 数据格式为SSEMessageHistory

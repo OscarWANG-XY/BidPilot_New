@@ -97,7 +97,7 @@ class StateUpdateEvent(SSEMessage):
                 "user_state": user_state.value,
                 "progress": progress,
                 "message": message,
-                "config": StateRegistry.get_state_config(internal_state).model_dump() if StateRegistry.get_state_config(internal_state) else {},
+                # "config": StateRegistry.get_state_config(internal_state).model_dump() if StateRegistry.get_state_config(internal_state) else {},
                 **kwargs
             }
         )
@@ -157,7 +157,7 @@ class SSEMessageRecord(BaseModel):
     message_id: str = Field(description="消息唯一标识")
     project_id: str = Field(description="项目ID")
     event_type: str = Field(description="事件类型: state_update, processing_progress, error")
-    event_data: Dict[str, Any] = Field(description="事件数据，支持多种事件类型")
+    data: Dict[str, Any] = Field(description="事件数据，支持多种事件类型")
 
     timestamp: datetime = Field(default_factory=datetime.now, description="消息时间戳")
 
