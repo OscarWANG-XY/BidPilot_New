@@ -121,7 +121,7 @@ class Cache:
     async def get_agent_state(self) -> Optional[AgentStateData]:
         """获取当前Agent状态数据（从历史记录的最新值获取）"""
         try:
-            sorted_states = await self._sorted_agent_state_history()
+            sorted_states = await self._get_sorted_agent_states()
             latest_state = sorted_states[0] if sorted_states else None
             if latest_state:
                 logger.debug(f"成功获取项目 {self.project_id} 的最新状态")
@@ -134,7 +134,7 @@ class Cache:
             logger.error(f"获取当前状态失败: {str(e)}")
             return None
 
-    async def _sorted_agent_state_history(self, limit: Optional[int] = None) -> List[AgentStateData]:
+    async def _get_sorted_agent_states(self, limit: Optional[int] = None) -> List[AgentStateData]:
         """获取Agent状态历史记录（公共接口）"""
         try:
             state_history = await self._get_agent_state_history()

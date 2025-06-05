@@ -96,6 +96,7 @@ class UserAction(str, Enum):
 class StateConfigData(BaseModel):
     """状态元数据 - 统一配置"""
     # 用户体验相关
+    state_order: int = Field(description="状态顺序")
     display_name: str = Field(description="显示名称")
     description: str = Field(description="状态描述")
     state_type: Optional[StateType] = Field(default=None, description="状态类型")
@@ -188,6 +189,7 @@ class StateRegistry:
 @StateRegistry.register_state(SystemInternalState.EXTRACTING_DOCUMENT)
 def _extracting_document_config():
     return StateConfigData(
+        state_order = 1,
         display_name="提取文档",
         description="正在提取文档内容...",
         state_type=StateType.ING,
@@ -199,6 +201,7 @@ def _extracting_document_config():
 @StateRegistry.register_state(SystemInternalState.DOCUMENT_EXTRACTED)
 def _document_extracted_config():
     return StateConfigData(
+        state_order = 2,
         display_name="文档提取完成",
         description="文档提取完成，开始智能分析",
         state_type=StateType.ED,
@@ -211,6 +214,7 @@ def _document_extracted_config():
 @StateRegistry.register_state(SystemInternalState.ANALYZING_OUTLINE_H1)
 def _analyzing_h1_config():
     return StateConfigData(
+        state_order = 3,
         display_name="分析主要章节",
         description="正在分析文档主要章节结构...",
         state_type=StateType.ING,
@@ -222,6 +226,7 @@ def _analyzing_h1_config():
 @StateRegistry.register_state(SystemInternalState.OUTLINE_H1_ANALYZED)
 def _h1_analyzed_config():
     return StateConfigData(
+        state_order = 4,
         display_name="主要章节分析完成",
         description="主要章节分析完成，开始细化子章节",
         state_type=StateType.ED,
@@ -234,6 +239,7 @@ def _h1_analyzed_config():
 @StateRegistry.register_state(SystemInternalState.ANALYZING_OUTLINE_H2H3)
 def _analyzing_h2h3_config():
     return StateConfigData(
+        state_order = 5,
         display_name="分析子章节",
         description="正在分析文档子章节结构...",
         state_type=StateType.ING,
@@ -245,6 +251,7 @@ def _analyzing_h2h3_config():
 @StateRegistry.register_state(SystemInternalState.OUTLINE_H2H3_ANALYZED)
 def _h2h3_analyzed_config():
     return StateConfigData(
+        state_order = 6,
         display_name="子章节分析完成",
         description="子章节分析完成，开始添加引言",
         state_type=StateType.ED,
@@ -257,6 +264,7 @@ def _h2h3_analyzed_config():
 @StateRegistry.register_state(SystemInternalState.ADDING_INTRODUCTION)
 def _adding_introduction_config():
     return StateConfigData(
+        state_order = 7,
         display_name="添加引言",
         description="正在为文档添加引言部分...",
         state_type=StateType.ING,
@@ -268,6 +276,7 @@ def _adding_introduction_config():
 @StateRegistry.register_state(SystemInternalState.INTRODUCTION_ADDED)
 def _introduction_added_config():
     return StateConfigData(
+        state_order = 8,
         display_name="引言添加完成",
         description="文档结构化完成，请进行编辑",
         state_type=StateType.ED,
@@ -280,6 +289,7 @@ def _introduction_added_config():
 @StateRegistry.register_state(SystemInternalState.AWAITING_EDITING)
 def _awaiting_editing_config():
     return StateConfigData(
+        state_order = 9,
         display_name="等待编辑",
         description="文档已准备就绪，请在编辑器中查看和调整",
         state_type=StateType.ING,
@@ -291,6 +301,7 @@ def _awaiting_editing_config():
 @StateRegistry.register_state(SystemInternalState.COMPLETED)
 def _completed_config():
     return StateConfigData(
+        state_order = 10,
         display_name="处理完成",
         description="文档结构化和编辑已完成",
         state_type=StateType.ED,
@@ -302,6 +313,7 @@ def _completed_config():
 @StateRegistry.register_state(SystemInternalState.FAILED)
 def _failed_config():
     return StateConfigData(
+        state_order = -1,
         display_name="处理失败",
         description="处理过程中出现错误",
         state_type=StateType.FAILED,

@@ -481,16 +481,16 @@ class StructuringAgent:
         
         else:  # 当前状态为Failed或其他特殊状态
             logger.warning(f"项目 {self.project_id} 当前为失败状态，跳回上一个非失败状态")
-            state_history = await self.state_manager.cache._get_agent_state_history()
-            if not state_history:
+            sorted_agent_states = await self.state_manager.cache._get_sorted_agent_states()
+            if not sorted_agent_states:
                 logger.warning(f"项目 {self.project_id} 没有状态历史，从文档提取开始重试")
                 await self.state_manager._handle_restart_from_beginning()
             
             # 找到最后一个非失败状态
             last_success_state = None
-            for state_record in state_history.agent_states: #由于history是按时间倒序排列，所以会找到第一个非失败的状态。 
-                if state_record.current_internal_state != SystemInternalState.FAILED:
-                    last_success_state = state_record.current_internal_state
+            for state in sorted_agent_states: #由于history是按时间倒序排列，所以会找到第一个非失败的状态。 
+                if state.current_internal_state != SystemInternalState.FAILED:
+                    last_success_state = state.current_internal_state
                     break
             
             if not last_success_state:

@@ -36,12 +36,6 @@ class AgentStateData(BaseModel):
     error_message: Optional[str] = None
     retry_count: int = 0
     
-    # 步骤结果存在标记 - 表示对应文档是否已生成并存储
-    has_extracted_content: bool = Field(default=False, description="是否已提取文档内容")
-    has_h1_analysis_result: bool = Field(default=False, description="是否已完成H1分析")
-    has_h2h3_analysis_result: bool = Field(default=False, description="是否已完成H2H3分析")
-    has_introduction_content: bool = Field(default=False, description="是否已添加引言内容")
-    has_final_document: bool = Field(default=False, description="是否已生成最终文档")
 
 class AgentStateHistory(BaseModel):
     model_config = ConfigDict(
@@ -121,6 +115,7 @@ class ProcessingProgressEvent(SSEMessage):
         super().__init__(
             data={
                 "project_id": project_id,
+                "message":"正在执行步骤："+step.value,
                 "step": step.value,
                 "progress": progress,
                 "estimated_remaining": estimated_remaining,
@@ -141,6 +136,7 @@ class ErrorEvent(SSEMessage):
         super().__init__(
             data={
                 "project_id": project_id,
+                "message":"执行过程中遇到错误，将重试",
                 "error_type": error_type,
                 "error_message": error_message,
                 "can_retry": can_retry,
