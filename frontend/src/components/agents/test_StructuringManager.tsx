@@ -1,7 +1,7 @@
 // StructuringManager 完整使用示例
 
 import React, { useState, useEffect, useRef } from 'react';
-import { StructuringManager, SSEEventHandler } from '@/_api/agent_api/structuring_api_SSE';
+import { StructuringManager, SSEEventHandler } from '@/_api/structuring_agent_api/SSE_api';
 
 export interface StructuringManagerProps {
   projectId: string;
