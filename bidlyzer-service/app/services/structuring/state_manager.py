@@ -146,7 +146,7 @@ class StructuringAgentStateManager:
             
             # 存储消息到历史记录
             await self.cache.add_agent_sse_message_to_history(
-                event_type="state_update",
+                event="state_update",
                 event_data=event.model_dump()
             )
             
@@ -222,7 +222,7 @@ class StructuringAgentStateManager:
             
             # 存储错误消息到历史记录
             await self.cache.add_agent_sse_message_to_history(
-                event_type="error",
+                event="error",
                 event_data=error_event.model_dump()
             )
             

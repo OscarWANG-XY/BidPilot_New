@@ -159,14 +159,13 @@ class Cache:
 
 
     # 存储agent_sse_message_history到Redis
-    async def add_agent_sse_message_to_history(self, event_type: str, event_data: Dict[str, Any]) -> bool:
+    async def add_agent_sse_message_to_history(self, event: str, event_data: Dict[str, Any]) -> bool:
         """存储SSE消息到历史记录"""
         try:
             # 生成消息记录 - 只使用SSEMessageRecord实际支持的字段
             message_record = SSEMessageRecord(
                 message_id=self._generate_message_id(),
-                project_id=self.project_id,
-                event_type=event_type,
+                event=event,
                 data=event_data["data"],
             )
             

@@ -17,7 +17,7 @@ class StateStatusResponse(BaseModel):
 class SSEHistoryResponse(BaseModel):
     """SSE历史记录响应"""
     project_id: str
-    sse_history: List[SSEMessageRecord]
+    messages: List[SSEMessageRecord]
 
 # 路由函数指定了response_model,会自动序列化，对于pydantic的自定义模型，不需要model_dump()转字典
 @router.get("/agent-state/{project_id}", response_model=StateStatusResponse)
@@ -55,14 +55,14 @@ async def get_sse_history(project_id: str):
     try:
         from app.services.structuring.cache import Cache
         cache = Cache(project_id)
-        sse_history = await cache.get_agent_sse_message_history()
+        sse_message_history = await cache.get_agent_sse_message_history()
         
-        if not sse_history:
+        if not sse_message_history:
             raise HTTPException(status_code=404, detail="项目状态未找到")
         
         return SSEHistoryResponse(
             project_id=project_id,
-            sse_history=sse_history.messages,
+            messages=sse_message_history.messages,
             # user_state=agent_state.current_user_state.value,
             # internal_state=agent_state.current_internal_state.value,
             # progress=agent_state.overall_progress,

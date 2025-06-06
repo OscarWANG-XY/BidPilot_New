@@ -127,10 +127,8 @@ class SSEMessageRecord(BaseModel):
     )
     
     message_id: str = Field(description="消息唯一标识")
-    project_id: str = Field(description="项目ID")
-    event_type: str = Field(description="事件类型: state_update, error")
+    event: str = Field(description="事件类型: state_update, error")
     data: Dict[str, Any] = Field(description="事件数据，支持多种事件类型")
-
     timestamp: datetime = Field(default_factory=datetime.now, description="消息时间戳")
 
 
