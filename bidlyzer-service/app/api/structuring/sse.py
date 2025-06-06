@@ -8,7 +8,7 @@ import logging
 from datetime import datetime
 
 from app.services.structuring.state_manager import create_state_manager
-from app.services.structuring.state import UserAction, SystemInternalState, UserVisibleState
+from app.services.structuring.state import UserAction, StateEnum
 from app.core.redis_helper import RedisClient
 
 logger = logging.getLogger(__name__)
@@ -58,8 +58,8 @@ async def sse_stream(project_id: str, request: Request):
                     "event": "state_update",
                     "data": {
                         "projectId": project_id,
-                        "internalState": current_state.current_internal_state.value,
-                        "userState": current_state.current_user_state.value,
+                        "internalState": current_state.state.value,
+                        # "userState": current_state.current_user_state.value,
                         "progress": current_state.overall_progress,
                         "message": "当前状态"
                     }

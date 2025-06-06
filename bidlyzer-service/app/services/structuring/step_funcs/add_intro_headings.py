@@ -5,7 +5,7 @@
 """
 
 import logging
-from typing import Dict, List, Tuple, Any, Optional
+from typing import Dict
 
 from app.clients.tiptap.tools import add_introduction_headings, get_headings
 

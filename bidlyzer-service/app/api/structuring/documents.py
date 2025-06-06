@@ -1,12 +1,10 @@
 from fastapi import APIRouter, HTTPException
 from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field
-import json
-import logging
 from datetime import datetime
-from app.services.structuring.state_manager import create_state_manager
-from app.services.structuring.state import UserAction, SystemInternalState, UserVisibleState
+from app.services.structuring.state import StateEnum
 
+import logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -216,8 +214,8 @@ async def update_final_document(
         
         # 检查当前状态是否允许编辑
         agent_state = await cache.get_agent_state()
-        current_internal_state = agent_state.current_internal_state
-        if current_internal_state not in [SystemInternalState.STRUCTURE_REVIEWED]:
+        current_internal_state = agent_state.state
+        if current_internal_state not in [StateEnum.STRUCTURE_REVIEWED]:
             raise HTTPException(
                 status_code=400, 
                 detail=f"当前状态不允许编辑: {current_internal_state.value if current_internal_state else 'unknown'}"

@@ -1,10 +1,10 @@
 # state_manager_v2.py - FastAPI集成的状态管理器
 # 提供状态转换、事件发布和Redis集成功能
 
-from typing import Optional, Dict, Any, List
+from typing import Dict, Any, List
 from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict
-from .state import SystemInternalState, UserVisibleState, ProcessingStep, StateRegistry
+from .state import StateEnum
 
 import logging
 logger = logging.getLogger(__name__)
@@ -20,21 +20,13 @@ class AgentStateData(BaseModel):
     )
     
     project_id: str
-    current_internal_state: SystemInternalState   # 每个state 都有对应的state_config在state.py中定义了。 
-    current_user_state: UserVisibleState          
-    
-    # 进度相关
+    state: StateEnum   # 每个state 都有对应的state_config在state.py中定义了。        
     overall_progress: int = Field(default=0, ge=0, le=100)
-    step_progress: Dict[ProcessingStep, int] = Field(default_factory=dict)
     
     # 时间戳
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
     
-    # 处理相关
-    current_step: Optional[ProcessingStep] = None       
-    error_message: Optional[str] = None
-    retry_count: int = 0
     
 
 class AgentStateHistory(BaseModel):
@@ -85,40 +77,18 @@ class StateUpdateEvent(SSEMessage):
     
     def __init__(self, 
                  project_id: str,
-                 internal_state: SystemInternalState,
-                 user_state: UserVisibleState,
-                 progress: int = 0,
+                 from_state: StateEnum,
+                 to_state: StateEnum,
+                 updated_progress: int = 0,
                  message: str = "",
                  **kwargs):
         super().__init__(
             data={
                 "project_id": project_id,
-                "internal_state": internal_state.value,
-                "user_state": user_state.value,
-                "progress": progress,
+                "from_state": from_state.value,
+                "to_state": to_state.value,
+                "updated_progress": updated_progress,
                 "message": message,
-                # "config": StateRegistry.get_state_config(internal_state).model_dump() if StateRegistry.get_state_config(internal_state) else {},
-                **kwargs
-            }
-        )
-
-class ProcessingProgressEvent(SSEMessage):
-    """处理进度事件"""
-    event: str = "processing_progress"
-    
-    def __init__(self, 
-                 project_id: str,
-                 step: ProcessingStep,
-                 progress: int,
-                 estimated_remaining: Optional[int] = None,
-                 **kwargs):
-        super().__init__(
-            data={
-                "project_id": project_id,
-                "message":"正在执行步骤："+step.value,
-                "step": step.value,
-                "progress": progress,
-                "estimated_remaining": estimated_remaining,
                 **kwargs
             }
         )
@@ -129,17 +99,19 @@ class ErrorEvent(SSEMessage):
     
     def __init__(self, 
                  project_id: str,
+                 error_at_state: StateEnum,
+                 error_at_progress: int,
                  error_type: str,
                  error_message: str,
-                 can_retry: bool = False,
                  **kwargs):
         super().__init__(
             data={
                 "project_id": project_id,
-                "message":"执行过程中遇到错误，将重试",
+                "error_at_state": error_at_state.value,
+                "error_at_progress": error_at_progress,
                 "error_type": error_type,
                 "error_message": error_message,
-                "can_retry": can_retry,
+                "message":"执行过程中遇到错误，将重试",
                 **kwargs
             }
         )
@@ -156,7 +128,7 @@ class SSEMessageRecord(BaseModel):
     
     message_id: str = Field(description="消息唯一标识")
     project_id: str = Field(description="项目ID")
-    event_type: str = Field(description="事件类型: state_update, processing_progress, error")
+    event_type: str = Field(description="事件类型: state_update, error")
     data: Dict[str, Any] = Field(description="事件数据，支持多种事件类型")
 
     timestamp: datetime = Field(default_factory=datetime.now, description="消息时间戳")

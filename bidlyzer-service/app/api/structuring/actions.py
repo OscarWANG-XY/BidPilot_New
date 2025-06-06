@@ -1,16 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Request
-from fastapi.responses import StreamingResponse
-from typing import Dict, Any, Optional
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel, Field
-import asyncio
-import json
-import logging
-from datetime import datetime
 from app.services.structuring.cache import Cache
 from app.services.structuring.state_manager import create_state_manager
-from app.services.structuring.state import UserAction, SystemInternalState, UserVisibleState
-from app.core.redis_helper import RedisClient
+from app.services.structuring.state import UserAction, StateEnum
 
+import logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -59,12 +53,12 @@ async def start_analysis(
         current_state = await cache.get_agent_state()
         # 如果已经有状态了
         if current_state:
-            if current_state.current_internal_state in [SystemInternalState.STRUCTURE_REVIEWED]:
+            if current_state.state in [StateEnum.STRUCTURE_REVIEWED]:
                 return StartAnalysisResponse(
                     success=True,
                     message="项目已结构化分析已完成，请人工审核结果",
                     project_id=project_id,
-                    initial_state=current_state.current_internal_state.value
+                    initial_state=current_state.state.value
                 )
             else:
 
@@ -76,7 +70,7 @@ async def start_analysis(
                     success=False,
                     message="恢复项目分析进程，请等待完成",
                     project_id=project_id,
-                    initial_state=current_state.current_internal_state.value
+                    initial_state=current_state.state.value
                 )
             
 
@@ -118,7 +112,7 @@ async def retry_analysis(
         
         # 检查当前状态是否允许重试
         current_state = await state_manager.get_internal_state()
-        if current_state != SystemInternalState.FAILED:
+        if current_state != StateEnum.FAILED:
             return RetryAnalysisResponse(
                 success=False,
                 message="当前状态不需要重试",

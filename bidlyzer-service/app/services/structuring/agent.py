@@ -7,9 +7,9 @@ import traceback
 
 from .state_manager import create_state_manager, AgentStateData
 from .state import (
-    SystemInternalState, UserVisibleState, ProcessingStep, UserAction,
+    StateEnum, ProcessingStep,
     StateRegistry, ING_STATE_POOL, ED_STATE_POOL,
-    StateTransitionError, InvalidActionError, ProcessingError
+    ProcessingError
 )
 
 # 假设这些执行组件已经正确迁移
@@ -104,10 +104,10 @@ class StructuringAgent:
         return await self.state_manager.cache.get_agent_state()
     
     @property
-    async def current_internal_state(self) -> Optional[SystemInternalState]:
+    async def current_internal_state(self) -> Optional[StateEnum]:
         """获取当前内部状态"""
         agent_state = await self.state_manager.cache.get_agent_state()
-        current_internal_state = agent_state.current_internal_state
+        current_internal_state = agent_state.state
         return current_internal_state
     
     # @property
@@ -134,60 +134,6 @@ class StructuringAgent:
             logger.error(error_msg)
             await self.state_manager._handle_error("start_analysis_error", error_msg)
             raise ProcessingError(error_msg)
-
-    # async def handle_user_action(self, action: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    #     """
-    #     处理用户操作
-        
-    #     Args:
-    #         action: 用户操作类型
-    #         payload: 操作数据
-            
-    #     Returns:
-    #         处理结果
-    #     """
-    #     trace_id = f"{self.project_id}_{action}_{datetime.now().isoformat()}"
-    #     logger.info(f"[{trace_id}] 处理用户操作: {action}")
-        
-    #     try:
-    #         # 验证操作
-    #         try:
-    #             action_enum = UserAction(action)
-    #         except ValueError:
-    #             return {
-    #                 "status": "error",
-    #                 "message": f"未知的用户操作: {action}",
-    #                 "trace_id": trace_id
-    #             }
-            
-    #         # 使用状态管理器处理操作
-    #         success = await self.state_manager.handle_user_action(
-    #             action_enum, 
-    #             payload
-    #         )
-            
-    #         if success:
-    #             return {
-    #                 "status": "success",
-    #                 "message": "操作执行成功",
-    #                 "trace_id": trace_id
-    #             }
-    #         else:
-    #             return {
-    #                 "status": "error", 
-    #                 "message": "操作执行失败",
-    #                 "trace_id": trace_id
-    #             }
-                
-    #     except Exception as e:
-    #         error_msg = f"处理用户操作失败: {str(e)}"
-    #         logger.error(f"[{trace_id}] {error_msg}")
-    #         return {
-    #             "status": "error",
-    #             "message": error_msg,
-    #             "trace_id": trace_id
-    #         }
-
 
    
     async def process_step(self, step: ProcessingStep, user_input: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -236,9 +182,9 @@ class StructuringAgent:
         try:
             # 检查当前状态，如果不是 EXTRACTING_DOCUMENT，则更新状态
             current_state = await self.current_internal_state
-            if current_state != SystemInternalState.EXTRACTING_DOCUMENT:
+            if current_state != StateEnum.EXTRACTING_DOCUMENT:
                 await self.state_manager.transition_to_state(
-                    SystemInternalState.EXTRACTING_DOCUMENT,
+                    StateEnum.EXTRACTING_DOCUMENT,
                     progress=10,
                     message="正在提取文档内容..."
                 )
@@ -255,7 +201,7 @@ class StructuringAgent:
             
             # 更新状态为提取完成
             await self.state_manager.transition_to_state(
-                SystemInternalState.DOCUMENT_EXTRACTED,
+                StateEnum.DOCUMENT_EXTRACTED,
                 progress=20,
                 message="文档提取完成",
                 document_data=raw_document
@@ -281,7 +227,7 @@ class StructuringAgent:
             
             # 更新状态
             await self.state_manager.transition_to_state(
-                SystemInternalState.ANALYZING_OUTLINE_H1,
+                StateEnum.ANALYZING_OUTLINE_H1,
                 progress=30,
                 message="正在分析文档主要章节..."
             )
@@ -295,7 +241,7 @@ class StructuringAgent:
             
             # 更新状态
             await self.state_manager.transition_to_state(
-                SystemInternalState.OUTLINE_H1_ANALYZED,
+                StateEnum.OUTLINE_H1_ANALYZED,
                 progress=50,
                 message="主要章节分析完成",
                 document_data=h1_document
@@ -321,7 +267,7 @@ class StructuringAgent:
             
             # 更新状态
             await self.state_manager.transition_to_state(
-                SystemInternalState.ANALYZING_OUTLINE_H2H3,
+                StateEnum.ANALYZING_OUTLINE_H2H3,
                 progress=60,
                 message="正在分析文档子章节..."
             )
@@ -335,7 +281,7 @@ class StructuringAgent:
             
             # 更新状态
             await self.state_manager.transition_to_state(
-                SystemInternalState.OUTLINE_H2H3_ANALYZED,
+                StateEnum.OUTLINE_H2H3_ANALYZED,
                 progress=75,
                 message="子章节分析完成",
                 document_data=h2h3_document
@@ -361,7 +307,7 @@ class StructuringAgent:
             
             # 更新状态
             await self.state_manager.transition_to_state(
-                SystemInternalState.ADDING_INTRODUCTION,
+                StateEnum.ADDING_INTRODUCTION,
                 progress=85,
                 message="正在添加引言部分..."
             )
@@ -375,7 +321,7 @@ class StructuringAgent:
             
             # 更新状态为引言添加完成
             await self.state_manager.transition_to_state(
-                SystemInternalState.INTRODUCTION_ADDED,
+                StateEnum.INTRODUCTION_ADDED,
                 progress=95,
                 message="引言添加完成",
                 document_data=intro_document
@@ -402,7 +348,7 @@ class StructuringAgent:
 
             # 更新状态
             await self.state_manager.transition_to_state(
-                SystemInternalState.REVIEWING_STRUCTURE,
+                StateEnum.REVIEWING_STRUCTURE,
                 progress=100,
                 message="文档已准备就绪，请在编辑器中查看和调整"
             )
@@ -426,7 +372,7 @@ class StructuringAgent:
             
             # 更新状态为完成
             await self.state_manager.transition_to_state(
-                SystemInternalState.STRUCTURE_REVIEWED,
+                StateEnum.STRUCTURE_REVIEWED,
                 progress=100,
                 message="文档结构化分析完成！",
                 document_data=final_document,
@@ -448,10 +394,10 @@ class StructuringAgent:
             agent_state = await self.current_state
             
             if agent_state:
-                logger.info(f"项目 {self.project_id} 状态已存在: {agent_state.current_internal_state}")
+                logger.info(f"项目 {self.project_id} 状态已存在: {agent_state.state}")
                 
                 # 处理中断状态的恢复
-                current_internal_state = agent_state.current_internal_state
+                current_internal_state = agent_state.state
                 await self._handle_interrupted_state(current_internal_state)
             else:
                 logger.info(f"项目 {self.project_id} 没有保存的状态，将在开始分析时初始化")
@@ -461,20 +407,20 @@ class StructuringAgent:
             logger.error(f"恢复状态时出错: {str(e)}")
             raise ProcessingError(f"状态恢复失败: {str(e)}")
 
-    async def _handle_interrupted_state(self, current: SystemInternalState):
+    async def _handle_interrupted_state(self, current: StateEnum):
         """处理中断状态的恢复"""
         logger.info(f"检查中断状态: 当前状态为 {current}")
         
         # 根据完成状态决定下一步
         print(f"current 值为: {current}")
-        if current in ED_STATE_POOL and current != SystemInternalState.STRUCTURE_REVIEWED:
+        if current in ED_STATE_POOL and current != StateEnum.STRUCTURE_REVIEWED:
             logger.info(f"从状态 {current} 恢复，直接执行下一步")
             next_step = StateRegistry.get_state_config(current).next_step
             await self.process_step(next_step)
         
         elif current in ING_STATE_POOL:
             # 处理中状态需要重试
-            if current == SystemInternalState.EXTRACTING_DOCUMENT:
+            if current == StateEnum.EXTRACTING_DOCUMENT:
                 # EXTRACTING_DOCUMENT 是初始状态，直接重新开始
                 logger.info(f"项目 {self.project_id} 从文档提取状态恢复，重新开始提取")
                 await self.process_step(ProcessingStep.EXTRACT)
@@ -489,9 +435,6 @@ class StructuringAgent:
                 next_step = StateRegistry.get_state_config(previous_state).next_step
                 await self.process_step(next_step)
         
-        # elif current in AWAITING_STATE_POOL:
-        #     logger.info(f"项目 {self.project_id} 当前为等待编辑状态，无需恢复")
-        #     return
         
         else:  # 当前状态为Failed或其他特殊状态
             logger.warning(f"项目 {self.project_id} 当前为失败状态，跳回上一个非失败状态")
@@ -502,9 +445,9 @@ class StructuringAgent:
             
             # 找到最后一个非失败状态
             last_success_state = None
-            for state in sorted_agent_states: #由于history是按时间倒序排列，所以会找到第一个非失败的状态。 
-                if state.current_internal_state != SystemInternalState.FAILED:
-                    last_success_state = state.current_internal_state
+            for agent_state in sorted_agent_states: #由于history是按时间倒序排列，所以会找到第一个非失败的状态。 
+                if agent_state.state != StateEnum.FAILED:
+                    last_success_state = agent_state.state
                     break
             
             if not last_success_state:

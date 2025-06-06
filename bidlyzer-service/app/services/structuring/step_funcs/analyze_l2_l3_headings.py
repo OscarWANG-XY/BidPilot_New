@@ -5,8 +5,7 @@
 """
 
 import logging
-from typing import Dict, List, Tuple, Any, Optional
-
+from typing import Dict
 from app.clients.tiptap.tools import get_headings, update_nodes_to_headings
 from app.services.structuring.prompts.tender_outlines_L2 import TenderOutlinesL2PromptBuilder
 from app.services.llm.llm_client import LLMClient

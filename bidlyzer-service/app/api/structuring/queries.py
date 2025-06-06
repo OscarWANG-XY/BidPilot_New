@@ -1,15 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Request
-from fastapi.responses import StreamingResponse
-from typing import Dict, Any, Optional, List
-from pydantic import BaseModel, Field
-import logging
-from datetime import datetime
+from fastapi import APIRouter, HTTPException
+from typing import List
+from pydantic import BaseModel
 from app.services.structuring.schema import AgentStateData, SSEMessageRecord
 
-from app.services.structuring.state_manager import create_state_manager
-from app.services.structuring.state import UserAction, SystemInternalState, UserVisibleState
-from app.core.redis_helper import RedisClient
-
+import logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter()

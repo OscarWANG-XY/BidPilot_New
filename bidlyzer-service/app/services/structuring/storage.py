@@ -1,10 +1,9 @@
 from app.clients.django.client import DjangoClient
-from typing import Optional, Dict, Any, List, Optional
-from uuid import UUID
-import logging
-from pydantic import BaseModel
+from typing import Optional, Dict, Any
+
 from app.services.structuring.schema import AgentStateHistory, TenderFile, SSEMessageHistory
 
+import logging
 logger = logging.getLogger(__name__)
 
 

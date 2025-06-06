@@ -3,7 +3,6 @@
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 from app.core.redis_helper import RedisClient
-from app.core.config import settings
 from app.services.structuring.state import StateRegistry, ED_STATE_POOL
 from app.services.structuring.storage import Storage
 
@@ -241,8 +240,8 @@ class Cache:
 
     async def store_step_result(self, agent_state: AgentStateData, result_data: Dict[str, Any], type: str):
         """存储步骤结果数据"""
-        if agent_state.current_internal_state in ED_STATE_POOL:
-            state_config = StateRegistry.get_state_config(agent_state.current_internal_state)
+        if agent_state.state in ED_STATE_POOL:
+            state_config = StateRegistry.get_state_config(agent_state.state)
             step = state_config.state_to_step
             step_config = StateRegistry.get_step_config(step)
             if type == "document":
@@ -254,7 +253,7 @@ class Cache:
             await self._save_document(doc_name=doc_name, content=result_data) # 存储到Redis
 
         else:
-            logger.warning(f"改状态下无需存储结果: {agent_state.current_internal_state}")
+            logger.warning(f"改状态下无需存储结果: {agent_state.state}")
             return False
 
     async def _save_document(self, doc_name: str, content: Dict[str, Any]) -> bool:
