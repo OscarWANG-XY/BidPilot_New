@@ -10,7 +10,7 @@ import StarterKit from '@tiptap/starter-kit';
 // 扩展: Dropcursor, Gapcursor, History
 import { getHierarchicalIndexes, TableOfContents } from '@tiptap-pro/extension-table-of-contents'
 import TextAlign from '@tiptap/extension-text-align';
-import Heading from '@tiptap/extension-heading';  //覆盖starterkit中的配置
+// import Heading from '@tiptap/extension-heading';  //覆盖starterkit中的配置
 import DragHandle from '@tiptap-pro/extension-drag-handle-react';
 // 需要额外添加 table 扩展
 import Table from '@tiptap/extension-table';
@@ -76,9 +76,9 @@ const TiptapEditor = () => {
         types: ['heading', 'paragraph'],
       }),
       // 标题扩展（覆盖 StarterKit 中的默认配置）
-      Heading.configure({
-        levels: [1, 2, 3, 4, 5, 6],
-      }),
+      // Heading.configure({
+      //   levels: [1, 2, 3, 4, 5, 6],
+      // }),
       // 图片扩展
       Image.configure({
         allowBase64: true, //Tiptap 会自动将图片编码为 base64 格式嵌入到文档中, 不适合服务器部署的方式

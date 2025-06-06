@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
+from datetime import datetime
 from pydantic import BaseModel
 from app.services.structuring.schema import AgentStateData, SSEMessageRecord
 
@@ -17,6 +18,8 @@ class StateStatusResponse(BaseModel):
 class SSEHistoryResponse(BaseModel):
     """SSE历史记录响应"""
     project_id: str
+    total_messages: int
+    last_updated: datetime
     messages: List[SSEMessageRecord]
 
 # 路由函数指定了response_model,会自动序列化，对于pydantic的自定义模型，不需要model_dump()转字典
@@ -63,6 +66,8 @@ async def get_sse_history(project_id: str):
         return SSEHistoryResponse(
             project_id=project_id,
             messages=sse_message_history.messages,
+            total_messages=sse_message_history.total_messages,
+            last_updated=sse_message_history.last_updated,
             # user_state=agent_state.current_user_state.value,
             # internal_state=agent_state.current_internal_state.value,
             # progress=agent_state.overall_progress,

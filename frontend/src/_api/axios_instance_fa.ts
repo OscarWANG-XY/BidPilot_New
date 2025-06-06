@@ -129,6 +129,40 @@ fastApiInstance.interceptors.response.use(
             error.response.data = convertKeysToCamel(error.response.data);
         }
 
+
+
+        // ===== 新增：统一错误处理逻辑 =====
+        // 处理网络错误
+        if (!error.response) {
+          const networkError = new Error('网络连接失败，请检查网络连接');
+          return Promise.reject(networkError);
+        }
+        
+        const status = error.response.status;
+        const errorMessage = error.response.data?.detail || error.response.data?.message;
+        
+        // 定义错误映射表
+        const errorMap: Record<number, string> = {
+            400: errorMessage || '请求参数错误',
+            403: '权限不足',
+            404: errorMessage || '资源未找到',
+            422: errorMessage || '数据验证失败',
+            500: errorMessage || '服务器内部错误',
+            502: '网关错误，请稍后重试',
+            503: '服务暂时不可用，请稍后重试',
+            504: '请求超时，请稍后重试'
+        };
+        
+        // 创建统一的错误对象
+        const finalError = new Error(errorMap[status] || errorMessage || `请求失败 (${status})`);
+        
+        // 保留原始错误信息供调试使用
+        (finalError as any).originalError = error;
+        (finalError as any).status = status;
+
+
+
+
         return Promise.reject(error);
     }
 );
