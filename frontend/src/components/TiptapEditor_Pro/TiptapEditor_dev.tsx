@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useEditor, EditorContent} from '@tiptap/react';
-import { ToC } from './ToC'
+import { ToC, ToCItemData } from './ToC'
 import { SimpleBubbleBar } from './BubbleBar'
 import { ToolBar } from './ToolBar';
 import StarterKit from '@tiptap/starter-kit';
@@ -35,21 +35,10 @@ const sampleContent = {"type": "doc", "content": [{"type": "heading", "attrs": {
 
 const limit = 280;
 
-
-// 定义 ToCItemData 接口（如果在其他文件中已定义，可以导入）
-interface ToCItemData {
-  id: string
-  level: number
-  textContent: string
-  isActive: boolean
-  isScrolledOver: boolean
-  itemIndex: number
-}
-
 const MemorizedToC = React.memo(ToC)
 
 
-const TiptapEditor = () => {
+const TiptapEditor_dev = () => {
 
   const [items, setItems] = useState<ToCItemData[]>([])
   const [isTocExpanded, setIsTocExpanded] = useState(true)
@@ -276,4 +265,4 @@ const TiptapEditor = () => {
   );
 };
 
-export default TiptapEditor;
+export default TiptapEditor_dev;

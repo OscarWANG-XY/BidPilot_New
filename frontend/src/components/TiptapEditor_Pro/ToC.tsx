@@ -2,7 +2,7 @@ import { TextSelection } from '@tiptap/pm/state'
 import { Editor } from '@tiptap/react'
 import { MouseEvent } from 'react'
 
-interface ToCItemData {
+export interface ToCItemData {
   id: string
   level: number
   textContent: string

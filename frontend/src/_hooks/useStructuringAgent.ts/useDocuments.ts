@@ -39,137 +39,116 @@ interface UseUpdateFinalDocumentOptions {
   onMutate?: () => void;
 }
 
-// ========================= 构建钩子类 =========================
-export const useDocuments = () => {
+// ========================= 新的接口定义 =========================
+interface UseDocumentsOptions {
+  projectId: string;
+  docType?: DocumentType;
+  queryOptions?: UseDocumentOptions;
+  mutationOptions?: UseUpdateFinalDocumentOptions;
+}
+
+// ========================= 重构后的钩子 =========================
+export const useDocuments = (options: UseDocumentsOptions) => {
+  const { projectId, docType, queryOptions = {}, mutationOptions = {} } = options;
+  
   // (1) QueryClient 实例
   const queryClient = useQueryClient();
 
-  // (2) 具体钩子
-  const rawDocumentQuery = (projectId: string, options: UseDocumentOptions = {}) => 
-    useQuery({
-      queryKey: queryKeys.rawDocument(projectId),
-      queryFn: () => documentsApi.getRawDocument(projectId),
-      enabled: !!projectId && (options.enabled !== false),
-      staleTime: options.staleTime ?? 5 * 60 * 1000, // 5分钟
-      refetchOnWindowFocus: options.refetchOnWindowFocus ?? false,
-    });
+  // (2) 根据docType直接调用相应的Hook
+  const rawDocumentQuery = useQuery({
+    queryKey: queryKeys.rawDocument(projectId),
+    queryFn: async () => {
+      console.log('🔍 开始调用api获取原始文档:', projectId);
+      const result = await documentsApi.getRawDocument(projectId)
+      console.log('🔍 成功获取了原始文档:', result);
+      return result
+    },
+    enabled: !!projectId && (queryOptions.enabled !== false) && (docType === 'raw-document' || !docType),
+    staleTime: queryOptions.staleTime ?? 5 * 60 * 1000, // 5分钟
+    refetchOnWindowFocus: queryOptions.refetchOnWindowFocus ?? false,
+    refetchOnMount: false,
+    ...queryOptions,
+  });
 
-  const reviewSuggestionsQuery = (projectId: string, options: UseDocumentOptions = {}) => 
-    useQuery({
-      queryKey: queryKeys.reviewSuggestions(projectId),
-      queryFn: () => documentsApi.getReviewSuggestions(projectId),
-      enabled: !!projectId && (options.enabled !== false),
-      staleTime: options.staleTime ?? 5 * 60 * 1000, // 5分钟
-      refetchOnWindowFocus: options.refetchOnWindowFocus ?? false,
-    });
+  const reviewSuggestionsQuery = useQuery({
+    queryKey: queryKeys.reviewSuggestions(projectId),
+    queryFn: async () => {
+      console.log('🔍 开始调用api获取审查建议文档:', projectId);
+      const result = await documentsApi.getReviewSuggestions(projectId)
+      console.log('🔍 成功获取了审查建议文档:', result);
+      return result
+    },
+    enabled: !!projectId && (queryOptions.enabled !== false) && (docType === 'review-suggestions' || !docType),
+    staleTime: queryOptions.staleTime ?? 5 * 60 * 1000, // 5分钟
+    refetchOnWindowFocus: queryOptions.refetchOnWindowFocus ?? false,
+    refetchOnMount: false,
+    ...queryOptions,
+  });
 
-  const finalDocumentQuery = (projectId: string, options: UseDocumentOptions = {}) => 
-    useQuery({
-      queryKey: queryKeys.finalDocument(projectId),
-      queryFn: () => documentsApi.getFinalDocument(projectId),
-      enabled: !!projectId && (options.enabled !== false),
-      staleTime: options.staleTime ?? 1 * 60 * 1000, // 1分钟
-      refetchOnWindowFocus: options.refetchOnWindowFocus ?? false,
-    });
+  const finalDocumentQuery = useQuery({
+    queryKey: queryKeys.finalDocument(projectId),
+    queryFn: async () => {
+      console.log('🔍 开始调用api获取最终文档:', projectId);
+      const result = await documentsApi.getFinalDocument(projectId)
+      console.log('🔍 成功获取了最终文档:', result);
+      return result
+    },
+    enabled: !!projectId && (queryOptions.enabled !== false) && (docType === 'final-document' || !docType),
+    staleTime: queryOptions.staleTime ?? 1 * 60 * 1000, // 1分钟
+    refetchOnWindowFocus: queryOptions.refetchOnWindowFocus ?? false,
+    refetchOnMount: false,
+    ...queryOptions,
+  });
 
-  const documentQuery = (
-    projectId: string,
-    docType: DocumentType,
-    options: UseDocumentOptions = {}
-  ) => 
-    useQuery({
-      queryKey: queryKeys.document(projectId, docType),
-      queryFn: () => documentsApi.getDocument(projectId, docType),
-      enabled: !!projectId && !!docType && (options.enabled !== false),
-      staleTime: options.staleTime ?? 5 * 60 * 1000, // 5分钟
-      refetchOnWindowFocus: options.refetchOnWindowFocus ?? false,
-    });
-
-  const batchDocumentsQuery = (
-    projectId: string, 
-    docTypes: DocumentType[],
-    options: UseDocumentOptions = {}
-  ) => 
-    useQuery({
-      queryKey: queryKeys.batchDocuments(projectId, docTypes),
-      queryFn: async () => {
-        const results = await Promise.all(
-          docTypes.map(docType => documentsApi.getDocument(projectId, docType))
-        );
-        
-        return docTypes.reduce((acc, docType, index) => {
-          acc[docType] = results[index];
-          return acc;
-        }, {} as Record<DocumentType, GetDocumentResponse>);
-      },
-      enabled: !!projectId && docTypes.length > 0 && (options.enabled !== false),
-      staleTime: options.staleTime ?? 5 * 60 * 1000,
-      refetchOnWindowFocus: options.refetchOnWindowFocus ?? false,
-    });
-
-  const updateFinalDocumentMutation = (
-    projectId: string,
-    options: UseUpdateFinalDocumentOptions = {}
-  ) => 
-    useMutation({
-      mutationFn: (data: UpdateDocumentRequest) => 
-        documentsApi.updateFinalDocument(projectId, data),
+  const updateFinalDocumentMutation = useMutation({
+    mutationFn: (data: UpdateDocumentRequest) => 
+      documentsApi.updateFinalDocument(projectId, data),
+    
+    onMutate: async (variables) => {
+      mutationOptions.onMutate?.();
       
-      onMutate: async (variables) => {
-        options.onMutate?.();
-        
-        // 取消相关的查询以避免竞态条件
-        await queryClient.cancelQueries({
-          queryKey: queryKeys.finalDocument(projectId)
-        });
-        
-        // 获取当前缓存的数据作为快照
-        const previousDocument = queryClient.getQueryData(
-          queryKeys.finalDocument(projectId)
-        );
-        
-        // 乐观更新：立即更新缓存
-        queryClient.setQueryData(
-          queryKeys.finalDocument(projectId),
-          (old: GetDocumentResponse | undefined) => {
-            if (!old) return old;
-            return {
-              ...old,
-              document: variables.editedDocument,
-            };
-          }
-        );
-        
-        return { previousDocument };
-      },
+      // 取消相关的查询以避免竞态条件
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.finalDocument(projectId)
+      });
       
-    //   onError: (error, context) => {
-    //     // 如果更新失败，回滚到之前的数据
-    //     if (context?.previousDocument) {
-    //       queryClient.setQueryData(
-    //         queryKeys.finalDocument(projectId),
-    //         context.previousDocument
-    //       );
-    //     }
-    //     options.onError?.(error);
-    //   },
+      // 获取当前缓存的数据作为快照
+      const previousDocument = queryClient.getQueryData(
+        queryKeys.finalDocument(projectId)
+      );
       
-      onSuccess: (data) => {
-        // 更新成功后，刷新相关查询
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.finalDocument(projectId)
-        });
-        options.onSuccess?.(data);
-      },
+      // 乐观更新：立即更新缓存
+      queryClient.setQueryData(
+        queryKeys.finalDocument(projectId),
+        (old: GetDocumentResponse | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            document: variables.editedDocument,
+          };
+        }
+      );
       
-      onSettled: () => {
-        // 无论成功还是失败，都刷新查询
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.finalDocument(projectId)
-        });
-      },
-    });
+      return { previousDocument };
+    },
+    
+    onSuccess: (data) => {
+      // 更新成功后，刷新相关查询
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.finalDocument(projectId)
+      });
+      mutationOptions.onSuccess?.(data);
+    },
+    
+    onSettled: () => {
+      // 无论成功还是失败，都刷新查询
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.finalDocument(projectId)
+      });
+    },
+  });
 
+  // (3) 工具方法
   const prefetchDocument = (projectId: string, docType: DocumentType) => {
     queryClient.prefetchQuery({
       queryKey: queryKeys.document(projectId, docType),
@@ -196,14 +175,28 @@ export const useDocuments = () => {
     });
   };
 
-  // (3) 返回便捷方法
+  // (4) 根据docType返回相应的查询结果
+  const currentDocumentQuery = useMemo(() => {
+    switch (docType) {
+      case 'raw-document':
+        return rawDocumentQuery;
+      case 'review-suggestions':
+        return reviewSuggestionsQuery;
+      case 'final-document':
+      default:
+        return finalDocumentQuery;
+    }
+  }, [rawDocumentQuery, reviewSuggestionsQuery, finalDocumentQuery, docType]);
+
+  // (5) 返回结果
   return useMemo(() => ({
-    // 查询方法
+    // 当前文档查询
+    currentDocumentQuery,
+    
+    // 所有查询（用于特定需求）
     rawDocumentQuery,
     reviewSuggestionsQuery,
     finalDocumentQuery,
-    documentQuery,
-    batchDocumentsQuery,
     
     // 变更方法
     updateFinalDocumentMutation,
@@ -216,12 +209,10 @@ export const useDocuments = () => {
     // Query Keys
     queryKeys,
   }), [
-    queryClient,
+    currentDocumentQuery,
     rawDocumentQuery,
     reviewSuggestionsQuery,
     finalDocumentQuery,
-    documentQuery,
-    batchDocumentsQuery,
     updateFinalDocumentMutation,
     prefetchDocument,
     refreshDocument,

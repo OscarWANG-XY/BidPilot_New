@@ -7,6 +7,7 @@ export interface GetDocumentResponse {
   message: string;
   projectId: string;
   docType: string;
+  version?: string;
   document?: Record<string, any> | null;
   metadata?: Record<string, any> | null;
 }
@@ -46,6 +47,7 @@ export const documentsApi = {
         const response = await fastApiInstance.get<GetDocumentResponse>(
             `/structuring/raw-document/${projectId}`
         );
+        console.log('🐛 getRawDocument的结果:', response.data);
         return response.data;
   },
 
@@ -70,6 +72,7 @@ export const documentsApi = {
     const response = await fastApiInstance.get<GetDocumentResponse>(
         `/structuring/final-document/${projectId}`
     );
+    console.log('🐛 getFinalDocument的结果:', response.data);
     return response.data;
   },
 

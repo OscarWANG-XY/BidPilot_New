@@ -18,6 +18,7 @@ class GetDocumentResponse(BaseModel):
     message: str
     project_id: str
     doc_type: str
+    version: Optional[str] = None
     document: Optional[Dict[str, Any]] = None
     metadata: Optional[Dict[str, Any]] = None
 

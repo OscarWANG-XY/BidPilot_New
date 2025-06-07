@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useEditor, EditorContent} from '@tiptap/react';
-import { ToC } from './ToC'
+import { ToC, ToCItemData } from './ToC'
 import { SimpleBubbleBar } from './BubbleBar'
 import { ToolBar } from './ToolBar';
 import StarterKit from '@tiptap/starter-kit';
@@ -29,31 +29,36 @@ import Subscript from '@tiptap/extension-subscript'
 import Superscript from '@tiptap/extension-superscript'
 import Link from '@tiptap/extension-link'
 
+// 📝 1. 添加新的 Props 接口
+interface TiptapEditorProps {
+  initialContent?: any;
+  onContentChange?: (content: any) => void;
+  readOnly?: boolean;
+  className?: string;
+}
 
+// 默认示例内容（当没有提供 initialContent 时使用）
+// const sampleContent = {"type": "doc", "content": [{"type": "heading", "attrs": {"textAlign": "left", "level": 1}, "content": [{"type": "text", "text": "🚨 A级：投标决策必需信息"}]}, {"type": "table", "content": [{"type": "tableRow", "content": [{"type": "tableHeader", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}, "content": [{"type": "text", "text": "序号"}]}]}, {"type": "tableHeader", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}, "content": [{"type": "text", "text": "信息类别"}]}]}, {"type": "tableHeader", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}, "content": [{"type": "text", "text": "具体内容"}]}]}, {"type": "tableHeader", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}, "content": [{"type": "text", "text": "所在章节"}]}]}, {"type": "tableHeader", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}, "content": [{"type": "text", "text": "分析进展"}]}]}]}, {"type": "tableRow", "content": [{"type": "tableCell", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}, "content": [{"type": "text", "text": "A1"}]}]}, {"type": "tableCell", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}, "content": [{"type": "text", "text": "⏰ 时间节点"}]}]}, {"type": "tableCell", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}, "content": [{"type": "text", "text": "投标截止时间/开标时间"}]}]}, {"type": "tableCell", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}}]}, {"type": "tableCell", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}}]}]}, {"type": "tableRow", "content": [{"type": "tableCell", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}, "content": [{"type": "text", "text": "A2"}]}]}, {"type": "tableCell", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}, "content": [{"type": "text", "text": "💰 保证金"}]}]}, {"type": "tableCell", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}, "content": [{"type": "text", "text": "投标保证金金额/缴纳方式"}]}]}, {"type": "tableCell", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}}]}, {"type": "tableCell", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}}]}]}]}, {"type": "horizontalRule"}]};
+   const placeholder = "<p>等待服务器同步...</p>"
 
-const sampleContent = {"type": "doc", "content": [{"type": "heading", "attrs": {"textAlign": "left", "level": 1}, "content": [{"type": "text", "text": "\ud83d\udea8 A\u7ea7\uff1a\u6295\u6807\u51b3\u7b56\u5fc5\u9700\u4fe1\u606f"}]}, {"type": "table", "content": [{"type": "tableRow", "content": [{"type": "tableHeader", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}, "content": [{"type": "text", "text": "\u5e8f\u53f7"}]}]}, {"type": "tableHeader", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}, "content": [{"type": "text", "text": "\u4fe1\u606f\u7c7b\u522b"}]}]}, {"type": "tableHeader", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}, "content": [{"type": "text", "text": "\u5177\u4f53\u5185\u5bb9"}]}]}, {"type": "tableHeader", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}, "content": [{"type": "text", "text": "\u6240\u5728\u7ae0\u8282"}]}]}, {"type": "tableHeader", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}, "content": [{"type": "text", "text": "\u5206\u6790\u8fdb\u5c55"}]}]}]}, {"type": "tableRow", "content": [{"type": "tableCell", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}, "content": [{"type": "text", "text": "A1"}]}]}, {"type": "tableCell", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}, "content": [{"type": "text", "text": "\u23f0 \u65f6\u95f4\u8282\u70b9"}]}]}, {"type": "tableCell", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}, "content": [{"type": "text", "text": "\u6295\u6807\u622a\u6b62\u65f6\u95f4/\u5f00\u6807\u65f6\u95f4"}]}]}, {"type": "tableCell", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}}]}, {"type": "tableCell", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}}]}]}, {"type": "tableRow", "content": [{"type": "tableCell", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}, "content": [{"type": "text", "text": "A2"}]}]}, {"type": "tableCell", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}, "content": [{"type": "text", "text": "\ud83d\udcb0 \u4fdd\u8bc1\u91d1"}]}]}, {"type": "tableCell", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}, "content": [{"type": "text", "text": "\u6295\u6807\u4fdd\u8bc1\u91d1\u91d1\u989d/\u7f34\u7eb3\u65b9\u5f0f"}]}]}, {"type": "tableCell", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}}]}, {"type": "tableCell", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "attrs": {"textAlign": "left"}}]}]}]}, {"type": "horizontalRule"}]};
 
 const limit = 280;
 
 
-// 定义 ToCItemData 接口（如果在其他文件中已定义，可以导入）
-interface ToCItemData {
-  id: string
-  level: number
-  textContent: string
-  isActive: boolean
-  isScrolledOver: boolean
-  itemIndex: number
-}
-
 const MemorizedToC = React.memo(ToC)
 
-
-const TiptapEditor = () => {
+// 📝 2. 修改组件定义，接受新的 props
+const TiptapEditor: React.FC<TiptapEditorProps> = ({ 
+  initialContent, 
+  onContentChange, 
+  readOnly = false,
+  className = ""
+}) => {
 
   const [items, setItems] = useState<ToCItemData[]>([])
   const [isTocExpanded, setIsTocExpanded] = useState(true)
 
+  // 📝 3. 修改编辑器初始化，使用传入的内容
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -108,24 +113,49 @@ const TiptapEditor = () => {
       // 移除任何手动添加的 DragHandle 扩展
       
     ],
-    content: sampleContent,
+    // 📝 4. 使用传入的初始内容，如果没有则使用默认内容
+    content: initialContent || placeholder,
     editorProps: {
       attributes: {
-        // 暂时移除自定义类名，使用默认的 ProseMirror 类
         class: 'tiptap-content focus:outline-none',
-        //class: 'focus:outline-none',
       },
     },
+    // 📝 5. 添加内容变化回调 (这个是useEditor的hook配置属性)
+    onUpdate: ({ editor }) => {
+      if (onContentChange && !readOnly) {
+        const content = editor.getJSON();
+        onContentChange(content);
+      }
+    },
+    // 📝 6. 根据 readOnly 设置可编辑状态 (这个也是useEditor的hook配置属性)
+    editable: !readOnly,
   });
+
+  // 📝 7. 当 initialContent 变化时更新编辑器内容
+  // 场景: 父组件,用户选择恢复草稿,或者从服务器加载了新版本,自动更新编辑显示. 
+  // editor.getJSON() 确保只在内容真正不同时才更新. 
+  useEffect(() => {
+    if (editor && initialContent && editor.getJSON() !== initialContent) {
+      editor.commands.setContent(initialContent);
+    }
+  }, [editor, initialContent]);
+
+  // 📝 8. 当 readOnly 状态变化时更新编辑器
+  useEffect(() => {
+    if (editor) {
+      editor.setEditable(!readOnly);
+    }
+  }, [editor, readOnly]);
 
   // 字数统计
   const percentage = editor
   ? Math.round((100 / limit) * editor.storage.characterCount.characters())
   : 0
 
-
-  // 粘贴图片
+  // 📝 9. 修改图片处理函数，在只读模式下禁用
   const handlePaste = async (event: React.ClipboardEvent) => {
+    if (readOnly) return; // 只读模式下不处理
+    
     const items = event.clipboardData.items
     for (let i = 0; i < items.length; i++) {
       const item = items[i]
@@ -140,8 +170,9 @@ const TiptapEditor = () => {
     }
   }
 
-  // 拖拽放置图片
   const handleDrop = async (event: React.DragEvent) => {
+    if (readOnly) return; // 只读模式下不处理
+    
     event.preventDefault()
     
     const files = Array.from(event.dataTransfer.files)
@@ -159,19 +190,22 @@ const TiptapEditor = () => {
     }
   }
 
-  // 阻止默认拖拽行为
   const handleDragOver = (event: React.DragEvent) => {
+    if (readOnly) return;
     event.preventDefault()
   }
 
   const handleDragEnter = (event: React.DragEvent) => {
+    if (readOnly) return;
     event.preventDefault()
   }
 
-
+  // 📝 10. 修改切换编辑模式函数（现在由外部控制）
   const toggleEditable = () => {
-    editor?.setEditable(!editor.isEditable)
-    editor?.view.dispatch(editor.view.state.tr)
+    if (!readOnly) { // 只有在非强制只读模式下才允许切换
+      editor?.setEditable(!editor.isEditable)
+      editor?.view.dispatch(editor.view.state.tr)
+    }
   }
 
   const toggleToc = () => {
@@ -179,13 +213,20 @@ const TiptapEditor = () => {
   }
 
   return (
-    <div className="mx-auto max-w-7xl p-6">
-      <div>
-        <button onClick={toggleEditable}>Toggle editable</button>
-      </div>
-      <h1 className="mb-6 text-3xl font-semibold text-gray-900 dark:text-gray-50">Tiptap Editor</h1>
+    <div className={`mx-auto max-w-7xl p-6 ${className}`}>
+      {/* 📝 11. 只读模式下隐藏或禁用某些控件 */}
+      {!readOnly && (
+        <div>
+          <button onClick={toggleEditable}>Toggle editable</button>
+        </div>
+      )}
       
-      {editor && (
+      <h1 className="mb-6 text-3xl font-semibold text-gray-900 dark:text-gray-50">
+        Tiptap Editor {readOnly && "(只读模式)"}
+      </h1>
+      
+      {/* 📝 12. 只读模式下不显示拖拽手柄 */}
+      {editor && !readOnly && (
         <DragHandle editor={editor}>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" />
@@ -193,29 +234,26 @@ const TiptapEditor = () => {
         </DragHandle>
       )}
 
-      {/* 编辑器和目录的容器 */}
       <div className="editor-with-toc">
-        {/* 编辑器主体部分 */}
         <div className="editor-main">
           <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm dark:border-gray-800">
-            {/* 添加工具栏 */}
-            {editor && <ToolBar editor={editor} />}
+            {/* 📝 13. 只读模式下不显示工具栏 */}
+            {editor && !readOnly && <ToolBar editor={editor} />}
             
-            {/* 编辑器内容区域 */}
             <div 
               onPaste={handlePaste} 
               onDrop={handleDrop} 
               onDragOver={handleDragOver} 
               onDragEnter={handleDragEnter} 
-              className="min-h-[400px] bg-white p-4 dark:bg-gray-950"
+              className={`min-h-[400px] p-4 ${
+                readOnly 
+                  ? 'bg-gray-50 dark:bg-gray-900' 
+                  : 'bg-white dark:bg-gray-950'
+              }`}
             >
               <EditorContent editor={editor} />
-              {/* 添加BubbleBar */}
-              {/* {editor && <BubbleBar editor={editor} />} */}
-              {/* 添加SimpleBubbleBar */}
-              
-              {editor && <SimpleBubbleBar editor={editor} />}
-             
+              {/* 📝 14. 只读模式下不显示气泡菜单 */}
+              {editor && !readOnly && <SimpleBubbleBar editor={editor} />}
             </div>
 
             {/* 字数统计区域 */}
