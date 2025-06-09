@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useEditor, EditorContent, JSONContent } from '@tiptap/react';
 import { ToC, ToCItemData } from './ToC'
 import { SimpleBubbleBar } from './BubbleBar'
@@ -67,6 +67,11 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
   const [items, setItems] = useState<ToCItemData[]>([]);
   const [isTocExpanded, setIsTocExpanded] = useState(true);
 
+
+  // 自动保存管理
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedContentRef = useRef<string>('')
+
  // LocalStorage 管理: Get, Load 
   // 从 localStorage 获取内容的函数
   const getStoredContent = () => {
@@ -93,6 +98,22 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
       localStorage.setItem(storageKey, JSON.stringify(content));
     } catch (error) {
       console.warn('localStorage 保存失败:', error);
+    }
+  };
+
+
+  // 统一的保存处理函数
+  const handleAutoSave = () => {
+    if (!editor || !onSave || readOnly) return;
+    
+    const content = editor.getJSON();
+    const currentContentStr = JSON.stringify(content);
+    
+    // 只有内容真正发生变化时才触发保存
+    if (currentContentStr !== lastSavedContentRef.current) {
+      onSave(content);
+      lastSavedContentRef.current = currentContentStr;
+      console.log('自动保存触发');
     }
   };
 
@@ -155,6 +176,12 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
         saveToStorage(content);
       }
     },
+    // 失焦时触发自动保存
+    onBlur:()=>{
+      if (!readOnly) {
+        handleAutoSave();
+      }
+    },
     editorProps: {
       attributes: {
         class: 'tiptap-content focus:outline-none prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto',
@@ -162,28 +189,46 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
     },
   });
 
+  // 📝 4. 内容变更防抖自动保存
+  useEffect(() => {
+    // 只读, 没有编辑器, 没有保存调的情况都无需防抖 
+    if (readOnly || !editor || !onSave) return;
+
+    // 清除之前的定时器
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    // 设置新的定时器 - 内容变更后3秒触发保存
+    // 只有用户停止输入3秒,才触发保存
+    autoSaveTimerRef.current = setTimeout(() => {
+      handleAutoSave();
+    }, 3000);
+
+    return () => {
+      // 每次内容变化,都取消上一次的保存定时器,避免频繁保存. 
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [editor?.getHTML(), handleAutoSave, readOnly, onSave]); // 监听内容变化
+
+
+
   // 字数统计
   const percentage = editor
     ? Math.round((100 / limit) * editor.storage.characterCount.characters())
     : 0;
 
-  // 保存功能
-  const handleSave = () => {
-    if (editor && onSave) {
-      // 这里的content也是实用editor.getJSON()获取的, 和onUpdate内容时一样的
-      const content = editor.getJSON();
-      onSave(content);  // 调用父组件的onSave回调 
-    }
-  };
 
   // 快捷键保存 (Ctrl+S) - 只读模式下禁用
   React.useEffect(() => {
-    if (readOnly) return;
+    if (readOnly || !onSave) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key === 's') {
         event.preventDefault();
-        handleSave();
+        handleAutoSave();
       }
     };
 
@@ -191,7 +236,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [editor, onSave, readOnly]);
+  }, [onSave, readOnly]);
 
   // 粘贴图片
   const handlePaste = async (event: React.ClipboardEvent) => {
@@ -253,20 +298,10 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
       {/* 顶部操作栏 */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          {/* 只读/编辑模式指示器 */}
+          {/* 自动保存模式指示器 */}
             <div className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">
-              {readOnly ? '只读模式' : '编辑模式'}
+              {readOnly ? '只读模式' : onSave ? '自动保存' : '编辑模式'}
             </div>
-          
-          {/* 保存按钮 */}
-          {!readOnly && onSave && (
-            <button
-              onClick={handleSave}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              保存 (Ctrl+S)
-            </button>
-          )}
         </div>
       </div>
 
