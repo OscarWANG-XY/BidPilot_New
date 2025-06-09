@@ -84,10 +84,10 @@ class StateUpdateEvent(SSEMessage):
                  **kwargs):
         super().__init__(
             data={
-                "project_id": project_id,
-                "from_state": from_state.value if from_state is not None else None,
-                "to_state": to_state.value,
-                "updated_progress": updated_progress,
+                "projectId": project_id,
+                "fromState": from_state.value if from_state is not None else None,
+                "toState": to_state.value,
+                "updatedProgress": updated_progress,
                 "message": message,
                 **kwargs
             }
@@ -106,11 +106,11 @@ class ErrorEvent(SSEMessage):
                  **kwargs):
         super().__init__(
             data={
-                "project_id": project_id,
-                "error_at_state": error_at_state.value,
-                "error_at_progress": error_at_progress,
-                "error_type": error_type,
-                "error_message": error_message,
+                "projectId": project_id,
+                "errorAtState": error_at_state.value,
+                "errorAtProgress": error_at_progress,
+                "errorType": error_type,
+                "errorMessage": error_message,
                 "message":"执行过程中遇到错误，将重试",
                 **kwargs
             }

@@ -54,16 +54,19 @@ async def sse_stream(project_id: str, request: Request):
             })}\n\n"
             
             # 发送当前状态（如果存在）
-            current_state = await create_state_manager(project_id).cache.get_agent_state()
-            if current_state:
+            agent_state = await cache.get_agent_state()
+           
+            if agent_state:
+                from app.services.structuring.state import StateRegistry
+                state_config = StateRegistry.get_state_config(agent_state.state)
                 initial_data = {
                     "event": "state_update",
                     "data": {
                         "projectId": project_id,
-                        "internalState": current_state.state.value,
-                        # "userState": current_state.current_user_state.value,
-                        "progress": current_state.overall_progress,
-                        "message": "当前状态"
+                        "fromState": state_config.previous_state.value if state_config.previous_state is not None else None,
+                        "toState": agent_state.state,
+                        "updatedProgress": agent_state.overall_progress,
+                        "message": state_config.description if state_config else ""
                     }
                 }
                 yield f"data: {json.dumps(initial_data)}\n\n"
