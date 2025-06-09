@@ -39,7 +39,9 @@ async def sse_stream(project_id: str, request: Request):
             logger.info(f"SSE连接已建立 - 项目: {project_id}, 用户: {user_id}")
             
             # Redis订阅通道
-            channel = f"sse:structuring:{project_id}"
+            from app.services.structuring.cache import Cache
+            cache = Cache(project_id)
+            channel = cache.get_channel_keys()['sse_channel']
             
             # 发送初始连接确认（包含用户信息）
             yield f"data: {json.dumps({

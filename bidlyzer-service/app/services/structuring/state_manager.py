@@ -24,7 +24,7 @@ class StructuringAgentStateManager:
     
     def __init__(self, project_id: str):
         self.project_id = project_id
-        self.sse_channel_prefix = "sse:structuring:"
+        # self.sse_channel_prefix = "sse:structuring:"
         self.cache_expire_time = 9000
         self.max_message_history = 100  # 最大消息历史记录数
         self.storage = Storage(project_id)
@@ -141,7 +141,7 @@ class StructuringAgentStateManager:
             )
             
             # 发布到Redis通道
-            channel = f"{self.sse_channel_prefix}{agent_state.project_id}"
+            channel = self.cache.get_channel_keys()['sse_channel']
             await RedisClient.publish(channel, event.model_dump_json())
             
             # 存储消息到历史记录
@@ -217,7 +217,7 @@ class StructuringAgentStateManager:
                 error_message=error_message,
             )
             
-            channel = f"{self.sse_channel_prefix}{self.project_id}"
+            channel = self.cache.get_channel_keys()['sse_channel']
             await RedisClient.publish(channel, error_event.model_dump_json())
             
             # 存储错误消息到历史记录

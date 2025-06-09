@@ -1,7 +1,7 @@
 # state_manager_v2.py - FastAPI集成的状态管理器
 # 提供状态转换、事件发布和Redis集成功能
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict
 from .state import StateEnum
@@ -77,7 +77,7 @@ class StateUpdateEvent(SSEMessage):
     
     def __init__(self, 
                  project_id: str,
-                 from_state: StateEnum,
+                 from_state: Optional[StateEnum],
                  to_state: StateEnum,
                  updated_progress: int = 0,
                  message: str = "",
@@ -85,7 +85,7 @@ class StateUpdateEvent(SSEMessage):
         super().__init__(
             data={
                 "project_id": project_id,
-                "from_state": from_state.value,
+                "from_state": from_state.value if from_state is not None else None,
                 "to_state": to_state.value,
                 "updated_progress": updated_progress,
                 "message": message,

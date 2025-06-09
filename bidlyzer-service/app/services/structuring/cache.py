@@ -39,6 +39,12 @@ class Cache:
             'review_suggestions': f"{self.KEY_PREFIX}{self.project_id}:review_suggestions",
         }
     
+    def get_channel_keys(self) -> str:
+        """获取SSE通道键"""
+        return {
+            'sse_channel': f"{self.KEY_PREFIX}{self.project_id}:sse_channel"
+        }
+    
     def _generate_message_id(self) -> str:
         """生成消息唯一标识"""
         import uuid
