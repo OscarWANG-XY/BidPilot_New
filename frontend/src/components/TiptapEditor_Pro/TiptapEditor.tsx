@@ -36,6 +36,7 @@ interface TiptapEditorProps {
   className?: string;
   showTOC?: boolean;
   readOnly?: boolean;
+  storageKey?: string;
 }
 
 const defaultContent = {
@@ -59,9 +60,42 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
   className = '',
   showTOC = true,
   readOnly = false,
+  storageKey = 'tiptap-editor-content',  // 为了确保key的唯一性, 需要外部传入, 否则会覆盖其他组件的缓存
 }) => {
+
+  // 目录状态管理
   const [items, setItems] = useState<ToCItemData[]>([]);
   const [isTocExpanded, setIsTocExpanded] = useState(true);
+
+ // LocalStorage 管理: Get, Load 
+  // 从 localStorage 获取内容的函数
+  const getStoredContent = () => {
+    if (readOnly) return initialContent; // 只读模式不使用缓存
+    
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        const parsedContent = JSON.parse(stored);
+        console.log('从缓存加载内容');
+        return parsedContent;
+      }
+    } catch (error) {
+      console.warn('localStorage 读取失败:', error);
+    }
+    return initialContent;
+  };
+
+  // 保存内容到 localStorage 的函数
+  const saveToStorage = (content: JSONContent) => {
+    if (readOnly) return; // 只读模式不保存缓存
+    
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(content));
+    } catch (error) {
+      console.warn('localStorage 保存失败:', error);
+    }
+  };
+
 
   const editor = useEditor({
     extensions: [
@@ -112,8 +146,15 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
         },
       }),
     ],
-    content: initialContent,
+    content: getStoredContent(),
     editable: !readOnly,
+    // 监听编辑器内容变化, 并自动保存到 localStorage;  这个和onSave不同,onSave时存储到服务器的. 
+    onUpdate: ({ editor }) => {
+      if (!readOnly) {
+        const content = editor.getJSON();
+        saveToStorage(content);
+      }
+    },
     editorProps: {
       attributes: {
         class: 'tiptap-content focus:outline-none prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto',
@@ -129,6 +170,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
   // 保存功能
   const handleSave = () => {
     if (editor && onSave) {
+      // 这里的content也是实用editor.getJSON()获取的, 和onUpdate内容时一样的
       const content = editor.getJSON();
       onSave(content);  // 调用父组件的onSave回调 
     }
@@ -149,7 +191,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [editor, onSave]);
+  }, [editor, onSave, readOnly]);
 
   // 粘贴图片
   const handlePaste = async (event: React.ClipboardEvent) => {
