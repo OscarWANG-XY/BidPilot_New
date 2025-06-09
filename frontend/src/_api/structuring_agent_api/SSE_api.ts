@@ -209,6 +209,11 @@ export class StructuringSSEClient {
     return this.eventSource?.readyState === EventSource.OPEN;
   }
 
+  // 检查EventSource实例是否存在
+  hasEventSource(): boolean {
+    return this.eventSource !== null;
+  }
+
   // 更新认证token, 如果当前已连接, 则断开连接, 然后重新连接. 
   updateToken(newToken: string): void {
     this.token = newToken;
