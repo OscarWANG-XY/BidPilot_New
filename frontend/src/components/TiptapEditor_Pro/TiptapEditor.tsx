@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { useEditor, EditorContent, JSONContent } from '@tiptap/react';
 import { ToC, ToCItemData } from './ToC'
 import { SimpleBubbleBar } from './BubbleBar'
@@ -28,6 +28,7 @@ import Underline from '@tiptap/extension-underline'
 import Subscript from '@tiptap/extension-subscript'
 import Superscript from '@tiptap/extension-superscript'
 import Link from '@tiptap/extension-link'
+import _ from 'lodash'
 
 // 📝 1. 添加新的 Props 接口
 interface TiptapEditorProps {
@@ -69,7 +70,6 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
 
 
   // 自动保存管理
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedContentRef = useRef<string>('')
 
  // LocalStorage 管理: Get, Load 
@@ -102,8 +102,8 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
   };
 
 
-  // 统一的保存处理函数
-  const handleAutoSave = () => {
+  // 统一的保存处理函数 - 用 useCallback 包装
+  const handleAutoSave = useCallback(() => {
     if (!editor || !onSave || readOnly) return;
     
     const content = editor.getJSON();
@@ -115,7 +115,13 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
       lastSavedContentRef.current = currentContentStr;
       console.log('自动保存触发');
     }
-  };
+  }, [onSave, readOnly]);
+
+  // 使用lodash的debounce来防抖保存, 3秒后保存一次
+  const debouncedSave = useCallback(
+    _.debounce(handleAutoSave, 1000),
+    [handleAutoSave]
+  );
 
 
   const editor = useEditor({
@@ -173,7 +179,10 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
     onUpdate: ({ editor }) => {
       if (!readOnly) {
         const content = editor.getJSON();
+        // 直接保存到localStorage
         saveToStorage(content);
+        // 保存到服务器, 使用lodash的debounce来防抖保存, 3秒后保存一次 
+        debouncedSave();
       }
     },
     // 失焦时触发自动保存
@@ -188,32 +197,6 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
       },
     },
   });
-
-  // 📝 4. 内容变更防抖自动保存
-  useEffect(() => {
-    // 只读, 没有编辑器, 没有保存调的情况都无需防抖 
-    if (readOnly || !editor || !onSave) return;
-
-    // 清除之前的定时器
-    if (autoSaveTimerRef.current) {
-      clearTimeout(autoSaveTimerRef.current);
-    }
-
-    // 设置新的定时器 - 内容变更后3秒触发保存
-    // 只有用户停止输入3秒,才触发保存
-    autoSaveTimerRef.current = setTimeout(() => {
-      handleAutoSave();
-    }, 3000);
-
-    return () => {
-      // 每次内容变化,都取消上一次的保存定时器,避免频繁保存. 
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current);
-      }
-    };
-  }, [editor?.getHTML(), handleAutoSave, readOnly, onSave]); // 监听内容变化
-
-
 
   // 字数统计
   const percentage = editor
@@ -236,7 +219,16 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onSave, readOnly]);
+  }, [onSave, readOnly, handleAutoSave]);
+
+
+  // 清理防抖函数
+  useEffect(() => {
+    return () => {
+      debouncedSave.cancel();
+    };
+  }, [debouncedSave]);
+
 
   // 粘贴图片
   const handlePaste = async (event: React.ClipboardEvent) => {
