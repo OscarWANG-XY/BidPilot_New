@@ -9,6 +9,25 @@ export enum SSEConnectionState {
   ERROR = 'error'
 }
 
+// SSE 错误类型枚举
+export enum SSEErrorType {
+  CONNECTION_FAILED = 'connection_failed',     // 初始连接失败
+  CONNECTION_LOST = 'connection_lost',         // 连接中断/丢失  
+  CONNECTION_CLOSED = 'connection_closed',     // 连接被关闭
+  NETWORK_ERROR = 'network_error',             // 网络相关错误
+  UNKNOWN_ERROR = 'unknown_error'              // 未知错误
+}
+
+
+// SSE 错误接口
+export interface SSEError {
+  type: SSEErrorType,
+  message: string,
+  originalEvent?: Event,
+  timestamp: number,
+  retryable: boolean,  // 是否可以重试
+}
+
 // SSE 消息接口
 export interface SSEMessage {
   event: string;
@@ -17,12 +36,14 @@ export interface SSEMessage {
 
 // 消息监听器类型
 export type MessageListener = (message: SSEMessage) => void
+export type ErrorListener = (error: SSEError) => void
 
 
 // Hook 的基础配置接口
 export interface UseSSEConfig {
   autoConnect?: boolean  // 是否自动连接，默认 true
   keepLastMessage?: boolean // 是否保留最后一条消息，默认 ture
+  keepLastError?: boolean // 是否保留最后一条错误，默认 true
 }
 
 // Hook 返回值接口
@@ -32,18 +53,22 @@ export interface UseSSEReturn {
   isConnected: boolean
   isConnecting: boolean
   lastMessage: SSEMessage | null
+  hasError: boolean
+  lastError: SSEError | null
   
   // 操作方法
   connect: () => void
   disconnect: () => void
+  clearError: () => void
 
   subscribe: (eventType: string, listener: MessageListener) => () => void
   subscribeToMessage: (listener: MessageListener) => () => void
+  subscribeToError: (listener: ErrorListener) => () => void
 
 }
 
 /**
- * useSSE Hook - 第一步：基础连接管理
+ * useSSE Hook - 基础连接管理 + 消息处理 + 错误处理
  * 
  * 核心功能：
  * 1. 管理 SSE 连接的生命周期
@@ -51,6 +76,8 @@ export interface UseSSEReturn {
  * 3. 自动处理组件卸载时的清理
  * 4. 消息接收和处理
  * 5. 提供简洁的消息订阅机制
+ * 6. 完善的错误处理和错误状态管理
+ * 7. 错误分类和可重试性判断
  */
 
 
@@ -60,7 +87,7 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
   // ============================ 1. 基础连接管理 ============================
 
   // 解构赋值，同时使用true作为默认值
-  const { autoConnect = true, keepLastMessage = true } = config
+  const { autoConnect = true, keepLastMessage = true, keepLastError = true } = config
   
   // SSE 客户端实例引用
   // 整个生命周期返回同一个引用，适用于与渲染无关的持久化对象上。 
@@ -73,6 +100,90 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
   const [connectionState, setConnectionState] = useState<SSEConnectionState>(
     SSEConnectionState.DISCONNECTED
   )
+
+  // 错误监听引用
+  const errorListenersRef = useRef<Set<ErrorListener>>(new Set())
+
+  // 最后一条错误引用
+  const [lastError, setLastError] = useState<SSEError | null>(null)
+
+  // 创建错误对象的辅助函数
+  const createError = useCallback((
+    type: SSEErrorType,
+    message: string,
+    originalEvent?: Event,
+    retryable: boolean = true
+  ): SSEError => {
+    return {
+      type, 
+      message, 
+      originalEvent, 
+      timestamp: Date.now(), 
+      retryable
+    }
+  },[])
+
+  // 判断错误类型的辅助函数
+  const determineErrorType = useCallback((event: Event): { type: SSEErrorType; retryable: boolean } => {
+
+    // event.type是DOM事件属性，指向触发事件的对象，由于event来自EventSource，所以event.target是EventSource对象。 
+    const eventSource = event.target as EventSource
+
+    if (!eventSource) {
+      return { type: SSEErrorType.UNKNOWN_ERROR, retryable: false }
+    }
+
+    // 根据连接状态判断错误类型
+    switch (eventSource.readyState) {
+      case EventSource.CONNECTING:
+        // 正在连接时出错 - 连接中断/丢失
+        return { type: SSEErrorType.CONNECTION_LOST, retryable: true }
+      case EventSource.CLOSED:
+        // 连接已关闭状态出错 - 连接被关闭
+        return { type: SSEErrorType.CONNECTION_CLOSED, retryable: true }
+      case EventSource.OPEN:
+        // 连接正常但出错 - 网络错误
+        return { type: SSEErrorType.NETWORK_ERROR, retryable: true }
+      default:
+        return { type: SSEErrorType.UNKNOWN_ERROR, retryable: false }
+    }
+  }, [])
+
+
+  // 处理错误的通用函数
+  const handleError = useCallback((event: Event, customMessage?: string) => {
+
+    const { type, retryable } = determineErrorType(event)
+    const message = customMessage || `SSE ${type} error occurred` 
+    const error = createError(type, message, event, retryable)
+
+    // 更新错误状态
+    if (keepLastError) {
+      setLastError(error)
+    }
+
+    // 更新连接状态
+    setConnectionState(SSEConnectionState.ERROR)
+
+    // 通知所有错误监听器
+    errorListenersRef.current.forEach(listener => {
+      try {
+        listener(error)
+      } catch (listenerError) {
+        console.error('Error in error listener:', listenerError)
+      }
+    })
+
+  // 打印错误日志
+  console.error('SSE Error:', {
+    type: error.type,
+    message: error.message,
+    retryable: error.retryable,
+    timestamp: error.timestamp,
+    originalEvent: event
+  })
+  }, [createError, determineErrorType, keepLastError])
+
 
   // 初始化客户端实例（这里只是定义了一个函数，没有运行，到connect被调用时才真的运行）
   const initializeClient = useCallback(() => {
@@ -101,14 +212,15 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
         setConnectionState(SSEConnectionState.CONNECTED) // 连接成功时执行
       }
       
-      const handleError = (event: Event) => {
+      // 添加错误监听器 - 使用增强的错误处理函数
+      const handleConnectionError = (event: Event) => {
         console.error('SSE connection error:', event)
-        setConnectionState(SSEConnectionState.ERROR)   // 连接失败时执行
+        handleError(event, 'SSE connection error')
       }
       
       // 添加监听器
       client.addOpenListener(handleOpen)  // 在SSE_API里，我们定义了Open事件监听在onopen时触发。 
-      client.addErrorListener(handleError) // 在SSE_API里，我们定义了Error事件监听在onerror时触发。 
+      client.addErrorListener(handleConnectionError) // 在SSE_API里，我们定义了Error事件监听在onerror时触发。 
       
       // 建立连接
       client.connect()
@@ -124,13 +236,27 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
       })  
       
     } catch (error) {
-      console.error('Failed to connect SSE:', error)
+
+      const connectionError = createError(
+        SSEErrorType.CONNECTION_FAILED, // 初始连接失败
+        `Failed to connect SSE: ${error}`,
+        undefined,
+        false
+      )
+
+      if (keepLastError) {
+        setLastError(connectionError)
+      }
+
       setConnectionState(SSEConnectionState.ERROR)
+      console.error('Failed to connect SSE:', error)
+
+      // 通知所有错误监听器
     }
     // 在这个例子里，虽然initalizeClient永远不会变，但不添加出现： react的规范错误， ESlint错误，技术上不必要，但规范上必须声明。
     // 规范：react要求useCallback的依赖数组必须包含函数体内所使用的所有响应式值，即重新渲染时可能改变的值。 
     // 响应式值包括： state, props, 计算值， 函数返回值， 非响应式如useRef返回的值， 最后是普通常量。
-  }, [initializeClient]) 
+  }, [initializeClient, handleError, createError, keepLastError]) 
   
 
 
@@ -154,7 +280,7 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
 
   // 处理消息的通用函数
   const handleMessage = useCallback((eventType: string, event: MessageEvent) => {
-
+    try{
     console.log('执行handleMessage', eventType, event)
 
     // (1)获取和转化数据
@@ -172,11 +298,27 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
         try{
          listener(message)
         } catch (error) {
-          console.error('Error in message listener:', error)
+          console.error(`Error in ${eventType} message listener:`, error)
+          // 消息处理错误不应该影响连接状态。 
         }
-    })
+      })
     }
-  },[convertMessage, keepLastMessage])
+    } catch (error) {
+      // 消息解析错误
+      const parseError = createError(
+        SSEErrorType.UNKNOWN_ERROR,
+        `Failed to parse ${eventType} message: ${error}`,
+        event,
+        false
+      )
+      
+      if (keepLastError) {
+        setLastError(parseError)
+      }
+      
+      console.error('Message parsing error:', error)
+    }
+  },[convertMessage, keepLastMessage, createError, keepLastError])
 
 
 
@@ -211,7 +353,7 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
       client.addEventListener(eventType, sseListener)
     }
 
-    // 返回取消订阅函数
+    // （4）返回取消订阅函数
     return () => {
       //从内部跟踪中移除
       const listeners = listenersRef.current.get(eventType)
@@ -236,6 +378,29 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
   }, [subscribe])
 
 
+
+  // ============================ 3. 错误处理 ============================
+
+  // 清除错误状态
+  const clearError = useCallback(() => {
+    setLastError(null)
+    
+    // 如果当前是错误状态且没有连接，重置为断开状态
+    if (connectionState === SSEConnectionState.ERROR && !clientRef.current?.isConnected()) {
+      setConnectionState(SSEConnectionState.DISCONNECTED)
+    }
+  }, [connectionState])
+
+  const subscribeToError = useCallback((listener: ErrorListener): (() => void) => {
+    errorListenersRef.current.add(listener)
+
+    // 返回取消订阅函数
+    return () => {
+      errorListenersRef.current.delete(listener)
+    }
+  }, [])
+
+
   // 断开连接方法
   const disconnect = useCallback(() => {
     if (clientRef.current) {
@@ -245,12 +410,21 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
       // 清理监听器
       listenersRef.current.clear()
 
+
+      // 清理错误监听器
+      errorListenersRef.current.clear()
+
       // 清理最后一条消息
       if(keepLastMessage) {
         setLastMessage(null)
       }
+
+      // 清理最后一条错误
+      if(keepLastError) {
+        setLastError(null)
+      }
     }
-  }, [])
+  }, [keepLastMessage, keepLastError])
 
 
   // 自动连接效果 (真正开始执行)
@@ -268,6 +442,7 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
   // 计算派生状态
   const isConnected = connectionState === SSEConnectionState.CONNECTED
   const isConnecting = connectionState === SSEConnectionState.CONNECTING
+  const hasError = connectionState === SSEConnectionState.ERROR || lastError !== null
   
   return {
     // 状态
@@ -275,13 +450,17 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
     isConnected,
     isConnecting,
     lastMessage,
+    hasError,
+    lastError,
 
     // 操作方法
     connect,
     disconnect,
+    clearError,
 
     // 消息订阅
     subscribe,
-    subscribeToMessage
+    subscribeToMessage,
+    subscribeToError
   }
 }

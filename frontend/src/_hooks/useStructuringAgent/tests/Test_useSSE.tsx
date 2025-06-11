@@ -9,8 +9,23 @@ interface Test_useSSEProps {
 // 方法1: 使用 React.FC
 const Test_useSSE: React.FC<Test_useSSEProps> = ({ projectId }) => {
 
-  const {connectionState, isConnected, isConnecting, connect, disconnect} = useSSE(projectId)
-  const {lastMessage, subscribe, subscribeToMessage} = useSSE(projectId)
+  // 只调用一次 useSSE， 否则会有多个实例
+  const {
+    connectionState, 
+    isConnected, 
+    isConnecting, 
+    connect, 
+    disconnect,
+    lastMessage, 
+    subscribe, 
+    subscribeToMessage,
+    lastError, 
+    hasError, 
+    clearError, 
+    subscribeToError
+  } = useSSE(projectId)
+
+
 
   // console.log(connectionState, isConnected, isConnecting)
 
@@ -37,6 +52,20 @@ const Test_useSSE: React.FC<Test_useSSEProps> = ({ projectId }) => {
       <br />
       <button onClick={() => subscribeToMessage((message) => console.log('Message:', message))}>订阅默认消息</button>
     </div>
+
+    <br />
+    <br />
+
+    <div>
+      <h1>=========测试SSE错误订阅管理=========</h1>
+      <p>Last Error: {lastError?.message}</p>
+      <p>Has Error: {hasError ? '有错误' : '无错误'}</p>
+      <button onClick={clearError}>清除错误</button>
+      <button onClick={() => subscribeToError((error) => console.log('Error:', error))}>订阅错误</button>
+    </div>
+
+
+
     </>
   );
 };
