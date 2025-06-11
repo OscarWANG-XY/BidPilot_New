@@ -12,8 +12,8 @@ const SimpleSSETest: React.FC = () => {
 
   // const projectId = 'f6db0cbe-e7af-4300-8335-01ba4ffdbb93'
 
-  const token = localStorage.getItem("token")
-  console.log('token', {token})
+  // const token = localStorage.getItem("token")
+  // console.log('token', {token})
 
   // const baseUrl = window.location.origin;
   // console.log('baseurl地址', {baseUrl})
@@ -54,9 +54,15 @@ const SimpleSSETest: React.FC = () => {
       })
 
       // 添加消息监听函数, 来监听消息的情况   
-      client.addEventListener('state_update', (event: MessageEvent) => {
-        console.log('收到消息:', event.data);
+      client.addEventListener('connected', (event: MessageEvent) => {
+        console.log('已连接的消息:', JSON.parse(event.data));
       })
+
+      client.addEventListener('test', (event: MessageEvent) => {
+        console.log('Test消息:', JSON.parse(event.data));
+      })
+
+
 
 
 

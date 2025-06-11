@@ -44,13 +44,11 @@ async def sse_stream(project_id: str, request: Request):
             channel = cache.get_channel_keys()['sse_channel']
             
             # 发送初始连接确认（包含用户信息）
+            yield f"event: connected\n"
             yield f"data: {json.dumps({
-                'event': 'connected', 
-                'data': {
-                    'projectId': project_id,
-                    'userId': user_id,
-                    'message': '连接已建立'
-                }
+                'projectId': project_id,
+                'userId': user_id,
+                'message': '连接已建立'
             })}\n\n"
             
             # 发送当前状态（如果存在）
@@ -59,31 +57,25 @@ async def sse_stream(project_id: str, request: Request):
             if agent_state:
                 from app.services.structuring.state import StateRegistry
                 state_config = StateRegistry.get_state_config(agent_state.state)
-                initial_data = {
-                    "event": "state_update",
-                    "data": {
-                        "projectId": project_id,
-                        "fromState": state_config.previous_state.value if state_config.previous_state is not None else None,
-                        "toState": agent_state.state,
-                        "updatedProgress": agent_state.overall_progress,
-                        "message": state_config.description if state_config else ""
-                    }
-                }
-                yield f"data: {json.dumps(initial_data)}\n\n"
+                yield f"event: state_update\n"
+                yield f"data: {json.dumps({
+                    'projectId': project_id,
+                    'fromState': state_config.previous_state.value if state_config.previous_state is not None else None,
+                    'toState': agent_state.state,
+                    'updatedProgress': agent_state.overall_progress,
+                    'message': state_config.description if state_config else ""
+                })}\n\n"
+            
+            # 发送一个测试消息（可选，用于调试）
+            yield f"event: test\n"
+            yield f"data: {json.dumps({
+                'projectId': project_id,
+                'message': '这是一个测试消息',
+                'timestamp': '2024-01-01T00:00:00Z'
+            })}\n\n"
             
             # 监听Redis消息
             pubsub = await RedisClient.subscribe(channel)
-            
-            # 发送一个测试消息（可选，用于调试）
-            test_message = {
-                "event": "test",
-                "data": {
-                    "projectId": project_id,
-                    "message": "这是一个测试消息",
-                    "timestamp": "2024-01-01T00:00:00Z"
-                }
-            }
-            yield f"data: {json.dumps(test_message)}\n\n"
             
             try:
                 # 监听消息
@@ -95,12 +87,11 @@ async def sse_stream(project_id: str, request: Request):
                             message_data = json.loads(message['data']) if isinstance(message['data'], str) else message['data']
                             
                             # 格式化为SSE格式
-                            sse_data = {
-                                "event": message_data.get("event", "update"),
-                                "data": message_data.get("data", message_data)
-                            }
+                            event_type = message_data.get("event", "update")
+                            event_data = message_data.get("data", message_data)
                             
-                            yield f"data: {json.dumps(sse_data)}\n\n"
+                            yield f"event: {event_type}\n"
+                            yield f"data: {json.dumps(event_data)}\n\n"
                             
                         except json.JSONDecodeError as e:
                             logger.error(f"Error parsing SSE message: {e}")
@@ -118,14 +109,11 @@ async def sse_stream(project_id: str, request: Request):
         except Exception as e:
             logger.error(f"Error in SSE stream for project {project_id}: {str(e)}")
             # 发送错误消息
-            error_data = {
-                "event": "error",
-                "data": {
-                    "projectId": project_id,
-                    "error": str(e)
-                }
-            }
-            yield f"data: {json.dumps(error_data)}\n\n"
+            yield f"event: error\n"
+            yield f"data: {json.dumps({
+                'projectId': project_id,
+                'error': str(e)
+            })}\n\n"
     
     return StreamingResponse(
         event_generator(),
