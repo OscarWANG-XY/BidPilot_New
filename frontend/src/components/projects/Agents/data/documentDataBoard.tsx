@@ -1,5 +1,5 @@
 import React from 'react';
-import { useDocuments, DocumentType } from '@/_hooks/useStructuringAgent.ts/useDocuments';
+import { useDocuments, DocumentType } from '@/_hooks/useStructuringAgent/useDocuments';
 
 interface DocumentDataBoardProps {
   projectId: string;
