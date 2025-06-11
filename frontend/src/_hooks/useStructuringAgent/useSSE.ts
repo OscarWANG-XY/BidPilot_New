@@ -44,6 +44,11 @@ export interface UseSSEConfig {
   autoConnect?: boolean  // 是否自动连接，默认 true
   keepLastMessage?: boolean // 是否保留最后一条消息，默认 ture
   keepLastError?: boolean // 是否保留最后一条错误，默认 true
+  // 新增重连配置
+  enableReconnect?: boolean  // 是否启用重连，默认 true
+  maxReconnectAttempts?: number  // 最大重连次数，默认 3
+  reconnectDelay?: number  // 重连延迟(ms)，默认 1000
+
 }
 
 // Hook 返回值接口
@@ -56,6 +61,11 @@ export interface UseSSEReturn {
   hasError: boolean
   lastError: SSEError | null
   
+  // 新增重连状态
+  isReconnecting: boolean
+  reconnectAttempts: number
+
+
   // 操作方法
   connect: () => void
   disconnect: () => void
@@ -87,7 +97,14 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
   // ============================ 1. 基础连接管理 ============================
 
   // 解构赋值，同时使用true作为默认值
-  const { autoConnect = true, keepLastMessage = true, keepLastError = true } = config
+  const { 
+    autoConnect = true, 
+    keepLastMessage = true, 
+    keepLastError = true,
+    enableReconnect = true,
+    maxReconnectAttempts = 3,
+    reconnectDelay = 1000
+  } = config
   
   // SSE 客户端实例引用
   // 整个生命周期返回同一个引用，适用于与渲染无关的持久化对象上。 
@@ -100,6 +117,12 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
   const [connectionState, setConnectionState] = useState<SSEConnectionState>(
     SSEConnectionState.DISCONNECTED
   )
+
+  // 新增重连状态
+  const [isReconnecting, setIsReconnecting] = useState(false)  // 监控"正在重连中"的状态, 这是过程状态 
+  const [reconnectAttempts, setReconnectAttempts] = useState(0)
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
 
   // 错误监听引用
   const errorListenersRef = useRef<Set<ErrorListener>>(new Set())
@@ -150,9 +173,49 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
   }, [])
 
 
+
+
+  // 重连逻辑 - 修复闭包陷阱
+  const attemptReconnect = useCallback(() => {
+    if (!enableReconnect) {
+      setIsReconnecting(false)
+      return
+    }
+
+    // 🌟 在setState回调中处理所有逻辑，避免闭包陷阱
+    // 这里setState的参数是一个函数（回调函数）
+    // 这个回调函数，以prevAttempts（先前的值）为参数。 这样就可以避免
+    setReconnectAttempts(prevAttempts => {
+
+      console.log('prevAttempts', prevAttempts)
+
+      if (prevAttempts >= maxReconnectAttempts) {
+        console.log('🛑 达到最大重连次数，停止重连')
+        setIsReconnecting(false)
+        return prevAttempts
+      }
+
+      const nextAttempts = prevAttempts + 1
+      console.log(`🔄 尝试重连... (${nextAttempts}/${maxReconnectAttempts})`)
+
+      setIsReconnecting(true)
+      // setReconnectAttempts(prev => prev + 1)
+
+      // 延迟重连
+      reconnectTimeoutRef.current = setTimeout(() => {
+        console.log('执行了connect')
+        connect()
+      }, reconnectDelay)
+
+      console.log('nextAttempts', nextAttempts)
+      return nextAttempts  // 请注意这里还在回调函数里，所以回调函数返回的值+1了， 下一次再执行时，prevAttempts就是+1后的值。 
+    })
+  }, [enableReconnect, maxReconnectAttempts, reconnectDelay])
+
+
   // 处理错误的通用函数
   const handleError = useCallback((event: Event, customMessage?: string) => {
-
+    console.log('执行handleError')
     const { type, retryable } = determineErrorType(event)
     const message = customMessage || `SSE ${type} error occurred` 
     const error = createError(type, message, event, retryable)
@@ -174,15 +237,22 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
       }
     })
 
-  // 打印错误日志
-  console.error('SSE Error:', {
-    type: error.type,
-    message: error.message,
-    retryable: error.retryable,
-    timestamp: error.timestamp,
-    originalEvent: event
-  })
-  }, [createError, determineErrorType, keepLastError])
+    // 打印错误日志
+    console.error('SSE Error:', {
+      type: error.type,
+      message: error.message,
+      retryable: error.retryable,
+      timestamp: error.timestamp,
+      originalEvent: event
+    })
+
+    // 如果错误可重试，则尝试重连
+    if (retryable && enableReconnect) {
+      attemptReconnect()
+    }
+
+
+  }, [createError, determineErrorType, keepLastError, enableReconnect, attemptReconnect])
 
 
   // 初始化客户端实例（这里只是定义了一个函数，没有运行，到connect被调用时才真的运行）
@@ -193,8 +263,11 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
     return clientRef.current 
   }, []) // 没有依赖，这里和不添加 [] 是一样的, 而添加[]更明确
 
+
+
   // 连接方法 (这个是一个依赖函数，被初始化，但不会自动运行，真正运行要等到useEffect中调用)
   const connect = useCallback(() => {
+    console.log('执行了connect')
 
     const client = initializeClient() 
     
@@ -202,14 +275,37 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
     if (client.isConnected() || client.isConnecting()) {
       return
     }
-    
+
+
+    // 下面这种方式不能避免connect的闭包陷阱而无限循环的情况，需要让attemptReconnect控制。 
+    // // 防止重连时的无限循环 
+    // if (isReconnecting && reconnectAttempts >= maxReconnectAttempts) {
+    //   setIsReconnecting(false)
+    //   return
+    // }
+
+
     try {
       // 1.开始连接前，设置为"正在连接"状态
       setConnectionState(SSEConnectionState.CONNECTING)
-      
-      // 2. 注册监听器（这些不会立即执行），执行是在connect以后，在onopen 和 onerror的位置触发（在API里）。  
+
+      // 2. 建立连接（注意：这会清空所有已注册的监听器）
+      // 这个connect必须放在addErrorListener之前，否则connect会清空监听器，导致错误监听器失效，从而不会重连。 
+      console.log('尝试建立连接')
+      client.connect()
+
+
+      // 3. 重新注册监听器（必须在connect之后，因为connect会清空监听器）
       const handleOpen = () => {
         setConnectionState(SSEConnectionState.CONNECTED) // 连接成功时执行
+        // 重连成功，重置重连状态
+        setIsReconnecting(false)
+        setReconnectAttempts(0)
+        // 清除重连定时器
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current)
+          reconnectTimeoutRef.current = null
+        }
       }
       
       // 添加错误监听器 - 使用增强的错误处理函数
@@ -218,12 +314,12 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
         handleError(event, 'SSE connection error')
       }
       
-      // 添加监听器
-      client.addOpenListener(handleOpen)  // 在SSE_API里，我们定义了Open事件监听在onopen时触发。 
-      client.addErrorListener(handleConnectionError) // 在SSE_API里，我们定义了Error事件监听在onerror时触发。 
-      
-      // 建立连接
-      client.connect()
+      // 重新添加监听器（这是关键修复点）
+      client.addOpenListener(handleOpen)  
+      client.addErrorListener(handleConnectionError) 
+
+
+
 
       // 添加连接的消息监听器 （后端对应connected事件）   
       client.addEventListener('connected', (event: MessageEvent) => {
@@ -236,7 +332,7 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
       })  
       
     } catch (error) {
-
+      console.log('执行了connect但捕捉到错误')
       const connectionError = createError(
         SSEErrorType.CONNECTION_FAILED, // 初始连接失败
         `Failed to connect SSE: ${error}`,
@@ -256,7 +352,7 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
     // 在这个例子里，虽然initalizeClient永远不会变，但不添加出现： react的规范错误， ESlint错误，技术上不必要，但规范上必须声明。
     // 规范：react要求useCallback的依赖数组必须包含函数体内所使用的所有响应式值，即重新渲染时可能改变的值。 
     // 响应式值包括： state, props, 计算值， 函数返回值， 非响应式如useRef返回的值， 最后是普通常量。
-  }, [initializeClient, handleError, createError, keepLastError]) 
+  }, [initializeClient, handleError, createError, keepLastError])
   
 
 
@@ -401,26 +497,31 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
   }, [])
 
 
-  // 断开连接方法
+  // 修改 disconnect 函数，清理重连状态
   const disconnect = useCallback(() => {
+    // 清理重连定时器
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current)
+      reconnectTimeoutRef.current = null
+    }
+
+    // 重置重连状态
+    setIsReconnecting(false)
+    setReconnectAttempts(0)
+
     if (clientRef.current) {
       clientRef.current.close()
       setConnectionState(SSEConnectionState.DISCONNECTED)
 
-      // 清理监听器
+      // 现有的清理逻辑...
       listenersRef.current.clear()
-
-
-      // 清理错误监听器
       errorListenersRef.current.clear()
 
-      // 清理最后一条消息
-      if(keepLastMessage) {
+      if (keepLastMessage) {
         setLastMessage(null)
       }
 
-      // 清理最后一条错误
-      if(keepLastError) {
+      if (keepLastError) {
         setLastError(null)
       }
     }
@@ -453,6 +554,10 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
     hasError,
     lastError,
 
+    // 新增重连状态
+    isReconnecting,
+    reconnectAttempts,
+
     // 操作方法
     connect,
     disconnect,
@@ -464,3 +569,25 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
     subscribeToError
   }
 }
+
+// ==== 状态流转示例 ====
+// // 连接断开
+// isConnected: false
+// isReconnecting: false
+
+// // 开始重连
+// isConnected: false  
+// isReconnecting: true  // 👈 用户看到"正在重连..."
+
+// // 重连成功
+// isConnected: true     // 👈 这已经表示连接恢复了
+// isReconnecting: false // 👈 重连过程结束
+
+
+// 关于重连的代码： attemptReconnect 函数,  1)在handleError里被调用attemptReconnect, 2)connect里添加重置和定时器清除  3）disconnect里添加重置和定时器清除
+// handleError -> attemptReconnect -> connect -> handleError -> attemptReconnect -> ... 这种依赖会造成无限循环
+// 这个死循环没有办法通过依赖来解决，只能通过业务层面控制逻辑来切断。 
+// 在connect里，我们在满足条件时，让isReconnecting = false ， 从而切断循环运行。 
+// 但上面不能解决闭包陷阱
+// 所谓闭包陷阱，是因为异步环境下，但一个参数被快速调用时，可能还是在用旧值。 通过setState的回调函数使用prev的值，这个值是最新的。
+// 除了闭包，这里还有一个概念叫竞态条件，就是多个操作快速执行是，竞争执行顺序，导致程序行为依赖于不确定时序，最终可能出错。  
