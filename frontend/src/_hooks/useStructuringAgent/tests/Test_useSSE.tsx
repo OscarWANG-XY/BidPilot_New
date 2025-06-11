@@ -10,6 +10,7 @@ interface Test_useSSEProps {
 const Test_useSSE: React.FC<Test_useSSEProps> = ({ projectId }) => {
 
   const {connectionState, isConnected, isConnecting, connect, disconnect} = useSSE(projectId)
+  const {lastMessage, subscribe, subscribeToMessage} = useSSE(projectId)
 
   // console.log(connectionState, isConnected, isConnecting)
 
@@ -30,8 +31,11 @@ const Test_useSSE: React.FC<Test_useSSEProps> = ({ projectId }) => {
     <br />
 
     <div>
-      <h1>=========测试SSE连接管理=========</h1>
-
+      <h1>=========测试SSE消息订阅管理=========</h1>
+      <p>Last Message: {lastMessage?.data}</p>
+      <button onClick={() => subscribe('state_update', (message) => console.log('Message:', message))}>订阅state_update消息</button>
+      <br />
+      <button onClick={() => subscribeToMessage((message) => console.log('Message:', message))}>订阅默认消息</button>
     </div>
     </>
   );
