@@ -22,7 +22,12 @@ const Test_useSSE: React.FC<Test_useSSEProps> = ({ projectId }) => {
     lastError, 
     hasError, 
     clearError, 
-    subscribeToError
+    subscribeToError,
+    // isRetrying,
+    // retryAttempt,  //使用显示用的状态
+    // nextRetryIn,
+    // retryNow,
+    // cancelRetry,
   } = useSSE(projectId)
 
 
@@ -65,6 +70,14 @@ const Test_useSSE: React.FC<Test_useSSEProps> = ({ projectId }) => {
     </div>
 
 
+    {/* <div>
+      <h1>=========测试SSE重连管理=========</h1>
+      <p>Is Retrying: {isRetrying ? '重连中' : '未重连'}</p>
+      <p>Retry Attempt: {retryAttempt}</p>
+      <p>Next Retry In: {nextRetryIn} seconds</p>
+      <button onClick={retryNow}>立即重连</button>
+      <button onClick={cancelRetry}>取消重连</button>
+    </div> */}
 
     </>
   );
