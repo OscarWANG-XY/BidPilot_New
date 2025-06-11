@@ -39,11 +39,23 @@ export type MessageListener = (message: SSEMessage) => void
 export type ErrorListener = (error: SSEError) => void
 
 
+// 重连策略配置
+export interface RetryConfig {
+  enabled: boolean // 是否启用自动重连，默认 true
+  maxAttempts: number // 最大重连次数，默认 5，-1 表示无限重连
+  initialDelay: number // 初始重连延迟(ms)，默认 1000
+  maxDelay: number // 最大重连延迟(ms)，默认 30000
+  backoffFactor: number // 退避因子，默认 2 (指数退避)
+  retryOnError: SSEErrorType[] // 哪些错误类型触发重连，默认所有可重试的错误
+}
+
 // Hook 的基础配置接口
 export interface UseSSEConfig {
   autoConnect?: boolean  // 是否自动连接，默认 true
   keepLastMessage?: boolean // 是否保留最后一条消息，默认 ture
   keepLastError?: boolean // 是否保留最后一条错误，默认 true
+  retry?: Partial<RetryConfig> // 重连配置
+  debug?: boolean // 是否启用调试日志，默认 false
 }
 
 // Hook 返回值接口
@@ -55,12 +67,22 @@ export interface UseSSEReturn {
   lastMessage: SSEMessage | null
   hasError: boolean
   lastError: SSEError | null
+
+  // 重连状态
+  isRetrying: boolean
+  retryAttempt: number
+  nextRetryIn: number // 下次重连倒计时(秒)，0 表示不重连
   
   // 操作方法
   connect: () => void
   disconnect: () => void
   clearError: () => void
 
+  // 重连控制
+  retryNow: () => void // 立即重连
+  cancelRetry: () => void // 取消重连
+
+  // 消息处理方法
   subscribe: (eventType: string, listener: MessageListener) => () => void
   subscribeToMessage: (listener: MessageListener) => () => void
   subscribeToError: (listener: ErrorListener) => () => void
@@ -68,7 +90,7 @@ export interface UseSSEReturn {
 }
 
 /**
- * useSSE Hook - 基础连接管理 + 消息处理 + 错误处理
+ * useSSE Hook - 基础连接管理 + 消息处理 + 错误处理 + 重连机制
  * 
  * 核心功能：
  * 1. 管理 SSE 连接的生命周期
@@ -78,6 +100,9 @@ export interface UseSSEReturn {
  * 5. 提供简洁的消息订阅机制
  * 6. 完善的错误处理和错误状态管理
  * 7. 错误分类和可重试性判断
+ * 8. 智能自动重连机制
+ * 9. 丰富的配置选项
+ * 10. 性能优化和调试支持
  */
 
 
@@ -87,7 +112,30 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
   // ============================ 1. 基础连接管理 ============================
 
   // 解构赋值，同时使用true作为默认值
-  const { autoConnect = true, keepLastMessage = true, keepLastError = true } = config
+  const { 
+    autoConnect = true, 
+    keepLastMessage = true, 
+    keepLastError = true,
+    retry: retryConfig = {},
+    debug = false
+  } = config
+
+  // 默认重连配置
+  const defaultRetryConfig: RetryConfig = {
+    enabled: true,
+    maxAttempts: 5,
+    initialDelay: 1000,
+    maxDelay: 30000,
+    backoffFactor: 2,
+    retryOnError: [
+      SSEErrorType.CONNECTION_FAILED,
+      SSEErrorType.CONNECTION_LOST,
+      SSEErrorType.CONNECTION_CLOSED,
+      SSEErrorType.NETWORK_ERROR
+    ]
+  }
+
+  const finalRetryConfig: RetryConfig = { ...defaultRetryConfig, ...retryConfig }
   
   // SSE 客户端实例引用
   // 整个生命周期返回同一个引用，适用于与渲染无关的持久化对象上。 
@@ -106,6 +154,121 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
 
   // 最后一条错误引用
   const [lastError, setLastError] = useState<SSEError | null>(null)
+
+  // 重连相关引用
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const retryCountdownRef = useRef<NodeJS.Timeout | null>(null)
+  const isManualDisconnectRef = useRef<boolean>(false)
+
+  // 重连状态
+  const [isRetrying, setIsRetrying] = useState<boolean>(false)
+  const [retryAttempt, setRetryAttempt] = useState<number>(0)
+  const [nextRetryIn, setNextRetryIn] = useState<number>(0)
+
+  // 调试日志辅助函数
+  const debugLog = useCallback((message: string, ...args: any[]) => {
+    if (debug) {
+      console.log(`[useSSE Debug] ${message}`, ...args)
+    }
+  }, [debug])
+
+  // 计算重连延迟时间
+  const calculateRetryDelay = useCallback((attempt: number): number => {
+    const { initialDelay, maxDelay, backoffFactor } = finalRetryConfig
+    const delay = Math.min(
+      initialDelay * Math.pow(backoffFactor, attempt - 1),
+      maxDelay
+    )
+    return delay
+  }, [finalRetryConfig])
+
+  // 清理重连相关状态和定时器
+  const clearRetryState = useCallback(() => {
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current)
+      retryTimeoutRef.current = null
+    }
+    if (retryCountdownRef.current) {
+      clearInterval(retryCountdownRef.current)
+      retryCountdownRef.current = null
+    }
+    setIsRetrying(false)
+    setRetryAttempt(0)
+    setNextRetryIn(0)
+  }, [])
+
+  // 执行自动重连 (执行了一堆的判定条件的检查，最后才执行重连)
+  const scheduleRetry = useCallback(() => {
+    const { enabled, maxAttempts, retryOnError } = finalRetryConfig
+    
+    // 检查是否启用重连
+    if (!enabled) {
+      debugLog('自动重连已禁用')
+      return
+    }
+    
+    // 检查是否为手动断开
+    if (isManualDisconnectRef.current) {
+      debugLog('手动断开连接，跳过自动重连')
+      return
+    }
+    
+    // 检查重连次数限制
+    if (maxAttempts !== -1 && retryAttempt >= maxAttempts) {
+      debugLog(`达到最大重连次数限制 (${maxAttempts})，停止重连`)
+      clearRetryState()
+      return
+    }
+    
+    // 检查错误类型是否可重连
+    if (lastError && !retryOnError.includes(lastError.type)) {
+      debugLog(`错误类型 ${lastError.type} 不在重连列表中，跳过重连`)
+      return
+    }
+    
+    const nextAttempt = retryAttempt + 1
+    const delay = calculateRetryDelay(nextAttempt)
+    
+    debugLog(`计划第 ${nextAttempt} 次重连，延迟 ${delay}ms`)
+    
+    setIsRetrying(true)
+    setRetryAttempt(nextAttempt)
+    setNextRetryIn(Math.ceil(delay / 1000))
+    
+    // 倒计时更新
+    retryCountdownRef.current = setInterval(() => {
+      setNextRetryIn(prev => {
+        if (prev <= 1) {
+          if (retryCountdownRef.current) {
+            clearInterval(retryCountdownRef.current)
+            retryCountdownRef.current = null
+          }
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    
+    // 执行重连
+    retryTimeoutRef.current = setTimeout(() => {
+      debugLog(`执行第 ${nextAttempt} 次重连`)
+      connect()
+    }, delay)
+    
+  }, [finalRetryConfig, retryAttempt, lastError, calculateRetryDelay, clearRetryState, debugLog])
+
+  // 立即重连
+  const retryNow = useCallback(() => {
+    debugLog('立即重连')
+    clearRetryState()
+    connect()
+  }, [clearRetryState])
+
+  // 取消重连
+  const cancelRetry = useCallback(() => {
+    debugLog('取消自动重连')
+    clearRetryState()
+  }, [clearRetryState])
 
   // 创建错误对象的辅助函数
   const createError = useCallback((
@@ -157,6 +320,13 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
     const message = customMessage || `SSE ${type} error occurred` 
     const error = createError(type, message, event, retryable)
 
+    debugLog('SSE 错误:', {
+      type: error.type,
+      message: error.message,
+      retryable: error.retryable,
+      timestamp: error.timestamp
+    })
+
     // 更新错误状态
     if (keepLastError) {
       setLastError(error)
@@ -174,15 +344,15 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
       }
     })
 
-  // 打印错误日志
-  console.error('SSE Error:', {
-    type: error.type,
-    message: error.message,
-    retryable: error.retryable,
-    timestamp: error.timestamp,
-    originalEvent: event
-  })
-  }, [createError, determineErrorType, keepLastError])
+    // 添加重连相关机制
+    if(retryable && finalRetryConfig.enabled) {
+      scheduleRetry()
+    }
+
+
+  }, [createError, determineErrorType, keepLastError, debugLog, finalRetryConfig.enabled, scheduleRetry])
+
+
 
 
   // 初始化客户端实例（这里只是定义了一个函数，没有运行，到connect被调用时才真的运行）
@@ -200,21 +370,36 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
     
     // 防止重复连接
     if (client.isConnected() || client.isConnecting()) {
+      debugLog('连接已存在，跳过重复连接')
       return
     }
+
+    debugLog('开始建立 SSE 连接')
+    isManualDisconnectRef.current = false  // 重置手动断开标记
     
+
     try {
       // 1.开始连接前，设置为"正在连接"状态
       setConnectionState(SSEConnectionState.CONNECTING)
+
+      //清除之前的错误状态和重连状态
+      if (keepLastError) {
+        setLastError(null)
+      }
+      clearRetryState()
+
       
       // 2. 注册监听器（这些不会立即执行），执行是在connect以后，在onopen 和 onerror的位置触发（在API里）。  
       const handleOpen = () => {
+        debugLog('SSE 连接已建立')
         setConnectionState(SSEConnectionState.CONNECTED) // 连接成功时执行
+        // 连接成功后重置重连计数
+        setRetryAttempt(0)
       }
       
       // 添加错误监听器 - 使用增强的错误处理函数
       const handleConnectionError = (event: Event) => {
-        console.error('SSE connection error:', event)
+        debugLog('SSE 连接错误:', event)
         handleError(event, 'SSE connection error')
       }
       
@@ -236,12 +421,12 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
       })  
       
     } catch (error) {
-
+      debugLog('创建 SSE 连接失败:', error)
       const connectionError = createError(
         SSEErrorType.CONNECTION_FAILED, // 初始连接失败
         `Failed to connect SSE: ${error}`,
         undefined,
-        false
+        true
       )
 
       if (keepLastError) {
@@ -249,14 +434,16 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
       }
 
       setConnectionState(SSEConnectionState.ERROR)
-      console.error('Failed to connect SSE:', error)
 
-      // 通知所有错误监听器
+      // 启动自动重连
+      if (finalRetryConfig.enabled) {
+        scheduleRetry()
+      }
     }
     // 在这个例子里，虽然initalizeClient永远不会变，但不添加出现： react的规范错误， ESlint错误，技术上不必要，但规范上必须声明。
     // 规范：react要求useCallback的依赖数组必须包含函数体内所使用的所有响应式值，即重新渲染时可能改变的值。 
     // 响应式值包括： state, props, 计算值， 函数返回值， 非响应式如useRef返回的值， 最后是普通常量。
-  }, [initializeClient, handleError, createError, keepLastError]) 
+  }, [initializeClient, handleError, createError, keepLastError, clearRetryState, debugLog, finalRetryConfig.enabled, scheduleRetry]) 
   
 
 
@@ -324,7 +511,7 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
 
   // 订阅特定事件类型的消息, 语法：(()=void)是返回值类型的声明，表明是一个不接受参数无返回值的函数，通常是用户取消订阅。 
   const subscribe = useCallback((eventType: string, listener: MessageListener):(() => void) => {
-    console.log('执行订阅', eventType)
+    debugLog(`订阅事件类型: ${eventType}`)
 
     // （1）初始化客户端实例
     // 在connect里，其实已经做了初始化
@@ -337,24 +524,23 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
       listenersRef.current.set(eventType, new Set())
     }
     listenersRef.current.get(eventType)?.add(listener)
-    console.log('listenersRef', listenersRef.current)
 
 
     //（3）监听事件，并调用handleMessage进行处理
     // 创建SSE事件监听函数
     const sseListener: SSEEventListener = (event: MessageEvent) => {
-      console.log('执行sseListener', eventType, event)
       handleMessage(eventType, event)
     }
 
     // 注册到SSE客户端（做了连接检查，所以只有已经连接了，才注册到sse客户端）
     if (client.hasEventSource()) {
-      console.log('执行addEventListener', eventType)
       client.addEventListener(eventType, sseListener)
     }
 
     // （4）返回取消订阅函数
     return () => {
+      debugLog(`取消订阅事件类型: ${eventType}`)
+      
       //从内部跟踪中移除
       const listeners = listenersRef.current.get(eventType)
       if(listeners) {
@@ -370,7 +556,7 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
       }
   
     }
-  },[initializeClient, handleMessage])
+  },[initializeClient, handleMessage, debugLog])
 
     // 订阅默认 message 事件的便捷方法
   const subscribeToMessage = useCallback((listener: MessageListener): (() => void) => {
@@ -383,14 +569,20 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
 
   // 清除错误状态
   const clearError = useCallback(() => {
+    debugLog('清除错误状态')
     setLastError(null)
+
+    // 取消正在进行的重连
+    clearRetryState()
     
     // 如果当前是错误状态且没有连接，重置为断开状态
     if (connectionState === SSEConnectionState.ERROR && !clientRef.current?.isConnected()) {
       setConnectionState(SSEConnectionState.DISCONNECTED)
     }
-  }, [connectionState])
+  }, [connectionState, clearRetryState, debugLog])
 
+
+  
   const subscribeToError = useCallback((listener: ErrorListener): (() => void) => {
     errorListenersRef.current.add(listener)
 
@@ -403,6 +595,9 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
 
   // 断开连接方法
   const disconnect = useCallback(() => {
+    debugLog('主动断开 SSE 连接')
+    isManualDisconnectRef.current = true  // 标记为手动断开
+
     if (clientRef.current) {
       clientRef.current.close()
       setConnectionState(SSEConnectionState.DISCONNECTED)
@@ -414,6 +609,9 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
       // 清理错误监听器
       errorListenersRef.current.clear()
 
+      // 清理重连状态
+      clearRetryState()
+
       // 清理最后一条消息
       if(keepLastMessage) {
         setLastMessage(null)
@@ -424,20 +622,22 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
         setLastError(null)
       }
     }
-  }, [keepLastMessage, keepLastError])
+  }, [keepLastMessage, keepLastError, clearRetryState, debugLog])
 
 
   // 自动连接效果 (真正开始执行)
   useEffect(() => {
     if (autoConnect) {
+      debugLog('自动连接启用，开始连接')
       connect()
     }
     
     // 组件卸载时自动清理(防泄漏)
     return () => {
+      debugLog('组件卸载，清理 SSE 连接')
       disconnect()
     }
-  }, [autoConnect, connect, disconnect])
+  }, [autoConnect, connect, disconnect, debugLog])
   
   // 计算派生状态
   const isConnected = connectionState === SSEConnectionState.CONNECTED
@@ -453,10 +653,19 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
     hasError,
     lastError,
 
+    // 重连状态
+    isRetrying,
+    retryAttempt,
+    nextRetryIn,
+
     // 操作方法
     connect,
     disconnect,
     clearError,
+
+    // 重连控制
+    retryNow,
+    cancelRetry,
 
     // 消息订阅
     subscribe,
