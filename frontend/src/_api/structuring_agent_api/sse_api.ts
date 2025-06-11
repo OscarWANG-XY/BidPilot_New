@@ -2,9 +2,9 @@
  //纯净的SSE API层 - 只负责底层EventSource连接管理
  //不包含任何业务逻辑、重连策略或状态管理
 
-const TOKEN = localStorage.getItem('token') || ''
-const BASE_URL = window.location.origin
-const PROJECT_ID = 'f6db0cbe-e7af-4300-8335-01ba4ffdbb93'
+// const TOKEN = localStorage.getItem('token') || ''
+// const BASE_URL = window.location.origin
+// const PROJECT_ID = 'f6db0cbe-e7af-4300-8335-01ba4ffdbb93'
 
   
   // 事件监听器类型
@@ -19,6 +19,7 @@ const PROJECT_ID = 'f6db0cbe-e7af-4300-8335-01ba4ffdbb93'
     private errorListeners: Set<SSEErrorListener> = new Set();  // 用来存储错误事件监听函数的集合
     private openListeners: Set<SSEOpenListener> = new Set();  // 用来存储连接打开事件监听函数的集合
   
+    constructor(public url: string) {}
 
     //建立SSE连接, 返回EventSource实例
     connect(): EventSource {
@@ -27,9 +28,9 @@ const PROJECT_ID = 'f6db0cbe-e7af-4300-8335-01ba4ffdbb93'
         this.close();
       }
   
-      const url = `${BASE_URL}/fastapi/api/v1/structuring/sse/${PROJECT_ID}?token=${TOKEN}`
+      // const url = `${BASE_URL}/fastapi/api/v1/structuring/sse/${PROJECT_ID}?token=${TOKEN}`
       try {
-        this.eventSource = new EventSource(url);
+        this.eventSource = new EventSource(this.url);
   
         // 设置内置事件监听器
         this.setupInternalListeners();
