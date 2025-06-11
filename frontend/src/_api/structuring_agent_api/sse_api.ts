@@ -18,8 +18,13 @@
     private eventListeners: Map<string, Set<SSEEventListener>> = new Map();  // 用来存储消息事件监听函数的集合
     private errorListeners: Set<SSEErrorListener> = new Set();  // 用来存储错误事件监听函数的集合
     private openListeners: Set<SSEOpenListener> = new Set();  // 用来存储连接打开事件监听函数的集合
+    private url: string = '';
   
-    constructor(public url: string) {}
+    constructor(public projectId: string) {
+      const TOKEN = localStorage.getItem('token') || ''
+      const BASE_URL = window.location.origin
+      this.url = `${BASE_URL}/fastapi/api/v1/structuring/sse/${projectId}?token=${TOKEN}`
+    }
 
     //建立SSE连接, 返回EventSource实例
     connect(): EventSource {
