@@ -18,9 +18,14 @@ export const queryKeys = {
 type AgentStateQueryOptions = Omit<UseQueryOptions<StateStatusResponse>, 'queryKey' | 'queryFn'>;
 type SSEHistoryQueryOptions = Omit<UseQueryOptions<SSEHistoryResponse>, 'queryKey' | 'queryFn'>;
 
-export const useQueries = () => {
+export const useQueries = (
+  projectId: string,
+  options?: AgentStateQueryOptions,
+  sseOptions?: SSEHistoryQueryOptions,
+) => {
   // 获取react-query的客户端实例，用于管理和操作缓存数据
   const queryClient = useQueryClient();
+
 
   /** -----------------------------------------------
    * 获取代理状态的查询钩子
@@ -28,10 +33,7 @@ export const useQueries = () => {
    * @param options 额外的查询选项
    * @returns UseQueryResult<StateStatusResponse>
    */
-  const agentStateQuery = (
-    projectId: string, 
-    options?: AgentStateQueryOptions
-  ): UseQueryResult<StateStatusResponse> => useQuery({
+  const agentStateQuery = (): UseQueryResult<StateStatusResponse> => useQuery({
     // 查询键
     queryKey: queryKeys.agentState(projectId),
     // 简洁写法：
@@ -62,10 +64,7 @@ export const useQueries = () => {
    * @param options 额外的查询选项
    * @returns UseQueryResult<SSEHistoryResponse>
    */
-  const sseHistoryQuery = (
-    projectId: string,
-    options?: SSEHistoryQueryOptions
-  ): UseQueryResult<SSEHistoryResponse> => useQuery({
+  const sseHistoryQuery = (): UseQueryResult<SSEHistoryResponse> => useQuery({
     queryKey: queryKeys.sseHistory(projectId),
 
     // 简洁写法：
@@ -86,7 +85,7 @@ export const useQueries = () => {
     refetchOnMount:false, // 当组件挂载时，不重新获取数据
     // refetchInterval: 10 * 1000, // 每10秒自动重新获取
     // notifyOnChangeProps: ['data', 'error', 'isLoading', 'isFetching'], // 用来通知组件重新渲染的依赖项
-    ...options,
+    ...sseOptions,
   });
 
 
@@ -95,7 +94,7 @@ export const useQueries = () => {
    * 手动刷新代理状态
    * @param projectId 项目ID
    */
-  const refreshAgentState = (projectId: string) => {
+  const refreshAgentState = () => {
     queryClient.invalidateQueries({
       queryKey: queryKeys.agentState(projectId)
     });
@@ -106,7 +105,7 @@ export const useQueries = () => {
    * 手动刷新SSE历史记录
    * @param projectId 项目ID
    */
-  const refreshSSEHistory = (projectId: string) => {
+  const refreshSSEHistory = () => {
     queryClient.invalidateQueries({
       queryKey: queryKeys.sseHistory(projectId)
     });
@@ -117,7 +116,7 @@ export const useQueries = () => {
    * 清除特定项目的所有缓存
    * @param projectId 项目ID
    */
-  const clearProjectCache = (projectId: string) => {
+  const clearProjectCache = () => {
     queryClient.removeQueries({
       queryKey: [...queryKeys.all, projectId]
     });
@@ -127,6 +126,7 @@ export const useQueries = () => {
   // 返回所有查询钩子和操作方法， 不建议使用useMemo，
   return useMemo(() => ({
     // 查询钩子
+    
     agentStateQuery,
     sseHistoryQuery,
     

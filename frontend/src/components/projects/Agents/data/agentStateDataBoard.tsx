@@ -9,14 +9,14 @@ const AgentStateDataBoard: React.FC<StructuringAgentProps> = ({
   projectId
 }) => {
   // 获取查询hook实例
-  const { agentStateQuery } = useQueries();
+  const { agentStateQuery } = useQueries(projectId);
 
   // 执行查询
   const {
     data: agentStateData,
     isLoading: isAgentStateLoading,
     error: agentStateError
-  } = agentStateQuery(projectId);
+  } = agentStateQuery();
 
 
   // 数据派生计算
