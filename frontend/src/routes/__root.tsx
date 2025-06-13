@@ -2,7 +2,7 @@
 // 1. AuthenticatedLayout() 管理 认证前，认证中，认证后，不同阶段的页面渲染
 // 2. createRootRoute() 创建根路由，beforeLoad管理认证前导向， 而根路由主要管理认证后的页面和内容加载。
 
-import { createRootRoute, Outlet, redirect, useLocation} from '@tanstack/react-router'    // 引入路由器
+import { createRootRoute, Outlet, redirect, useLocation, Link } from '@tanstack/react-router'    // 引入路由器
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'  // 引入路由器调试工具
 import { useAuth, AuthProvider } from '@/_hooks/auth-context'  // 引入认证上下文
 import { AppSidebar } from "@/components/layout/app-sidebar"  // 引入自定义的侧边栏组件
@@ -120,10 +120,12 @@ function AuthenticatedLayout() {
             {/* 面包屑导航 */}
             <Breadcrumb>
               <BreadcrumbList>
-                {/* 首页面包屑（中屏以上显示） */}
+                {/* 首页面包屑（中屏以上显示） - 使用 Link 组件 */}
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="#">
-                    执智者
+                  <BreadcrumbLink asChild>
+                    <Link to="/">
+                      BIDPILOT
+                    </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 
