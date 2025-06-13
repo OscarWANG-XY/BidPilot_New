@@ -57,67 +57,30 @@ class TenderFile(BaseModel):
 
 
 
+class SSEData(BaseModel):
+    """SSE数据"""
+    # 背景信息
+    project_stage: str = Field(description="项目阶段")
+    agent_in_use: str = Field(description="agent名称")
+    agent_state: str = Field(description="agent状态")
+    state_message: str = Field(description="agent消息")
+    created_at: datetime = Field(default_factory=datetime.now)
 
-# 定义了SSEMessage的结构 
+    # results to show
+    show_documents: bool = Field(description="是否展示原始文档")
+    doc_names: List[str] = Field(description="文档名称")
+    allow_edit: bool = Field(description="是否允许编辑")
+    show_suggestions: bool = Field(description="是否展示suggestions")
+    suggestions_names: List[str] = Field(description="suggestions名称")
+
+    # user guide
+    user_action_required: bool = Field(description="是否要用户跟进操作？")
+    action_completed: bool = Field(description="用户操作是否完成？")
+    action_type: str = Field(description="用户操作类型") # "edit_document", "upload_document"
+    action_guide: str = Field(description="用户引导信息")
+
+
 class SSEMessage(BaseModel):
-    """SSE消息格式 - 适配Redis推送"""
-    event: str = Field(description="事件类型")
-    data: Dict[str, Any] = Field(description="消息数据")
-    timestamp: datetime = Field(default_factory=datetime.now)
-    
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
-
-# 状态更新事件， 继承了SSEMessage，内部会格式化为SSE协议需要的格式。 
-class StateUpdateEvent(SSEMessage):
-    """状态更新事件"""
-    event: str = "state_update"  # SSE 协议要求指定事件名。 
-    
-    def __init__(self, 
-                 project_id: str,
-                 from_state: Optional[StateEnum],
-                 to_state: StateEnum,
-                 updated_progress: int = 0,
-                 message: str = "",
-                 **kwargs):
-        super().__init__(
-            data={
-                "projectId": project_id,
-                "fromState": from_state.value if from_state is not None else None,
-                "toState": to_state.value,
-                "updatedProgress": updated_progress,
-                "message": message,
-                **kwargs
-            }
-        )
-
-class ErrorEvent(SSEMessage):
-    """错误事件"""
-    event: str = "error"
-    
-    def __init__(self, 
-                 project_id: str,
-                 error_at_state: StateEnum,
-                 error_at_progress: int,
-                 error_type: str,
-                 error_message: str,
-                 **kwargs):
-        super().__init__(
-            data={
-                "projectId": project_id,
-                "errorAtState": error_at_state.value,
-                "errorAtProgress": error_at_progress,
-                "errorType": error_type,
-                "errorMessage": error_message,
-                "message":"执行过程中遇到错误，将重试",
-                **kwargs
-            }
-        )
-
-
-class SSEMessageRecord(BaseModel):
     """SSE消息记录模型"""
     #定义了序列化时，对于datetime类型的处理方式， 这个是pydantic v2的语法
     model_config = ConfigDict(
@@ -126,10 +89,10 @@ class SSEMessageRecord(BaseModel):
         }
     )
     
-    message_id: str = Field(description="消息唯一标识")
+    id: str = Field(description="消息唯一标识")
     event: str = Field(description="事件类型: state_update, error")
-    data: Dict[str, Any] = Field(description="事件数据，支持多种事件类型")
-    timestamp: datetime = Field(default_factory=datetime.now, description="消息时间戳")
+    data: SSEData = Field(description="事件数据，支持多种事件类型")
+    retry: int = Field(description="重试次数")
 
 
 class SSEMessageHistory(BaseModel):
@@ -142,6 +105,6 @@ class SSEMessageHistory(BaseModel):
     )
     
     project_id: str
-    messages: List[SSEMessageRecord] = Field(default_factory=list)
+    messages: List[SSEMessage] = Field(default_factory=list)
     total_messages: int = Field(default=0)
     last_updated: datetime = Field(default_factory=datetime.now)

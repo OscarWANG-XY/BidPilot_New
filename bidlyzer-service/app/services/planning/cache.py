@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 from app.services.structuring.schema import (
     AgentStateData, AgentStateHistory, 
-    SSEMessageRecord, SSEMessageHistory
+    SSEMessage, SSEMessageHistory
     )
 
 

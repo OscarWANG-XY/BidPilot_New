@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 from app.services.structuring.schema import (
     AgentStateData, AgentStateHistory, 
-    SSEMessageRecord, SSEMessageHistory
+    SSEMessage, SSEMessageHistory
     )
 
 
@@ -165,23 +165,22 @@ class Cache:
 
 
     # 存储agent_sse_message_history到Redis
-    async def add_agent_sse_message_to_history(self, event: str, event_data: Dict[str, Any]) -> bool:
+    async def add_agent_sse_message_to_history(self, sse_message: SSEMessage) -> bool:
         """存储SSE消息到历史记录"""
         try:
-            # 生成消息记录 - 只使用SSEMessageRecord实际支持的字段
-            message_record = SSEMessageRecord(
-                message_id=self._generate_message_id(),
-                event=event,
-                data=event_data["data"],
-            )
             
             # 获取现有消息历史, 数据格式为SSEMessageHistory
             message_history = await self.get_agent_sse_message_history()
             if not message_history:
-                message_history = SSEMessageHistory(project_id=self.project_id)
+                message_history = SSEMessageHistory(
+                    project_id=self.project_id,
+                    messages=[],
+                    total_messages=0,
+                    last_updated=datetime.now()
+                )
             
             # 添加新消息
-            message_history.messages.append(message_record)
+            message_history.messages.append(sse_message)
             message_history.last_updated = datetime.now()
             message_history.total_messages = len(message_history.messages)
             

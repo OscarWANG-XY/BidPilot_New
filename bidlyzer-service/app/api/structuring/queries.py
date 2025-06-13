@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from typing import List
 from datetime import datetime
 from pydantic import BaseModel
-from app.services.structuring.schema import AgentStateData, SSEMessageRecord
+from app.services.structuring.schema import AgentStateData, SSEMessage
 
 import logging
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ class SSEHistoryResponse(BaseModel):
     project_id: str
     total_messages: int
     last_updated: datetime
-    messages: List[SSEMessageRecord]
+    messages: List[SSEMessage]
 
 # 路由函数指定了response_model,会自动序列化，对于pydantic的自定义模型，不需要model_dump()转字典
 @router.get("/agent-state/{project_id}", response_model=StateStatusResponse)

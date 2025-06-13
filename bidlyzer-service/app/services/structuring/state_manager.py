@@ -3,10 +3,11 @@
 
 from typing import Optional, Dict, Any
 from datetime import datetime
+import uuid
 from app.core.redis_helper import RedisClient
 from app.services.structuring.storage import Storage
 from app.services.structuring.cache import Cache
-from app.services.structuring.schema import AgentStateData, StateUpdateEvent, ErrorEvent
+from app.services.structuring.schema import AgentStateData, SSEData, SSEMessage
 from .state import (
     StateEnum, ProcessingStep, UserAction,
     StateRegistry, 
@@ -132,22 +133,41 @@ class StructuringAgentStateManager:
             
             # 创建状态更新事件， event是一种消息结构体，在这里用于封装一个状态变化的通知。 
             # event是服务端事件（Server-Sent Event, SSE）协议下的数据结构
-            event = StateUpdateEvent(
-                project_id=agent_state.project_id,
-                from_state=state_config.previous_state,
-                to_state=agent_state.state,
-                updated_progress=agent_state.overall_progress,
-                message=message or (state_config.description if state_config else "")
+            event_data = SSEData(
+                project_stage="STRUCTURING",
+                agent_in_use="STRUCTURING AGENT",
+                agent_state=agent_state.state,
+                state_message=message or (state_config.description if state_config else ""),
+                created_at=datetime.now(),
+
+                # results to show
+                show_documents=False,
+                doc_names=[],
+                allow_edit=False,
+                show_suggestions=False,
+                suggestions_names= ["review_suggestions"],
+
+                # user guide
+                user_action_required=False,
+                action_completed=False,
+                action_type="edit_document",
+                action_guide="请编辑文档"
+            )
+
+            event_payload = SSEMessage(
+                event="state_update",
+                data=event_data.model_dump(),  # Convert SSEData to dict
+                id=str(uuid.uuid4()),
+                retry=0
             )
             
             # 发布到Redis通道
             channel = self.cache.get_channel_keys()['sse_channel']
-            await RedisClient.publish(channel, event.model_dump_json())
+            await RedisClient.publish(channel, event_payload.model_dump_json())
             
             # 存储消息到历史记录
             await self.cache.add_agent_sse_message_to_history(
-                event="state_update",
-                event_data=event.model_dump()
+                sse_message=event_payload
             )
             
             logger.debug(f"Published state update for project {agent_state.project_id}")
@@ -201,29 +221,49 @@ class StructuringAgentStateManager:
             # 更新状态为失败
             agent_state = await self.cache.get_agent_state()
             if agent_state:
-                error_at_state = agent_state.state
-                error_at_progress = agent_state.overall_progress
+                # error_at_state = agent_state.state
+                # error_at_progress = agent_state.overall_progress
                 agent_state.state = StateEnum.FAILED
                 agent_state.updated_at = datetime.now()
                 
                 await self.cache.add_agent_state_to_history(agent_state)
             
             # 发布错误事件
-            error_event = ErrorEvent(
-                project_id=self.project_id,
-                error_at_state=error_at_state,
-                error_at_progress=error_at_progress,
-                error_type=error_type,
-                error_message=error_message,
+            event_data = SSEData(
+                project_stage="STRUCTURING",
+                agent_in_use="STRUCTURING AGENT",
+                agent_state=agent_state.state,
+                state_message=error_message,
+                created_at=datetime.now(),
+
+                # results to show
+                show_documents=False,
+                doc_names=[],
+                allow_edit=False,
+                show_suggestions=False,
+                suggestions_names= ["review_suggestions"],
+
+                # user guide
+                user_action_required=False,
+                action_completed=False,
+                action_type="edit_document",
+                action_guide="请编辑文档"
             )
+
+            event_payload = SSEMessage(
+                event="error",
+                data=event_data,
+                id=str(uuid.uuid4()),
+                retry=0
+            )
+
             
             channel = self.cache.get_channel_keys()['sse_channel']
-            await RedisClient.publish(channel, error_event.model_dump_json())
+            await RedisClient.publish(channel, event_payload.model_dump_json())
             
             # 存储错误消息到历史记录
             await self.cache.add_agent_sse_message_to_history(
-                event="error",
-                event_data=error_event.model_dump()
+                sse_message=event_payload
             )
             
         except Exception as e:

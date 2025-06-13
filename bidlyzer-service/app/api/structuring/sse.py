@@ -87,6 +87,7 @@ async def sse_stream(project_id: str, request: Request):
                             message_data = json.loads(message['data']) if isinstance(message['data'], str) else message['data']
                             
                             # 格式化为SSE格式
+                            # .get(key, default)的语法，如果key不存在，则返回default, 所以，以下如果没有event，则返回update作为默认。
                             event_type = message_data.get("event", "update")
                             event_data = message_data.get("data", message_data)
                             
