@@ -6,13 +6,20 @@ import { createRootRoute, Outlet, redirect, useLocation, Link } from '@tanstack/
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'  // 引入路由器调试工具
 import { useAuth, AuthProvider } from '@/_hooks/auth-context'  // 引入认证上下文
 import { AppSidebar } from "@/components/layout/app-sidebar"  // 引入自定义的侧边栏组件
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator 
-} from "@/components/ui/breadcrumb"  // 引入ui面包屑组件
-import { Separator } from "@/components/ui/separator"  // 引入ui分割线组件
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"  // 引入ui侧边栏组件
+// import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator 
+// } from "@/components/ui/breadcrumb"  // 引入ui面包屑组件
+// import { Separator } from "@/components/ui/separator"  // 引入ui分割线组件
+import { 
+  SidebarInset, 
+  SidebarProvider, 
+  SidebarTrigger 
+} from "@/components/ui/sidebar"  // 引入ui侧边栏组件
 
-import { useProjects } from "@/_hooks/useProjects/useProjects"
-import { useMemo } from "react"
+// import { useProjects } from "@/_hooks/useProjects/useProjects"
+// import { useMemo } from "react"
+
+// import { ProjectNavigation } from '@/components/projects/ProjectLayout/ProjectNavigation_tab';
+//  
 
 
 
@@ -21,7 +28,7 @@ function AuthenticatedLayout() {
   
   // 获取认证状态， 用于下面根据 “加载中...” 和 “非加载中...”的非同场景进行不同的渲染。
   const { isLoading } = useAuth()
-  const { singleProjectQuery } = useProjects()
+  // const { singleProjectQuery } = useProjects()
 
   // 检查当前路径是否是认证相关的页面
   // 在当前应用里，以 /auth 开头的路径，有登录（/auth/login）、注册（/auth/register），以及忘记密码（/auth/forgot-password）。 
@@ -30,56 +37,71 @@ function AuthenticatedLayout() {
   const isTestPage = location.pathname.startsWith('/testground')
 
 
-  // 获取当前项目信息的逻辑
-  const currentProjectInfo = useMemo(() => {
-    const pathname = location.pathname
+
+  // // 定义 Tab 配置
+  // const TABS = [
+  //   {
+  //     value: 'tender-analysis',
+  //     label: '招标文件分析',
+  //     to: '/projects/$projectId/tender-analysis',
+  //   },
+  //   {
+  //     value: 'bid-writing',
+  //     label: '投标文件编写',
+  //     to: '/projects/$projectId/bid-writing',
+  //   },
+  // ];
+
+  // const currentTab = TABS.find((tab) => 
+  //   location.pathname.endsWith(tab.value)
+  // )?.value || TABS[0].value;
+
+  // // 获取当前项目信息的逻辑
+  // const currentProjectInfo = useMemo(() => {
+  //   const pathname = location.pathname
     
-    // 获取当前路径中的projectId
-    const getCurrentProjectId = () => {
-      // 支持多种项目路由格式：/projects/:projectId, /project/:projectId
-      const pathSegments = pathname.split('/').filter(Boolean)
-      const projectIndex = pathSegments.findIndex(segment => 
-        segment === 'projects' || segment === 'project'
-      )
+  //   // 获取当前路径中的projectId
+  //   const getCurrentProjectId = () => {
+  //     // 支持多种项目路由格式：/projects/:projectId, /project/:projectId
+  //     const pathSegments = pathname.split('/').filter(Boolean)
+  //     const projectIndex = pathSegments.findIndex(segment => 
+  //       segment === 'projects' || segment === 'project'
+  //     )
       
-      if (projectIndex !== -1 && pathSegments[projectIndex + 1]) {
-        return pathSegments[projectIndex + 1]
-      }
+  //     if (projectIndex !== -1 && pathSegments[projectIndex + 1]) {
+  //       return pathSegments[projectIndex + 1]
+  //     }
       
-      // 使用正则表达式作为备用方案
-      const projectIdMatch = pathname.match(/\/projects?\/([^\/]+)/)
-      return projectIdMatch ? projectIdMatch[1] : null
-    }
+  //     // 使用正则表达式作为备用方案
+  //     const projectIdMatch = pathname.match(/\/projects?\/([^\/]+)/)
+  //     return projectIdMatch ? projectIdMatch[1] : null
+  //   }
 
-    const projectId = getCurrentProjectId()
+  //   const projectId = getCurrentProjectId()
     
-    // 如果不在项目路径下，返回null
-    if (!projectId) {
-      return null
-    }
+  //   // 如果不在项目路径下，返回null
+  //   if (!projectId) {
+  //     return null
+  //   }
 
-    const { data: project } = singleProjectQuery(projectId)
+  //   const { data: project } = singleProjectQuery(projectId)
     
-    if (project) {
-      return {
-        id: projectId,
-        name: project.projectName,
-        status: project.status
-      }
-    }
+  //   if (project) {
+  //     return {
+  //       id: projectId,
+  //       name: project.projectName,
+  //       status: project.status
+  //     }
+  //   }
     
-    // 如果找不到项目信息，返回基本信息
-    return {
-      id: projectId,
-      name: `项目 ${projectId}`,
-      status: '未知'
-    }
-  }, [location.pathname, singleProjectQuery])
+  //   // 如果找不到项目信息，返回基本信息
+  //   return {
+  //     id: projectId,
+  //     name: `项目 ${projectId}`,
+  //     status: '未知'
+  //   }
+  // }, [location.pathname, singleProjectQuery])
     
-
-
-
-
   // 场景1：正在加载... 如, 用户正在登录中...
   if (isLoading) {
     return <div>Loading...</div>
@@ -102,71 +124,15 @@ function AuthenticatedLayout() {
       {/* 应用侧边栏组件 */}
       <AppSidebar />
       
-      {/* 侧边栏内容区域 */}
-      <SidebarInset className="flex flex-col h-screen overflow-hidden">
-        {/* 顶部导航栏 */}
-        <header className="flex h-12 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[data-collapsible=icon]/sidebar-wrapper:h-12">
-          {/* 导航栏内部容器 */}
-          <div className="flex items-center gap-2 px-4 /* 使用flex布局，垂直居中，子元素间距8px，左右外边距16px */">
-            {/* 侧边栏触发器按钮 */}
-            <SidebarTrigger className="-ml-1" />
-            
-            {/* 垂直分隔线 */}
-            <Separator 
-              orientation="vertical"  /* 垂直方向 */
-              className="mr-2 h-4" 
-            />
-            
-            {/* 面包屑导航 */}
-            <Breadcrumb>
-              <BreadcrumbList>
-                {/* 首页面包屑（中屏以上显示） - 使用 Link 组件 */}
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink asChild>
-                    <Link to="/">
-                      BIDPILOT
-                    </Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                
-                {/* 只有在项目路径下才显示分隔符和项目名称 */}
-                {currentProjectInfo && (
-                  <>
-                    {/* 面包屑分隔符（中屏以上显示） */}
-                    <BreadcrumbSeparator className="hidden md:block" />
-                    
-                    {/* 当前项目面包屑 */}
-                    <BreadcrumbItem>
-                      <BreadcrumbPage className="flex items-center gap-2">
-                        <span>{currentProjectInfo.name}</span>
-                        {/* 可选：显示项目状态 */}
-                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                          {currentProjectInfo.status}
-                        </span>
-                      </BreadcrumbPage>
-                    </BreadcrumbItem>
-                  </>
-                )}
-              </BreadcrumbList>
-            </Breadcrumb>
-
-
+      <SidebarInset>
+        <div className="flex h-screen overflow-hidden">
+          <div className="flex flex-col w-12 flex-shrink-0 p-2">
+            <SidebarTrigger />
           </div>
-        </header>
-        
-        {/* 主内容区域 */}
-        <div className="
-          flex             /* flex布局 */
-          flex-1          /* 占据剩余空间 */
-          flex-col        /* 垂直排列 */
-          gap-4          /* 子元素间距16px */
-          p-6            /* 内边距16px */
-          pt-0           /* 顶部内边距0（与header无缝连接） */
-          overflow-auto   /* 内容溢出时显示滚动条 */
-          h-full         /* 占满高度 */
-        ">
-          {/* 路由出口（渲染子路由内容） */}
-          <Outlet />
+          
+          <main className="flex-1 overflow-auto p-4">
+            <Outlet />
+          </main>
         </div>
       </SidebarInset>
       
