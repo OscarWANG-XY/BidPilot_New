@@ -48,7 +48,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, childre
     location.pathname.endsWith(tab.value)
   )?.value || TABS[0].value;
   
-  const { singleProjectQuery, updateProjectStatus } = useProjects();
+  const { singleProjectQuery } = useProjects();
   const { data: project} = singleProjectQuery(projectId);
   const projectStatus = project?.status || ProjectStatus.IN_PROGRESS;
   console.log('project查询结果', project);
@@ -71,28 +71,6 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, childre
     }
   };
   
-  // 2. 项目取消处理
-  const handleCancelProject = async () => {
-    try {
-      await updateProjectStatus({
-        id: projectId,
-        status: ProjectStatus.CANCELLED,
-        remarks: "用户手动取消项目"
-      });
-      
-      toast({
-        title: "项目已取消",
-        description: "项目状态已更新为已取消",
-      });
-    } catch (error: any) {
-      toast({
-        title: "操作失败",
-        description: error?.response?.data?.message || error.message || "取消项目时出错",
-        variant: "destructive",
-      });
-    }
-  };
-  
   // 3. 文档宽度变化处理
   const handleRightPanelWidthChange = (newWidth: number) => {
     setRightPanelWidth(newWidth);
@@ -106,24 +84,26 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, childre
       py-0        /* 垂直内边距为0（保持紧凑布局） */
       h-full      /* 高度100%占满父容器 */
     ">
-      {/* 1. 项目导航组件 */}
-      <ProjectNavigation 
-        tabs={TABS}
-        projectId={projectId}
-        currentTab={currentTab}
-        projectStatus={projectStatus}
-        docDrawerOpen={docDrawerOpen}
-        onDocDrawerToggle={handleDocDrawerToggle}
-        onCancelProject={handleCancelProject}
-      />
-      
-      {/* 2. 项目状态提示组件 */}
-      <ProjectStatusAlert status={projectStatus} />
-      
       {/* 3. 使用 SplitLayout 组件管理左右分栏 */}
       <SplitLayout
         leftContent={
-          <MemoizedLeftContent children={children} />
+          <MemoizedLeftContent>
+            {/* 1. 项目导航组件 */}
+            <ProjectNavigation 
+              tabs={TABS}
+              projectId={projectId}
+              currentTab={currentTab}
+              projectStatus={projectStatus}
+              docDrawerOpen={docDrawerOpen}
+              onDocDrawerToggle={handleDocDrawerToggle}
+            />
+            
+            {/* 2. 项目状态提示组件 */}
+            <ProjectStatusAlert status={projectStatus} />
+            
+            {/* 3. 主要内容 */}
+            {children}
+          </MemoizedLeftContent>
         }
         rightContent={
           <DocumentDrawer 
@@ -140,12 +120,8 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, childre
           />
         }
         isRightPanelOpen={docDrawerOpen}
-        initialRightPanelWidth={rightPanelWidth} //在SplitLayout中，加了一个useEffect,确保props变化进行传递，屏幕大小不会变化
-        className='h-[calc(100vh-9rem)]'
-        // className={docDrawerOpen ? 
-        //   'h-[calc(100vh-9rem)]' :  /* 当抽屉打开时，高度为视口高度减去9rem（144px） */
-        //   ''                          /* 默认高度 */
-        // }
+        initialRightPanelWidth={rightPanelWidth}
+        className='h-screen'
         onWidthChange={(width) => {
           console.log("SplitLayout width changed to:", width);
           setRightPanelWidth(width);

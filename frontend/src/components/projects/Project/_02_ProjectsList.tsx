@@ -21,6 +21,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
+import { useToast } from "@/_hooks/use-toast"
+import { useProjects } from "@/_hooks/useProjects/useProjects"
+import { ProjectStatus } from "@/_types/projects_dt_stru/projects_interface"
 
 interface ProjectListProps {
   projects: Project[]
@@ -41,6 +44,9 @@ export function ProjectList({
   onSort,
   currentSort 
 }: ProjectListProps) {
+
+  const { updateProjectStatus } = useProjects()
+  const { toast } = useToast()
 
   // 处理排序点击
   const handleSortClick = (field: string) => {
@@ -71,6 +77,27 @@ export function ProjectList({
       ? <ArrowUp className="ml-2 h-4 w-4" />
       : <ArrowDown className="ml-2 h-4 w-4" />
   }
+
+  const handleCancelProject = async (projectId: string) => {
+    try {
+      await updateProjectStatus({
+        id: projectId,
+        status: ProjectStatus.CANCELLED,
+        remarks: "用户手动取消项目"
+      });
+      
+      toast({
+        title: "项目已取消",
+        description: "项目状态已更新为已取消",
+      });
+    } catch (error: any) {
+      toast({
+        title: "操作失败",
+        description: error?.response?.data?.message || error.message || "取消项目时出错",
+        variant: "destructive",
+      });
+    }
+  };
 
   // ---------------------------- 组件渲染 ----------------------------
   if (isLoading) return <div>加载中...</div>
@@ -142,7 +169,8 @@ export function ProjectList({
             </Button>
           </TableHead>
           <TableHead>查看/编辑</TableHead>
-          <TableHead className="text-right">操作</TableHead>
+          <TableHead className="text-right">归档</TableHead>          
+          <TableHead className="text-right">删除</TableHead>
         </TableRow>
       </TableHeader>
 
@@ -183,7 +211,42 @@ export function ProjectList({
               >
                 <Eye className="h-4 w-4 text-muted-foreground" />
               </Button>
-            </TableCell>
+            </TableCell>            
+            {/* 归档 */}
+            <TableCell className="text-right">  
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" className="shadow-sm">
+                    {/* 
+                      - variant="destructive"：危险操作按钮（红色）
+                      - size="sm"：小尺寸
+                      - shadow-sm：浅阴影
+                    */}
+                    取消项目
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="border-0 shadow-lg">
+                  {/*
+                    - border-0：移除边框
+                    - shadow-lg：较大的阴影，增强弹窗层次
+                  */}
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>确认取消项目</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      取消项目后，所有相关工作将停止。此操作不可逆，确定要继续吗？
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="shadow-sm">返回</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => handleCancelProject(project.id)} className="shadow-sm">
+                      确认取消
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>              
+            </TableCell>                
+
+            {/* 删除 */}
             <TableCell className="text-right">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
