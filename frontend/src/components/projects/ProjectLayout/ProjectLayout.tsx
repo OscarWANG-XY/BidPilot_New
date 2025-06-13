@@ -14,12 +14,22 @@ import { SplitLayout } from './SplitLayout';
 const TABS = [
   {
     value: 'tender-analysis',
-    label: '招标文件分析',
+    label: 'BidPilot',
     to: '/projects/$projectId/tender-analysis',
   },
   {
     value: 'bid-writing',
-    label: '投标文件编写',
+    label: '项目文件',
+    to: '/projects/$projectId/bid-writing',
+  },
+  {
+    value: 'finalization',
+    label: '最终调优',
+    to: '/projects/$projectId/bid-writing',
+  },
+  {
+    value: 'Expertise',
+    label: '专家建议',
     to: '/projects/$projectId/bid-writing',
   },
 ];

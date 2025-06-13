@@ -160,7 +160,6 @@ export const SplitLayout: React.FC<SplitLayoutProps> = ({
         relative                 /* 创建相对定位上下文 */
         rounded-lg              /* 12px大圆角（比rounded-md更大） */
         overflow-hidden          /* 隐藏溢出内容（保持圆角效果） */
-        shadow-md               /* 中等阴影效果（比shadow-sm更强） */
         ${className}            /* 允许外部传入的额外类名 */
       `}
     >
@@ -170,7 +169,6 @@ export const SplitLayout: React.FC<SplitLayoutProps> = ({
           ${isResizing ? '' : 'transition-all duration-300'} /* 同步主容器的动画控制逻辑 */
           ease-in-out          /* 相同的缓动函数保证动画一致性 */
           overflow-auto        /* 内容溢出时显示滚动条 */
-          bg-gray-50             /* 纯白背景（与右侧面板形成对比） */
         `}
         style={{ 
           width: isRightPanelOpen 
@@ -178,7 +176,18 @@ export const SplitLayout: React.FC<SplitLayoutProps> = ({
             : '100%'                       /* 右侧面板关闭时占满全部宽度 */
         }}
       >
-        {leftContent}   
+        {/* 内容容器，限制最大宽度以提供最佳阅读体验 */}
+        <div 
+          className="
+            w-full               /* 在容器内占满宽度 */
+            max-w-4xl           /* 最大宽度限制为896px，适合大多数内容 */
+            mx-auto             /* 水平居中 */
+            px-6                /* 左右内边距24px，提供呼吸空间 */
+                            /* py为上下内边距16px */
+          "
+        >
+          {leftContent}
+        </div> 
       </div>
       
       {/* 可拖拽调整宽度的分隔线（仅在右侧面板打开时显示） */}
@@ -209,3 +218,19 @@ export const SplitLayout: React.FC<SplitLayoutProps> = ({
     </div>
   );
 };
+
+
+
+
+
+  // 宽度选择说明：
+  
+  // 1. max-w-3xl (768px) - 适合纯文本内容，类似飞书默认宽度   // 768px， 实际宽度要再减去一个内边距px-6 = 48px
+  // 2. max-w-4xl (896px) - 适合混合内容（文本+代码+图片），推荐选择
+  // 3. max-w-5xl (1024px) - 适合代码为主的内容
+  // 4. max-w-6xl (1152px) - 适合宽表格和复杂布局
+  
+  // 根据内容类型选择合适的最大宽度：
+  // - 如果主要是文档阅读：使用 max-w-3xl
+  // - 如果是聊天界面：使用 max-w-4xl
+  // - 如果是代码编辑器：使用 max-w-5xl 或 max-w-6xl

@@ -32,7 +32,7 @@ export const ProjectNavigation: React.FC<ProjectNavigationProps> = ({
   onDocDrawerToggle,
 }) => {
   return (
-    <div className="flex justify-between items-center mb-4 bg-gray-50 p-4 rounded-lg shadow-sm">
+    <div className="flex justify-between items-center mb-0 p-0 rounded-lg">
       {/* 
         外层容器样式：
         - flex：水平排列导航和按钮区域
@@ -47,7 +47,7 @@ export const ProjectNavigation: React.FC<ProjectNavigationProps> = ({
       
       {/* 标签页导航 */}
       <Tabs value={currentTab}>
-        <TabsList className="bg-transparent border-0 p-0 h-auto">
+        <TabsList className="bg-transparent border-0 p-0 h-auto m-0">
           {/*
             标签列表样式：
             - w-auto：宽度自适应
@@ -59,7 +59,7 @@ export const ProjectNavigation: React.FC<ProjectNavigationProps> = ({
               key={tab.value} 
               value={tab.value} 
               className="
-                relative px-3 py-1.5 text-sm font-normal
+                relative px-2 py-1 text-sm font-normal
                 bg-transparent border-0 shadow-none
                 text-muted-foreground hover:text-foreground
                 data-[state=active]:text-foreground

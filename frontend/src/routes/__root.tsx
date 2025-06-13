@@ -126,7 +126,7 @@ function AuthenticatedLayout() {
       
       <SidebarInset>
         <div className="flex h-screen overflow-hidden">
-          <div className="flex flex-col w-12 flex-shrink-0 p-2">
+          <div className="flex flex-col w-8 flex-shrink-0 p-2">
             <SidebarTrigger />
           </div>
           
