@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom/client'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from '@/components/ui/toaster'
+import { ThemeProvider } from '@/_hooks/use-theme'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { persistQueryClient } from '@tanstack/react-query-persist-client'
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
@@ -78,14 +79,16 @@ if (!rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement)
   root.render(
     <StrictMode>
-      <QueryClientProvider client={queryClient}>
-        {/* <ConnectionProvider>
+      <ThemeProvider defaultTheme="system" storageKey="ui-theme">
+        <QueryClientProvider client={queryClient}>
+          {/* <ConnectionProvider>
+            <RouterProvider router={router} />
+          </ConnectionProvider> */}
           <RouterProvider router={router} />
-        </ConnectionProvider> */}
-        <RouterProvider router={router} />
-        <Toaster />
-        <ReactQueryDevtools initialIsOpen={false} />
-      </QueryClientProvider>
+          <Toaster />
+          <ReactQueryDevtools initialIsOpen={false} />
+        </QueryClientProvider>
+      </ThemeProvider>
     </StrictMode>
   )
 }

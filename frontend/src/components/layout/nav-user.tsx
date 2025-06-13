@@ -6,6 +6,9 @@ import {
   CreditCard,
   LogOut,
   Sparkles,
+  Sun,
+  Moon,
+  Monitor,
 } from "lucide-react"
 
 import {
@@ -20,6 +23,9 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
@@ -30,6 +36,7 @@ import {
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/_hooks/auth-context"
 import { useToast } from "@/_hooks/use-toast"
+import { useTheme } from "@/_hooks/use-theme"
 import { UserResponse } from "@/_types/user_dt_stru"
 import { useNavigate } from "@tanstack/react-router"
 
@@ -42,6 +49,7 @@ export function NavUser({
   const { isMobile } = useSidebar()
   const { logout } = useAuth()
   const { toast } = useToast()
+  const { theme, setTheme } = useTheme()
   const navigate = useNavigate()
 
   // 创建一个安全的用户对象，当user为null时使用默认值
@@ -65,6 +73,29 @@ export function NavUser({
         title: "退出失败",
         description: error instanceof Error ? error.message : "请稍后重试",
       })
+    }
+  }
+
+  // -------------------  主题切换方法  -------------------  
+  const getThemeIcon = () => {
+    switch (theme) {
+      case "light":
+        return <Sun className="mr-2 h-4 w-4" />
+      case "dark":
+        return <Moon className="mr-2 h-4 w-4" />
+      default:
+        return <Monitor className="mr-2 h-4 w-4" />
+    }
+  }
+
+  const getThemeText = () => {
+    switch (theme) {
+      case "light":
+        return "浅色主题"
+      case "dark":
+        return "深色主题"
+      default:
+        return "跟随系统"
     }
   }
 
@@ -132,6 +163,29 @@ export function NavUser({
                 <Bell className="mr-2 h-4 w-4" />
                 系统设置
               </DropdownMenuItem> */}
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  {getThemeIcon()}
+                  {getThemeText()}
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem onClick={() => setTheme("light")}>
+                    <Sun className="mr-2 h-4 w-4" />
+                    浅色主题
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme("dark")}>
+                    <Moon className="mr-2 h-4 w-4" />
+                    深色主题
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme("system")}>
+                    <Monitor className="mr-2 h-4 w-4" />
+                    跟随系统
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
