@@ -11,6 +11,9 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { Separator } from "@/components/ui/separator"  // 引入ui分割线组件
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"  // 引入ui侧边栏组件
 
+import { useProjects } from "@/_hooks/useProjects/useProjects"
+import { useMemo } from "react"
+
 
 
 // ---------------------- AuthenticatedLayout负责渲染 不同认证状态下 的用户界面 ----------------------
@@ -18,12 +21,63 @@ function AuthenticatedLayout() {
   
   // 获取认证状态， 用于下面根据 “加载中...” 和 “非加载中...”的非同场景进行不同的渲染。
   const { isLoading } = useAuth()
+  const { singleProjectQuery } = useProjects()
 
   // 检查当前路径是否是认证相关的页面
   // 在当前应用里，以 /auth 开头的路径，有登录（/auth/login）、注册（/auth/register），以及忘记密码（/auth/forgot-password）。 
   const location = useLocation()
   const isAuthPage = location.pathname.startsWith('/auth')
   const isTestPage = location.pathname.startsWith('/testground')
+
+
+  // 获取当前项目信息的逻辑
+  const currentProjectInfo = useMemo(() => {
+    const pathname = location.pathname
+    
+    // 获取当前路径中的projectId
+    const getCurrentProjectId = () => {
+      // 支持多种项目路由格式：/projects/:projectId, /project/:projectId
+      const pathSegments = pathname.split('/').filter(Boolean)
+      const projectIndex = pathSegments.findIndex(segment => 
+        segment === 'projects' || segment === 'project'
+      )
+      
+      if (projectIndex !== -1 && pathSegments[projectIndex + 1]) {
+        return pathSegments[projectIndex + 1]
+      }
+      
+      // 使用正则表达式作为备用方案
+      const projectIdMatch = pathname.match(/\/projects?\/([^\/]+)/)
+      return projectIdMatch ? projectIdMatch[1] : null
+    }
+
+    const projectId = getCurrentProjectId()
+    
+    // 如果不在项目路径下，返回null
+    if (!projectId) {
+      return null
+    }
+
+    const { data: project } = singleProjectQuery(projectId)
+    
+    if (project) {
+      return {
+        id: projectId,
+        name: project.projectName,
+        status: project.status
+      }
+    }
+    
+    // 如果找不到项目信息，返回基本信息
+    return {
+      id: projectId,
+      name: `项目 ${projectId}`,
+      status: '未知'
+    }
+  }, [location.pathname, singleProjectQuery])
+    
+
+
 
 
   // 场景1：正在加载... 如, 用户正在登录中...
@@ -51,65 +105,50 @@ function AuthenticatedLayout() {
       {/* 侧边栏内容区域 */}
       <SidebarInset className="flex flex-col h-screen overflow-hidden">
         {/* 顶部导航栏 */}
-        <header className="
-          flex               /* 使用flex布局 */
-          h-12              /* 固定高度64px */
-          shrink-0          /* 禁止收缩 */
-          items-center      /* 垂直居中 */
-          gap-2            /* 子元素间距8px */
-          transition-[width,height] /* 对宽度和高度添加过渡效果 */
-          ease-linear       /* 线性过渡（匀速动画） */
-          group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 
-                            /* 当侧边栏折叠为图标模式时，高度变为48px */
-        ">
+        <header className="flex h-12 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[data-collapsible=icon]/sidebar-wrapper:h-12">
           {/* 导航栏内部容器 */}
-          <div className="
-            flex             /* flex布局 */
-            items-center    /* 垂直居中 */
-            gap-2          /* 子元素间距8px */
-            px-4           /* 水平内边距16px */
-          ">
+          <div className="flex items-center gap-2 px-4 /* 使用flex布局，垂直居中，子元素间距8px，左右外边距16px */">
             {/* 侧边栏触发器按钮 */}
-            <SidebarTrigger className="
-              -ml-1         /* 左外边距-4px（微调按钮位置） */
-            " />
+            <SidebarTrigger className="-ml-1" />
             
             {/* 垂直分隔线 */}
             <Separator 
               orientation="vertical"  /* 垂直方向 */
-              className="
-                mr-2       /* 右外边距8px */
-                h-4        /* 高度16px */
-              " 
+              className="mr-2 h-4" 
             />
             
             {/* 面包屑导航 */}
             <Breadcrumb>
               <BreadcrumbList>
                 {/* 首页面包屑（中屏以上显示） */}
-                <BreadcrumbItem className="
-                  hidden      /* 默认隐藏 */
-                  md:block    /* 中屏（768px）及以上显示 */
-                ">
+                <BreadcrumbItem className="hidden md:block">
                   <BreadcrumbLink href="#">
                     执智者
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 
-                {/* 面包屑分隔符（中屏以上显示） */}
-                <BreadcrumbSeparator className="
-                  hidden      /* 默认隐藏 */
-                  md:block   /* 中屏及以上显示 */
-                " />
-                
-                {/* 当前页面面包屑 */}
-                <BreadcrumbItem>
-                  <BreadcrumbPage>
-                    招投标项目
-                  </BreadcrumbPage>
-                </BreadcrumbItem>
+                {/* 只有在项目路径下才显示分隔符和项目名称 */}
+                {currentProjectInfo && (
+                  <>
+                    {/* 面包屑分隔符（中屏以上显示） */}
+                    <BreadcrumbSeparator className="hidden md:block" />
+                    
+                    {/* 当前项目面包屑 */}
+                    <BreadcrumbItem>
+                      <BreadcrumbPage className="flex items-center gap-2">
+                        <span>{currentProjectInfo.name}</span>
+                        {/* 可选：显示项目状态 */}
+                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                          {currentProjectInfo.status}
+                        </span>
+                      </BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </>
+                )}
               </BreadcrumbList>
             </Breadcrumb>
+
+
           </div>
         </header>
         

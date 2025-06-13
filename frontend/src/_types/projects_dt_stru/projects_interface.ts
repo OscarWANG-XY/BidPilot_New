@@ -90,9 +90,10 @@ export enum ProjectType {
 
   // 项目侧边栏项 
   export interface ProjectsSidebarItem {
+    id:string;
     name: string;
     url: string;
     status: string;
     created: string;
     starred: boolean;
-  }
+  };

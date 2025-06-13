@@ -52,6 +52,7 @@ export const useProjects = () => {
       
       // 转换为侧边栏所需的数据格式
       const sidebarItems: ProjectsSidebarItem[] = result.map(project => ({
+        id: project.id,
         name: project.projectName,
         url: `/projects/${project.id}`,
         status: project.status,
@@ -97,6 +98,7 @@ export const useProjects = () => {
       console.log('🔄 [useProjects] 创建新项目后, 更新缓存数据');
       queryClient.invalidateQueries({ queryKey: ['projectsKey'] });
       // 这个环节，通常不需要更新单个项目查询的缓存数据
+      queryClient.invalidateQueries({ queryKey: ['sidebarProjectsKey'] });
     }
   });
 
@@ -160,6 +162,7 @@ export const useProjects = () => {
     onSuccess: () => {
       console.log('🔄 [useProjects] 删除项目后, 更新缓存数据');
       queryClient.invalidateQueries({ queryKey: ['projectsKey'] });
+      queryClient.invalidateQueries({ queryKey: ['sidebarProjectsKey'] });
     }
   });
 
