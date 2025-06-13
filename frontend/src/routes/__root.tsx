@@ -95,10 +95,10 @@ function AuthenticatedLayout() {
   // 场景3:（一般是加载成功后）
   // 如果当前路径不是认证相关的页面，则返回布局（带侧边栏），并渲染子路由。 
   return (
-    <SidebarProvider className="
-      h-screen  /*屏幕高度*/ 
-      overflow-hidden /*最外围显示滚条*/
-    "> 
+    <SidebarProvider 
+      defaultOpen={false}
+      className=" h-screen  /*屏幕高度*/ overflow-hidden /*最外围显示滚条*/">
+
       {/* 应用侧边栏组件 */}
       <AppSidebar />
       

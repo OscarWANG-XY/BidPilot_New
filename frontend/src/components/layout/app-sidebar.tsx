@@ -32,7 +32,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       {/* 内容区域 */}
       <SidebarContent>
         {isProjectsLoading ? (
-          <div className="px-4 py-2 text-sm text-muted-foreground">加载项目中...</div>
+          <div className="px-4 py-2 text-sm text-muted-foreground">...</div>
         ) : (
           <NavProjects projects={sidebarProjects || []} />
         )}
