@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from app.api.endpoints import users, events, django_endpoints
 from app.api.structuring import actions, documents, queries, sse
-from app.api.endpoints.project import tests
+from app.api.project import tests
 
 # 创建主路由
 api_router = APIRouter()
