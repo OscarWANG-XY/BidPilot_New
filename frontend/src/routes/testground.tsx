@@ -6,7 +6,7 @@ import { createFileRoute } from '@tanstack/react-router'
 // import TestSSE from '@/_api/structuring_agent_api/TestSSE'
 
 // import { TestContainer } from '@/_api/structuring_agent_api/tests/TestContainer'
-import { TestContainer } from '@/_hooks/useStructuringAgent/tests/TestContainer'
+import { TestContainer } from '@/components/projects/Agents/data/TestContainer'
 
 
 // import TipTapEditor from '@/components/TiptapEditor_Pro/Example'
