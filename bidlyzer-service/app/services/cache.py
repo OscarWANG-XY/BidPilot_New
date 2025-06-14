@@ -21,29 +21,37 @@ class Cache:
 
     def __init__(self, project_id: str):
         self.project_id = project_id
-        self.AGENT_PREFIX = 'structuring_agent:'
         self.max_message_history = 100  # 最大消息历史记录数
         self.cache_expire_time = 900   # 缓存过期时间
         self.storage = Storage(project_id)
+
+        self.STRUCTURING_AGENT_PREFIX = 'structuring_agent:'
+        self.PLANNING_AGENT_PREFIX = 'planning_agent:'
+        self.WRITING_AGENT_PREFIX = 'writing_agent:'
+        self.INTEGRATION_AGENT_PREFIX = 'integration_agent:'
     
 
     def get_cache_keys(self) -> str:
         """获取状态缓存键"""
         return {
-            'agent_state_history': f"{self.project_id}{self.AGENT_PREFIX}:agent_state_history",
-            'sse_message_log': f"{self.project_id}{self.AGENT_PREFIX}:sse_message_log",
-            'raw_document': f"{self.project_id}{self.AGENT_PREFIX}:raw_document",
-            'h1_document': f"{self.project_id}{self.AGENT_PREFIX}:h1_document",
-            'h2h3_document': f"{self.project_id}{self.AGENT_PREFIX}:h2h3_document", 
-            'intro_document': f"{self.project_id}{self.AGENT_PREFIX}:intro_document",
-            'final_document': f"{self.project_id}{self.AGENT_PREFIX}:final_document",
-            'review_suggestions': f"{self.project_id}{self.AGENT_PREFIX}:review_suggestions",
+            # structuring agent cache keys
+            'agent_state_history': f"{self.project_id}{self.STRUCTURING_AGENT_PREFIX}:agent_state_history",
+            'sse_message_log': f"{self.project_id}{self.STRUCTURING_AGENT_PREFIX}:sse_message_log",
+            'raw_document': f"{self.project_id}{self.STRUCTURING_AGENT_PREFIX}:raw_document",
+            'h1_document': f"{self.project_id}{self.STRUCTURING_AGENT_PREFIX}:h1_document",
+            'h2h3_document': f"{self.project_id}{self.STRUCTURING_AGENT_PREFIX}:h2h3_document", 
+            'intro_document': f"{self.project_id}{self.STRUCTURING_AGENT_PREFIX}:intro_document",
+            'final_document': f"{self.project_id}{self.STRUCTURING_AGENT_PREFIX}:final_document",
+            'review_suggestions': f"{self.project_id}{self.STRUCTURING_AGENT_PREFIX}:review_suggestions",
+
+            # planning agent cache keys
+
         }
     
     def get_channel_keys(self) -> str:
         """获取SSE通道键"""
         return {
-            'sse_channel': f"{self.project_id}{self.AGENT_PREFIX}:sse_channel"
+            'sse_channel': f"{self.project_id}:sse_channel"
         }
     
     def _generate_message_id(self) -> str:
