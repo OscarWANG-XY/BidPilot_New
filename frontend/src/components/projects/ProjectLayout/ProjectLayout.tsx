@@ -13,24 +13,29 @@ import { SplitLayout } from './SplitLayout';
 // 定义 Tab 配置
 const TABS = [
   {
-    value: 'tender-analysis',
+    value: 'bidpilot',
     label: 'BidPilot',
-    to: '/projects/$projectId/tender-analysis',
+    to: '/projects/$projectId/bidpilot',
   },
   {
-    value: 'bid-writing',
-    label: '项目文件',
-    to: '/projects/$projectId/bid-writing',
+    value: 'artifacts',
+    label: '过程文件',
+    to: '/projects/$projectId/artifacts',
   },
   {
     value: 'finalization',
-    label: '最终调优',
-    to: '/projects/$projectId/bid-writing',
+    label: '最终文档',
+    to: '/projects/$projectId/finalization',
   },
   {
-    value: 'Expertise',
+    value: 'expertise',
     label: '专家建议',
-    to: '/projects/$projectId/bid-writing',
+    to: '/projects/$projectId/expertise',
+  },
+  {
+    value: 'raw_data',
+    label: '原始数据',
+    to: '/projects/$projectId/raw_data',
   },
 ];
 

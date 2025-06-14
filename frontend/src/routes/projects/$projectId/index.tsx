@@ -10,7 +10,7 @@ import {
     beforeLoad: ({ params }) => {
       // 重定向到第一个阶段
       throw redirect({
-        to: '/projects/$projectId/tender-analysis',
+        to: '/projects/$projectId/bidpilot',
         params: { projectId: params.projectId }
       })
     },
