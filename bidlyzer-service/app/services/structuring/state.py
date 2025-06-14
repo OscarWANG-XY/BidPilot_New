@@ -11,9 +11,20 @@ logger = logging.getLogger(__name__)
 # =========================Part 1:  agent 状态、步骤、用户操作 定义 =========================
 
 # agent 的内部状态和用户可见状态 （以及它们之间的映射关系）
+
+class ProjectStage(str, Enum):
+    """项目阶段"""
+    UPLOADING_DOCUMENT = "uploading_document"
+    STRUCTURING = "structuring"
+    PLANNING = 'planning'
+    REVIEWING = "reviewing"
+    INTEGRATING = "integrating"
+    COMPLETED = "completed"
+
 class StateEnum(str, Enum):
     """系统内部的细粒度状态 - 用于精确控制处理流程"""
     # 微服务从文档提取开始，文件上传由Django处理
+    UPLOADING_DOCUMENT = "uploading_document"  # 新添加的
     EXTRACTING_DOCUMENT = "extracting_document"
     DOCUMENT_EXTRACTED = "document_extracted"
     ANALYZING_OUTLINE_H1 = "analyzing_outline_h1"

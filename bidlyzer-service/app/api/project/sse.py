@@ -6,6 +6,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime
+from app.services.cache import Cache
 
 from app.services.structuring.state_manager import create_state_manager
 from app.services.structuring.state import UserAction, StateEnum
@@ -18,7 +19,7 @@ router = APIRouter()
 
 # ========================= 端点实现 =========================
 
-@router.get("/sse/{project_id}")
+@router.get("/{project_id}/sse")
 async def sse_stream(project_id: str, request: Request):
     """
     端点4: SSE流 (使用中间件认证)
@@ -39,7 +40,7 @@ async def sse_stream(project_id: str, request: Request):
             logger.info(f"SSE连接已建立 - 项目: {project_id}, 用户: {user_id}")
             
             # Redis订阅通道
-            from app.services.structuring.cache import Cache
+
             cache = Cache(project_id)
             channel = cache.get_channel_keys()['sse_channel']
             

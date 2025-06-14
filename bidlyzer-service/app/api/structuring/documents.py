@@ -3,6 +3,7 @@ from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
 from app.services.structuring.state import StateEnum
+from app.services.cache import Cache
 
 import logging
 logger = logging.getLogger(__name__)
@@ -66,7 +67,7 @@ async def get_raw_document(
         #     )
         
         # 获取cache实例
-        from app.services.structuring.cache import Cache
+        
         cache = Cache(project_id)
 
         # # ----- 验证: 是否已raw_document? -----
@@ -128,7 +129,6 @@ async def get_review_suggestions(
         logger.info(f"开始获取项目{project_id}的最终招标文档final_document的内容")
         
         # 获取cache实例
-        from app.services.structuring.cache import Cache
         cache = Cache(project_id)
 
         # ----- 通过以上验证后，确认由final_document, 开始提取 -----
@@ -168,7 +168,6 @@ async def get_final_document(
         logger.info(f"开始获取项目{project_id}的最终招标文档final_document的内容")
         
         # 获取cache实例
-        from app.services.structuring.cache import Cache
         cache = Cache(project_id)
 
         # ----- 通过以上验证后，确认由final_document, 开始提取 -----
@@ -210,7 +209,6 @@ async def update_final_document(
         logger.info(f"更新项目{project_id}的final_document")
         
         # 获取cache实例
-        from app.services.structuring.cache import Cache
         cache = Cache(project_id)
         
         # 检查当前状态是否允许编辑

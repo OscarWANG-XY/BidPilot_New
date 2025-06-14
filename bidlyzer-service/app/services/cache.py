@@ -4,15 +4,16 @@ from datetime import datetime
 from typing import Optional, Dict, Any, List
 from app.core.redis_helper import RedisClient
 from app.services.structuring.state import StateRegistry, ED_STATE_POOL
-from app.services.structuring.storage import Storage
-
-import logging
-logger = logging.getLogger(__name__)
-
+from app.services.storage import Storage
 from app.services.structuring.schema import (
     AgentStateData, AgentStateHistory, 
     SSEMessage, SSEMessageHistory
     )
+
+import logging
+logger = logging.getLogger(__name__)
+
+
 
 
 class Cache:
@@ -20,7 +21,7 @@ class Cache:
 
     def __init__(self, project_id: str):
         self.project_id = project_id
-        self.KEY_PREFIX = 'structuring_agent:'
+        self.AGENT_PREFIX = 'structuring_agent:'
         self.max_message_history = 100  # 最大消息历史记录数
         self.cache_expire_time = 900   # 缓存过期时间
         self.storage = Storage(project_id)
@@ -29,20 +30,20 @@ class Cache:
     def get_cache_keys(self) -> str:
         """获取状态缓存键"""
         return {
-            'agent_state_history': f"{self.KEY_PREFIX}{self.project_id}:agent_state_history",
-            'sse_message_log': f"{self.KEY_PREFIX}{self.project_id}:sse_message_log",
-            'raw_document': f"{self.KEY_PREFIX}{self.project_id}:raw_document",
-            'h1_document': f"{self.KEY_PREFIX}{self.project_id}:h1_document",
-            'h2h3_document': f"{self.KEY_PREFIX}{self.project_id}:h2h3_document", 
-            'intro_document': f"{self.KEY_PREFIX}{self.project_id}:intro_document",
-            'final_document': f"{self.KEY_PREFIX}{self.project_id}:final_document",
-            'review_suggestions': f"{self.KEY_PREFIX}{self.project_id}:review_suggestions",
+            'agent_state_history': f"{self.project_id}{self.AGENT_PREFIX}:agent_state_history",
+            'sse_message_log': f"{self.project_id}{self.AGENT_PREFIX}:sse_message_log",
+            'raw_document': f"{self.project_id}{self.AGENT_PREFIX}:raw_document",
+            'h1_document': f"{self.project_id}{self.AGENT_PREFIX}:h1_document",
+            'h2h3_document': f"{self.project_id}{self.AGENT_PREFIX}:h2h3_document", 
+            'intro_document': f"{self.project_id}{self.AGENT_PREFIX}:intro_document",
+            'final_document': f"{self.project_id}{self.AGENT_PREFIX}:final_document",
+            'review_suggestions': f"{self.project_id}{self.AGENT_PREFIX}:review_suggestions",
         }
     
     def get_channel_keys(self) -> str:
         """获取SSE通道键"""
         return {
-            'sse_channel': f"{self.KEY_PREFIX}{self.project_id}:sse_channel"
+            'sse_channel': f"{self.project_id}{self.AGENT_PREFIX}:sse_channel"
         }
     
     def _generate_message_id(self) -> str:

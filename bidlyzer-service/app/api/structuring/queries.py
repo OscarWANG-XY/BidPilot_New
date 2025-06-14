@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from typing import List
 from datetime import datetime
 from pydantic import BaseModel
+from app.services.cache import Cache
 from app.services.structuring.schema import AgentStateData, SSEMessage
 
 import logging
@@ -30,7 +31,6 @@ async def get_agent_state(project_id: str):
     用于前端主动查询当前处理状态
     """
     try:
-        from app.services.structuring.cache import Cache
         cache = Cache(project_id)
         agent_state = await cache.get_agent_state()
         
@@ -56,7 +56,6 @@ async def get_sse_history(project_id: str):
     用于前端主动查询当前处理状态
     """
     try:
-        from app.services.structuring.cache import Cache
         cache = Cache(project_id)
         sse_message_history = await cache.get_agent_sse_message_history()
         

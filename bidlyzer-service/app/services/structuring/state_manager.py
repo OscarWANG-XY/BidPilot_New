@@ -5,8 +5,7 @@ from typing import Optional, Dict, Any
 from datetime import datetime
 import uuid
 from app.core.redis_helper import RedisClient
-from app.services.structuring.storage import Storage
-from app.services.structuring.cache import Cache
+from app.services.cache import Cache
 from app.services.structuring.schema import AgentStateData, SSEData, SSEMessage
 from .state import (
     StateEnum, ProcessingStep, UserAction,
@@ -14,7 +13,7 @@ from .state import (
     StateTransitionError, ProcessingError
 )
 
-from app.services.structuring.storage import Storage
+from app.services.storage import Storage
 
 import logging
 logger = logging.getLogger(__name__)
@@ -156,7 +155,7 @@ class StructuringAgentStateManager:
 
             event_payload = SSEMessage(
                 event="state_update",
-                data=event_data.model_dump(),  # Convert SSEData to dict
+                data=event_data,
                 id=str(uuid.uuid4()),
                 retry=0
             )
