@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from app.api.endpoints import users, events, django_endpoints
 from app.api.structuring import actions, documents, queries, sse
+from app.api.endpoints.project import tests
 
 # 创建主路由
 api_router = APIRouter()
@@ -13,6 +14,7 @@ api_router.include_router(actions.router, prefix="/structuring", tags=["structur
 api_router.include_router(documents.router, prefix="/structuring", tags=["structuring-doucuments"])
 api_router.include_router(queries.router, prefix="/structuring", tags=["structuring-queries"])
 api_router.include_router(sse.router, prefix="/structuring", tags=["structuring-see"])
+api_router.include_router(tests.router, prefix="/project", tags=["project-tests"])
 
 
 # 添加django路由, 用于处理django发出的请求，估计用处不大。

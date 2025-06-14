@@ -5,6 +5,8 @@ from typing import Dict, Any
 from app.auth.jwt import decode_jwt_token
 from app.core.exceptions import AuthenticationError, TokenExpiredError
 
+from app.clients.django.client import DjangoClient
+
 # OAuth2 Bearer token实现
 security = HTTPBearer()
 
@@ -58,3 +60,29 @@ async def get_current_user_from_request(request: Request) -> Dict[str, Any]:
         )
     
     return request.state.user
+
+
+
+async def permitted_projects( 
+    project_id: str, 
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:  # 返回项目信息而不是bool
+    """验证项目权限的依赖函数"""
+    
+    # 安全获取 user_id，如果不存在则抛出异常
+    user_id = current_user.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid token: missing user_id")
+    
+    django_client = DjangoClient()
+    data = {
+        "user_id": user_id
+    }
+    
+    endpoint = f"api/internal/projects/{project_id}/has_project_permission/"
+    response = await django_client._make_request(endpoint, data=data, method='post')
+    
+    if not response:  # 如果没有权限
+        raise HTTPException(status_code=403, detail="No permission for this project")
+    
+    return response  # 返回项目信息或权限详情

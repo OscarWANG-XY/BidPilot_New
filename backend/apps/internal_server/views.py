@@ -23,6 +23,7 @@ class ProjectInternalViewSet(viewsets.GenericViewSet):
     serializer_class = ProjectInternalSerializer
     permission_classes = []
 
+
     def _get_or_create_storage(self, project):
         """获取或创建StructuringAgentStorage实例"""
         storage, created = StructuringAgentStorage.objects.get_or_create(
@@ -31,6 +32,20 @@ class ProjectInternalViewSet(viewsets.GenericViewSet):
         if created:
             logger.info(f"为项目 {project.id} 创建了新的StructuringAgentStorage")
         return storage
+
+
+    @action(detail=True, methods=['post'], permission_classes=[])
+    def has_project_permission(self, request, pk=None):
+        """检查用户是否有项目权限"""
+        project = self.get_object()
+        user_id = request.data.get("user_id")
+        creator_id = project.creator_id
+        
+        if str(user_id) == str(creator_id):
+            return Response({"has_permission": True})
+        return Response({"has_permission": False})
+
+
 
     @action(detail=True, methods=['get'], permission_classes=[])
     def get_tender_file_url(self, request, pk=None):
