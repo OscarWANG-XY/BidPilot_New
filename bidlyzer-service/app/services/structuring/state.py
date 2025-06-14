@@ -174,6 +174,7 @@ def _extracting_document_config():
         previous_state=None,
         next_state=StateEnum.DOCUMENT_EXTRACTED,
         state_to_step=ProcessingStep.EXTRACT,
+        next_step=ProcessingStep.EXTRACT,
     )
 
 @StateRegistry.register_state(StateEnum.DOCUMENT_EXTRACTED)
