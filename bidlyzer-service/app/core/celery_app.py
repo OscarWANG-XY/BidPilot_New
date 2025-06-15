@@ -1,6 +1,7 @@
 # app/core/celery_app.py
 from celery import Celery
 from app.core.config import settings
+from kombu import Queue
 
 # 创建Celery实例 - 使用唯一的应用名称避免与Django Celery冲突
 celery_app = Celery(
@@ -21,15 +22,38 @@ celery_app.conf.update(
     result_serializer='json',
     timezone='Asia/Shanghai',
     enable_utc=True,
+
+    # 任务路由配置 - 使用独特的队列名称
+    task_routes={
+        'app.tasks.tasks.test_task': {'queue': 'default'},  # 默认队列
+        'app.tasks.tasks.test_task_with_lock': {'queue': 'default'},  # 默认队列
+        'app.tasks.tasks.send_email_task': {'queue': 'email'},  # 邮件队列
+        'app.tasks.tasks.send_email_task_with_lock': {'queue': 'email'},  # 邮件队列
+        'app.tasks.tasks.image_process_task': {'queue': 'high_priority'},  # 高优先级队列
+        'app.tasks.tasks.test_redis_connection': {'queue': 'default'},  # 默认队列
+        'app.tasks.tasks.test_lock_mechanism': {'queue': 'default'},  # 默认队列
+        'app.tasks.tasks.clear_test_locks': {'queue': 'default'},  # 默认队列
+        'app.tasks.tasks.check_lock_status': {'queue': 'default'},  # 默认队列
+    },
     
+
+    # 根据不同的queue启动worker， 执行时，任务会出现在特定的队列的worker中，需要注意的是，路由注册的名字一定要正确，否则会出现在default队列中
+    # celery -A app.core.celery_app worker --loglevel=info --queues=email  #该worker只处理邮件队列
+    # celery -A app.core.celery_app worker --loglevel=info --queues=high_priority  #该worker只处理高优先级队列
+    # celery -A app.core.celery_app worker --loglevel=info --queues=default,email,high_priority  #该worker处理所有队列
+
+    task_default_queue='default',
+    task_queues={
+        Queue('default'),
+        Queue('email'),
+        Queue('high_priority'),
+    },
+
+
     # # 使用唯一的worker名称前缀避免冲突
     # worker_main='bidlyzer-fastapi',
     
-    # # 任务路由配置 - 使用独特的队列名称
-    # # task_routes={
-    # #     'app.tasks.structuring_tasks.*': {'queue': 'fastapi_structuring'},  # 结构化任务队列
-    # #     'structuring.*': {'queue': 'fastapi_structuring'},  # 新增：所有structuring开头的任务都路由到同一队列
-    # # },
+
     
     # # 任务软超时： 1小时
     # task_soft_time_limit=3600,
@@ -82,7 +106,7 @@ celery_app.conf.update(
 # 强制导入任务模块以确保任务被注册
 # 这是解决 include 配置有时不生效的问题
 try:
-    import app.tasks.structuring_tasks
+    # import app.tasks.structuring_tasks
     import app.tasks.tasks  # 新增：导入tasks模块
     print(f"✅ 成功导入所有任务模块，已注册 {len(celery_app.tasks)} 个任务")
 except ImportError as e:
