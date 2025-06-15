@@ -9,7 +9,8 @@ from app.core.db_helper import init_db, close_db, generate_schemas
 from tortoise import Tortoise
 from app.auth.middleware import JWTAuthMiddleware
 from app.api.router import api_router
-from fastapi.responses import JSONResponse
+
+
 
 
 
@@ -106,15 +107,7 @@ async def ping_db():
             "message": f"PostgreSQL连接失败: {str(e)}"
         }
 
-@app.get("/test-none")
-async def test_none():
-    data = {"content": None}
-    return data  # 看看前端收到什么
 
-@app.get("/test-none-fixed") 
-async def test_none_fixed():
-    data = {"content": None}
-    return JSONResponse(content=data)  # 这个可能是正确的
 
 
 if __name__ == "__main__":
