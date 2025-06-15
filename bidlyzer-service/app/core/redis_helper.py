@@ -2,12 +2,25 @@
 import redis.asyncio as redis
 from typing import Optional, Any, Union
 import json
+import uuid
+import time
+import asyncio
 from app.core.config import settings
 import logging
 
 # 配置日志
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# 添加异常类
+class LockAcquireError(Exception):
+    """获取锁失败异常"""
+    pass
+
+class LockTimeoutError(LockAcquireError):
+    """获取锁超时异常"""
+    pass
+
 
 class RedisClient:
     """Redis客户端封装类，提供异步操作接口"""
@@ -201,3 +214,224 @@ class RedisClient:
         except Exception as e:
             logger.error(f"Redis取消订阅失败: {str(e)}")
             raise
+
+    
+
+    @classmethod
+    async def acquire_lock(cls, lock_key: str, expire: int = 30) -> Optional[str]:
+        """
+        获取分布式锁
+        
+        Args:
+            lock_key: 锁的键名
+            expire: 锁的过期时间（秒），防止死锁
+            
+        Returns:
+            成功时返回锁的唯一标识符，失败时返回 None
+        """
+        try:
+            client = await cls.get_client()
+            
+            # 生成唯一标识符
+            lock_id = str(uuid.uuid4())
+            
+            # 使用 SET key value NX EX seconds 命令, nx=True 只有key不存在时才设置Not eXists, ex=expire 设置过期时间防止锁死
+            success = await client.set(lock_key, lock_id, nx=True, ex=expire)
+
+            
+            if success:
+                logger.debug(f"成功获取锁: {lock_key}, ID: {lock_id}")
+                return lock_id
+            else:
+                logger.debug(f"获取锁失败: {lock_key}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"获取锁异常: {lock_key}, error: {str(e)}")
+            return None
+        
+
+    @classmethod
+    async def release_lock(cls, lock_key: str, lock_id: str) -> bool:
+        """
+        使用Lua脚本安全释放锁
+        原子化， 防止竞态， 就是在做判断的时候是一个状态，执行的时候处在另一个状态，中间有其他进程获取锁了， 所以需要使用Lua脚本。 
+        Lua脚本会进行阻塞，来避免上面说的竞态问题。 
+        """
+        try:
+            client = await cls.get_client()
+            
+            # Lua脚本：检查身份并删除
+            lua_script = """
+            if redis.call("get", KEYS[1]) == ARGV[1] then
+                return redis.call("del", KEYS[1])
+            else
+                return 0
+            end
+            """
+            
+            # 执行Lua脚本
+            result = await client.eval(lua_script, 1, lock_key, lock_id)
+            
+            if result == 1:
+                logger.debug(f"成功释放锁: {lock_key}, ID: {lock_id}")
+                return True
+            else:
+                logger.warning(f"释放锁失败，锁不存在或身份不匹配: {lock_key}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"释放锁异常: {lock_key}, error: {str(e)}")
+            return False
+        
+
+    @classmethod
+    async def extend_lock(cls, lock_key: str, lock_id: str, expire: int) -> bool:
+        """
+        延长分布式锁的过期时间
+        续锁，因为不知道任务什么时候完成。可能受网络影响，也可能别的原因。
+        
+        Args:
+            lock_key: 锁的键名
+            lock_id: 获取锁时返回的唯一标识符
+            expire: 新的过期时间（秒）
+            
+        Returns:
+            True: 续期成功, False: 续期失败（锁不存在或不属于当前进程）
+        """
+        try:
+            client = await cls.get_client()
+            
+            # Lua脚本：检查身份并续期
+            lua_script = """
+            if redis.call("get", KEYS[1]) == ARGV[1] then
+                return redis.call("expire", KEYS[1], ARGV[2])
+            else
+                return 0
+            end
+            """
+            
+            # 执行Lua脚本
+            result = await client.eval(lua_script, 1, lock_key, lock_id, expire)
+            
+            if result == 1:
+                logger.debug(f"成功续期锁: {lock_key}, ID: {lock_id}, 新过期时间: {expire}秒")
+                return True
+            else:
+                logger.warning(f"续期锁失败，锁不存在或身份不匹配: {lock_key}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"续期锁异常: {lock_key}, error: {str(e)}")
+            return False
+
+
+
+    @classmethod
+    def distributed_lock(
+        cls, 
+        lock_key: str, 
+        expire: int = 30,
+        retry_times: int = 3,
+        retry_interval: Union[float, str] = 0.1,
+        timeout: Optional[float] = None
+    ):
+        """
+        创建分布式锁上下文管理器
+        
+        Args:
+            lock_key: 锁的键名
+            expire: 锁的过期时间（秒）
+            retry_times: 重试次数
+            retry_interval: 重试间隔（秒）或 "exponential" 表示指数退避
+            timeout: 总超时时间（秒），None表示不限制
+            
+        Returns:
+            内部锁上下文管理器
+            
+        Example:
+            async with RedisClient.distributed_lock("lock:user:123", expire=60):
+                # 执行需要互斥的操作
+                pass
+        """
+        
+        class _DistributedLock:
+            def __init__(self):
+                self.redis_client_cls = cls
+                self.lock_key = lock_key
+                self.expire = expire
+                self.retry_times = retry_times
+                self.retry_interval = retry_interval
+                self.timeout = timeout
+                self.lock_id: Optional[str] = None
+            
+            def _calculate_wait_time(self, attempt: int) -> float:
+                """计算等待时间"""
+                if self.retry_interval == "exponential":
+                    # 指数退避：0.1, 0.2, 0.4, 0.8...
+                    return 0.1 * (2 ** attempt)
+                else:
+                    # 固定间隔
+                    return float(self.retry_interval)
+            
+            async def __aenter__(self):
+                """进入上下文时获取锁，支持重试"""
+                start_time = time.time()
+                
+                for attempt in range(self.retry_times + 1):
+                    try:
+                        # 检查超时
+                        if self.timeout and (time.time() - start_time) > self.timeout:
+                            raise LockTimeoutError(
+                                f"获取锁超时: {self.lock_key}, 超时时间: {self.timeout}秒"
+                            )
+                        
+                        # 尝试获取锁
+                        self.lock_id = await self.redis_client_cls.acquire_lock(
+                            self.lock_key, 
+                            self.expire
+                        )
+                        
+                        if self.lock_id:
+                            logger.debug(f"成功获取锁: {self.lock_key}, 尝试次数: {attempt + 1}")
+                            return self
+                        
+                        # 获取锁失败，准备重试
+                        if attempt < self.retry_times:
+                            wait_time = self._calculate_wait_time(attempt)
+                            logger.debug(
+                                f"获取锁失败，{wait_time:.2f}秒后重试: {self.lock_key}, "
+                                f"尝试次数: {attempt + 1}/{self.retry_times + 1}"
+                            )
+                            await asyncio.sleep(wait_time)
+                    
+                    except Exception as e:
+                        logger.error(f"获取锁异常: {self.lock_key}, 尝试次数: {attempt + 1}, 错误: {e}")
+                        
+                        # 如果是最后一次尝试，抛出异常
+                        if attempt >= self.retry_times:
+                            raise LockAcquireError(f"获取锁失败: {self.lock_key}, 原因: {e}")
+                        
+                        # 异常情况下也要等待重试
+                        wait_time = self._calculate_wait_time(attempt)
+                        await asyncio.sleep(wait_time)
+                
+                # 所有重试都失败
+                raise LockAcquireError(f"获取锁失败: {self.lock_key}, 已重试 {self.retry_times} 次")
+            
+            async def __aexit__(self, exc_type, exc_val, exc_tb):
+                """退出上下文时释放锁"""
+                if self.lock_id:
+                    try:
+                        success = await self.redis_client_cls.release_lock(
+                            self.lock_key, 
+                            self.lock_id
+                        )
+                        if success:
+                            logger.debug(f"成功释放锁: {self.lock_key}")
+                        else:
+                            logger.warning(f"释放锁失败: {self.lock_key}")
+                    except Exception as e:
+                        logger.error(f"释放锁异常: {self.lock_key}, 错误: {e}")
+        
+        return _DistributedLock()
