@@ -51,32 +51,11 @@ class Structuring:
         self._add_intro_headings = AddIntroHeadings()
         self.cache = Cache(project_id)
         self.storage = Storage(project_id)
-
-    # =============== 状态管理 ===============
-    @property
-    async def current_state(self) -> Optional[AgentStateData]:
-        """获取当前状态数据"""
-        return await self.state_manager.cache.get_agent_state()
     
-    @property
-    async def current_internal_state(self) -> Optional[StateEnum]:
-        """获取当前内部状态"""
-        agent_state = await self.state_manager.cache.get_agent_state()
-        current_internal_state = agent_state.state
-        return current_internal_state
-    
-
    
     async def process(self, step: ProcessingStep) -> Dict[str, Any]:
         """
         执行处理步骤
-        
-        Args:
-            step: 处理步骤
-            user_input: 用户输入数据
-            
-        Returns:
-            处理结果
         """
         trace_id = f"{self.project_id}_{step}_{datetime.now().isoformat()}"
         logger.info(f"[{trace_id}] 开始处理步骤: {step}")
@@ -116,14 +95,6 @@ class Structuring:
     async def _process_extract(self, trace_id: str) -> Dict[str, Any]:
         """处理文档提取步骤"""
         try:
-            # 检查当前状态，如果不是 EXTRACTING_DOCUMENT，则更新状态
-            current_state = await self.current_internal_state
-            if current_state != StateEnum.EXTRACTING_DOCUMENT:
-                await self.state_manager.transition_to_state(
-                    StateEnum.EXTRACTING_DOCUMENT,
-                    progress=10,
-                    message="正在提取文档内容..."
-                )
             
             # tender_file 是TenderFile类型，包含url字段
             tender_file = await self.storage.get_tender_file_url()
@@ -320,7 +291,7 @@ class Structuring:
 
     async def _is_valid_step(self, step: ProcessingStep) -> bool:
 
-                # 检查状态是否存在，并获取状态数据
+        # 检查状态是否存在，并获取状态数据
         agent_state = await self.cache.get_agent_state()
         if not agent_state:
             raise ProcessingError("没有可用的状态数据")
