@@ -10,7 +10,8 @@ from app.services.structuring.schema import AgentStateData, SSEData, SSEMessage
 from .state import (
     StateEnum, ProcessingStep, UserAction,
     StateRegistry, 
-    StateTransitionError, ProcessingError
+    StateTransitionError, ProcessingError,
+    ING_STATE_POOL, ED_STATE_POOL
 )
 from app.services.broadcast import publish_state_update, publish_error_event
 
@@ -32,18 +33,20 @@ class StructuringAgentStateManager:
         self.cache = Cache(project_id)
     
     # 状态初始化 + 状态转换 
-    async def initialize_agent(self) -> AgentStateData:
+    async def initialize_agent(self, target_state: StateEnum = StateEnum.EXTRACTING_DOCUMENT) -> AgentStateData:
         """
         初始化Agent状态并直接开始文档提取
         
         注意：文件上传由Django完成，微服务从文档提取开始
+        target_state的初始化，用于测试，而不是在实际业务中使用。 
         """
         try:
             # # 清理之前的消息历史
             # await self.clear_message_history()
             
             # 初始状态改为文档提取
-            initial_state = StateEnum.EXTRACTING_DOCUMENT
+            initial_state = target_state
+            
             
             agent_state = AgentStateData(
                 project_id=self.project_id,
@@ -58,7 +61,7 @@ class StructuringAgentStateManager:
             await publish_state_update(self.project_id, agent_state, "开始分析已上传的文档...")
             
             logger.info(f"Initialized structuring agent for project {self.project_id}, starting document extraction")
-            return agent_state
+            return agent_state.state
             
         except Exception as e:
             logger.error(f"Error initializing agent for project {self.project_id}: {str(e)}")
@@ -158,7 +161,81 @@ class StructuringAgentStateManager:
             return False
         
         return current_state in action_config.get("valid_states", [])
+
+
+
+    # 
+    async def recover_state(self, current_state: StateEnum):
+        if current_state == StateEnum.FAILED:
+            last_sucess_state =  await self._deal_with_failed_state(current_state)
+            state_to_recover = self._determine_state(last_sucess_state)
     
+        else:
+            state_to_recover = self._determine_state(current_state)
+ 
+        agent_state = await self.cache.get_agent_state()
+        
+        agent_state.state = state_to_recover
+        agent_state.updated_at = datetime.now()
+
+        # 这里不处理results等其他的过程数据， 只处理状态，重启的step会把旧的数据覆盖。
+        await self.cache.add_agent_state_to_history(agent_state)
+
+        await publish_state_update(self.project_id, agent_state, "Agent意外中断，重启尝试...")
+        return agent_state.state
+
+    async def _deal_with_failed_state(self, current_state: StateEnum) -> StateEnum:
+        """
+        - 处理failed状态
+        - 之后计算要恢复的状态
+        """
+        # 提取历史
+        sorted_agent_states = await self.cache._get_sorted_agent_states()
+        # 如果历史为空，则初始化
+        if not sorted_agent_states:
+            logger.warning(f"项目 {self.project_id} 没有状态历史，从文档提取开始重试")
+            await self.initialize_agent()
+        
+        # 历史不为空，找到最后一个非失败状态
+        last_success_state = None
+        for agent_state in sorted_agent_states: #由于history是按时间倒序排列，所以会找到第一个非失败的状态。 
+            if agent_state.state != StateEnum.FAILED:
+                last_success_state = agent_state.state
+                break
+        
+        # 非失败状态不存在，则直接初始化
+        if not last_success_state:
+            logger.warning(f"项目 {self.project_id} 没有找到成功状态，从文档提取开始重试")
+            await self.initialize_agent()
+        
+        # 非失败状态存在，则恢复到该状态
+        return last_success_state
+
+    def _determine_state(self, current_state: StateEnum):
+
+
+        if current_state in ED_STATE_POOL:
+            return current_state
+
+
+        if current_state in ING_STATE_POOL:
+            # 确定恢复的状态
+            if current_state == StateEnum.EXTRACTING_DOCUMENT:
+                """状态保持不变"""
+                return current_state
+
+            else:
+
+                calculated_state = StateRegistry.get_state_config(current_state).previous_state
+                if calculated_state not in ED_STATE_POOL:
+                    raise ProcessingError(f"状态恢复失败: {calculated_state} 不是ED状态")
+                
+                return calculated_state
+            
+
+
+
+
 
     # 错误处理
     async def _handle_error(self, error_type: str, error_message: str):

@@ -24,25 +24,10 @@ logger = logging.getLogger(__name__)
 
 
 class Structuring:
-    """
-    文档结构化Agent - FastAPI版本
-    负责将上传的投标文件提取+分析大纲+注入TiptapJSON
-    
-    主要变化：
-    1. 使用新的双层状态系统 (SystemInternalState + UserVisibleState)
-    2. 状态存储从Django缓存/数据库改为Redis
-    3. 通信从WebSocket改为SSE
-    4. 使用统一的状态管理器
-    """
+
 
     def __init__(self, project_id: str):
-        """
-        初始化结构化代理
-        
-        Args:
-            project_id: 项目ID
-            lazy_init: 是否延迟初始化组件
-        """
+
         self.project_id = project_id
         self.state_manager = create_state_manager(project_id)
         self._docx_extractor = DocxExtractor(project_id)
