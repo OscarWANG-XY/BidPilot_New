@@ -1,6 +1,6 @@
 from fastapi import APIRouter, status
 from app.core.celery_app import celery_app
-from app.tasks.tasks import test_task, send_email_task, image_process_task, test_task_with_lock, send_email_task_with_lock
+from app.tasks.test_tasks import test_task, send_email_task, image_process_task, test_task_with_lock, send_email_task_with_lock
 from fastapi.responses import JSONResponse
 router = APIRouter()
 

@@ -25,15 +25,15 @@ celery_app.conf.update(
 
     # 任务路由配置 - 使用独特的队列名称
     task_routes={
-        'app.tasks.tasks.test_task': {'queue': 'default'},  # 默认队列
-        'app.tasks.tasks.test_task_with_lock': {'queue': 'default'},  # 默认队列
-        'app.tasks.tasks.send_email_task': {'queue': 'email'},  # 邮件队列
-        'app.tasks.tasks.send_email_task_with_lock': {'queue': 'email'},  # 邮件队列
-        'app.tasks.tasks.image_process_task': {'queue': 'high_priority'},  # 高优先级队列
-        'app.tasks.tasks.test_redis_connection': {'queue': 'default'},  # 默认队列
-        'app.tasks.tasks.test_lock_mechanism': {'queue': 'default'},  # 默认队列
-        'app.tasks.tasks.clear_test_locks': {'queue': 'default'},  # 默认队列
-        'app.tasks.tasks.check_lock_status': {'queue': 'default'},  # 默认队列
+        'app.tasks.test_tasks.test_task': {'queue': 'default'},  # 默认队列
+        'app.tasks.test_tasks.test_task_with_lock': {'queue': 'default'},  # 默认队列
+        'app.tasks.test_tasks.send_email_task': {'queue': 'email'},  # 邮件队列
+        'app.tasks.test_tasks.send_email_task_with_lock': {'queue': 'email'},  # 邮件队列
+        'app.tasks.test_tasks.image_process_task': {'queue': 'high_priority'},  # 高优先级队列
+        'app.tasks.test_tasks.test_redis_connection': {'queue': 'default'},  # 默认队列
+        'app.tasks.test_tasks.test_lock_mechanism': {'queue': 'default'},  # 默认队列
+        'app.tasks.test_tasks.clear_test_locks': {'queue': 'default'},  # 默认队列
+        'app.tasks.test_tasks.check_lock_status': {'queue': 'default'},  # 默认队列
     },
     
 
@@ -107,7 +107,7 @@ celery_app.conf.update(
 # 这是解决 include 配置有时不生效的问题
 try:
     # import app.tasks.structuring_tasks
-    import app.tasks.tasks  # 新增：导入tasks模块
+    import app.tasks.test_tasks  # 新增：导入tasks模块
     print(f"✅ 成功导入所有任务模块，已注册 {len(celery_app.tasks)} 个任务")
 except ImportError as e:
     print(f"❌ 导入任务模块失败: {e}")
