@@ -17,37 +17,102 @@ class DjangoClient:
     def __init__(self, base_url=None):
         """初始化Django客户端"""
         self.base_url = base_url or getattr(settings, 'DJANGO_SERVICE_URL', 'http://localhost:8000')
-        
-    async def _make_request(self, endpoint, data, method='post'):
+
+    async def _make_request(self, endpoint, data=None, method='post', params=None):
         """发送请求到Django服务"""
         url = f"{self.base_url}/{endpoint}"
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.request(
-                    method=method,  # 请求方法默认是post
-                    url=url,
-                    json=data,
-                    headers={'Content-Type': 'application/json'},
-                    timeout=30  # 增加超时时间，处理大文档
-                )
-                # 检查请求状态
+                if method.lower() == 'get':
+                    # GET请求：data作为查询参数，params也可以作为查询参数
+                    query_params = params or data or {}
+                    response = await client.request(
+                        method=method,
+                        url=url,
+                        params=query_params,  # 查询参数
+                        headers={'Content-Type': 'application/json'},
+                        timeout=30
+                    )
+                else:
+                    # POST/PUT/PATCH等：data作为JSON body
+                    response = await client.request(
+                        method=method,
+                        url=url,
+                        json=data,
+                        params=params,  # 额外的查询参数
+                        headers={'Content-Type': 'application/json'},
+                        timeout=30
+                    )
+                
                 response.raise_for_status()
                 
-                # 安全地处理json方法，支持同步和异步
                 json_method = response.json
                 if inspect.iscoroutinefunction(json_method):
-                    # 如果是异步方法
                     result = await json_method()
                 else:
-                    # 如果是同步方法
                     result = json_method()
                 
-                return result  # 返回解析后的JSON数据
+                return result
 
-        # 以下使用了Exception， 而不是httpx.RequestError，以捕获更为广泛的错误
         except Exception as e:
             logger.error(f"Django服务请求失败: {e}")
             raise Exception(f"Django服务请求失败: {e}")
+
+
+
+
+# GET请求 - 查询参数
+# result = await self._make_request(
+#     endpoint="projects/123",
+#     method='get',
+#     params={'fields': 'name,description'}
+# )
+# 生成URL: /projects/123?fields=name,description
+
+# POST请求 - JSON body
+# result = await self._make_request(
+#     endpoint="projects/123/save_data",
+#     data={'field1': 'value1'},
+#     method='post'
+# )
+
+
+
+
+
+
+
+    # 之前的方法
+    # async def _make_request(self, endpoint, data, method='post'):
+    #     """发送请求到Django服务"""
+    #     url = f"{self.base_url}/{endpoint}"
+    #     try:
+    #         async with httpx.AsyncClient() as client:
+    #             response = await client.request(
+    #                 method=method,  # 请求方法默认是post
+    #                 url=url,
+    #                 json=data,
+    #                 headers={'Content-Type': 'application/json'},
+    #                 timeout=30  # 增加超时时间，处理大文档
+    #             )
+    #             # 检查请求状态
+    #             response.raise_for_status()
+                
+    #             # 安全地处理json方法，支持同步和异步
+    #             json_method = response.json
+    #             if inspect.iscoroutinefunction(json_method):
+    #                 # 如果是异步方法
+    #                 result = await json_method()
+    #             else:
+    #                 # 如果是同步方法
+    #                 result = json_method()
+                
+    #             return result  # 返回解析后的JSON数据
+
+    #     # 以下使用了Exception， 而不是httpx.RequestError，以捕获更为广泛的错误
+    #     except Exception as e:
+    #         logger.error(f"Django服务请求失败: {e}")
+    #         raise Exception(f"Django服务请求失败: {e}")
         
 
     async def get_tender_file_url(self, project_id):
