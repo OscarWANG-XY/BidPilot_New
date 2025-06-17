@@ -79,20 +79,37 @@ class ProjectAgentStorageViewSet(viewsets.GenericViewSet):
         storage = self._get_or_create_storage(project)
         data = request.data
         
-        # 实际保存数据到storage对象
-        for field_name, field_value in data.items():
+        # 检查数据结构类型
+        if isinstance(data, dict) and 'key_name' in data and 'content' in data:
+            # 处理嵌套结构: {"key_name": "field_name", "content": {...}}
+            field_name = data.get('key_name')
+            field_value = data.get('content')
+            
             if hasattr(storage, field_name):
                 setattr(storage, field_name, field_value)
                 logger.debug(f"更新字段 {field_name} 为项目 {project.id}")
+                updated_fields = [field_name]
+            else:
+                logger.warning(f"字段 {field_name} 不存在于模型中")
+                return Response({"detail": f"字段 {field_name} 不存在"}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            # 处理传统结构: {"field1": value1, "field2": value2}
+            updated_fields = []
+            for field_name, field_value in data.items():
+                if hasattr(storage, field_name):
+                    setattr(storage, field_name, field_value)
+                    logger.debug(f"更新字段 {field_name} 为项目 {project.id}")
+                    updated_fields.append(field_name)
         
         # 保存到数据库
         storage.save()
         logger.info(f"成功保存数据到Django服务，项目ID: {project.id}")
         
-        return Response({"message": "数据保存成功", "updated_fields": list(data.keys())})
+        return Response({"message": "数据保存成功", "updated_fields": updated_fields})
 
-    def retrieve(self, request, pk=None):
-        """重写retrieve方法，支持字段参数查询"""
+    @action(detail=True, methods=['get'], permission_classes=[])
+    def get_from_django(self, request, pk=None):
+        """重写retrieve方法，支持单个字段参数查询"""
         # 直接根据项目ID获取项目对象，而不是通过get_object()
         try:
             project = Project.objects.get(id=pk)
@@ -102,18 +119,18 @@ class ProjectAgentStorageViewSet(viewsets.GenericViewSet):
         # 获取或创建对应的存储记录
         storage = self._get_or_create_storage(project)
         
-        fields = request.GET.get('fields')
-        if fields:
-            # 有fields参数 → 只返回指定字段
-            field_list = fields.split(',')
-            data = {field: getattr(storage, field, None) 
-                    for field in field_list 
-                    if hasattr(storage, field)}
-            return Response(data)
-        
-        # 没有fields参数 → 返回所有字段（默认行为）
-        serializer = self.get_serializer(storage)
-        return Response(serializer.data)
+        field_name = request.GET.get('fields')
+        if field_name:
+            # 有field参数 → 返回指定字段的内容，格式为{key_name: 字段名, content: 字段值}
+            if hasattr(storage, field_name):
+                field_value = getattr(storage, field_name, None)
+                return Response({
+                    "key_name": field_name,
+                    "content": field_value
+                })
+            else:
+                return Response({"detail": f"字段 {field_name} 不存在"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "没有field参数"}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'], permission_classes=[])
     def clear_storage(self, request, pk=None):

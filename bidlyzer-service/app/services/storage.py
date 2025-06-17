@@ -52,7 +52,7 @@ class Storage:
     async def get_from_django(self, params: Dict[str, Any]) -> bool:
         """从Django服务获取数据"""
         try:
-            endpoint = f"api/internal/projects/{self.project_id}/"
+            endpoint = f"api/internal/projects/{self.project_id}/get_from_django/"
             response = await self.django_client._make_request(endpoint, data=None, method='get', params=params)
             return response
         except Exception as e:
