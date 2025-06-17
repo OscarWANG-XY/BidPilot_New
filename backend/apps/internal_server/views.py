@@ -115,6 +115,82 @@ class ProjectAgentStorageViewSet(viewsets.GenericViewSet):
         serializer = self.get_serializer(storage)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['post'], permission_classes=[])
+    def clear_storage(self, request, pk=None):
+        """清空ProjectAgentStorage数据"""
+        # 直接根据项目ID获取项目对象，而不是通过get_object()
+        try:
+            project = Project.objects.get(id=pk)
+        except Project.DoesNotExist:
+            return Response({"detail": "项目不存在"}, status=status.HTTP_404_NOT_FOUND)
+        
+        storage = self._get_or_create_storage(project)
+        clear_data = request.data.get('clear')
+        
+        # 定义可清空的字段（JSON字段）
+        clearable_fields = [
+            'agent_state_history',
+            'agent_message_history', 
+            'raw_document',
+            'h1_document',
+            'h2h3_document',
+            'intro_document',
+            'final_document',
+            'review_suggestions',
+            'chapters_md',
+            'topic_chapters_map',
+            'raw_topic_todos',
+            'integrated_topic_todos',
+            'draft_bid_document'
+        ]
+        
+        cleared_fields = []
+        
+        if not clear_data:
+            # 没有clear字段 → 返回错误
+            return Response({"detail": "缺少clear参数"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if clear_data == "all":
+            # 清空所有字段
+            for field_name in clearable_fields:
+                setattr(storage, field_name, None)
+                cleared_fields.append(field_name)
+            logger.info(f"清空项目 {project.id} 的所有字段")
+        
+        elif isinstance(clear_data, list):
+            # 清空指定字段列表
+            for field_name in clear_data:
+                if field_name in clearable_fields:
+                    setattr(storage, field_name, None)
+                    cleared_fields.append(field_name)
+                    logger.debug(f"清空项目 {project.id} 的字段 {field_name}")
+                else:
+                    logger.warning(f"字段 {field_name} 不在可清空字段列表中")
+        
+        elif isinstance(clear_data, str) and clear_data != "all":
+            # 清空单个指定字段
+            if clear_data in clearable_fields:
+                setattr(storage, clear_data, None)
+                cleared_fields.append(clear_data)
+                logger.debug(f"清空项目 {project.id} 的字段 {clear_data}")
+            else:
+                return Response({"detail": f"字段 {clear_data} 不在可清空字段列表中"}, 
+                              status=status.HTTP_400_BAD_REQUEST)
+        
+        else:
+            return Response({"detail": "clear参数格式不正确，应为'all'、字段名字符串或字段名列表"}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        
+        # 保存到数据库
+        storage.save()
+        logger.info(f"成功清空项目 {project.id} 的数据，清空字段: {cleared_fields}")
+        
+        return Response({
+            "message": "数据清空成功", 
+            "cleared_fields": cleared_fields,
+            "total_cleared": len(cleared_fields)
+        })
+
 
 
 

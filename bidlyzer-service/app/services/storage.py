@@ -1,5 +1,5 @@
 from app.clients.django.client import DjangoClient
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union, List
 
 from app.services.structuring.schema import AgentStateHistory, TenderFile, SSEMessageHistory
 
@@ -60,6 +60,18 @@ class Storage:
             return None
 
 
+    async def clear_storage(self, clear_fields: Union[str, List[str], Dict[str, Any]]) -> bool:
+        """清空存储"""
+        try:
+            endpoint = f"api/internal/projects/{self.project_id}/clear_storage/"
+            data={
+                "clear": clear_fields   #clear_fields 是字符串，列表, 或者all
+            }
+            await self.django_client._make_request(endpoint, data=data, method='post')
+            return True
+        except Exception as e:
+            logger.error(f"清空存储失败: {str(e)}")
+            return False
 
 
 
