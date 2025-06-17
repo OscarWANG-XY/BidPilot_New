@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from apps.projects.models import Project, Task
-from apps.internal_server.models import StructuringAgentStorage
+from apps.internal_server.models import ProjectAgentStorage
 
 class ProjectInternalSerializer(serializers.ModelSerializer):
     class Meta:
@@ -15,9 +15,9 @@ class TaskInternalSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['id', 'creator', 'create_time', 'last_update_time']
 
-class StructuringAgentStorageSerializer(serializers.ModelSerializer):
+class ProjectAgentStorageSerializer(serializers.ModelSerializer):
     class Meta:
-        model = StructuringAgentStorage
+        model = ProjectAgentStorage
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at']
 

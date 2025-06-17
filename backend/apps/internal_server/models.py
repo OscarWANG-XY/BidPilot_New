@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 
-class StructuringAgentStorage(models.Model):
+class ProjectAgentStorage(models.Model):
 
 
 # 项目数据模型
@@ -17,7 +17,7 @@ class StructuringAgentStorage(models.Model):
     project = models.ForeignKey(
         Project,
         on_delete=models.CASCADE,
-        related_name='structuring_agent_storage'
+        related_name='project_agent_storage'
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
