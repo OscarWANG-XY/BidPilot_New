@@ -34,6 +34,10 @@ class Storage:
             return None
   
 
+    # 注意： 一旦使用Storge的以下方法（save_to_django, get_from_django, clear_storage），如果Django侧不存在对应的表，会触发创建。 
+    # 表被创建以后，各字段的值为None. 
+    # 从表查询回参数，会以{key_name: value, content: value} 的格式返回。 
+    # 所以返回的数据不会为空，关键要验证content是否为空。   
 
     async def save_to_django(self, data: Dict[str, Any]) -> bool:
         """保存数据到Django服务"""

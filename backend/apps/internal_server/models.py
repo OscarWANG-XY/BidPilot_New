@@ -118,8 +118,10 @@ class ProjectAgentStorage(models.Model):
         verbose_name='合并同类项后的_todos'
     )
 
-
-
+    class Meta:
+        db_table = 'project_agent_storage'
+        verbose_name = '项目Agent存储'
+        verbose_name_plural = '项目Agent存储'
 
 
 
@@ -152,16 +154,5 @@ class ProjectAgentStorage(models.Model):
 
 
 
-
-
-
-
-
-
-
-
-
     class Meta:
-        db_table = 'structuring_agent_storage'
-        verbose_name = '结构化Agent存储'
-        verbose_name_plural = '结构化Agent存储'
+        db_table = 'project_agent_storage'

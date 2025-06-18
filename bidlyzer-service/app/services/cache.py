@@ -3,7 +3,8 @@
 from datetime import datetime
 from typing import Optional, Dict, Any, List, Tuple
 from app.core.redis_helper import RedisClient
-from app.services.state import AgentStateHistory, AgentState, AgentSSEMessageHistory, AgentSSEMessage, Document
+from app.services.bp_state import AgentStateHistory, AgentState, Document
+from app.services.bp_msg import AgentMessageHistory, AgentMessage
 from app.services.storage import Storage
 
 import logging
@@ -87,22 +88,24 @@ class Cache:
         try:
             cache_key = self.get_cache_keys().get('agent_state_history')
             cache_data = await RedisClient.get(cache_key)
-            if cache_data:
+            if cache_data and cache_data['content']:
                 # 将字典转换为 AgentStateHistory 对象
                 state_history = AgentStateHistory(**cache_data)
                 # 获取最新的状态
                 agent_state = state_history.content[-1] if state_history.content else None
+                print(f"从Redis获取agent状态信息")
                 return agent_state, state_history
             else:
                 # 如果缓存失败，从django获取历史记录storage_data, 格式为AgentStateHistory
                 storage_data = await self.storage.get_from_django(params={'fields': 'agent_state_history'})
-                if storage_data:
+                if storage_data and storage_data['content']:
                     # 恢复缓存数据
                     state_history_dict = storage_data
                     success_redis = await RedisClient.set(cache_key, state_history_dict, expire=self.cache_expire_time)
                     if success_redis:
                         state_history = AgentStateHistory(**state_history_dict)
                         agent_state = state_history.content[-1] if state_history.content else None
+                        print(f"从Storage获取了agent状态信息")
                         return agent_state, state_history
                     else:
                         logger.error(f"恢复缓存失败，项目号：{self.project_id}")
@@ -115,24 +118,24 @@ class Cache:
             return None, None
 
 
-    async def save_agent_sse_message(self, agent_sse_message: AgentSSEMessage) -> bool:
+    async def save_agent_message(self, agent_message: AgentMessage) -> bool:
         """保存agent sse消息"""
         try:
-            sse_message_key = self.get_cache_keys().get('agent_message_history')
-            sse_message_history_data = await RedisClient.get(sse_message_key)
-            if not sse_message_history_data:
-                sse_message_history = AgentSSEMessageHistory(key_name='agent_message_history', content=[agent_sse_message])
+            message_key = self.get_cache_keys().get('agent_message_history')
+            message_history_data = await RedisClient.get(message_key)
+            if not message_history_data:
+                sse_message_history = AgentMessageHistory(key_name='agent_message_history', content=[agent_message])
             else:
                 # 将字典转换为 AgentSSEMessageHistory 对象
-                sse_message_history = AgentSSEMessageHistory(**sse_message_history_data)
-                sse_message_history.content.append(agent_sse_message)
+                sse_message_history = AgentMessageHistory(**message_history_data)
+                sse_message_history.content.append(agent_message)
             
             # 将 Pydantic 对象转换为 JSON 兼容的字典
-            sse_message_history_dict = sse_message_history.model_dump(mode='json')
+            message_history_dict = sse_message_history.model_dump(mode='json')
 
-            success = await RedisClient.set(sse_message_key, sse_message_history_dict, expire=self.cache_expire_time)
+            success = await RedisClient.set(message_key, message_history_dict, expire=self.cache_expire_time)
             if success:
-                await self.storage.save_to_django(sse_message_history_dict)
+                await self.storage.save_to_django(message_history_dict)
                 return True
             else:
                 return False
@@ -140,25 +143,25 @@ class Cache:
             logger.error(f"保存agent sse消息失败: {str(e)}")
             return False
 
-    async def get_agent_sse_message(self) -> Tuple[Optional[AgentSSEMessage], Optional[AgentSSEMessageHistory]]:
+    async def get_agent_message(self) -> Tuple[Optional[AgentMessage], Optional[AgentMessageHistory]]:
         """获取agent sse消息"""
         try:
             cache_key = self.get_cache_keys().get('agent_message_history')
             cache_data = await RedisClient.get(cache_key)
-            if cache_data:
+            if cache_data and cache_data['content']:
                 # 将字典转换为 AgentSSEMessageHistory 对象
-                sse_message_history = AgentSSEMessageHistory(**cache_data)
-                agent_sse_message = sse_message_history.content[-1] if sse_message_history.content else None
-                return agent_sse_message, sse_message_history
+                message_history = AgentMessageHistory(**cache_data)
+                agent_message = message_history.content[-1] if message_history.content else None
+                return agent_message, message_history
             else:
                 storage_data = await self.storage.get_from_django(params={'fields': 'agent_message_history'})
-                if storage_data:
+                if storage_data and storage_data['content']:
                     message_history_dict = storage_data
                     success_redis = await RedisClient.set(cache_key, message_history_dict, expire=self.cache_expire_time)
                     if success_redis:
-                        sse_message_history = AgentSSEMessageHistory(**message_history_dict)
-                        agent_sse_message = sse_message_history.content[-1] if sse_message_history.content else None
-                        return agent_sse_message, sse_message_history
+                        message_history = AgentMessageHistory(**message_history_dict)
+                        agent_message = message_history.content[-1] if message_history.content else None
+                        return agent_message, message_history
                 return None, None
         except Exception as e:
             logger.error(f"获取agent sse消息失败: {str(e)}")
@@ -173,16 +176,14 @@ class Cache:
                 logger.error(f"无效的文档类型: {key_name}")
                 return False
             
+            document = Document(key_name=key_name, content=content)
+            document_dict = document.model_dump(mode='json')
 
             # 缓存到Redis
-            redis_success = await RedisClient.set(cache_key, content, expire=self.cache_expire_time)
+            redis_success = await RedisClient.set(cache_key, document_dict, expire=self.cache_expire_time)
             if redis_success:
                 # 如果缓存成功，将缓存的数据进行持久化到django 
-                data = {
-                    'key_name': key_name,
-                    'content': content
-                }
-                success_storage = await self.storage.save_to_django(data)
+                success_storage = await self.storage.save_to_django(document_dict)
                 if success_storage:
                     return True
                 else:
@@ -203,16 +204,21 @@ class Cache:
         try:
             cache_key = self.get_cache_keys().get(key_name)
             cache_data = await RedisClient.get(cache_key)
-            if cache_data:
-                return cache_data
+            if cache_data and cache_data['content']:
+                document = Document(**cache_data)
+                print(f"从Redis获取了文档数据")
+                return document.content
             else:
                 # 如果缓存失败，从django获取文档数据
                 # 从storage返回的数据格式是{'key_name': 'raw_document', 'content': 'raw_document'}， 需要需要再取content
                 storage_data = await self.storage.get_from_django(params={'fields': key_name})
-                if storage_data:
-                    success_redis = await RedisClient.set(cache_key, storage_data['content'], expire=self.cache_expire_time)
+                if storage_data and storage_data['content']:
+                    storage_data_dict = storage_data
+                    success_redis = await RedisClient.set(cache_key, storage_data_dict, expire=self.cache_expire_time)
                     if success_redis:
-                        return storage_data['content']
+                        document = Document(**storage_data_dict)
+                        print(f"从Storage获取了文档数据")
+                        return document.content
                     else:
                         logger.error(f"恢复文档数据到Redis失败，项目号：{self.project_id}")
                         return None     
