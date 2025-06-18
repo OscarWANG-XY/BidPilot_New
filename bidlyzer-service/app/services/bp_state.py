@@ -68,7 +68,7 @@ class AgentState(BaseModel):
     overall_progress: int = Field(description="整体进度")
     active_stage: StageEnum = Field(description="阶段")
     stage_status: StageStatus = Field(description="阶段状态")
-    stage_task_id: str = Field(description="阶段任务id")
+    stage_task_id: Optional[str] = Field(description="阶段任务id")
     # stage_details 待细化？？
     created_at: datetime = Field(description="创建时间")
     updated_at: datetime = Field(description="更新时间")

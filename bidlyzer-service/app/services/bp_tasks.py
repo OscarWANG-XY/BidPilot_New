@@ -2,11 +2,10 @@
 import logging
 import asyncio
 from typing import Optional, Dict, Any
-from celery import current_task
+from celery.result import AsyncResult
 from app.core.celery_app import celery_app
 from app.core.redis_helper import RedisClient, LockAcquireError, LockTimeoutError
-from app.services.structuring.structuring import Structuring
-from app.services.structuring.state import ProcessingStep
+
 
 logger = logging.getLogger(__name__)
 
@@ -17,40 +16,86 @@ class StructuringError(Exception):
     pass
 
 
+def inspect_task_info(task_id: str):
+
+    task = AsyncResult(task_id, app=celery_app)
+
+    task_info = {
+        "status": task.status, #PENDING, RESERVED, STARTED, SUCCESS, FAILURE, RETRY, REVOKED        
+        "ready?": task.ready(),  #true or false
+        "result": task.result if task.ready() and task.successful() else None, #None or result
+        "error": task.result if task.ready() and task.failed() else None, #None or error
+    }
+    return task_info
+
+
 
 @celery_app.task(bind=True, name="agent.structuring")
-def run_structuring(self, project_id: str):
-    """
-    Celery任务：重试文档结构化分析
-    """
+def run_structuring(self):
     task_id = self.request.id
-    logger.info(f"[Celery-{task_id}] 重试文档结构化分析: project_id={project_id}")
-    
-    lock_key = f"lock:structuring:{project_id}"
-    
-    # 添加调试日志
-    logger.info(f"[DEBUG] 尝试获取锁: {lock_key}")
-    
-    try:
-        with RedisClient.distributed_lock_sync(
-            lock_key, 
-            expire=300,  # 5分钟锁定
-            retry_times=0  # 不重试，直接返回
-        ):
-            logger.info(f"[DEBUG] 成功获取锁，开始执行任务: {lock_key}")
+    logger.info(f"[Celery-{task_id}] 开始文档结构化分析")
+    asyncio.run(asyncio.sleep(2))
+    logger.info(f"[Celery-{task_id}] 文档结构化分析完成")
+    return None
 
-            structuring = Structuring(project_id)
-            # 重新运行分析
-            asyncio.run(structuring.process(ProcessingStep.EXTRACT))
+
+
+
+@celery_app.task(bind=True, name="agent.planning")
+def run_planning(self):
+    task_id = self.request.id
+    logger.info(f"[Celery-{task_id}] 开始文档结构化分析")
+    asyncio.run(asyncio.sleep(2))
+    return None
+
+
+
+@celery_app.task(bind=True, name="agent.planning")
+def run_writing(self):
+    task_id = self.request.id
+    logger.info(f"[Celery-{task_id}] 开始文档结构化分析")
+    asyncio.run(asyncio.sleep(2))
+    return None
+
+
+
+
+
+
+
+# @celery_app.task(bind=True, name="agent.structuring")
+# def run_structuring(self, project_id: str, step: ProcessingStep):
+#     """
+#     Celery任务：重试文档结构化分析
+#     """
+#     task_id = self.request.id
+#     logger.info(f"[Celery-{task_id}] 重试文档结构化分析: project_id={project_id}")
+    
+#     lock_key = f"lock:structuring:{project_id}"
+    
+#     # 添加调试日志
+#     logger.info(f"[DEBUG] 尝试获取锁: {lock_key}")
+    
+#     try:
+#         with RedisClient.distributed_lock_sync(
+#             lock_key, 
+#             expire=300,  # 5分钟锁定
+#             retry_times=0  # 不重试，直接返回
+#         ):
+#             logger.info(f"[DEBUG] 成功获取锁，开始执行任务: {lock_key}")
+
+#             structuring = Structuring(project_id)
+#             # 重新运行分析
+#             asyncio.run(structuring.process(step))
                 
-            logger.info(f"[DEBUG] 任务执行完成: {lock_key}")
-            return f"structuring任务完成: {project_id}"
-    except LockTimeoutError as e:
-        logger.warning(f"[DEBUG] 锁超时: {lock_key}, 错误: {e}")
-        return f"structuring任务被跳过: {project_id}"
-    except LockAcquireError as e:
-        logger.error(f"[DEBUG] 获取锁失败: {lock_key}, 错误: {e}")
-        return f"structuring任务失败: {project_id}"
+#             logger.info(f"[DEBUG] 任务执行完成: {lock_key}")
+#             return f"structuring任务完成: {project_id}"
+#     except LockTimeoutError as e:
+#         logger.warning(f"[DEBUG] 锁超时: {lock_key}, 错误: {e}")
+#         return f"structuring任务被跳过: {project_id}"
+#     except LockAcquireError as e:
+#         logger.error(f"[DEBUG] 获取锁失败: {lock_key}, 错误: {e}")
+#         return f"structuring任务失败: {project_id}"
 
 
 # @celery_app.task(bind=True, name="structuring.analysis")

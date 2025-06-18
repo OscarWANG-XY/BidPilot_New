@@ -34,7 +34,9 @@ celery_app.conf.update(
         # 'app.tasks.test_tasks.test_lock_mechanism': {'queue': 'default'},  # 默认队列
         # 'app.tasks.test_tasks.clear_test_locks': {'queue': 'default'},  # 默认队列
         # 'app.tasks.test_tasks.check_lock_status': {'queue': 'default'},  # 默认队列
-        'app.tasks.agent_tasks.run_structuring': {'queue': 'default'},  # 默认队列
+        'app.tasks.bp_tasks.run_structuring': {'queue': 'default'},  # 默认队列
+        'app.tasks.bp_tasks.run_planning': {'queue': 'default'},  # 默认队列
+        'app.tasks.bp_tasks.run_writing': {'queue': 'default'},  # 默认队列
     },
     
 
@@ -109,7 +111,7 @@ celery_app.conf.update(
 try:
     # import app.tasks.structuring_tasks
     # import app.tasks.test_tasks  # 新增：导入tasks模块
-    import app.tasks.agent_tasks  # 新增：导入tasks模块
+    import app.services.bp_tasks  # 新增：导入tasks模块
     print(f"✅ 成功导入所有任务模块，已注册 {len(celery_app.tasks)} 个任务")
 except ImportError as e:
     print(f"❌ 导入任务模块失败: {e}")
