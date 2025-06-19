@@ -15,7 +15,7 @@ class BidPilot:
         self.project_id = project_id
         self.manager = AgentStateManager(self.project_id)
         self.stage_task_id = None
-        logger.info(f"完成项目 {project_id} 的BIDPILOT AGENT的初始化")
+        logger.info(f"(1)完成项目 {project_id} 的BIDPILOT AGENT的初始化")
 
 
     async def run_agent(self):
@@ -25,17 +25,17 @@ class BidPilot:
 
         # 发送消息：正在初始化AGENT ...      
         if action_type == "INIT":
-            await asyncio.sleep(2)
+            await asyncio.sleep(0.1)
             state_config = stage_config[state.active_stage]
             message = state_config["description"]
-            print(f"正在初始化AGENT ... {message}")
+            print(f"(2)正在初始化AGENT ... {message}")
             # await send_message (stage)
         
         # 发送消息：正在恢复AGENT 到 state阶段 ...
         elif action_type == "RESTORE":
-            await asyncio.sleep(2)
+            await asyncio.sleep(0.1)
             # await send_message (stage)
-            print(f"正在恢复AGENT 到 {stage} 阶段 ... ")
+            print(f"(2)正在恢复AGENT 到 {stage} 阶段 ... ")
         
 
         await self.process_stage(stage)
@@ -55,7 +55,7 @@ class BidPilot:
             )
 
             print(f"请上传招标文件")
-            await asyncio.sleep(2)
+            # await asyncio.sleep(2)
             # 等待用户给输入， 用户的输入通过 API端点， 触发agent跳转到下一个状态，然后重新run_agent的流程里。 
 
             # if 检查当前阶段完成

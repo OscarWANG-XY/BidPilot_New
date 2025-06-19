@@ -3,13 +3,20 @@ from pydantic import BaseModel, Field
 from app.services.cache import Cache
 from app.services.structuring.state_manager import create_state_manager
 from app.services.structuring.state import UserAction, StateEnum
-
+from app.services.bidpilot import BidPilot
 import logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 # ========================= 请求/响应模型 =========================
+
+
+class RunAgentResponse(BaseModel):
+    """启动agent响应"""
+    success: bool
+    message: str
+
 
 class StartAnalysisResponse(BaseModel):
     """开始分析响应"""
@@ -19,20 +26,36 @@ class StartAnalysisResponse(BaseModel):
     initial_state: str
 
 
-class RetryAnalysisRequest(BaseModel):
-    """重试分析请求"""
-    project_id: str = Field(description="项目ID")
-
-class RetryAnalysisResponse(BaseModel):
-    """重试分析响应"""
-    success: bool
-    message: str
-    project_id: str
-    current_state: str
-
-
 
 # ========================= 端点实现 =========================
+
+
+# 构建一个通用的路由端点，启动agent (执行起点由状态管理器决定)
+@router.post("/{project_id}/run-agent", response_model=RunAgentResponse)
+async def run_agent(
+    project_id: str,
+    background_tasks: BackgroundTasks
+):
+    """
+    启动agent
+    """
+    try:
+        logger.info(f"启动agent for project {project_id}")
+                
+        bidpliot = BidPilot(project_id)
+        await bidpliot.run_agent()  # 理论上，这里要能直接跳入Structuring阶段
+
+        return RunAgentResponse(
+            success=True,
+            message=f"agent开始执行！"
+        )
+    
+    except Exception as e:
+        logger.error(f"项目 {project_id} agent启动失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"启动agent失败: {str(e)}")
+
+
+
 
 @router.post("/start-analysis/{project_id}", response_model=StartAnalysisResponse)
 async def start_analysis(
@@ -94,55 +117,3 @@ async def start_analysis(
         logger.error(f"Error starting analysis for project {project_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"启动分析失败: {str(e)}")
 
-
-@router.post("/retry-analysis", response_model=RetryAnalysisResponse)
-async def retry_analysis(
-    request: RetryAnalysisRequest,
-    background_tasks: BackgroundTasks
-):
-    """
-    端点3: 重试分析
-    当流程出现错误时，用户可以点击重新开始
-    """
-    try:
-        logger.info(f"Retrying analysis for project {request.project_id}")
-        
-        # 创建状态管理器实例
-        state_manager = create_state_manager(request.project_id)
-        
-        # 检查当前状态是否允许重试
-        current_state = await state_manager.get_internal_state()
-        if current_state != StateEnum.FAILED:
-            return RetryAnalysisResponse(
-                success=False,
-                message="当前状态不需要重试",
-                project_id=request.project_id,
-                current_state=current_state.value if current_state else "unknown"
-            )
-        
-        # 处理重试操作
-        success = await state_manager.handle_user_action(
-            action=UserAction.RETRY
-        )
-        
-        if not success:
-            raise HTTPException(status_code=500, detail="重试操作失败")
-        
-        # 使用Celery任务重新启动分析
-        from app.tasks.structuring_tasks import retry_structuring_analysis
-        celery_task = retry_structuring_analysis.delay(request.project_id)
-        
-        logger.info(f"重试Celery任务已启动: task_id={celery_task.id}, project_id={request.project_id}")
-        
-        return RetryAnalysisResponse(
-            success=True,
-            message=f"重试已开始，请通过SSE监听进度更新。Celery任务ID: {celery_task.id}",
-            project_id=request.project_id,
-            current_state="EXTRACTING_DOCUMENT"
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error retrying analysis for project {request.project_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"重试失败: {str(e)}")
