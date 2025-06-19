@@ -32,12 +32,12 @@ class SSEData(BaseModel):
 
     # results
     show_results: bool = Field(description="是否展示结果")
-    result_key_names: List[str] = Field(description="文档key名称")
+    result_key_names: Optional[List[str]] = Field(description="文档key名称")
 
     # actions
     required_action: bool = Field(description="是否要用户跟进操作？")
-    action_status: ActionStatus = Field(description="用户操作状态")
-    action_type: ActionType = Field(description="用户操作类型")
+    action_status: Optional[ActionStatus] = Field(description="用户操作状态")
+    action_type: Optional[ActionType] = Field(description="用户操作类型")
 
     created_at: datetime = Field(default_factory=datetime.now)
 

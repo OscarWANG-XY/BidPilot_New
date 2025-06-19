@@ -1,12 +1,18 @@
 from app.clients.django.client import DjangoClient
 from typing import Optional, Dict, Any, Union, List
-
-from app.services.structuring.schema import AgentStateHistory, TenderFile, SSEMessageHistory
-
+from pydantic import BaseModel
 import logging
 logger = logging.getLogger(__name__)
 
 
+class TenderFile(BaseModel):
+    """单个招标文件信息"""
+    id: str  # 或者 UUID，取决于您的ID格式
+    name: str
+    type: str
+    url: str
+    size: int
+    mime_type: str
 
 class Storage:
     """基于DjangoClient的持久化存储服务"""

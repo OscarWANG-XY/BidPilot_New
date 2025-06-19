@@ -1,8 +1,6 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel, Field
 from app.services.cache import Cache
-from app.services.structuring.state_manager import create_state_manager
-from app.services.structuring.state import UserAction, StateEnum
 from app.services.bidpilot import BidPilot
 import logging
 logger = logging.getLogger(__name__)

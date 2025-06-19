@@ -7,10 +7,9 @@ import json
 import logging
 from datetime import datetime
 from app.services.cache import Cache
-
-from app.services.structuring.state_manager import create_state_manager
-from app.services.structuring.state import UserAction, StateEnum
 from app.core.redis_helper import RedisClient
+from app.services.bp_msg import AgentMessage
+from app.services.broadcast import publish_state_update
 
 logger = logging.getLogger(__name__)
 
@@ -52,28 +51,6 @@ async def sse_stream(project_id: str, request: Request):
                 'message': '连接已建立'
             })}\n\n"
             
-            # 发送当前状态（如果存在）
-            agent_state = await cache.get_agent_state()
-           
-            if agent_state:
-                from app.services.structuring.state import StateRegistry
-                state_config = StateRegistry.get_state_config(agent_state.state)
-                yield f"event: state_update\n"
-                yield f"data: {json.dumps({
-                    'projectId': project_id,
-                    'fromState': state_config.previous_state.value if state_config.previous_state is not None else None,
-                    'toState': agent_state.state,
-                    'updatedProgress': agent_state.overall_progress,
-                    'message': state_config.description if state_config else ""
-                })}\n\n"
-            
-            # 发送一个测试消息（可选，用于调试）
-            yield f"event: test\n"
-            yield f"data: {json.dumps({
-                'projectId': project_id,
-                'message': '这是一个测试消息',
-                'timestamp': '2024-01-01T00:00:00Z'
-            })}\n\n"
             
             # 监听Redis消息
             pubsub = await RedisClient.subscribe(channel)
@@ -82,18 +59,20 @@ async def sse_stream(project_id: str, request: Request):
                 # 监听消息
                 while True:
                     message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+                    print('监听到消息', message)
                     if message is not None:
                         try:
-                            # 解析消息
-                            message_data = json.loads(message['data']) if isinstance(message['data'], str) else message['data']
+                            # 解析AgentMessage
+                            if isinstance(message['data'], str):
+                                agent_msg = json.loads(message['data'])
+                            else:
+                                agent_msg = message['data']
                             
-                            # 格式化为SSE格式
-                            # .get(key, default)的语法，如果key不存在，则返回default, 所以，以下如果没有event，则返回update作为默认。
-                            event_type = message_data.get("event", "update")
-                            event_data = message_data.get("data", message_data)
-                            
-                            yield f"event: {event_type}\n"
-                            yield f"data: {json.dumps(event_data)}\n\n"
+                            # 构建完整的SSE响应，使用AgentMessage的所有4个字段
+                            yield f"id: {agent_msg.get('id', '')}\n"
+                            yield f"event: {agent_msg.get('event', 'message')}\n"  
+                            yield f"data: {json.dumps(agent_msg.get('data', {}))}\n"
+                            yield f"retry: {agent_msg.get('retry', 3000)}\n\n"  # retry通常以毫秒为单位
                             
                         except json.JSONDecodeError as e:
                             logger.error(f"Error parsing SSE message: {e}")

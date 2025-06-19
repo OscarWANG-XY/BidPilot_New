@@ -53,7 +53,7 @@ async def get_agent_state(project_id: str):
 
 
 @router.get("/{project_id}/agent-message-history", response_model=SSEHistoryResponse)
-async def get_sse_history(project_id: str):
+async def get_agent_message_history(project_id: str):
     """
     额外端点: 查询SSE消息历史
     用于前端主动查询SSE消息历史
@@ -67,7 +67,7 @@ async def get_sse_history(project_id: str):
         
         # 从 message_history.content 获取消息列表
         messages = message_history.content if message_history.content else []
-        last_updated = messages[-1].updated_at if messages else datetime.now()
+        last_updated = messages[-1].data.created_at if messages else datetime.now()
         
         return SSEHistoryResponse(
             project_id=project_id,

@@ -2,7 +2,6 @@ from fastapi import APIRouter, HTTPException
 from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
-from app.services.structuring.state import StateEnum
 from app.services.cache import Cache
 
 import logging
@@ -47,7 +46,10 @@ async def get_document(
         
         cache = Cache(project_id)
         
+        # get_document直接返回文档本身，不带key_name
         target_document = await cache.get_document(key_name)
+
+
         if not target_document:
             raise HTTPException(
                 status_code=404, 

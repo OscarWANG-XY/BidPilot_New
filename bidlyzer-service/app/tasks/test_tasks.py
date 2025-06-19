@@ -5,8 +5,8 @@ from typing import Optional, Dict, Any
 from celery import current_task
 from app.core.celery_app import celery_app
 from app.core.redis_helper import RedisClient, LockAcquireError, LockTimeoutError
-from app.services.structuring.structuring import Structuring
-from app.services.structuring.state import ProcessingStep
+# from app.services.structuring.structuring import Structuring
+# from app.services.structuring.state import ProcessingStep
 
 logger = logging.getLogger(__name__)
 
