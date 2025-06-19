@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSSE } from '@/_hooks/useStructuringAgent/useSSE';
+import { useSSE } from '@/_hooks/useProjectAgent/useSSE';
 
 interface SSEDataBoardProps {
   projectId: string;

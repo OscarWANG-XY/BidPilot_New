@@ -1,58 +1,56 @@
 import React from 'react';
-import { useDocuments, DocumentType } from '@/_hooks/useStructuringAgent/useDocuments';
+import { useDocuments } from '@/_hooks/useProjectAgent/useDocuments';
 
 interface DocumentDataBoardProps {
   projectId: string;
-  docType?: DocumentType;
+  keyName?: string;
 }
 
 const DocumentDataBoard: React.FC<DocumentDataBoardProps> = ({
   projectId,
-  docType
+  keyName
 }) => {
   // 获取文档查询hook实例
   const documentsResult = useDocuments({
     projectId,
-    docType,
+    keyName,
     queryOptions: {
       enabled: !!projectId,
-      staleTime: docType === 'raw-document' ? 5 * 60 * 1000 : 5 * 60 * 1000,
+      staleTime: keyName === 'raw_document' ? 5 * 60 * 1000 : 5 * 60 * 1000,
       refetchOnWindowFocus: false,
     }
   });
 
   // 🔧 添加调试信息
-  console.log('🐛 DocumentDataBoard - docType:', docType);
-  console.log('🐛 DocumentDataBoard - rawDocumentQuery.data:', documentsResult.rawDocumentQuery.data);
-  console.log('🐛 DocumentDataBoard - finalDocumentQuery.data:', documentsResult.finalDocumentQuery.data);
-  console.log('🐛 DocumentDataBoard - currentDocumentQuery.data:', documentsResult.currentDocumentQuery.data);
+  console.log('🐛 DocumentDataBoard - keyName:', keyName);
+  console.log('🐛 DocumentDataBoard - documentQuery.data:', documentsResult.documentQuery.data);
 
   // 获取当前文档查询
   const {
     data: documentData,   // 格式为GetDocumentResponse
     isLoading: isDocumentLoading,
     error: documentError
-  } = documentsResult.currentDocumentQuery;
+  } = documentsResult.documentQuery;
 
   // 数据派生计算
   const derivedData = React.useMemo(() => {
     return {
       // 基础数据
-      document: documentData?.document,
-      version: documentData?.version,
+      document: documentData?.content,
+    //   version: documentData?.version,
     //   lastUpdated: documentData?.savedAt,
-      documentType: docType,
+      documentType: keyName,
       
       // 统计信息
-      documentSize: documentData?.document ? JSON.stringify(documentData.document).length : 0,
-      hasContent: !!(documentData?.document),
+      documentSize: documentData?.content ? JSON.stringify(documentData.content).length : 0,
+      hasContent: !!(documentData?.content),
       
       // 状态标识
       hasData: !!(documentData),
       isLoading: isDocumentLoading,
       hasError: !!(documentError),
     };
-  }, [documentData, isDocumentLoading, documentError, docType]);
+  }, [documentData, isDocumentLoading, documentError, keyName]);
 
   // 简单的渲染逻辑 - 专注数据展示
   if (derivedData.isLoading) {
@@ -66,7 +64,7 @@ const DocumentDataBoard: React.FC<DocumentDataBoardProps> = ({
       <div>
         <p>Error: 文档加载错误: {errorMessage}</p>
         <button 
-          onClick={() => documentsResult.refreshDocument(projectId, docType)}
+          onClick={() => documentsResult.refreshDocument(projectId, keyName)}
           style={{ marginTop: '10px', padding: '5px 10px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}
         >
           重新加载
@@ -83,7 +81,7 @@ const DocumentDataBoard: React.FC<DocumentDataBoardProps> = ({
       <div>
         <h4>Document Info</h4>
         <p>Document Type: {derivedData.documentType}</p>
-        <p>Version: {derivedData.version || 'N/A'}</p>
+        {/* <p>Version: {derivedData.version || 'N/A'}</p> */}
         {/* <p>Last Updated: {derivedData.lastUpdated || 'N/A'}</p> */}
         <p>Document Size: {derivedData.documentSize} characters</p>
         <p>Has Content: {derivedData.hasContent ? 'Yes' : 'No'}</p>
@@ -114,7 +112,7 @@ const DocumentDataBoard: React.FC<DocumentDataBoardProps> = ({
       {/* 操作按钮 */}
       <div style={{ marginTop: '10px' }}>
         <button 
-          onClick={() => documentsResult.refreshDocument(projectId, docType)}
+          onClick={() => documentsResult.refreshDocument(projectId, keyName)}
           style={{ marginRight: '10px', padding: '5px 10px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px' }}
         >
           刷新文档
@@ -135,9 +133,7 @@ const DocumentDataBoard: React.FC<DocumentDataBoardProps> = ({
           
           <h4>Debug Info - 所有查询状态:</h4>
           <div style={{ fontSize: '12px' }}>
-            <p>Raw Document Loading: {documentsResult.rawDocumentQuery.isLoading.toString()}</p>
-            <p>Review Suggestions Loading: {documentsResult.reviewSuggestionsQuery.isLoading.toString()}</p>
-            <p>Final Document Loading: {documentsResult.finalDocumentQuery.isLoading.toString()}</p>
+            <p>Document Loading: {documentsResult.documentQuery.isLoading.toString()}</p>
           </div>
         </div>
       )}

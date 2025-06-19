@@ -5,7 +5,7 @@ import {
     StartAnalysisResponse,
     RetryAnalysisRequest,
     RetryAnalysisResponse
-} from '@/_api/structuring_agent_api/actions_api';
+} from '@/_api/project_agent_api/actions_api';
 
 // ------------- Query Keys -------------
 export const STRUCTURING_ACTIONS_KEYS = {

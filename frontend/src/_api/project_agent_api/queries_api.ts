@@ -46,7 +46,7 @@ export const queriesApi = {
   getAgentState: async (projectId: string): Promise<StateStatusResponse> => {
     console.log('📤 进入API端点getAgentState:');
     const response = await fastApiInstance.get<StateStatusResponse>(
-      `/structuring/agent-state/${projectId}`
+      `/projects/${projectId}/agent-state`
     );
     console.log('📥 获取AgentState结果:', response.data);
     return response.data;
@@ -60,7 +60,7 @@ export const queriesApi = {
   getSSEHistory: async (projectId: string): Promise<SSEHistoryResponse> => {
     console.log('📤 进入API端点getSSEHistory:');
     const response = await fastApiInstance.get<SSEHistoryResponse>(
-      `/structuring/sse-history/${projectId}`
+      `/projects/${projectId}/agent-message-history`
     );
     console.log('📥 获取SSEHistory结果:', response.data);
     return response.data;

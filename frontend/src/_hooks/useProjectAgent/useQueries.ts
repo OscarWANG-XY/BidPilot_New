@@ -4,7 +4,7 @@ import {
   queriesApi, 
   StateStatusResponse, 
   SSEHistoryResponse 
-} from '@/_api/structuring_agent_api/queries_api';
+} from '@/_api/project_agent_api/queries_api';
 
 // 定义查询键，用于缓存管理 （以下是社区推荐的最佳实践）
 export const queryKeys = {

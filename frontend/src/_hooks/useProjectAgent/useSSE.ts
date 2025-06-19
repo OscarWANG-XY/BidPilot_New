@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { BaseSSEClient, SSEEventListener } from '@/_api/structuring_agent_api/sse_api'
+import { BaseSSEClient, SSEEventListener } from '@/_api/project_agent_api/sse_api'
 
 // 连接状态枚举
 export enum SSEConnectionState {

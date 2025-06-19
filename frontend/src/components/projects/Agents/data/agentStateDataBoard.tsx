@@ -1,5 +1,5 @@
 import React from 'react';
-import { useQueries } from '@/_hooks/useStructuringAgent/useQueries';
+import { useQueries } from '@/_hooks/useProjectAgent/useQueries';
 
 interface StructuringAgentProps {
   projectId: string;

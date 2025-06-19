@@ -23,7 +23,7 @@
     constructor(public projectId: string) {
       const TOKEN = localStorage.getItem('token') || ''
       const BASE_URL = window.location.origin
-      this.url = `${BASE_URL}/fastapi/api/v1/structuring/sse/${projectId}?token=${TOKEN}`
+      this.url = `${BASE_URL}/fastapi/api/v1/projects/${projectId}/sse?token=${TOKEN}`
     }
 
     //建立SSE连接, 返回EventSource实例
