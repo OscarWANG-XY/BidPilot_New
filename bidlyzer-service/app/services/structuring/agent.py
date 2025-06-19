@@ -5,7 +5,7 @@ import asyncio
 import json
 import traceback
 
-from .state_manager import create_state_manager, AgentStateData
+from .state_manager import create_state_manager, StructuringState
 from .state import (
     StateEnum, ProcessingStep,
     StateRegistry, ING_STATE_POOL, ED_STATE_POOL,
@@ -99,7 +99,7 @@ class StructuringAgent:
 
     # =============== 状态管理 ===============
     @property
-    async def current_state(self) -> Optional[AgentStateData]:
+    async def current_state(self) -> Optional[StructuringState]:
         """获取当前状态数据"""
         return await self.state_manager.cache.get_agent_state()
     

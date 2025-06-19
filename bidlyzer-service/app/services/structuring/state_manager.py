@@ -6,14 +6,14 @@ from datetime import datetime
 import uuid
 from app.core.redis_helper import RedisClient
 from app.services.cache import Cache
-from app.services.structuring.schema import AgentStateData, SSEData, SSEMessage
+from app.services.structuring.schema import StructuringState, StructuringSSEData, StructuringMessage
 from .state import (
     StateEnum, ProcessingStep, UserAction,
     StateRegistry, 
     StateTransitionError, ProcessingError,
     ING_STATE_POOL, ED_STATE_POOL
 )
-from app.services.broadcast import publish_state_update, publish_error_event
+# from app.services.broadcast import publish_state_update, publish_error_event
 
 from app.services.storage import Storage
 
@@ -33,7 +33,7 @@ class StructuringAgentStateManager:
         self.cache = Cache(project_id)
     
     # 状态初始化 + 状态转换 
-    async def initialize_agent(self, target_state: StateEnum = StateEnum.EXTRACTING_DOCUMENT) -> AgentStateData:
+    async def initialize_agent(self, target_state: StateEnum = StateEnum.EXTRACTING_DOCUMENT) -> StructuringState:
         """
         初始化Agent状态并直接开始文档提取
         
@@ -48,7 +48,7 @@ class StructuringAgentStateManager:
             initial_state = target_state
             
             
-            agent_state = AgentStateData(
+            agent_state = StructuringState(
                 project_id=self.project_id,
                 state=initial_state,
                 step_progress={ProcessingStep.EXTRACT: 0}  # 初始化提取步骤

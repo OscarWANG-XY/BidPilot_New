@@ -7,7 +7,7 @@ import traceback
 from app.services.cache import Cache
 from app.services.storage import Storage
 from app.services.structuring.state import StateRegistry
-from .state_manager import create_state_manager, AgentStateData
+from .state_manager import create_state_manager, StructuringState
 from .state import (
     StateEnum, ProcessingStep,
     StateRegistry, ING_STATE_POOL, ED_STATE_POOL,

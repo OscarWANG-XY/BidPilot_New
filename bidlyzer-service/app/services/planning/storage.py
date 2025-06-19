@@ -3,7 +3,7 @@ from typing import Optional, Dict, Any, List, Optional
 from uuid import UUID
 import logging
 from pydantic import BaseModel
-from app.services.structuring.schema import AgentStateHistory, TenderFile, SSEMessageHistory
+from app.services.structuring.schema import StructuringStateHistory, TenderFile, StructuringMessageHistory
 
 logger = logging.getLogger(__name__)
 

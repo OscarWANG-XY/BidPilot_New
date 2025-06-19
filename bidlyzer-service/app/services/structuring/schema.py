@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 # ========================= 状态数据模型 =========================
 
-class AgentStateData(BaseModel):
+class StructuringState(BaseModel):
     """Agent状态数据模型"""
     model_config = ConfigDict(
         json_encoders={
@@ -29,14 +29,14 @@ class AgentStateData(BaseModel):
     
     
 
-class AgentStateHistory(BaseModel):
+class StructuringStateHistory(BaseModel):
     model_config = ConfigDict(
         json_encoders={
             datetime: lambda v: v.isoformat()
         }
     )
     project_id:str
-    agent_states: List[AgentStateData] = Field(default_factory=list)
+    agent_states: List[StructuringState] = Field(default_factory=list)
     total_states: int = Field(default=0)
     last_updated: datetime = Field(default_factory=datetime.now)
     
@@ -57,7 +57,7 @@ class TenderFile(BaseModel):
 
 
 
-class SSEData(BaseModel):
+class StructuringSSEData(BaseModel):
     """SSE数据"""
     # 背景信息
     project_stage: str = Field(description="项目阶段")
@@ -80,7 +80,7 @@ class SSEData(BaseModel):
     action_guide: str = Field(description="用户引导信息")
 
 
-class SSEMessage(BaseModel):
+class StructuringMessage(BaseModel):
     """SSE消息记录模型"""
     #定义了序列化时，对于datetime类型的处理方式， 这个是pydantic v2的语法
     model_config = ConfigDict(
@@ -91,11 +91,11 @@ class SSEMessage(BaseModel):
     
     id: str = Field(description="消息唯一标识")
     event: str = Field(description="事件类型: state_update, error")
-    data: SSEData = Field(description="事件数据，支持多种事件类型")
+    data: StructuringSSEData = Field(description="事件数据，支持多种事件类型")
     retry: int = Field(description="重试次数")
 
 
-class SSEMessageHistory(BaseModel):
+class StructuringMessageHistory(BaseModel):
     """SSE消息历史记录"""
     #定义了序列化时，对于datetime类型的处理方式， 这个是pydantic v2的语法
     model_config = ConfigDict(
@@ -105,6 +105,6 @@ class SSEMessageHistory(BaseModel):
     )
     
     project_id: str
-    messages: List[SSEMessage] = Field(default_factory=list)
+    messages: List[StructuringMessage] = Field(default_factory=list)
     total_messages: int = Field(default=0)
     last_updated: datetime = Field(default_factory=datetime.now)

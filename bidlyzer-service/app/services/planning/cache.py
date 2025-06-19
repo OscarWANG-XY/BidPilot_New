@@ -11,8 +11,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 from app.services.structuring.schema import (
-    AgentStateData, AgentStateHistory, 
-    SSEMessage, SSEMessageHistory
+    StructuringState, StructuringStateHistory, 
+    StructuringMessage, StructuringMessageHistory
     )
 
 
@@ -242,7 +242,7 @@ class Cache:
 
 
 
-    async def store_step_result(self, agent_state: AgentStateData, result_data: Dict[str, Any]):
+    async def store_step_result(self, agent_state: StructuringState, result_data: Dict[str, Any]):
         """存储步骤结果数据"""
         if agent_state.state in ED_STATE_POOL:
 
