@@ -22,28 +22,12 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )  # 用于生成OPENAPI文档
 
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
-
-@csrf_exempt
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def health_check(request):
-    return JsonResponse({"status": "healthy"})
 
 
 urlpatterns = [
 
     # ------------------------------ 管理员API ------------------------------
     path('admin/', admin.site.urls),
-
-    # ------------------------------ 健康检查API ------------------------------
-    path('api/health/', health_check, name='health_check'),
-
-    # ------------------------------ 测试API ------------------------------
-    path('api/testground/', include('apps.testground.urls')),
 
     # -----------------------------面向前端的API -----------------------------
     path('api/auth/', include('apps.authentication.urls')),

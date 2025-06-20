@@ -108,9 +108,6 @@ INSTALLED_APPS = [
     'apps.files',
     'apps.projects',
     'apps.internal_server',
-    #'apps.doc_analysis',
-    #'apps.chat',
-    'apps.testground',
     'apps.subscription',
     'django_filters',  # 用于过滤
     'drf_spectacular',  # 用于生成OPENAPI文档
