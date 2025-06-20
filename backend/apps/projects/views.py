@@ -97,10 +97,11 @@ logger = logging.getLogger(__name__)
             404: OpenApiTypes.OBJECT
         }
     ),
-    upload_tender_file=extend_schema(
+    tender_file=extend_schema(
         tags=['projects'],
-        summary='上传招标文件',
-        description='为指定项目上传招标文件',
+        summary='招标文件操作',
+        description='统一的招标文件操作端点：GET获取文件信息，POST上传文件，DELETE删除文件',
+        methods=['GET', 'POST', 'DELETE'],
         request={
             'multipart/form-data': {
                 'type': 'object',
@@ -112,28 +113,9 @@ logger = logging.getLogger(__name__)
         },
         responses={
             200: ProjectDetailSerializer,
+            201: ProjectDetailSerializer,
+            204: None,
             400: OpenApiTypes.OBJECT,
-            401: OpenApiTypes.OBJECT,
-            404: OpenApiTypes.OBJECT
-        }
-    ),
-    delete_tender_file=extend_schema(
-        tags=['projects'],
-        summary='删除招标文件',
-        description='删除指定项目的招标文件',
-        responses={
-            200: ProjectDetailSerializer,
-            400: OpenApiTypes.OBJECT,
-            401: OpenApiTypes.OBJECT,
-            404: OpenApiTypes.OBJECT
-        }
-    ),
-    get_tender_file=extend_schema(
-        tags=['projects'],
-        summary='获取招标文件信息',
-        description='获取指定项目的招标文件信息，包含预签名URL',
-        responses={
-            200: ProjectDetailSerializer,
             401: OpenApiTypes.OBJECT,
             404: OpenApiTypes.OBJECT
         }
@@ -246,11 +228,36 @@ class ProjectViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance, context=context)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post'], parser_classes=[MultiPartParser, FormParser])
-    def upload_tender_file(self, request, pk=None):
-        """上传招标文件"""
+
+    @action(detail=True, methods=['get', 'post', 'delete'], parser_classes=[MultiPartParser, FormParser])
+    def tender_file(self, request, pk=None):
+        """统一的招标文件操作端点"""
         project = self.get_object()
         
+        if request.method == 'GET':
+            return self._get_tender_file(request, project)
+        elif request.method == 'POST':
+            return self._upload_tender_file(request, project)
+        elif request.method == 'DELETE':
+            return self._delete_tender_file(request, project)
+    
+    def _get_tender_file(self, request, project):
+        """获取招标文件信息"""
+        if not project.tender_file:
+            return Response(
+                {'error': '项目没有招标文件'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        context = {
+            'request': request,
+            'generate_presigned_url': True  # 总是生成预签名URL
+        }
+        serializer = ProjectDetailSerializer(project, context=context)
+        return Response(serializer.data)
+    
+    def _upload_tender_file(self, request, project):
+        """上传招标文件"""
         file_obj = request.FILES.get('file')
         if not file_obj:
             return Response(
@@ -289,7 +296,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             # 返回更新后的项目信息
             context = {'request': request, 'generate_presigned_url': True}
             serializer = ProjectDetailSerializer(project, context=context)
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
             
         except Exception as e:
             logger.error(f"招标文件上传失败: project_id={project.id}, error={str(e)}")
@@ -297,12 +304,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 {'error': '文件上传失败'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-    @action(detail=True, methods=['delete'])
-    def delete_tender_file(self, request, pk=None):
+    
+    def _delete_tender_file(self, request, project):
         """删除招标文件"""
-        project = self.get_object()
-        
         if not project.tender_file:
             return Response(
                 {'error': '项目没有招标文件'},
@@ -313,9 +317,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             success = project.delete_tender_file()
             if success:
                 logger.info(f"招标文件删除成功: project_id={project.id}")
-                context = {'request': request}
-                serializer = ProjectDetailSerializer(project, context=context)
-                return Response(serializer.data)
+                return Response(status=status.HTTP_204_NO_CONTENT)
             else:
                 return Response(
                     {'error': '文件删除失败'},
@@ -327,23 +329,5 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 {'error': '文件删除失败'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-    @action(detail=True, methods=['get'])
-    def get_tender_file(self, request, pk=None):
-        """获取招标文件信息"""
-        project = self.get_object()
-        
-        if not project.tender_file:
-            return Response(
-                {'error': '项目没有招标文件'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        context = {
-            'request': request,
-            'generate_presigned_url': True  # 总是生成预签名URL
-        }
-        serializer = ProjectDetailSerializer(project, context=context)
-        return Response(serializer.data)
 
 
