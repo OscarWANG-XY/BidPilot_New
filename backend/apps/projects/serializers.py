@@ -47,7 +47,7 @@ class ProjectListSerializer(serializers.ModelSerializer):
         fields = ['id', 'project_name', 'tenderee', 'bidder',
                  'project_type', 'project_type_display', 
                  'status', 'status_display', 
-                 'starred',
+                 'starred', 'tender_file',
                  'creator', 'create_time', 'last_update_time']
         read_only_fields = ['id', 'creator', 'create_time', 'last_update_time',
                            'project_type', 'project_type_display', 
@@ -55,8 +55,24 @@ class ProjectListSerializer(serializers.ModelSerializer):
 
 class ProjectDetailSerializer(ProjectListSerializer):
     """项目详情序列化器"""
+    tender_file_url = serializers.SerializerMethodField(read_only=True)
+    tender_file_name = serializers.SerializerMethodField(read_only=True)
+    
     class Meta(ProjectListSerializer.Meta):
-        fields = ProjectListSerializer.Meta.fields
+        fields = ProjectListSerializer.Meta.fields + ['tender_file_url', 'tender_file_name']
+    
+    def get_tender_file_url(self, obj):
+        """获取招标文件的预签名URL"""
+        if self.context.get('generate_presigned_url'):
+            return obj.get_tender_file_presigned_url()
+        return obj.tender_file.url if obj.tender_file else None
+    
+    def get_tender_file_name(self, obj):
+        """获取招标文件名称"""
+        if obj.tender_file:
+            import os
+            return os.path.basename(obj.tender_file.name)
+        return None
 
 
 class ProjectCreateSerializer(serializers.ModelSerializer):

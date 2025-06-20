@@ -12,6 +12,9 @@ from .serializers import (
 )
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiTypes
 import logging
+from rest_framework.parsers import MultiPartParser, FormParser
+import mimetypes
+import os
 
 
 logger = logging.getLogger(__name__)
@@ -93,11 +96,53 @@ logger = logging.getLogger(__name__)
             401: OpenApiTypes.OBJECT,
             404: OpenApiTypes.OBJECT
         }
+    ),
+    upload_tender_file=extend_schema(
+        tags=['projects'],
+        summary='上传招标文件',
+        description='为指定项目上传招标文件',
+        request={
+            'multipart/form-data': {
+                'type': 'object',
+                'properties': {
+                    'file': {'type': 'string', 'format': 'binary'}
+                },
+                'required': ['file']
+            }
+        },
+        responses={
+            200: ProjectDetailSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
+    delete_tender_file=extend_schema(
+        tags=['projects'],
+        summary='删除招标文件',
+        description='删除指定项目的招标文件',
+        responses={
+            200: ProjectDetailSerializer,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
+    get_tender_file=extend_schema(
+        tags=['projects'],
+        summary='获取招标文件信息',
+        description='获取指定项目的招标文件信息，包含预签名URL',
+        responses={
+            200: ProjectDetailSerializer,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
     )
 )
 class ProjectViewSet(viewsets.ModelViewSet):
     """项目视图集"""
     permission_classes = [IsAuthenticated]
+    parser_classes = (MultiPartParser, FormParser)  # 添加文件解析器
 
     # 过滤器： 使用Django_filters自带的过滤器， 搜索过滤器， 排序过滤器
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -190,5 +235,115 @@ class ProjectViewSet(viewsets.ModelViewSet):
             serializer.save()
             return Response(ProjectDetailSerializer(project).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def retrieve(self, request, *args, **kwargs):
+        """重写retrieve方法，支持生成预签名URL"""
+        instance = self.get_object()
+        context = {
+            'request': request,
+            'generate_presigned_url': request.query_params.get('presigned') == 'true'
+        }
+        serializer = self.get_serializer(instance, context=context)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], parser_classes=[MultiPartParser, FormParser])
+    def upload_tender_file(self, request, pk=None):
+        """上传招标文件"""
+        project = self.get_object()
+        
+        file_obj = request.FILES.get('file')
+        if not file_obj:
+            return Response(
+                {'error': '没有文件'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 添加文件大小限制 (100MB)
+        max_size = 100 * 1024 * 1024
+        if file_obj.size > max_size:
+            return Response(
+                {'error': '文件大小超过限制(100MB)'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 检查文件类型（可选）
+        allowed_types = ['application/pdf', 'application/msword', 
+                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+        if file_obj.content_type not in allowed_types:
+            return Response(
+                {'error': '只支持PDF和Word文档'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # 删除旧文件（如果存在）
+            if project.tender_file:
+                project.delete_tender_file()
+            
+            # 保存新文件
+            project.tender_file = file_obj
+            project.save(update_fields=['tender_file'])
+            
+            logger.info(f"招标文件上传成功: project_id={project.id}, filename={file_obj.name}")
+            
+            # 返回更新后的项目信息
+            context = {'request': request, 'generate_presigned_url': True}
+            serializer = ProjectDetailSerializer(project, context=context)
+            return Response(serializer.data)
+            
+        except Exception as e:
+            logger.error(f"招标文件上传失败: project_id={project.id}, error={str(e)}")
+            return Response(
+                {'error': '文件上传失败'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['delete'])
+    def delete_tender_file(self, request, pk=None):
+        """删除招标文件"""
+        project = self.get_object()
+        
+        if not project.tender_file:
+            return Response(
+                {'error': '项目没有招标文件'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            success = project.delete_tender_file()
+            if success:
+                logger.info(f"招标文件删除成功: project_id={project.id}")
+                context = {'request': request}
+                serializer = ProjectDetailSerializer(project, context=context)
+                return Response(serializer.data)
+            else:
+                return Response(
+                    {'error': '文件删除失败'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        except Exception as e:
+            logger.error(f"招标文件删除失败: project_id={project.id}, error={str(e)}")
+            return Response(
+                {'error': '文件删除失败'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['get'])
+    def get_tender_file(self, request, pk=None):
+        """获取招标文件信息"""
+        project = self.get_object()
+        
+        if not project.tender_file:
+            return Response(
+                {'error': '项目没有招标文件'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        context = {
+            'request': request,
+            'generate_presigned_url': True  # 总是生成预签名URL
+        }
+        serializer = ProjectDetailSerializer(project, context=context)
+        return Response(serializer.data)
 
 

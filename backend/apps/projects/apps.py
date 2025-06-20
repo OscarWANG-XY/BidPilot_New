@@ -6,3 +6,9 @@ class ProjectsConfig(AppConfig):
     name = 'apps.projects'
 
 
+    def ready(self):
+        """
+        当 Django 应用准备就绪时调用
+        """
+        from config.storage import initialize_storage
+        initialize_storage()
