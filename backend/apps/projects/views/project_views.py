@@ -8,9 +8,8 @@ from ..models import (
 )
 from ..serializers import (
     ProjectListSerializer, ProjectDetailSerializer, ProjectCreateSerializer, 
-    ProjectUpdateSerializer, ProjectStatusUpdateSerializer, ProjectActiveStageUpdateSerializer,
+    ProjectUpdateSerializer, ProjectStatusUpdateSerializer, 
     ProjectChangeHistorySerializer, 
-    ProjectTenderFileUpdateSerializer
 )
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiTypes
 import logging
@@ -84,18 +83,6 @@ logger = logging.getLogger(__name__)
             404: OpenApiTypes.OBJECT
         }
     ),
-    update_active_stage=extend_schema(
-        tags=['projects'],
-        summary='更新项目当前活动阶段',
-        description='更新指定项目当前活动阶段',
-        request=ProjectActiveStageUpdateSerializer,
-        responses={
-            200: ProjectDetailSerializer,
-            400: OpenApiTypes.OBJECT,
-            401: OpenApiTypes.OBJECT,
-            404: OpenApiTypes.OBJECT
-        }
-    ),
     update_status=extend_schema(
         tags=['projects'],
         summary='更新项目状态',
@@ -107,27 +94,6 @@ logger = logging.getLogger(__name__)
             401: OpenApiTypes.OBJECT,
             404: OpenApiTypes.OBJECT
         }
-    ),
-    update_tender_file_extraction=extend_schema(
-        tags=['projects'],
-        summary='更新项目招标文件提取信息',
-        description='更新指定项目的招标文件提取信息',
-        request=ProjectTenderFileUpdateSerializer,
-        responses={
-            200: ProjectTenderFileUpdateSerializer,
-            400: OpenApiTypes.OBJECT,
-            401: OpenApiTypes.OBJECT,
-            404: OpenApiTypes.OBJECT
-        }
-    ),
-    get_tender_file_url=extend_schema(
-        tags=['projects'],
-        summary='获取项目招标文件URL',
-        description='获取指定项目的招标文件URL',
-        responses={
-            200: OpenApiTypes.OBJECT,
-            404: OpenApiTypes.OBJECT
-        }
     )
 )
 class ProjectViewSet(viewsets.ModelViewSet):
@@ -137,15 +103,14 @@ class ProjectViewSet(viewsets.ModelViewSet):
     # 过滤器： 使用Django_filters自带的过滤器， 搜索过滤器， 排序过滤器
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     # 过滤器字段，DjangoFilterBackend，自动处理字段名映射
-    filterset_fields = ['current_active_stage', 'project_type', 'starred']
+    filterset_fields = ['project_type', 'starred']
     # 搜索字段 - 使用统一的search参数，不存在命名转换
     search_fields = ['project_name', 'tenderee', 'bidder']
 
     # 移除 ordering_fields 映射，直接使用模型字段名
     ordering_fields = [
         'project_name','project_type','tenderee','bidder',
-        'current_active_stage','starred','bid_deadline',
-        'create_time','last_update_time'
+        'starred','create_time','last_update_time'
     ]
     ordering = ['-create_time']
     
@@ -161,12 +126,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
             return ProjectListSerializer
         elif self.action in ['update', 'partial_update']:
             return ProjectUpdateSerializer
-        elif self.action == 'update_active_stage':
-            return ProjectActiveStageUpdateSerializer
         elif self.action == 'update_status':
             return ProjectStatusUpdateSerializer
-        elif self.action in ['update_tender_file_extraction']:
-            return ProjectTenderFileUpdateSerializer
         return ProjectDetailSerializer
     
     def create(self, request, *args, **kwargs):
@@ -231,65 +192,4 @@ class ProjectViewSet(viewsets.ModelViewSet):
             return Response(ProjectDetailSerializer(project).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['patch'])
-    def update_active_stage(self, request, pk=None):
-        """ 更新项目当前活动阶段 """
-        project = self.get_object()
-        serializer = self.get_serializer(
-            project, 
-            data=request.data, 
-            partial=True,
-            context={'request': request}
-            )
-        if serializer.is_valid():
-            serializer.save()
-            return Response(ProjectDetailSerializer(project).data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-    # 以下是自定义的两个方法：获取项目招标文件提取信息 和 更新项目招标文件提取信息
-
-    @action(detail=True, methods=['patch'])
-    def update_tender_file_extraction(self, request, pk=None):
-        """ 更新项目招标文件提取信息 """
-        project = self.get_object()
-        serializer = self.get_serializer(
-            project, 
-            data=request.data, 
-            partial=True,
-            context={'request': request}
-        )
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(detail=True, methods=['get'], permission_classes=[])
-    def get_tender_file_url(self, request, pk=None):
-        """ 获取项目招标文件提取信息 """
-        project = self.get_object()
-        
-        # 获取与项目关联的文件记录
-        from apps.files.models import FileRecord
-        files = FileRecord.objects.filter(project=project)
-        
-        if not files.exists():
-            return Response({"detail": "该项目没有关联的招标文件"}, status=status.HTTP_404_NOT_FOUND)
-        
-        # 生成文件URL列表
-        file_urls = []
-        for file in files:
-            # 获取签名URL，默认有效期为1小时
-            presigned_url = file.get_presigned_url()
-            if presigned_url:
-                file_urls.append({
-                    "id": str(file.id),
-                    "name": file.name,
-                    "type": file.type,
-                    "url": presigned_url,
-                    "size": file.size,
-                    "mime_type": file.mime_type
-                })
-        
-        return Response({"files": file_urls})
 

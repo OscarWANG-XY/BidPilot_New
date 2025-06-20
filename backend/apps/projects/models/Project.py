@@ -35,7 +35,6 @@ class Project(models.Model):
         choices=ProjectType.choices,
         default=ProjectType.OTHER
     )
-    bid_deadline = models.DateTimeField('投标截止时间', blank=True, null=True)
     status = models.CharField(
         '项目状态',
         max_length=20,
@@ -43,12 +42,6 @@ class Project(models.Model):
         default=ProjectStatus.IN_PROGRESS
     )
     starred = models.BooleanField('是否标星', default=False)
-    current_active_stage = models.CharField(
-        '当前活动阶段',
-        max_length=20,
-        choices=StageType.choices,
-        default=StageType.TENDER_ANALYSIS
-    )
     creator = models.ForeignKey(    
         settings.AUTH_USER_MODEL,   #指向用户模型的引用
         on_delete=models.PROTECT,
@@ -57,69 +50,7 @@ class Project(models.Model):
     )
     create_time = models.DateTimeField('创建时间', auto_now_add=True)
     last_update_time = models.DateTimeField('最后更新时间', auto_now=True)
-    tender_file_extraction = models.JSONField(
-        null=True,
-        blank=True,
-        verbose_name='招标文件提取的内容',
-        help_text='存储招标文件提取的内容'
-    )
 
-    outline_L1 = models.JSONField(
-        null=True,
-        blank=True,
-        verbose_name='大纲L1',
-        help_text='存储大纲L1'
-    )   
-    index_path_map_L1 = models.JSONField(
-        null=True,
-        blank=True,
-        verbose_name='大纲L1索引路径映射',
-        help_text='存储大纲L1索引路径映射'
-    )
-    tender_file_extraction_L1 = models.JSONField(
-        null=True,
-        blank=True,
-        verbose_name='招标文件更新L1',
-        help_text='存储招标文件更新L1'
-    )
-    
-    outline_L2 = models.JSONField(
-        null=True,
-        blank=True,
-        verbose_name='大纲L2',
-        help_text='存储大纲L2'
-    )
-    index_path_map_L2 = models.JSONField(
-        null=True,
-        blank=True,
-        verbose_name='大纲L2索引路径映射',
-        help_text='存储大纲L2索引路径映射'
-    )
-    tender_file_extraction_L2 = models.JSONField(
-        null=True,
-        blank=True,
-        verbose_name='招标文件更新L2',
-        help_text='存储招标文件更新L2'
-    )
-    
-    outline_L3 = models.JSONField(
-        null=True,
-        blank=True,
-        verbose_name='大纲L3',
-        help_text='存储大纲L3'
-    )
-    index_path_map_L3 = models.JSONField(
-        null=True,
-        blank=True,
-        verbose_name='大纲L3索引路径映射',
-        help_text='存储大纲L3索引路径映射'
-    )
-    tender_file_extraction_L3 = models.JSONField(
-        null=True,
-        blank=True,
-        verbose_name='招标文件更新L3',
-        help_text='存储招标文件更新L3'
-    )
 
     class Meta:
         verbose_name = '项目'
