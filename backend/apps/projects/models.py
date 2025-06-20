@@ -8,8 +8,6 @@ from apps.clients.tiptap.utils import (
 import logging
 logger = logging.getLogger(__name__)
 
-from .ProjectStage import StageType
-
 
 class ProjectType(models.TextChoices):
     WELFARE = 'WELFARE', '企业福利'  # 值为'WELFARE', 显示为'企业福利' 

@@ -1,11 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from rest_framework_nested import routers  # 嵌套路由
 from .views import (
     ProjectViewSet, 
-    ProjectStageViewSet, 
-    TaskViewSet,
-    test_sse,
 )
 
 
@@ -28,25 +24,7 @@ router.register('', ProjectViewSet, basename='project')
 
 
 
-# ----------- 添加嵌套路由器 -----------
-# 注意： NestedDefaultRouter 的第一个参数是父路由器，第二个参数是父路由器的路径，第三个参数是lookup 
-# 第二各参数的路径和上面router.register的''对应
-# lookup='project' 表示我们将使用路径参数 {project_pk}；所以生成的基础嵌套前缀路径为：/projects/{project_pk}/
-# 所以，stage_router.register的第一个参数'stages'代表着，所有以projects/{project_pk}/stages/的请求，都由ProjectStageViewSet处理。 
-# 这个得到：GET   ../stages/，  RETRIEVE ../stages/{pk} 
-stage_router = routers.NestedDefaultRouter(router, '', lookup='project')
-stage_router.register('stages', ProjectStageViewSet, basename='project-stages')
-
-# 为TaskViewSet添加嵌套路由 
-# 注意： 'stages' 是ProjectStageViewSet的实际路径（上一级的实际路径，与上面stage_router.register注册的路径名对应）
-task_router = routers.NestedDefaultRouter(stage_router, 'stages', lookup='stage')
-task_router.register('tasks', TaskViewSet, basename='stage-tasks')
-
-
 # ------------ 添加嵌套路由URLs ------------
 urlpatterns = [
-    path('test-sse/', test_sse, name='test-sse'),  # 添加SSE测试路由
     path('', include(router.urls)),
-    path('', include(stage_router.urls)),  # 添加嵌套路由URLs
-    path('', include(task_router.urls)),  # 添加嵌套路由URLs
 ]

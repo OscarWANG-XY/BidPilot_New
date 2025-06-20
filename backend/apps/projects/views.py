@@ -3,10 +3,10 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticated
-from ..models import (
+from .models import (
     Project, ProjectStatus
 )
-from ..serializers import (
+from .serializers import (
     ProjectListSerializer, ProjectDetailSerializer, ProjectCreateSerializer, 
     ProjectUpdateSerializer, ProjectStatusUpdateSerializer, 
 )
