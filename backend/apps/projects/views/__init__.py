@@ -2,7 +2,6 @@
 from .project_views import ProjectViewSet
 from .stage_views import ProjectStageViewSet
 from .task_views import TaskViewSet
-from .history_views import ProjectChangeHistoryViewSet, StageChangeHistoryViewSet, TaskChangeHistoryViewSet
 from .task_outline_analysis_views import test_sse
 
 __all__ = [
@@ -15,10 +14,6 @@ __all__ = [
     # 任务视图
     'TaskViewSet',
 
-    # 历史视图
-    'ProjectChangeHistoryViewSet', 
-    'StageChangeHistoryViewSet', 
-    'TaskChangeHistoryViewSet',
 
     # 测试视图
     'test_sse',

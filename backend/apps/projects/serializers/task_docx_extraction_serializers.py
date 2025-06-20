@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from ..models import Task, TaskType, TaskLockStatus
-from .history_serializers import ChangeTrackingModelSerializer
 import logging
 
 logger = logging.getLogger(__name__)
@@ -23,7 +22,7 @@ class DocxExtractionTaskDetailSerializer(serializers.ModelSerializer):
             raise ValidationError(f"此序列化器只能用于 文档提取任务 的读取")
         return super().to_representation(instance)
 
-class DocxExtractionTaskUpdateSerializer(ChangeTrackingModelSerializer):
+class DocxExtractionTaskUpdateSerializer(serializers.ModelSerializer):
     """文档提取任务更新专用序列化器"""
 
     class Meta:
@@ -56,7 +55,7 @@ class DocxExtractionTaskUpdateSerializer(ChangeTrackingModelSerializer):
         
         return task
 
-class DocxExtractionStartSerializer(ChangeTrackingModelSerializer):
+class DocxExtractionStartSerializer(serializers.ModelSerializer):
     """文档提取任务更新专用序列化器"""
 
     class Meta:

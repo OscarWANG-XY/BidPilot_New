@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from ..models import Task, TaskType, TaskLockStatus
-from .history_serializers import ChangeTrackingModelSerializer
 import logging
 
 logger = logging.getLogger(__name__)

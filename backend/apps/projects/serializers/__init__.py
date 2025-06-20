@@ -2,12 +2,7 @@
 from .user_serializers import (
     ProjectUserBriefSerializer
 )
-from .history_serializers import (
-    ChangeTrackingModelSerializer,
-    ProjectChangeHistorySerializer,
-    StageChangeHistorySerializer,
-    TaskChangeHistorySerializer
-)
+
 from .project_serializers import (
     ProjectListSerializer, ProjectDetailSerializer, ProjectCreateSerializer, 
     ProjectUpdateSerializer, ProjectStatusUpdateSerializer, 
@@ -34,11 +29,6 @@ __all__ = [
     # 用户序列化器
     'ProjectUserBriefSerializer',
 
-    # 历史序列化器
-    'ChangeTrackingModelSerializer',
-    'ProjectChangeHistorySerializer',
-    'StageChangeHistorySerializer',
-    'TaskChangeHistorySerializer',
 
     # 项目序列化器
     'ProjectListSerializer', 'ProjectDetailSerializer', 'ProjectCreateSerializer',

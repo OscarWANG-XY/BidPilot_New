@@ -2,8 +2,6 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 from ..models import ProjectStage, Task
-from ..signals import set_change_metadata
-from .history_serializers import ChangeTrackingModelSerializer
 from .task_serializers import TaskListSerializer
 import logging
 
@@ -41,7 +39,7 @@ class ProjectStageDetailSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields  # 所有字段都是只读的
 
-class ProjectStageUpdateSerializer(ChangeTrackingModelSerializer):
+class ProjectStageUpdateSerializer(serializers.ModelSerializer):
     """项目阶段更新序列化器，主要用于更新阶段状态和相关信息，以及关联任务的状态"""
 
      # 前端每个项目阶段的任务作为子组件和用户交互，用户一次只会操作一个组件

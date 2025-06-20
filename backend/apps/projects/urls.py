@@ -5,9 +5,6 @@ from .views import (
     ProjectViewSet, 
     ProjectStageViewSet, 
     TaskViewSet,
-    ProjectChangeHistoryViewSet, 
-    StageChangeHistoryViewSet, 
-    TaskChangeHistoryViewSet,
     test_sse,
 )
 
@@ -29,10 +26,6 @@ router = DefaultRouter()
 # 这个得到：GET ../projects/，  RETRIEVE ../projects/{pk}
 router.register('', ProjectViewSet, basename='project') 
 
-# 添加非嵌套路由器 - 历史记录
-router.register('projects/change-history', ProjectChangeHistoryViewSet, basename='project-change-history')
-router.register('stages/change-history', StageChangeHistoryViewSet, basename='stage-change-history')
-router.register('tasks/change-history', TaskChangeHistoryViewSet, basename='task-change-history')
 
 
 # ----------- 添加嵌套路由器 -----------

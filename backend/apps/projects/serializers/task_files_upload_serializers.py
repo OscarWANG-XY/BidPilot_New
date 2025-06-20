@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from ..models import Task, TaskType, TaskLockStatus
-from .history_serializers import ChangeTrackingModelSerializer
 import logging
 
 logger = logging.getLogger(__name__)
@@ -22,7 +21,7 @@ class FileUploadTaskDetailSerializer(serializers.ModelSerializer):
             raise ValidationError(f"此序列化器只能用于 文件上传任务 的读取")
         return super().to_representation(instance)
 
-class FileUploadTaskUpdateSerializer(ChangeTrackingModelSerializer):
+class FileUploadTaskUpdateSerializer(serializers.ModelSerializer):
     """文件上传任务更新专用序列化器"""
     class Meta:
         model = Task

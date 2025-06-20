@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from ..models import Project
-from .history_serializers import ChangeTrackingModelSerializer
 from .user_serializers import ProjectUserBriefSerializer
 
 import logging
@@ -47,7 +46,7 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
         return project
     
 
-class ProjectUpdateSerializer(ChangeTrackingModelSerializer):
+class ProjectUpdateSerializer(serializers.ModelSerializer):
     """项目更新序列化器"""
     class Meta:
         model = Project
@@ -55,7 +54,7 @@ class ProjectUpdateSerializer(ChangeTrackingModelSerializer):
                  'starred', 'status']
 
 # 专用于前端项目取消，和删除的场景
-class ProjectStatusUpdateSerializer(ChangeTrackingModelSerializer):
+class ProjectStatusUpdateSerializer(serializers.ModelSerializer):
     """项目状态更新序列化器"""
     remarks = serializers.CharField(required=False, write_only=True)
 
