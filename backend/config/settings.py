@@ -324,13 +324,6 @@ REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', None)
 # Redis URL
 REDIS_URL = f"redis://{':' + REDIS_PASSWORD + '@' if REDIS_PASSWORD else ''}{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
 
-# Configure Celery to use Redis
-CELERY_BROKER_URL = REDIS_URL
-CELERY_RESULT_BACKEND = REDIS_URL
-CELERY_TASK_ALWAYS_EAGER = False  # 确保任务在后台运行，而不是同步执行
-CELERY_TASK_ACKS_LATE = True  # 确保任务完成后才确认
-CELERY_WORKER_PREFETCH_MULTIPLIER = 1  # 减少预取任务数量，避免任务堆积
-CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True 
 
 # Configure Django Cache with Redis
 CACHES = {
@@ -404,24 +397,9 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
-        'apps.doc_analysis': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
         'apps.projects': {
             'handlers': ['console'],
             'level': 'INFO',
-            'propagate': False,
-        },
-        'apps.chat': {
-            'handlers': ['console'],
-            'level': 'ERROR',
-            'propagate': False,
-        },
-        'apps._tools.docx_parser': {
-            'handlers': ['console'],
-            'level': 'ERROR',
             'propagate': False,
         },
         'apps.projects.middlewares': {
@@ -429,26 +407,8 @@ LOGGING = {
             'level': 'WARNING',
             'propagate': False,
         },
-        'apps.projects.signals': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'apps._tools.LLM_services': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'apps.projects.utils.redis_manager': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
     },
 }
 
-# Celery Configuration
-CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
 
 

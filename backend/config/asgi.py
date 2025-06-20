@@ -27,7 +27,7 @@ django_asgi_app = get_asgi_application()
 
 # Import your WebSocket URL patterns
 # We'll create this file in the next step
-from config.routing import websocket_urlpatterns
+# from config.routing import websocket_urlpatterns
 
 # Configure the ASGI application
 application = ProtocolTypeRouter({
@@ -40,7 +40,7 @@ application = ProtocolTypeRouter({
         JWTAuthMiddleware(  #针对JWT认证,
         # AuthMiddlewareStack(  #针对传统的session cookie 认证, 自动转换成scope['user']
             URLRouter(
-                websocket_urlpatterns
+                # websocket_urlpatterns
             )
         # )
         )
