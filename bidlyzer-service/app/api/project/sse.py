@@ -52,13 +52,25 @@ async def sse_stream(project_id: str, request: Request):
             })}\n\n"
             
             
+            # 添加心跳计时器
+            last_heartbeat = datetime.now()
+            HEARTBEAT_INTERVAL = 15  # 心跳间隔(秒)
+
+
             # 监听Redis消息
             pubsub = await RedisClient.subscribe(channel)
             
             try:
                 # 监听消息
                 while True:
-                    message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+
+                    # 发送心跳（如果超过间隔时间）
+                    if (datetime.now() - last_heartbeat).total_seconds() > HEARTBEAT_INTERVAL:
+                        yield ":heartbeat\n\n"  # 发送空注释作为心跳
+                        last_heartbeat = datetime.now()
+
+                    message = await pubsub.get_message(ignore_subscribe_messages=True) #拿掉timeout=1.0， 否则会阻塞
+
                     print('监听到消息', message)
                     if message is not None:
                         try:
@@ -77,6 +89,8 @@ async def sse_stream(project_id: str, request: Request):
                         except json.JSONDecodeError as e:
                             logger.error(f"Error parsing SSE message: {e}")
                             continue
+                        
+                        await asyncio.sleep(0.1) # 添加短暂休眠避免CPU空转
                     
                     # 检查客户端是否断开连接
                     if await request.is_disconnected():

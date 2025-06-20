@@ -51,9 +51,9 @@ async def get_document(
 
 
         if not target_document:
-            raise HTTPException(
-                status_code=404, 
-                detail=f"连接成功，但未找到{key_name}文档"
+            return GetDocumentResponse(
+                key_name=key_name,
+                content=None,
             )
 
         return GetDocumentResponse(

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel
 from app.services.cache import Cache
@@ -16,14 +16,14 @@ router = APIRouter()
 class StateStatusResponse(BaseModel):
     """状态查询响应"""
     project_id: str
-    agent_state: AgentState
+    agent_state: Optional[AgentState]
 
 class SSEHistoryResponse(BaseModel):
     """SSE历史记录响应"""
     project_id: str
     total_messages: int
     last_updated: datetime
-    messages: List[AgentMessage]
+    messages: Optional[List[AgentMessage]]
 
 
 # 路由函数指定了response_model,会自动序列化，对于pydantic的自定义模型，不需要model_dump()转字典
@@ -38,7 +38,10 @@ async def get_agent_state(project_id: str):
         agent_state,_ = await cache.get_agent_state()
         
         if not agent_state:
-            raise HTTPException(status_code=404, detail="项目状态未找到")
+            return StateStatusResponse(
+                project_id=project_id,
+                agent_state=None,    
+            )
         
         return StateStatusResponse(
             project_id=project_id,
