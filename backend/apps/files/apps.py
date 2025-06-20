@@ -9,5 +9,5 @@ class FilesConfig(AppConfig):
         """
         当 Django 应用准备就绪时调用
         """
-        from .storage import initialize_storage
+        from config.storage import initialize_storage
         initialize_storage()
