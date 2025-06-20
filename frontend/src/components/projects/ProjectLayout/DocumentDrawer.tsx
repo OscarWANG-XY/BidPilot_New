@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { FileText, X, Maximize2 } from 'lucide-react';
-import TiptapEditor from '@/components/TiptapEditor/TiptapEditor';
+// import TiptapEditor from '@/components/TiptapEditor/TiptapEditor_Pro';
 
 // DocumentDrawer 组件的 props 接口
 interface DocumentDrawerProps {
@@ -58,7 +58,7 @@ export const DocumentDrawer: React.FC<DocumentDrawerProps> = ({
           </div>
         </div>
         <div className="h-full overflow-auto p-4 bg-white m-3 rounded-md shadow-sm">
-          <TiptapEditor
+          {/* <TiptapEditor
             initialContent={content}
             readOnly={true}
             maxWidth="100%"
@@ -66,7 +66,7 @@ export const DocumentDrawer: React.FC<DocumentDrawerProps> = ({
             maxHeight="100%"
             minHeight="100%"
             showToc={true}
-          />
+          /> */}
         </div>
       </div>
     </div>

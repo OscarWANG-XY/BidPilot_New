@@ -11,7 +11,7 @@ import {
   FileText,
 } from "lucide-react"
 import { format } from "date-fns"
-import { cn } from "@/lib/utils"
+import { cn } from "@/components/ui/utils"
 import { useToast } from "@/_hooks/use-toast"
 
 import { Button } from "@/components/ui/button"

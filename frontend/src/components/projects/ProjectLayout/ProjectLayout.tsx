@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useLocation } from '@tanstack/react-router';
 import { toast } from '@/_hooks/use-toast';
 import { ProjectStatus } from '@/_types/projects_dt_stru/projects_interface';
-import { useProjects } from '@/_hooks/useProjects/useProjects';
+import { useProjects } from '@/_hooks/useProjects';
 // 导入子组件
 import { ProjectNavigation } from './ProjectNavigation';
 import { ProjectStatusAlert } from './ProjectStatusAlert';

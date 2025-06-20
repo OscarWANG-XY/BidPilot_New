@@ -5,7 +5,7 @@ import { useToast } from "@/_hooks/use-toast"; // 引入自定义的 Toast 钩�
 
 
 import { Link } from "@tanstack/react-router"; // 引入路由链接组件，用于页面跳转
-import { cn } from "@/lib/utils"; // 引入工具函数 cn，用于合并 class 名称
+import { cn } from "@/components/ui/utils"; // 引入工具函数 cn，用于合并 class 名称
 
 import { Button } from "@/components/ui/button"; // 引入自定义的 Button 组件
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // 引入自定义的 Card 组件

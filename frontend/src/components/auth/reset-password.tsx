@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useAuth } from "@/_hooks/auth-context"
-import { cn } from "@/lib/utils"
+import { cn } from "@/components/ui/utils"
 import { Button } from "@/components/ui/button"
 import {
   Card,

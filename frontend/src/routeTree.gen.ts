@@ -15,16 +15,11 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Route as rootRoute } from './routes/__root'
 import { Route as TestgroundImport } from './routes/testground'
 import { Route as ProjectsIndexImport } from './routes/projects/index'
-import { Route as PlaygroundIndexImport } from './routes/playground/index'
 import { Route as UsersSubscriptionImport } from './routes/users/subscription'
 import { Route as UsersSettingsImport } from './routes/users/settings'
 import { Route as UsersBillingImport } from './routes/users/billing'
 import { Route as UsersAccountImport } from './routes/users/account'
 import { Route as ProjectsProjectIdImport } from './routes/projects/$projectId'
-import { Route as PlaygroundTiptapeditorImport } from './routes/playground/tiptap_editor'
-import { Route as PlaygroundTaskImport } from './routes/playground/task'
-import { Route as PlaygroundMarkdowneditorImport } from './routes/playground/markdown_editor'
-import { Route as PlaygroundLayoutImport } from './routes/playground/_layout'
 import { Route as AuthServiceTermImport } from './routes/auth/service-term'
 import { Route as AuthRegisterImport } from './routes/auth/register'
 import { Route as AuthPrivacyPolicyImport } from './routes/auth/privacy-policy'
@@ -37,15 +32,9 @@ import { Route as ProjectsProjectIdFinalizationImport } from './routes/projects/
 import { Route as ProjectsProjectIdExpertiseImport } from './routes/projects/$projectId/expertise'
 import { Route as ProjectsProjectIdBidpilotImport } from './routes/projects/$projectId/bidpilot'
 import { Route as ProjectsProjectIdArtifactsImport } from './routes/projects/$projectId/artifacts'
-import { Route as ProjectsProjectIdHistoryIndexImport } from './routes/projects/$projectId/history/index'
-import { Route as ProjectsProjectIdHistoryHistoryIdImport } from './routes/projects/$projectId/history/$historyId'
-import { Route as ProjectsProjectIdHistoryTaskHistoryIdImport } from './routes/projects/$projectId/history/task/$historyId'
-import { Route as ProjectsProjectIdHistoryStageHistoryIdImport } from './routes/projects/$projectId/history/stage/$historyId'
-import { Route as ProjectsProjectIdHistoryProjectHistoryIdImport } from './routes/projects/$projectId/history/project/$historyId'
 
 // Create Virtual Routes
 
-const PlaygroundImport = createFileRoute('/playground')()
 const ProjectsmanagerLazyImport = createFileRoute('/projects_manager')()
 const FilesmanagerLazyImport = createFileRoute('/files_manager')()
 const CompanyLazyImport = createFileRoute('/company')()
@@ -53,12 +42,6 @@ const AboutLazyImport = createFileRoute('/about')()
 const IndexLazyImport = createFileRoute('/')()
 
 // Create/Update Routes
-
-const PlaygroundRoute = PlaygroundImport.update({
-  id: '/playground',
-  path: '/playground',
-  getParentRoute: () => rootRoute,
-} as any)
 
 const ProjectsmanagerLazyRoute = ProjectsmanagerLazyImport.update({
   id: '/projects_manager',
@@ -104,12 +87,6 @@ const ProjectsIndexRoute = ProjectsIndexImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
-const PlaygroundIndexRoute = PlaygroundIndexImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => PlaygroundRoute,
-} as any)
-
 const UsersSubscriptionRoute = UsersSubscriptionImport.update({
   id: '/users/subscription',
   path: '/users/subscription',
@@ -138,29 +115,6 @@ const ProjectsProjectIdRoute = ProjectsProjectIdImport.update({
   id: '/projects/$projectId',
   path: '/projects/$projectId',
   getParentRoute: () => rootRoute,
-} as any)
-
-const PlaygroundTiptapeditorRoute = PlaygroundTiptapeditorImport.update({
-  id: '/tiptap_editor',
-  path: '/tiptap_editor',
-  getParentRoute: () => PlaygroundRoute,
-} as any)
-
-const PlaygroundTaskRoute = PlaygroundTaskImport.update({
-  id: '/task',
-  path: '/task',
-  getParentRoute: () => PlaygroundRoute,
-} as any)
-
-const PlaygroundMarkdowneditorRoute = PlaygroundMarkdowneditorImport.update({
-  id: '/markdown_editor',
-  path: '/markdown_editor',
-  getParentRoute: () => PlaygroundRoute,
-} as any)
-
-const PlaygroundLayoutRoute = PlaygroundLayoutImport.update({
-  id: '/_layout',
-  getParentRoute: () => PlaygroundRoute,
 } as any)
 
 const AuthServiceTermRoute = AuthServiceTermImport.update({
@@ -240,41 +194,6 @@ const ProjectsProjectIdArtifactsRoute = ProjectsProjectIdArtifactsImport.update(
     getParentRoute: () => ProjectsProjectIdRoute,
   } as any,
 )
-
-const ProjectsProjectIdHistoryIndexRoute =
-  ProjectsProjectIdHistoryIndexImport.update({
-    id: '/history/',
-    path: '/history/',
-    getParentRoute: () => ProjectsProjectIdRoute,
-  } as any)
-
-const ProjectsProjectIdHistoryHistoryIdRoute =
-  ProjectsProjectIdHistoryHistoryIdImport.update({
-    id: '/history/$historyId',
-    path: '/history/$historyId',
-    getParentRoute: () => ProjectsProjectIdRoute,
-  } as any)
-
-const ProjectsProjectIdHistoryTaskHistoryIdRoute =
-  ProjectsProjectIdHistoryTaskHistoryIdImport.update({
-    id: '/history/task/$historyId',
-    path: '/history/task/$historyId',
-    getParentRoute: () => ProjectsProjectIdRoute,
-  } as any)
-
-const ProjectsProjectIdHistoryStageHistoryIdRoute =
-  ProjectsProjectIdHistoryStageHistoryIdImport.update({
-    id: '/history/stage/$historyId',
-    path: '/history/stage/$historyId',
-    getParentRoute: () => ProjectsProjectIdRoute,
-  } as any)
-
-const ProjectsProjectIdHistoryProjectHistoryIdRoute =
-  ProjectsProjectIdHistoryProjectHistoryIdImport.update({
-    id: '/history/project/$historyId',
-    path: '/history/project/$historyId',
-    getParentRoute: () => ProjectsProjectIdRoute,
-  } as any)
 
 // Populate the FileRoutesByPath interface
 
@@ -357,41 +276,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthServiceTermImport
       parentRoute: typeof rootRoute
     }
-    '/playground': {
-      id: '/playground'
-      path: '/playground'
-      fullPath: '/playground'
-      preLoaderRoute: typeof PlaygroundImport
-      parentRoute: typeof rootRoute
-    }
-    '/playground/_layout': {
-      id: '/playground/_layout'
-      path: '/playground'
-      fullPath: '/playground'
-      preLoaderRoute: typeof PlaygroundLayoutImport
-      parentRoute: typeof PlaygroundRoute
-    }
-    '/playground/markdown_editor': {
-      id: '/playground/markdown_editor'
-      path: '/markdown_editor'
-      fullPath: '/playground/markdown_editor'
-      preLoaderRoute: typeof PlaygroundMarkdowneditorImport
-      parentRoute: typeof PlaygroundImport
-    }
-    '/playground/task': {
-      id: '/playground/task'
-      path: '/task'
-      fullPath: '/playground/task'
-      preLoaderRoute: typeof PlaygroundTaskImport
-      parentRoute: typeof PlaygroundImport
-    }
-    '/playground/tiptap_editor': {
-      id: '/playground/tiptap_editor'
-      path: '/tiptap_editor'
-      fullPath: '/playground/tiptap_editor'
-      preLoaderRoute: typeof PlaygroundTiptapeditorImport
-      parentRoute: typeof PlaygroundImport
-    }
     '/projects/$projectId': {
       id: '/projects/$projectId'
       path: '/projects/$projectId'
@@ -426,13 +310,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/users/subscription'
       preLoaderRoute: typeof UsersSubscriptionImport
       parentRoute: typeof rootRoute
-    }
-    '/playground/': {
-      id: '/playground/'
-      path: '/'
-      fullPath: '/playground/'
-      preLoaderRoute: typeof PlaygroundIndexImport
-      parentRoute: typeof PlaygroundImport
     }
     '/projects/': {
       id: '/projects/'
@@ -490,65 +367,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdIndexImport
       parentRoute: typeof ProjectsProjectIdImport
     }
-    '/projects/$projectId/history/$historyId': {
-      id: '/projects/$projectId/history/$historyId'
-      path: '/history/$historyId'
-      fullPath: '/projects/$projectId/history/$historyId'
-      preLoaderRoute: typeof ProjectsProjectIdHistoryHistoryIdImport
-      parentRoute: typeof ProjectsProjectIdImport
-    }
-    '/projects/$projectId/history/': {
-      id: '/projects/$projectId/history/'
-      path: '/history'
-      fullPath: '/projects/$projectId/history'
-      preLoaderRoute: typeof ProjectsProjectIdHistoryIndexImport
-      parentRoute: typeof ProjectsProjectIdImport
-    }
-    '/projects/$projectId/history/project/$historyId': {
-      id: '/projects/$projectId/history/project/$historyId'
-      path: '/history/project/$historyId'
-      fullPath: '/projects/$projectId/history/project/$historyId'
-      preLoaderRoute: typeof ProjectsProjectIdHistoryProjectHistoryIdImport
-      parentRoute: typeof ProjectsProjectIdImport
-    }
-    '/projects/$projectId/history/stage/$historyId': {
-      id: '/projects/$projectId/history/stage/$historyId'
-      path: '/history/stage/$historyId'
-      fullPath: '/projects/$projectId/history/stage/$historyId'
-      preLoaderRoute: typeof ProjectsProjectIdHistoryStageHistoryIdImport
-      parentRoute: typeof ProjectsProjectIdImport
-    }
-    '/projects/$projectId/history/task/$historyId': {
-      id: '/projects/$projectId/history/task/$historyId'
-      path: '/history/task/$historyId'
-      fullPath: '/projects/$projectId/history/task/$historyId'
-      preLoaderRoute: typeof ProjectsProjectIdHistoryTaskHistoryIdImport
-      parentRoute: typeof ProjectsProjectIdImport
-    }
   }
 }
 
 // Create and export the route tree
-
-interface PlaygroundRouteChildren {
-  PlaygroundLayoutRoute: typeof PlaygroundLayoutRoute
-  PlaygroundMarkdowneditorRoute: typeof PlaygroundMarkdowneditorRoute
-  PlaygroundTaskRoute: typeof PlaygroundTaskRoute
-  PlaygroundTiptapeditorRoute: typeof PlaygroundTiptapeditorRoute
-  PlaygroundIndexRoute: typeof PlaygroundIndexRoute
-}
-
-const PlaygroundRouteChildren: PlaygroundRouteChildren = {
-  PlaygroundLayoutRoute: PlaygroundLayoutRoute,
-  PlaygroundMarkdowneditorRoute: PlaygroundMarkdowneditorRoute,
-  PlaygroundTaskRoute: PlaygroundTaskRoute,
-  PlaygroundTiptapeditorRoute: PlaygroundTiptapeditorRoute,
-  PlaygroundIndexRoute: PlaygroundIndexRoute,
-}
-
-const PlaygroundRouteWithChildren = PlaygroundRoute._addFileChildren(
-  PlaygroundRouteChildren,
-)
 
 interface ProjectsProjectIdRouteChildren {
   ProjectsProjectIdArtifactsRoute: typeof ProjectsProjectIdArtifactsRoute
@@ -558,11 +380,6 @@ interface ProjectsProjectIdRouteChildren {
   ProjectsProjectIdRawdataRoute: typeof ProjectsProjectIdRawdataRoute
   ProjectsProjectIdTenderAnalysisRoute: typeof ProjectsProjectIdTenderAnalysisRoute
   ProjectsProjectIdIndexRoute: typeof ProjectsProjectIdIndexRoute
-  ProjectsProjectIdHistoryHistoryIdRoute: typeof ProjectsProjectIdHistoryHistoryIdRoute
-  ProjectsProjectIdHistoryIndexRoute: typeof ProjectsProjectIdHistoryIndexRoute
-  ProjectsProjectIdHistoryProjectHistoryIdRoute: typeof ProjectsProjectIdHistoryProjectHistoryIdRoute
-  ProjectsProjectIdHistoryStageHistoryIdRoute: typeof ProjectsProjectIdHistoryStageHistoryIdRoute
-  ProjectsProjectIdHistoryTaskHistoryIdRoute: typeof ProjectsProjectIdHistoryTaskHistoryIdRoute
 }
 
 const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
@@ -573,15 +390,6 @@ const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
   ProjectsProjectIdRawdataRoute: ProjectsProjectIdRawdataRoute,
   ProjectsProjectIdTenderAnalysisRoute: ProjectsProjectIdTenderAnalysisRoute,
   ProjectsProjectIdIndexRoute: ProjectsProjectIdIndexRoute,
-  ProjectsProjectIdHistoryHistoryIdRoute:
-    ProjectsProjectIdHistoryHistoryIdRoute,
-  ProjectsProjectIdHistoryIndexRoute: ProjectsProjectIdHistoryIndexRoute,
-  ProjectsProjectIdHistoryProjectHistoryIdRoute:
-    ProjectsProjectIdHistoryProjectHistoryIdRoute,
-  ProjectsProjectIdHistoryStageHistoryIdRoute:
-    ProjectsProjectIdHistoryStageHistoryIdRoute,
-  ProjectsProjectIdHistoryTaskHistoryIdRoute:
-    ProjectsProjectIdHistoryTaskHistoryIdRoute,
 }
 
 const ProjectsProjectIdRouteWithChildren =
@@ -599,16 +407,11 @@ export interface FileRoutesByFullPath {
   '/auth/privacy-policy': typeof AuthPrivacyPolicyRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/service-term': typeof AuthServiceTermRoute
-  '/playground': typeof PlaygroundLayoutRoute
-  '/playground/markdown_editor': typeof PlaygroundMarkdowneditorRoute
-  '/playground/task': typeof PlaygroundTaskRoute
-  '/playground/tiptap_editor': typeof PlaygroundTiptapeditorRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
   '/users/account': typeof UsersAccountRoute
   '/users/billing': typeof UsersBillingRoute
   '/users/settings': typeof UsersSettingsRoute
   '/users/subscription': typeof UsersSubscriptionRoute
-  '/playground/': typeof PlaygroundIndexRoute
   '/projects': typeof ProjectsIndexRoute
   '/projects/$projectId/artifacts': typeof ProjectsProjectIdArtifactsRoute
   '/projects/$projectId/bidpilot': typeof ProjectsProjectIdBidpilotRoute
@@ -617,11 +420,6 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/raw_data': typeof ProjectsProjectIdRawdataRoute
   '/projects/$projectId/tender-analysis': typeof ProjectsProjectIdTenderAnalysisRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
-  '/projects/$projectId/history/$historyId': typeof ProjectsProjectIdHistoryHistoryIdRoute
-  '/projects/$projectId/history': typeof ProjectsProjectIdHistoryIndexRoute
-  '/projects/$projectId/history/project/$historyId': typeof ProjectsProjectIdHistoryProjectHistoryIdRoute
-  '/projects/$projectId/history/stage/$historyId': typeof ProjectsProjectIdHistoryStageHistoryIdRoute
-  '/projects/$projectId/history/task/$historyId': typeof ProjectsProjectIdHistoryTaskHistoryIdRoute
 }
 
 export interface FileRoutesByTo {
@@ -636,10 +434,6 @@ export interface FileRoutesByTo {
   '/auth/privacy-policy': typeof AuthPrivacyPolicyRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/service-term': typeof AuthServiceTermRoute
-  '/playground': typeof PlaygroundIndexRoute
-  '/playground/markdown_editor': typeof PlaygroundMarkdowneditorRoute
-  '/playground/task': typeof PlaygroundTaskRoute
-  '/playground/tiptap_editor': typeof PlaygroundTiptapeditorRoute
   '/users/account': typeof UsersAccountRoute
   '/users/billing': typeof UsersBillingRoute
   '/users/settings': typeof UsersSettingsRoute
@@ -652,11 +446,6 @@ export interface FileRoutesByTo {
   '/projects/$projectId/raw_data': typeof ProjectsProjectIdRawdataRoute
   '/projects/$projectId/tender-analysis': typeof ProjectsProjectIdTenderAnalysisRoute
   '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
-  '/projects/$projectId/history/$historyId': typeof ProjectsProjectIdHistoryHistoryIdRoute
-  '/projects/$projectId/history': typeof ProjectsProjectIdHistoryIndexRoute
-  '/projects/$projectId/history/project/$historyId': typeof ProjectsProjectIdHistoryProjectHistoryIdRoute
-  '/projects/$projectId/history/stage/$historyId': typeof ProjectsProjectIdHistoryStageHistoryIdRoute
-  '/projects/$projectId/history/task/$historyId': typeof ProjectsProjectIdHistoryTaskHistoryIdRoute
 }
 
 export interface FileRoutesById {
@@ -672,17 +461,11 @@ export interface FileRoutesById {
   '/auth/privacy-policy': typeof AuthPrivacyPolicyRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/service-term': typeof AuthServiceTermRoute
-  '/playground': typeof PlaygroundRouteWithChildren
-  '/playground/_layout': typeof PlaygroundLayoutRoute
-  '/playground/markdown_editor': typeof PlaygroundMarkdowneditorRoute
-  '/playground/task': typeof PlaygroundTaskRoute
-  '/playground/tiptap_editor': typeof PlaygroundTiptapeditorRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
   '/users/account': typeof UsersAccountRoute
   '/users/billing': typeof UsersBillingRoute
   '/users/settings': typeof UsersSettingsRoute
   '/users/subscription': typeof UsersSubscriptionRoute
-  '/playground/': typeof PlaygroundIndexRoute
   '/projects/': typeof ProjectsIndexRoute
   '/projects/$projectId/artifacts': typeof ProjectsProjectIdArtifactsRoute
   '/projects/$projectId/bidpilot': typeof ProjectsProjectIdBidpilotRoute
@@ -691,11 +474,6 @@ export interface FileRoutesById {
   '/projects/$projectId/raw_data': typeof ProjectsProjectIdRawdataRoute
   '/projects/$projectId/tender-analysis': typeof ProjectsProjectIdTenderAnalysisRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
-  '/projects/$projectId/history/$historyId': typeof ProjectsProjectIdHistoryHistoryIdRoute
-  '/projects/$projectId/history/': typeof ProjectsProjectIdHistoryIndexRoute
-  '/projects/$projectId/history/project/$historyId': typeof ProjectsProjectIdHistoryProjectHistoryIdRoute
-  '/projects/$projectId/history/stage/$historyId': typeof ProjectsProjectIdHistoryStageHistoryIdRoute
-  '/projects/$projectId/history/task/$historyId': typeof ProjectsProjectIdHistoryTaskHistoryIdRoute
 }
 
 export interface FileRouteTypes {
@@ -712,16 +490,11 @@ export interface FileRouteTypes {
     | '/auth/privacy-policy'
     | '/auth/register'
     | '/auth/service-term'
-    | '/playground'
-    | '/playground/markdown_editor'
-    | '/playground/task'
-    | '/playground/tiptap_editor'
     | '/projects/$projectId'
     | '/users/account'
     | '/users/billing'
     | '/users/settings'
     | '/users/subscription'
-    | '/playground/'
     | '/projects'
     | '/projects/$projectId/artifacts'
     | '/projects/$projectId/bidpilot'
@@ -730,11 +503,6 @@ export interface FileRouteTypes {
     | '/projects/$projectId/raw_data'
     | '/projects/$projectId/tender-analysis'
     | '/projects/$projectId/'
-    | '/projects/$projectId/history/$historyId'
-    | '/projects/$projectId/history'
-    | '/projects/$projectId/history/project/$historyId'
-    | '/projects/$projectId/history/stage/$historyId'
-    | '/projects/$projectId/history/task/$historyId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -748,10 +516,6 @@ export interface FileRouteTypes {
     | '/auth/privacy-policy'
     | '/auth/register'
     | '/auth/service-term'
-    | '/playground'
-    | '/playground/markdown_editor'
-    | '/playground/task'
-    | '/playground/tiptap_editor'
     | '/users/account'
     | '/users/billing'
     | '/users/settings'
@@ -764,11 +528,6 @@ export interface FileRouteTypes {
     | '/projects/$projectId/raw_data'
     | '/projects/$projectId/tender-analysis'
     | '/projects/$projectId'
-    | '/projects/$projectId/history/$historyId'
-    | '/projects/$projectId/history'
-    | '/projects/$projectId/history/project/$historyId'
-    | '/projects/$projectId/history/stage/$historyId'
-    | '/projects/$projectId/history/task/$historyId'
   id:
     | '__root__'
     | '/'
@@ -782,17 +541,11 @@ export interface FileRouteTypes {
     | '/auth/privacy-policy'
     | '/auth/register'
     | '/auth/service-term'
-    | '/playground'
-    | '/playground/_layout'
-    | '/playground/markdown_editor'
-    | '/playground/task'
-    | '/playground/tiptap_editor'
     | '/projects/$projectId'
     | '/users/account'
     | '/users/billing'
     | '/users/settings'
     | '/users/subscription'
-    | '/playground/'
     | '/projects/'
     | '/projects/$projectId/artifacts'
     | '/projects/$projectId/bidpilot'
@@ -801,11 +554,6 @@ export interface FileRouteTypes {
     | '/projects/$projectId/raw_data'
     | '/projects/$projectId/tender-analysis'
     | '/projects/$projectId/'
-    | '/projects/$projectId/history/$historyId'
-    | '/projects/$projectId/history/'
-    | '/projects/$projectId/history/project/$historyId'
-    | '/projects/$projectId/history/stage/$historyId'
-    | '/projects/$projectId/history/task/$historyId'
   fileRoutesById: FileRoutesById
 }
 
@@ -821,7 +569,6 @@ export interface RootRouteChildren {
   AuthPrivacyPolicyRoute: typeof AuthPrivacyPolicyRoute
   AuthRegisterRoute: typeof AuthRegisterRoute
   AuthServiceTermRoute: typeof AuthServiceTermRoute
-  PlaygroundRoute: typeof PlaygroundRouteWithChildren
   ProjectsProjectIdRoute: typeof ProjectsProjectIdRouteWithChildren
   UsersAccountRoute: typeof UsersAccountRoute
   UsersBillingRoute: typeof UsersBillingRoute
@@ -842,7 +589,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthPrivacyPolicyRoute: AuthPrivacyPolicyRoute,
   AuthRegisterRoute: AuthRegisterRoute,
   AuthServiceTermRoute: AuthServiceTermRoute,
-  PlaygroundRoute: PlaygroundRouteWithChildren,
   ProjectsProjectIdRoute: ProjectsProjectIdRouteWithChildren,
   UsersAccountRoute: UsersAccountRoute,
   UsersBillingRoute: UsersBillingRoute,
@@ -872,7 +618,6 @@ export const routeTree = rootRoute
         "/auth/privacy-policy",
         "/auth/register",
         "/auth/service-term",
-        "/playground",
         "/projects/$projectId",
         "/users/account",
         "/users/billing",
@@ -914,32 +659,6 @@ export const routeTree = rootRoute
     "/auth/service-term": {
       "filePath": "auth/service-term.tsx"
     },
-    "/playground": {
-      "filePath": "playground",
-      "children": [
-        "/playground/_layout",
-        "/playground/markdown_editor",
-        "/playground/task",
-        "/playground/tiptap_editor",
-        "/playground/"
-      ]
-    },
-    "/playground/_layout": {
-      "filePath": "playground/_layout.tsx",
-      "parent": "/playground"
-    },
-    "/playground/markdown_editor": {
-      "filePath": "playground/markdown_editor.tsx",
-      "parent": "/playground"
-    },
-    "/playground/task": {
-      "filePath": "playground/task.tsx",
-      "parent": "/playground"
-    },
-    "/playground/tiptap_editor": {
-      "filePath": "playground/tiptap_editor.tsx",
-      "parent": "/playground"
-    },
     "/projects/$projectId": {
       "filePath": "projects/$projectId.tsx",
       "children": [
@@ -949,12 +668,7 @@ export const routeTree = rootRoute
         "/projects/$projectId/finalization",
         "/projects/$projectId/raw_data",
         "/projects/$projectId/tender-analysis",
-        "/projects/$projectId/",
-        "/projects/$projectId/history/$historyId",
-        "/projects/$projectId/history/",
-        "/projects/$projectId/history/project/$historyId",
-        "/projects/$projectId/history/stage/$historyId",
-        "/projects/$projectId/history/task/$historyId"
+        "/projects/$projectId/"
       ]
     },
     "/users/account": {
@@ -968,10 +682,6 @@ export const routeTree = rootRoute
     },
     "/users/subscription": {
       "filePath": "users/subscription.tsx"
-    },
-    "/playground/": {
-      "filePath": "playground/index.tsx",
-      "parent": "/playground"
     },
     "/projects/": {
       "filePath": "projects/index.tsx"
@@ -1002,26 +712,6 @@ export const routeTree = rootRoute
     },
     "/projects/$projectId/": {
       "filePath": "projects/$projectId/index.tsx",
-      "parent": "/projects/$projectId"
-    },
-    "/projects/$projectId/history/$historyId": {
-      "filePath": "projects/$projectId/history/$historyId.tsx",
-      "parent": "/projects/$projectId"
-    },
-    "/projects/$projectId/history/": {
-      "filePath": "projects/$projectId/history/index.tsx",
-      "parent": "/projects/$projectId"
-    },
-    "/projects/$projectId/history/project/$historyId": {
-      "filePath": "projects/$projectId/history/project/$historyId.tsx",
-      "parent": "/projects/$projectId"
-    },
-    "/projects/$projectId/history/stage/$historyId": {
-      "filePath": "projects/$projectId/history/stage/$historyId.tsx",
-      "parent": "/projects/$projectId"
-    },
-    "/projects/$projectId/history/task/$historyId": {
-      "filePath": "projects/$projectId/history/task/$historyId.tsx",
       "parent": "/projects/$projectId"
     }
   }

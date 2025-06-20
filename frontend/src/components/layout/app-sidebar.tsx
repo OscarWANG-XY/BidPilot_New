@@ -10,7 +10,7 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { useProjects } from "@/_hooks/useProjects/useProjects"
+import { useProjects } from "@/_hooks/useProjects"
 import { useAuth } from "@/_hooks/auth-context" // 使用你已有的 auth-context
 import { UserResponse } from "@/_types/user_dt_stru"
 

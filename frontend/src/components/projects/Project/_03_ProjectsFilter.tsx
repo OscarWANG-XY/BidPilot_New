@@ -1,5 +1,4 @@
 import { ProjectQueryParams, ProjectType } from '@/_types/projects_dt_stru/projects_interface';
-import {StageType } from '@/_types/projects_dt_stru/projectStage_interface';
 
 interface ProjectFilterProps {
   queryParams: ProjectQueryParams;
@@ -9,23 +8,6 @@ interface ProjectFilterProps {
 export function ProjectFilter({ queryParams, onQueryChange }: ProjectFilterProps) {
   return (
     <div className="flex flex-wrap gap-3 p-4 bg-background">
-      {/* 项目状态过滤器 */}
-      <select
-        className="h-9 w-[180px] rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        value={queryParams.currentActiveStage || ''}
-        onChange={(e) => onQueryChange({ 
-          currentActiveStage: e.target.value as StageType || undefined 
-        })}
-      >
-        <option value="">所有状态</option>
-        {Object.values(StageType).map(stage => (
-          <option key={stage} value={stage}>
-            {
-             stage === 'TENDER_ANALYSIS' ? '招标文件解读' :
-             stage === 'BID_WRITING' ? '投标文件撰写' :stage}
-          </option>
-        ))}
-      </select>
 
       {/* 项目类型过滤器 */}
       <select

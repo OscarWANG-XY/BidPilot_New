@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';  // 引用react-query的钩子函数
-import { projectsApi} from '@/_api/projects_api/projects_api';   // 引用项目API模块
+import { projectsApi} from '@/_api/projects_api';   // 引用项目API模块
 import type { 
   Project, 
   CreateProjectRequest, 

@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/_hooks/use-toast"
-import { useProjects } from "@/_hooks/useProjects/useProjects"
+import { useProjects } from "@/_hooks/useProjects"
 import { ProjectStatus } from "@/_types/projects_dt_stru/projects_interface"
 
 interface ProjectListProps {
@@ -158,16 +158,6 @@ export function ProjectList({
               {renderSortIcon('status')}
             </Button>
           </TableHead>
-          <TableHead>
-            <Button 
-              variant="ghost" 
-              onClick={() => handleSortClick('currentStage')}
-              className="flex items-center hover:bg-gray-100"
-            >
-              当前阶段
-              {renderSortIcon('currentStage')}
-            </Button>
-          </TableHead>
           <TableHead>查看/编辑</TableHead>
           <TableHead className="text-right">归档</TableHead>          
           <TableHead className="text-right">删除</TableHead>
@@ -195,11 +185,6 @@ export function ProjectList({
                 }`}
               >
                 {project.status || "未知"}
-              </Badge>
-            </TableCell>
-            <TableCell>
-              <Badge variant="outline" className="capitalize">
-                {project.currentActiveStage}
               </Badge>
             </TableCell>
             <TableCell>

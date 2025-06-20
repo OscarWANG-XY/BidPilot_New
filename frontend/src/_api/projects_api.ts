@@ -1,4 +1,4 @@
-import axiosInstance from '../axios_instance';
+import axiosInstance from './axios_instance';
 import type { 
   Project,
   CreateProjectRequest,

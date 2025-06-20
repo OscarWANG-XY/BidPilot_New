@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Sparkles, Check, Info, CreditCard } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn } from "@/components/ui/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
