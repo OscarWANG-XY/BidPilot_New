@@ -326,10 +326,10 @@ export function useSSE(projectId: string, config: UseSSEConfig = {}): UseSSERetu
         console.log('已连接的消息:', JSON.parse(event.data));
       })
 
-      // 添加test事件的监听器 （后端对应test事件）
-      client.addEventListener('test', (event: MessageEvent) => {
-        console.log('Test消息:', JSON.parse(event.data));
-      })  
+      // // 添加test事件的监听器 （后端对应test事件）
+      // client.addEventListener('test', (event: MessageEvent) => {
+      //   console.log('Test消息:', JSON.parse(event.data));
+      // })  
       
     } catch (error) {
       console.log('执行了connect但捕捉到错误')

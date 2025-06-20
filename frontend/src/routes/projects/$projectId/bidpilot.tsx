@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import BidPilot from '@/components/projects/Agents/BidPilot'
+// import BidPilot from '@/components/projects/Agents/BidPilot'
 
 export const Route = createFileRoute('/projects/$projectId/bidpilot')({
   component: BipilotComponent,
@@ -7,7 +7,8 @@ export const Route = createFileRoute('/projects/$projectId/bidpilot')({
 
 function BipilotComponent() {
   const { projectId } = Route.useParams()
-  return <BidPilot projectId={projectId} />
+  // return <BidPilot projectId={projectId} />
+  return <div>Hello "/projects/$projectId/bidpilot"!</div>
 }
 
 

@@ -1,10 +1,10 @@
 import React from 'react';
 // import TestSSE from './TestSSE';
-import Test_useSSE from '@/_hooks/useStructuringAgent/tests/TestSSE';
-import TestDocuments from '@/_hooks/useStructuringAgent/tests/TestDocuments';
+// import Test_useSSE from '@/_hooks/useProjectAgent/tests/TestSSE';
+// import TestDocuments from '@/_hooks/useProjectAgent/tests/TestDocuments';
+// import QueryTestComponent from '@/_hooks/useProjectAgent/tests/TestQueries';
 
-import QueryTestComponent from '@/_hooks/useStructuringAgent/tests/TestQueries';
-
+import FileUploadModule from '@/components/projects/Agents/modules/FileUploadModule';
 
 
 interface TestContainerProps {
@@ -16,11 +16,14 @@ export const TestContainer: React.FC<TestContainerProps> = ({projectId}) => {
 
         <>
 
-
+            <h1> ------------- FileUploadModule -------------</h1>
+            <div>
+                {/* <FileUploadModule projectId={projectId} /> */}
+            </div>
 
             <h1> ------------- QueryTestComponent -------------</h1>
             <div>
-                <QueryTestComponent projectId={projectId} />
+                {/* <QueryTestComponent projectId={projectId} /> */}
             </div>
 
 
@@ -30,7 +33,7 @@ export const TestContainer: React.FC<TestContainerProps> = ({projectId}) => {
 
             <h1> ------------- TestDocuments -------------</h1>
             <div>
-                <TestDocuments projectId={projectId} />
+                {/* <TestDocuments projectId={projectId} keyName="raw_document" /> */}
             </div>
 
 
@@ -38,7 +41,7 @@ export const TestContainer: React.FC<TestContainerProps> = ({projectId}) => {
 
             <h1> ------------- Test_useSSE -------------</h1>
             <div>
-                <Test_useSSE projectId={projectId} />
+                {/* <Test_useSSE projectId={projectId} /> */}
             </div>
 
 

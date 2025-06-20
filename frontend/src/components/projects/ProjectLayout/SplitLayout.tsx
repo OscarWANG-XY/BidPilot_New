@@ -183,6 +183,7 @@ export const SplitLayout: React.FC<SplitLayoutProps> = ({
             max-w-4xl           /* 最大宽度限制为896px，适合大多数内容 */
             mx-auto             /* 水平居中 */
             px-6                /* 左右内边距24px，提供呼吸空间 */
+            pl-0               /* 左边内边距2px，提供呼吸空间 */
                             /* py为上下内边距16px */
           "
         >

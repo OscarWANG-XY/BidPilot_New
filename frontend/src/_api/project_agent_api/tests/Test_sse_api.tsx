@@ -5,10 +5,13 @@ import { BaseSSEClient } from '../sse_api';
 
 // const TOKEN = localStorage.getItem('token') || ''
 // const BASE_URL = window.location.origin
-const PROJECT_ID = 'f6db0cbe-e7af-4300-8335-01ba4ffdbb93'
+
+interface SimpleSSETestProps {
+  projectId: string;
+}
 
 
-const SimpleSSETest: React.FC = () => {
+const SimpleSSETest: React.FC<SimpleSSETestProps> = ({projectId}) => {
 
   // const projectId = 'f6db0cbe-e7af-4300-8335-01ba4ffdbb93'
 
@@ -26,7 +29,7 @@ const SimpleSSETest: React.FC = () => {
   // const urlprop = `${BASE_URL}/fastapi/api/v1/structuring/sse/${PROJECT_ID}?token=${TOKEN}`
 
   // 使用useState来管理client实例，确保它不会在每次渲染时重新创建
-  const [client] = useState<BaseSSEClient>(() => new BaseSSEClient(PROJECT_ID));
+  const [client] = useState<BaseSSEClient>(() => new BaseSSEClient(projectId));
   const [connected, setConnected] = useState<boolean>(false);
   const [url, setUrl] = useState<string>('');  //跟踪实际使用的url
   

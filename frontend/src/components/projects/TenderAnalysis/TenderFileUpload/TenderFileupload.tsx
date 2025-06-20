@@ -413,3 +413,6 @@ return (
   </Card>
 )
 }
+
+
+export default TenderFileUpload;

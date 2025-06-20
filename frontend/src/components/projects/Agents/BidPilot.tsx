@@ -1,226 +1,164 @@
-//React依赖
-import React, { useEffect, useState } from 'react';
-import {useQueries} from '@/_hooks/useProjectAgent/useQueries'
-import {useSSE, SSEMessage} from '@/_hooks/useProjectAgent/useSSE'
+// import React, { useState, useEffect } from 'react';
+// import { useQueries } from '@/_hooks/useProjectAgent/useQueries';
+// import { useSSE } from '@/_hooks/useProjectAgent/useSSE';
+// import { useStructuringActions } from '@/_hooks/useProjectAgent/useActions';
+// import { useDocuments } from '@/_hooks/useProjectAgent/useDocuments';
+// import TenderFileUpload from '@/components/projects/TenderAnalysis/TenderFileUpload/TenderFileupload';
 
+// interface BidPilotProps {
+//   projectId: string;
+// }
 
-interface BidPilotProps {
-    projectId: string;
-}
+// // 页面状态枚举
+// enum PageState {
+//   LOADING = 'loading',           // 初始加载中
+//   NO_HISTORY = 'no_history',     // 无历史记录，显示文件上传
+//   HAS_HISTORY = 'has_history',   // 有历史记录，显示历史消息
+//   ERROR = 'error'                // 错误状态
+// }
 
+// const BidPilot: React.FC<BidPilotProps> = ({ projectId }) => {
+//   // 页面状态
+//   const [pageState, setPageState] = useState<PageState>(PageState.LOADING);
+  
+// //   // 使用数据hooks
+// //   const { agentStateQuery, sseHistoryQuery } = useQueries(projectId);
+// //   const sseConnection = useSSE(projectId, {
+// //     autoConnect: false, // 先不自动连接，等确定状态后再连接
+// //     enableReconnect: true,
+// //     maxReconnectAttempts: 3
+// //   });
+  
+// //   const { startAnalysis, retryAnalysis } = useStructuringActions();
 
-// 定义组件
-const BidPilot: React.FC<BidPilotProps> = ({projectId}) => {
-    // 获取SSE历史数据
-    const {sseHistoryQuery} = useQueries(projectId)
-    const {data: sseHistory, isLoading: isLoadingHistory, error: historyError} = sseHistoryQuery()
+// //   const agentState = agentStateQuery();
+// //   const sseHistory = sseHistoryQuery();
+  
+//   // 初始化时检查历史消息
+//   useEffect(() => {
+//     // 当查询完成时，判断页面状态
+//     if (agentState.isSuccess && sseHistory.isSuccess) {
+//       const hasHistory = sseHistory.data?.messages && 
+//                         sseHistory.data.messages.length > 0;
+      
+//       if (hasHistory) {
+//         setPageState(PageState.HAS_HISTORY);
+//       } else {
+//         setPageState(PageState.NO_HISTORY);
+//       }
+      
+//       // 确定状态后开启SSE连接
+//       sseConnection.connect();
+//     }
     
-    // SSE连接管理
-    const {
-        connectionState, 
-        isConnected, 
-        isConnecting, 
-        lastMessage,
-        hasError,
-        lastError,
-        isReconnecting,
-        reconnectAttempts,
-        connect, 
-        disconnect,
-        subscribe, 
-        subscribeToMessage,
-        clearError, 
-        subscribeToError,
-    } = useSSE(projectId, {
-        autoConnect: true, // 挂载后自动连接
-        keepLastMessage: true,
-        keepLastError: true,
-        enableReconnect: true,
-        maxReconnectAttempts: 3,
-        reconnectDelay: 1000
-    })
+//     if (agentState.isError || sseHistory.isError) {
+//       setPageState(PageState.ERROR);
+//     }
+//   }, [
+//     agentState.isSuccess, 
+//     agentState.isError,
+//     sseHistory.isSuccess, 
+//     sseHistory.isError,
+//     sseConnection.connect
+//   ]);
 
-    // 实时消息列表状态
-    const [realtimeMessages, setRealtimeMessages] = useState<SSEMessage[]>([])
+//   // 渲染不同状态的组件
+//   const renderContent = () => {
+//     switch (pageState) {
+//       case PageState.LOADING:
+//         return <LoadingComponent />;
+      
+//       case PageState.NO_HISTORY:
+//         return (
+//           <NoHistoryView 
+//             projectId={projectId}
+//             sseConnection={sseConnection}
+//             onFileUpload={() => {
+//               // 文件上传完成后的处理逻辑
+//               console.log('文件上传完成');
+//             }}
+//           />
+//         );
+      
+//       case PageState.HAS_HISTORY:
+//         return (
+//           <HasHistoryView 
+//             projectId={projectId}
+//             sseConnection={sseConnection}
+//             historyMessages={sseHistory.data?.messages || []}
+//             onContinueAgent={() => {
+//               // 继续agent流程的处理逻辑
+//               console.log('继续agent流程');
+//             }}
+//           />
+//         );
+      
+//       case PageState.ERROR:
+//         return <ErrorComponent />;
+      
+//       default:
+//         return <LoadingComponent />;
+//     }
+//   };
 
-    // 订阅实时消息
-    useEffect(() => {
-        // 订阅默认消息事件
-        const unsubscribeMessage = subscribeToMessage((message: SSEMessage) => {
-            console.log('收到实时消息:', message)
-            setRealtimeMessages(prev => [...prev, message])
-        })
+//   return (
+//     <div className="bid-pilot-container">
+//       <header className="page-header">
+//         <h1>BidPilot AI工作流</h1>
+//         <div className="connection-status">
+//           {sseConnection.isConnected && <span className="connected">●连接正常</span>}
+//           {sseConnection.isConnecting && <span className="connecting">●连接中...</span>}
+//           {sseConnection.isReconnecting && <span className="reconnecting">●重连中...</span>}
+//           {sseConnection.hasError && <span className="error">●连接错误</span>}
+//         </div>
+//       </header>
+      
+//       <main className="page-content">
+//         {renderContent()}
+//       </main>
+//     </div>
+//   );
+// };
 
-        // 订阅特定事件类型（根据你的后端实现调整）
-        const unsubscribeTest = subscribe('test', (message: SSEMessage) => {
-            console.log('收到test消息:', message)
-            setRealtimeMessages(prev => [...prev, message])
-        })
+// // 临时占位组件，后续我们会详细实现
+// const LoadingComponent = () => (
+//   <div className="loading-state">
+//     <div className="spinner">加载中...</div>
+//   </div>
+// );
 
-        const unsubscribeConnected = subscribe('connected', (message: SSEMessage) => {
-            console.log('收到连接确认消息:', message)
-            setRealtimeMessages(prev => [...prev, message])
-        })
+// const ErrorComponent = () => (
+//   <div className="error-state">
+//     <p>加载失败，请刷新页面重试</p>
+//   </div>
+// );
 
-        // 订阅错误处理
-        const unsubscribeError = subscribeToError((error) => {
-            console.error('SSE错误:', error)
-        })
+// // 无历史记录视图的占位组件
+// const NoHistoryView: React.FC<{
+//   projectId: string;
+//   sseConnection: any;
+//   onFileUpload: () => void;
+// }> = ({ projectId, sseConnection, onFileUpload }) => (
+//   <div className="no-history-view">
+//     <h2>开始新的分析流程</h2>
+//     <p>请上传文件开始分析...</p>
+//     {/* 文件上传组件将在下一步实现 */}
+//   </div>
+// );
 
-        // 清理函数
-        return () => {
-            unsubscribeMessage()
-            unsubscribeTest()
-            unsubscribeConnected()
-            unsubscribeError()
-        }
-    }, [subscribe, subscribeToMessage, subscribeToError])
+// // 有历史记录视图的占位组件
+// const HasHistoryView: React.FC<{
+//   projectId: string;
+//   sseConnection: any;
+//   historyMessages: any[];
+//   onContinueAgent: () => void;
+// }> = ({ projectId, sseConnection, historyMessages, onContinueAgent }) => (
+//   <div className="has-history-view">
+//     <h2>历史消息</h2>
+//     <p>找到 {historyMessages.length} 条历史消息</p>
+//     <button onClick={onContinueAgent}>继续Agent流程</button>
+//     {/* 历史消息渲染组件将在后续实现 */}
+//   </div>
+// );
 
-    // 渲染连接状态
-    const renderConnectionStatus = () => {
-        if (isConnecting || isReconnecting) {
-            return (
-                <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-3 py-2 rounded mb-4">
-                    {isReconnecting ? `正在重连... (${reconnectAttempts}/3)` : '正在连接...'}
-                </div>
-            )
-        }
-        
-        if (hasError) {
-            return (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded mb-4">
-                    <div>连接错误: {lastError?.message}</div>
-                    <button 
-                        onClick={clearError}
-                        className="mt-2 bg-red-500 text-white px-2 py-1 rounded text-sm hover:bg-red-600"
-                    >
-                        清除错误
-                    </button>
-                </div>
-            )
-        }
-        
-        if (isConnected) {
-            return (
-                <div className="bg-green-100 border border-green-400 text-green-700 px-3 py-2 rounded mb-4">
-                    ✅ SSE已连接
-                </div>
-            )
-        }
-        
-        return (
-            <div className="bg-gray-100 border border-gray-400 text-gray-700 px-3 py-2 rounded mb-4">
-                未连接
-            </div>
-        )
-    }
-
-    // 渲染历史消息
-    const renderHistoryMessages = () => {
-        if (isLoadingHistory) {
-            return <div className="text-gray-500">加载历史消息中...</div>
-        }
-        
-        if (historyError) {
-            return <div className="text-red-500">历史消息加载失败: {String(historyError)}</div>
-        }
-        
-        if (!sseHistory || !sseHistory.messages || sseHistory.messages.length === 0) {
-            return <div className="text-gray-500">暂无历史消息</div>
-        }
-
-        return (
-            <div className="space-y-2">
-                <h3 className="font-semibold text-gray-700">历史消息:</h3>
-                {sseHistory.messages.map((message, index) => (
-                    <div key={`history-${index}`} className="bg-gray-50 p-3 rounded border-l-4 border-blue-400">
-                        <div className="text-xs text-gray-500 mb-1">
-                            历史 - {message.event || 'message'} - {message.timestamp || 'unknown time'}
-                        </div>
-                        <div className="text-sm">
-                            <pre className="whitespace-pre-wrap">{JSON.stringify(message.data, null, 2)}</pre>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        )
-    }
-
-    // 渲染实时消息
-    const renderRealtimeMessages = () => {
-        if (realtimeMessages.length === 0) {
-            return <div className="text-gray-500">暂无实时消息</div>
-        }
-
-        return (
-            <div className="space-y-2">
-                <h3 className="font-semibold text-gray-700">实时消息:</h3>
-                {realtimeMessages.map((message, index) => (
-                    <div key={`realtime-${index}`} className="bg-green-50 p-3 rounded border-l-4 border-green-400">
-                        <div className="text-xs text-gray-500 mb-1">
-                            实时 - {message.event} - {new Date().toLocaleTimeString()}
-                        </div>
-                        <div className="text-sm">
-                            <pre className="whitespace-pre-wrap">{message.data}</pre>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        )
-    }
-
-    // 组件的JSX渲染
-    return (
-        <div className="p-0 pt-4 overflow-auto">
-            <div className="flex justify-between items-center mb-4">
-                <h1 className="text-xl font-bold">BidPilot</h1>
-                <div className="flex gap-2">
-                    <button
-                        onClick={connect}
-                        disabled={isConnected || isConnecting}
-                        className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 disabled:opacity-50"
-                    >
-                        连接
-                    </button>
-                    <button
-                        onClick={disconnect}
-                        disabled={!isConnected}
-                        className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 disabled:opacity-50"
-                    >
-                        断开
-                    </button>
-                </div>
-            </div>
-
-            {/* 连接状态 */}
-            {renderConnectionStatus()}
-
-            {/* 消息显示区域 */}
-            <div className="space-y-6">
-                {/* 历史消息 */}
-                <div className="bg-white border rounded-lg p-4">
-                    {renderHistoryMessages()}
-                </div>
-
-                {/* 实时消息 */}
-                <div className="bg-white border rounded-lg p-4">
-                    {renderRealtimeMessages()}
-                </div>
-            </div>
-
-            {/* 调试信息 */}
-            <div className="mt-6 p-4 bg-gray-50 rounded text-xs text-gray-600">
-                <div>连接状态: {connectionState}</div>
-                <div>项目ID: {projectId}</div>
-                <div>历史消息数量: {sseHistory?.messages?.length || 0}</div>
-                <div>实时消息数量: {realtimeMessages.length}</div>
-                {lastMessage && (
-                    <div>最后消息: {lastMessage.event} - {lastMessage.data}</div>
-                )}
-            </div>
-        </div>
-    );
-};
-
-//导出
-export default BidPilot;
+// export default BidPilot;
