@@ -151,3 +151,5 @@ class Project(models.Model):
         except Exception as e:
             logger.error(f"删除招标文件失败: project_id={self.id}, error={str(e)}")
             return False
+        
+    
