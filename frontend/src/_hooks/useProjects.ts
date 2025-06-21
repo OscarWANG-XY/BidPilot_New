@@ -5,7 +5,6 @@ import type {
   Project, 
   CreateProjectRequest, 
   UpdateProjectStatusRequest,
-  UpdateProjectActiveStageRequest,
   ProjectQueryParams,
   ProjectsSidebarItem,
 } from '@/_types/projects_dt_stru/projects_interface';
@@ -82,6 +81,11 @@ export const useProjects = () => {
     gcTime: 5 * 60 * 1000,
   });
 
+//====================== 招标文件相关的查询和操作 =====================
+
+
+//====================== 项目基本操作 =====================
+
   // --------------- 创建项目 done check--------------- 
   const createProject = useMutation({
     // 当上传成功时， 更新缓存数据，这个缓存数据的key是['projectsKey']， 更新时，它激活了useQuery的queryFn函数, 从服务器中获取最新数据 
@@ -114,23 +118,6 @@ export const useProjects = () => {
       console.log('🔄 [useProjects] 更新项目后, 更新缓存数据:', variables.projectId);
       queryClient.invalidateQueries({ queryKey: ['projectsKey'] });
       queryClient.invalidateQueries({ queryKey: ['SingleProjectKey', variables.projectId] });
-    }
-  });
-
-
-  // 更新项目阶段
-  const updateProjectActiveStage = useMutation({
-    mutationFn: async (request: UpdateProjectActiveStageRequest) => {
-      console.log('📤 [useProjects] 更新项目阶段:', request);
-      const result = await projectsApi.updateProjectActiveStage(request);
-      console.log('✅ [useProjects] 更新项目阶段成功:', result);
-      return result;
-    },
-    onSuccess: (_, variables) => {
-      console.log('🔄 [useProjects] 更新项目阶段后, 更新缓存数据:', variables.id);
-      queryClient.invalidateQueries({ queryKey: ['projectsKey'] });
-      queryClient.invalidateQueries({ queryKey: ['SingleProjectKey', variables.id] });
-      queryClient.invalidateQueries({ queryKey: ['projectHistory', variables.id] });
     }
   });
 
@@ -167,58 +154,153 @@ export const useProjects = () => {
   });
 
 
-  // --------------- 更新项目招标文件提取信息 --------------- 
-  const updateProjectTenderFileExtraction = useMutation({
-    mutationFn: async ({ projectId, extractionData }: { projectId: string; extractionData: any }) => {
-      console.log('📤 [useProjects] 更新项目招标文件提取信息:', { projectId, extractionData });
-      const result = await projectsApi.updateTenderFileExtraction(projectId, extractionData);
-      console.log('✅ [useProjects] 更新项目招标文件提取信息成功:', result);
-      return result;
-    },
-    onSuccess: (_, variables) => {
-      console.log('🔄 [useProjects] 更新项目招标文件提取信息后, 更新缓存数据:', variables.projectId);
-      queryClient.invalidateQueries({ queryKey: ['SingleProjectKey', variables.projectId] });
-    }
-  });
-
-  // --------------- 手动刷新项目招标文件提取信息缓存 --------------- 
-  const refreshTenderFileExtraction = (projectId: string) => {
-    console.log('🔄 [useProjects] 手动刷新项目招标文件提取信息缓存:', projectId);
-    return queryClient.invalidateQueries({ 
-      queryKey: ['projectTenderFileExtraction', projectId] 
+    // --------------- 查询招标文件信息 ---------------
+    const tenderFileQuery = (projectId: string, fileExists: boolean) => useQuery({
+      queryKey: ['tenderFileKey', projectId],
+      queryFn: async () => {
+        console.log('🔍 [useProjects] 查询招标文件信息, projectId:', projectId);
+        const result = await projectsApi.getTenderFile(projectId);
+        console.log('📥 [useProjects] 查询招标文件信息:', result);
+        return result;
+      },
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000,  // 5分钟后数据变为陈旧（文件信息相对稳定）
+      gcTime: 10 * 60 * 1000,    // 10分钟后清除缓存
+      enabled: fileExists,       // 只在有 projectId 时启用查询
     });
-  };
+
+
+    // --------------- 检查招标文件是否存在 ---------------
+    const checkTenderFileExistQuery = (projectId: string, field: string = 'tender_file') => useQuery({
+      queryKey: ['checkTenderFileExist', projectId, field],
+      queryFn: async () => {
+        console.log('🔍 [useProjects] 检查招标文件是否存在:', { projectId, field });
+        const result = await projectsApi.checkTenderFileExist(projectId, field);
+        console.log('📥 [useProjects] 检查招标文件是否存在:', result);
+        return result;
+      },
+      enabled: !!projectId,
+      refetchOnWindowFocus: false,
+      staleTime: 30 * 1000, // 30秒内认为数据是新鲜的
+      gcTime: 5 * 60 * 1000, // 5分钟后清除缓存
+    });
+
+
+    // --------------- 下载招标文件 ---------------
+    const downloadTenderFile = useMutation({
+      mutationFn: async ({ projectId, fileName }: { projectId: string; fileName: string }) => {
+        console.log('📤 [useProjects] 下载招标文件:', { projectId, fileName });
+        const downloadUrl = await projectsApi.downloadTenderFile(projectId, fileName);
+        
+        // 简单的下载处理 - 直接打开链接
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = fileName;
+        link.target = '_blank'; // 在新标签页打开
+        
+        // 触发下载
+        document.body.appendChild(link);
+        link.click();
+        
+        // 清理
+        document.body.removeChild(link);
+        
+        console.log('✅ [useProjects] 文件下载完成:', fileName);
+        return { success: true, fileName, url: downloadUrl };
+      },
+      onError: (error) => {
+        console.error('❌ [useProjects] 下载招标文件失败:', error);
+      }
+    });
+  
+    // --------------- 上传招标文件 ---------------
+    const uploadTenderFile = useMutation({
+      mutationFn: async ({ projectId, file }: { projectId: string; file: File }) => {
+        console.log('📤 [useProjects] 上传招标文件:', { projectId, fileName: file.name, fileSize: file.size });
+        const result = await projectsApi.uploadTenderFile(projectId, file);
+        console.log('✅ [useProjects] 上传招标文件成功:', result);
+        return result;
+      },
+      onSuccess: (_, variables) => {
+        console.log('🔄 [useProjects] 上传招标文件后, 更新缓存数据:', variables.projectId);
+        // 更新项目相关的缓存
+        queryClient.invalidateQueries({ queryKey: ['checkTenderFileExist', variables.projectId, 'tender_file'] });
+        queryClient.invalidateQueries({ queryKey: ['tenderFileKey', variables.projectId] });
+      },
+      onError: (error) => {
+        console.error('❌ [useProjects] 上传招标文件失败:', error);
+      }
+    });
+  
+    // --------------- 删除招标文件 ---------------
+    const deleteTenderFile = useMutation({
+      mutationFn: async (projectId: string) => {
+        console.log('🗑️ [useProjects] 删除招标文件:', projectId);
+        const result = await projectsApi.deleteTenderFile(projectId);
+        console.log('✅ [useProjects] 删除招标文件成功:', projectId);
+        return result;
+      },
+      onSuccess: (_, projectId) => {
+        console.log('🔄 [useProjects] 删除招标文件后, 更新缓存数据:', projectId);
+        // 更新项目相关的缓存
+        queryClient.invalidateQueries({ queryKey: ['checkTenderFileExist', projectId, 'tender_file'] });
+        queryClient.invalidateQueries({ queryKey: ['tenderFileKey', projectId] });
+      },
+      onError: (error) => {
+        console.error('❌ [useProjects] 删除招标文件失败:', error);
+      }
+    });
+
+
+    // 修改 refreshFileExistQuery 函数，让它同时清除相关的缓存
+    const refreshFileExistQuery = (projectId: string, field: string = 'tender_file') => {
+      queryClient.invalidateQueries({ queryKey: ['checkTenderFileExist', projectId, field] });
+      queryClient.invalidateQueries({ queryKey: ['tenderFileKey', projectId] }); // 同时清除文件查询缓存
+    };
+
+    const refreshTenderFileQuery = (projectId: string) => {
+      queryClient.invalidateQueries({ queryKey: ['tenderFileKey', projectId] });
+    };
 
   return useMemo(() => ({
     // 使用useMemo避免在值没有变的情况下触发组件的不必要更新。 
     // .mutate() 本身不返回promise对象, 如果需要返回promise对象，则需要使用.mutateAsync()
     // 这里建议使用.mutateAsync() 更符合现代JavaScript的异步编程风格。 
     // 这样的好处是：调用者可以选择是否等待操作完成，可再调用处使用try/catch来处理错误; 可获取到操作返回的数据
+    
     // 关于项目的CURD
     projectsQuery,  
     sidebarProjectsQuery,
     singleProjectQuery,
     createProject: createProject.mutateAsync,  
     updateProject: updateProject.mutateAsync, 
-    updateProjectActiveStage: updateProjectActiveStage.mutateAsync,
     updateProjectStatus: updateProjectStatus.mutateAsync,  
     deleteProject: deleteProject.mutateAsync,
-    isUpdating: updateProjectTenderFileExtraction.isPending,
 
-    // 招标文件提取信息相关
-    updateProjectTenderFileExtraction: updateProjectTenderFileExtraction.mutateAsync,
-    refreshTenderFileExtraction,
+    // 关于招标文件的操作
+    tenderFileQuery,
+    uploadTenderFile: uploadTenderFile.mutateAsync,
+    deleteTenderFile: deleteTenderFile.mutateAsync,
+    downloadTenderFile: downloadTenderFile.mutateAsync,
+    checkTenderFileExist: checkTenderFileExistQuery,
+
+    refreshTenderFile: refreshTenderFileQuery,
+    refreshFileExist: refreshFileExistQuery,
+
   }), [
     projectsQuery,
     sidebarProjectsQuery,
     singleProjectQuery,
     createProject.mutateAsync,
     updateProject.mutateAsync,
-    updateProjectActiveStage.mutateAsync,
     updateProjectStatus.mutateAsync,
     deleteProject.mutateAsync,
-    updateProjectTenderFileExtraction.mutateAsync,
-    refreshTenderFileExtraction,
-    updateProjectTenderFileExtraction.isPending,
+    tenderFileQuery,
+    uploadTenderFile.mutateAsync,
+    deleteTenderFile.mutateAsync,
+    downloadTenderFile.mutateAsync,
+    checkTenderFileExistQuery,
+    refreshTenderFileQuery,
+    refreshFileExistQuery,
   ]);
 };

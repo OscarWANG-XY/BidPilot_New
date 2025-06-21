@@ -4,7 +4,7 @@ import React from 'react';
 // import TestDocuments from '@/_hooks/useProjectAgent/tests/TestDocuments';
 // import QueryTestComponent from '@/_hooks/useProjectAgent/tests/TestQueries';
 
-import FileUploadModule from '@/components/projects/Agents/modules/FileUploadModule';
+import ProjectFileManagerContainer from '@/components/projects/Components/FileUpload/ProjectFileManagerContainer';
 
 
 interface TestContainerProps {
@@ -18,7 +18,7 @@ export const TestContainer: React.FC<TestContainerProps> = ({projectId}) => {
 
             <h1> ------------- FileUploadModule -------------</h1>
             <div>
-                {/* <FileUploadModule projectId={projectId} /> */}
+                <ProjectFileManagerContainer projectId={projectId} />
             </div>
 
             <h1> ------------- QueryTestComponent -------------</h1>
