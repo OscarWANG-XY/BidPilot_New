@@ -1,18 +1,20 @@
+from django.utils import timezone
+import logging
 from rest_framework import viewsets, mixins, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
-from .models import (
-    Project, ProjectStatus
-)
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiTypes, OpenApiParameter
+from .models import Project, ProjectStatus
 from .serializers import (
     ProjectListSerializer, ProjectDetailSerializer, ProjectCreateSerializer, 
-    ProjectUpdateSerializer, ProjectStatusUpdateSerializer, 
+    ProjectUpdateSerializer, ProjectStatusUpdateSerializer, TenderFileDetailSerializer
 )
-from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiTypes
-import logging
-from rest_framework.parsers import MultiPartParser, FormParser
+
+
+
 import mimetypes
 import os
 
@@ -115,6 +117,35 @@ logger = logging.getLogger(__name__)
             200: ProjectDetailSerializer,
             201: ProjectDetailSerializer,
             204: None,
+            400: OpenApiTypes.OBJECT,
+            401: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT
+        }
+    ),
+    check_exist=extend_schema(
+        tags=['projects'],
+        summary='检查项目字段是否存在',
+        description='检查指定项目的某个字段是否有内容。支持的字段：tender_file, project_name, tenderee, bidder等',
+        parameters=[
+            OpenApiParameter(
+                name='field',
+                description='要检查的字段名称',
+                required=True,
+                type=OpenApiTypes.STR,
+                enum=['tender_file', 'project_name', 'tenderee', 'bidder', 'project_type', 'status']
+            )
+        ],
+        responses={
+            200: {
+                'type': 'object',
+                'properties': {
+                    'field': {'type': 'string', 'description': '检查的字段名'},
+                    'exists': {'type': 'boolean', 'description': '字段是否存在内容'},
+                    'has_value': {'type': 'boolean', 'description': '字段是否有值'},
+                    'field_type': {'type': 'string', 'description': '字段类型'},
+                    'project_id': {'type': 'string', 'description': '项目ID'}
+                }
+            },
             400: OpenApiTypes.OBJECT,
             401: OpenApiTypes.OBJECT,
             404: OpenApiTypes.OBJECT
@@ -245,15 +276,15 @@ class ProjectViewSet(viewsets.ModelViewSet):
         """获取招标文件信息"""
         if not project.tender_file:
             return Response(
-                {'error': '项目没有招标文件'},
-                status=status.HTTP_404_NOT_FOUND
+                {'error': '项目没有招标文件',
+                 'code': 'PROJECT_NO_TENDER_FILE',
+                 'resource':'tender_file',
+                 'project_id': project.id,
+                 },
+                status=status.HTTP_404_NOT_FOUND  # 404 表示资源不存在
             )
         
-        context = {
-            'request': request,
-            'generate_presigned_url': True  # 总是生成预签名URL
-        }
-        serializer = ProjectDetailSerializer(project, context=context)
+        serializer = TenderFileDetailSerializer(project)
         return Response(serializer.data)
     
     def _upload_tender_file(self, request, project):
@@ -289,13 +320,14 @@ class ProjectViewSet(viewsets.ModelViewSet):
             
             # 保存新文件
             project.tender_file = file_obj
+
+
             project.save(update_fields=['tender_file'])
             
             logger.info(f"招标文件上传成功: project_id={project.id}, filename={file_obj.name}")
             
             # 返回更新后的项目信息
-            context = {'request': request, 'generate_presigned_url': True}
-            serializer = ProjectDetailSerializer(project, context=context)
+            serializer = TenderFileDetailSerializer(project)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
             
         except Exception as e:
@@ -327,6 +359,77 @@ class ProjectViewSet(viewsets.ModelViewSet):
             logger.error(f"招标文件删除失败: project_id={project.id}, error={str(e)}")
             return Response(
                 {'error': '文件删除失败'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['get'])
+    def check_exist(self, request, pk=None):
+        """检查项目字段是否存在内容"""
+        project = self.get_object()
+        field_name = request.query_params.get('field')
+        
+        if not field_name:
+            return Response(
+                {'error': '必须提供field参数'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 定义允许检查的字段
+        allowed_fields = {
+            'tender_file': 'file',
+            'project_name': 'string',
+            'tenderee': 'string', 
+            'bidder': 'string',
+            'project_type': 'choice',
+            'status': 'choice',
+            'starred': 'boolean'
+        }
+        
+        if field_name not in allowed_fields:
+            return Response(
+                {
+                    'error': f'不支持的字段: {field_name}',
+                    'allowed_fields': list(allowed_fields.keys())
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # 获取字段值
+            field_value = getattr(project, field_name, None)
+            field_type = allowed_fields[field_name]
+            
+            # 根据不同字段类型判断是否存在内容
+            if field_type == 'file':
+                has_value = bool(field_value)
+                exists = has_value and bool(field_value.name) if field_value else False
+            elif field_type == 'string':
+                has_value = field_value is not None
+                exists = bool(field_value and field_value.strip())
+            elif field_type in ['choice', 'boolean']:
+                has_value = field_value is not None
+                exists = has_value
+            else:
+                has_value = field_value is not None
+                exists = has_value
+            
+            return Response({
+                'field': field_name,
+                'exists': exists,   # 字段是否真正有内容（例如文件存在且有文件名，字符串非空等）
+                'has_value': has_value,  # 字段是否有值（可能为空字符串或空文件）
+                'field_type': field_type, # 字段类型，帮助前端理解如何处理该字段
+                'project_id': str(project.id)
+            })
+            
+        except AttributeError:
+            return Response(
+                {'error': f'字段 {field_name} 不存在'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error(f"检查字段存在性时发生错误: project_id={project.id}, field={field_name}, error={str(e)}")
+            return Response(
+                {'error': '检查字段时发生错误'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 

@@ -2,6 +2,9 @@ from rest_framework import serializers
 from .models import Project
 from django.contrib.auth import get_user_model
 import logging
+import os
+import mimetypes
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -33,6 +36,9 @@ class ProjectUserBriefSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'phone', 'role']
         read_only_fields = ['id', 'phone', 'role']
+
+
+
 
 
 # ============= Project 项目序列化器 =============
@@ -106,3 +112,39 @@ class ProjectStatusUpdateSerializer(serializers.ModelSerializer):
         fields = ['status', 'remarks']
 
 
+
+# ============= 招标文件序列化器 =============
+class TenderFileDetailSerializer(serializers.Serializer):
+    """招标文件详情序列化器"""
+    # tender_file是一个对象，自带了一些信息，通过以下序列化器得方法获取。
+    # 对于私有云存储，需要无法通过url直接访问，需要通过presigned_url进行访问。  
+    filename = serializers.SerializerMethodField()
+    size = serializers.SerializerMethodField()
+    path = serializers.SerializerMethodField()
+    url = serializers.SerializerMethodField()
+    extension = serializers.SerializerMethodField()
+    upload_date = serializers.SerializerMethodField()
+    presigned_url = serializers.SerializerMethodField()
+
+    def get_filename(self, obj):
+        return os.path.basename(obj.tender_file.name) if obj.tender_file else None
+
+    def get_size(self, obj):
+        return obj.tender_file.size if obj.tender_file else None
+
+    def get_path(self, obj):
+        return obj.tender_file.name if obj.tender_file else None
+
+    def get_url(self, obj):
+        return obj.tender_file.url if obj.tender_file else None
+
+    def get_extension(self, obj):
+        if obj.tender_file:
+            return os.path.splitext(obj.tender_file.name)[1].lower()
+        return None
+
+    def get_upload_date(self, obj):
+        return obj.last_update_time if obj.tender_file else None
+
+    def get_presigned_url(self, obj):
+        return obj.get_tender_file_presigned_url() if obj.tender_file else None
