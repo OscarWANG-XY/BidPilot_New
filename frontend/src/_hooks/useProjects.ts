@@ -192,21 +192,41 @@ export const useProjects = () => {
         console.log('📤 [useProjects] 下载招标文件:', { projectId, fileName });
         const downloadUrl = await projectsApi.downloadTenderFile(projectId, fileName);
         
-        // 简单的下载处理 - 直接打开链接
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download = fileName;
-        link.target = '_blank'; // 在新标签页打开
-        
-        // 触发下载
-        document.body.appendChild(link);
-        link.click();
-        
-        // 清理
-        document.body.removeChild(link);
-        
-        console.log('✅ [useProjects] 文件下载完成:', fileName);
-        return { success: true, fileName, url: downloadUrl };
+        try {
+          // 参考 DocxPreview.tsx 的处理方式，先用 fetch 获取文件数据
+          console.log('🔄 [useProjects] 正在获取文件数据...');
+          const response = await fetch(downloadUrl);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          // 将响应转换为 Blob 对象，确保正确的二进制数据处理
+          const blob = await response.blob();
+          
+          // 创建 Object URL
+          const objectUrl = URL.createObjectURL(blob);
+          
+          // 创建下载链接
+          const link = document.createElement('a');
+          link.href = objectUrl;
+          link.download = fileName;
+          
+          // 触发下载
+          document.body.appendChild(link);
+          link.click();
+          
+          // 清理
+          document.body.removeChild(link);
+          URL.revokeObjectURL(objectUrl); // 释放 Object URL 内存
+          
+          console.log('✅ [useProjects] 文件下载完成:', fileName);
+          return { success: true, fileName, url: downloadUrl };
+          
+        } catch (error) {
+          console.error('❌ [useProjects] 下载过程中出错:', error);
+          throw new Error(`下载失败: ${error instanceof Error ? error.message : '未知错误'}`);
+        }
       },
       onError: (error) => {
         console.error('❌ [useProjects] 下载招标文件失败:', error);

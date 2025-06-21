@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { File, Trash2, Download, FileText, Eye } from 'lucide-react';
+import { File, Trash2, 
+  // Download, 
+  FileText, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { FilePreview } from '@/components/files/FilePreview/FilePreview';
 import { TenderFile } from './schema';
 
@@ -16,7 +18,7 @@ interface FileDisplayUIProps {
 export const FileDisplayUI: React.FC<FileDisplayUIProps> = ({ 
   file, 
   onDelete, 
-  onDownload, 
+  // onDownload, 
   isDeleting = false 
 }) => {
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -127,6 +129,9 @@ export const FileDisplayUI: React.FC<FileDisplayUIProps> = ({
                 <DialogContent className="max-w-4xl max-h-[80vh]">
                   <DialogHeader>
                     <DialogTitle>{file.filename}</DialogTitle>
+                    <DialogDescription>
+                      
+                    </DialogDescription>
                   </DialogHeader>
                   <div className="h-[60vh]">
                     <FilePreview 
@@ -137,7 +142,8 @@ export const FileDisplayUI: React.FC<FileDisplayUIProps> = ({
                 </DialogContent>
               </Dialog>
             )}
-            {onDownload && (
+            {/* TODO： 下载功能暂时隐藏， 因为还未解决下载的docx是乱码的问题 */}
+            {/* {onDownload && (
               <Button
                 variant="outline"
                 size="sm"
@@ -146,7 +152,7 @@ export const FileDisplayUI: React.FC<FileDisplayUIProps> = ({
                 <Download className="h-4 w-4 mr-1" />
                 下载
               </Button>
-            )}
+            )} */}
             <Button
               variant="destructive"
               size="sm"
