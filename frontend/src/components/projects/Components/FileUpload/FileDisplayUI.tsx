@@ -1,7 +1,9 @@
-import React from 'react';
-import { File, Trash2, Download, FileText } from 'lucide-react';
+import React, { useState } from 'react';
+import { File, Trash2, Download, FileText, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { FilePreview } from '@/components/files/FilePreview/FilePreview';
 import { TenderFile } from './schema';
 
 interface FileDisplayUIProps {
@@ -17,9 +19,39 @@ export const FileDisplayUI: React.FC<FileDisplayUIProps> = ({
   onDownload, 
   isDeleting = false 
 }) => {
-
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   console.log('FileDisplayUI file', file);
+
+  // 将文件扩展名转换为 FilePreview 组件所需的 fileType
+  const getFileTypeFromExtension = (extension: string): string => {
+    const ext = extension.toLowerCase().replace('.', '');
+    switch (ext) {
+      case 'pdf':
+        return 'pdf';
+      case 'doc':
+      case 'docx':
+        return 'word';
+      case 'xls':
+      case 'xlsx':
+        return 'excel';
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+      case 'bmp':
+        return 'image';
+      default:
+        return 'other';
+    }
+  };
+
+  // 检查文件是否支持预览
+  const isPreviewSupported = (extension: string): boolean => {
+    const supportedTypes = ['pdf', 'doc', 'docx'];
+    const ext = extension.toLowerCase().replace('.', '');
+    return supportedTypes.includes(ext);
+  };
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -57,6 +89,10 @@ export const FileDisplayUI: React.FC<FileDisplayUIProps> = ({
     }
   };
 
+  const fileType = getFileTypeFromExtension(file.extension);
+  const canPreview = isPreviewSupported(file.extension);
+  const previewUrl = file.presignedUrl || file.url;
+
   return (
     <Card>
       <CardHeader>
@@ -77,6 +113,30 @@ export const FileDisplayUI: React.FC<FileDisplayUIProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {canPreview && previewUrl && (
+              <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    预览
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[80vh]">
+                  <DialogHeader>
+                    <DialogTitle>{file.filename}</DialogTitle>
+                  </DialogHeader>
+                  <div className="h-[60vh]">
+                    <FilePreview 
+                      fileUrl={previewUrl} 
+                      fileType={fileType} 
+                    />
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
             {onDownload && (
               <Button
                 variant="outline"
