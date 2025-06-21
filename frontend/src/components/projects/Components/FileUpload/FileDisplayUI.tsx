@@ -17,6 +17,10 @@ export const FileDisplayUI: React.FC<FileDisplayUIProps> = ({
   onDownload, 
   isDeleting = false 
 }) => {
+
+
+  console.log('FileDisplayUI file', file);
+
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -66,9 +70,9 @@ export const FileDisplayUI: React.FC<FileDisplayUIProps> = ({
           <div className="flex items-center gap-3">
             <File className="h-8 w-8 text-blue-500" />
             <div>
-              <p className="font-medium">{file.fileName}</p>
+              <p className="font-medium">{file.filename}</p>
               <p className="text-sm text-muted-foreground">
-                {formatFileSize(file.fileSize)} • {formatDate(file.uploadTime)}
+                {formatFileSize(file.size)} • {formatDate(file.uploadDate)}
               </p>
             </div>
           </div>

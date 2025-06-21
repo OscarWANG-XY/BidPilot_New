@@ -38,30 +38,8 @@ const ProjectFileManagerContainer: React.FC<ProjectFileManagerProps> = ({ projec
   const shouldIgnoreError = queryError?.message?.includes('404') && !fileExists;
   const error = shouldIgnoreError ? null : (checkError?.message || queryError?.message || null);
 
-  // 将 API 返回的文件数据转换为 TenderFile 格式
-  const convertToTenderFile = (fileData: any): TenderFile | null => {
-    if (!fileData) return null;
-
-    // 添加调试日志
-    console.log('原始文件数据:', fileData);
-    console.log('upload_date 值:', fileData.uploadDate);
-    console.log('upload_date 类型:', typeof fileData.uploadDate);
-
-    
-    const convertedFile = {
-      id: projectId, // 使用 projectId 作为 id
-      fileName: fileData.filename,
-      fileSize: fileData.size,
-      uploadTime: fileData.uploadDate,
-      fileUrl: fileData.presignedUrl || fileData.url // 优先使用 presigned_url，回退到 url
-    };
-    
-    console.log('转换后的文件数据:', convertedFile);
-    
-    return convertedFile;
-  };
-
-  const tenderFile = convertToTenderFile(tenderFileData);
+  // 直接使用后端返回的数据，不需要转换
+  const tenderFile: TenderFile | null = tenderFileData || null;
 
   const handleUpload = async (file: File) => {
     try {
@@ -85,16 +63,16 @@ const ProjectFileManagerContainer: React.FC<ProjectFileManagerProps> = ({ projec
 
   // 改进的下载处理函数 - 使用API层的下载功能
   const handleDownload = async () => {
-    if (!tenderFile?.fileName) {
+    if (!tenderFile?.filename) {
       console.error('文件名缺失');
       return;
     }
 
     try {
-      console.log('开始下载文件:', tenderFile.fileName);
+      console.log('开始下载文件:', tenderFile.filename);
       await downloadTenderFile({ 
         projectId, 
-        fileName: tenderFile.fileName 
+        fileName: tenderFile.filename 
       });
       console.log('文件下载完成');
     } catch (error) {
@@ -113,7 +91,7 @@ const ProjectFileManagerContainer: React.FC<ProjectFileManagerProps> = ({ projec
       error={error}
       onUpload={handleUpload}
       onDelete={handleDelete}
-      onDownload={tenderFile?.fileUrl ? handleDownload : undefined}
+      onDownload={tenderFile?.presignedUrl || tenderFile?.url ? handleDownload : undefined}
     />
   );
 };

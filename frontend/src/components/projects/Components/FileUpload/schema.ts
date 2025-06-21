@@ -1,8 +1,10 @@
 export interface TenderFile {
-    id: string;
-    fileName: string;
-    fileSize: number;
-    uploadTime: string;
-    fileUrl?: string;
-  }
+  filename: string;
+  size: number;
+  path: string;
+  url: string;
+  extension: string;
+  uploadDate: string;
+  presignedUrl: string;
+}
   

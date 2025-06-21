@@ -1,4 +1,5 @@
 import axiosInstance from './axios_instance';
+import { TenderFile } from '@/components/projects/Components/FileUpload/schema';
 import type { 
   Project,
   CreateProjectRequest,
@@ -14,16 +15,6 @@ export interface CheckTenderFileExistResponse {
   hasValue: boolean;
   fieldType: string;
   projectId: string;
-}
-
-// 添加文件信息接口
-export interface TenderFileInfo {
-  filename: string;
-  size: number;
-  uploadDate: string;
-  presignedUrl?: string;
-  url?: string;
-  contentType?: string;
 }
 
 
@@ -86,7 +77,7 @@ export const projectsApi = {
   // ================================ 招标文件处理 API ===================================
 
   // 获取招标文件信息
-  getTenderFile: async (projectId: string): Promise<TenderFileInfo> => {
+  getTenderFile: async (projectId: string): Promise<TenderFile> => {
     console.log('📤 获取招标文件信息:', projectId);
     const response = await axiosInstance.get(`/projects/${projectId}/tender_file/`);
     console.log('📥 获取招标文件信息成功:', response.data);
@@ -117,7 +108,7 @@ export const projectsApi = {
   },
 
   // 上传招标文件
-  uploadTenderFile: async (projectId: string, file: File): Promise<TenderFileInfo> => {
+  uploadTenderFile: async (projectId: string, file: File): Promise<TenderFile> => {
     console.log('📤 上传招标文件:', { projectId, fileName: file.name, fileSize: file.size });
     
     // 验证文件大小 (100MB)
